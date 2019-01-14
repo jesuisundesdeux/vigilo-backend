@@ -16,7 +16,7 @@ $time=$result['obs_time'];
 $mapquestapi_key="gEiOG0t0mVAO4fW6EliL2X7sJ9VTLdyN";
 
 ## Wide map
-$size='1900,1900';
+$size='390,350';
 $zoom=14;
 $url='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size.'&zoom='.$zoom.'&locations='.$coordinates_lat.','.$coordinates_lon;
 $map_download_path = './maps/'.$token.'.jpg';
@@ -48,20 +48,18 @@ $logo = imagecreatefrompng('./jssud.png'); // logo #JeSuisUnDesDeux
 # Create image
 
 ## Text
-$fontcolor = imagecolorallocate($image, 0, 0, 0);
+$fontcolor = imagecolorallocate($image, 54, 66, 86);
 $fontfile = './DejaVuSans.ttf'; 
-
+$fontsize = 41;
 ### Title / comment
-$boxtxt = imagettfbbox(40,0,$fontfile,$comment);
-if(($boxtxt[2]-$boxtxt[0]) < 990) {
-	$fontsize=40;
-}
-else {
-	$fontsize=30;
-}
+do {
+	$fontsize--;
+	$boxtxt = imagettfbbox($fontsize,0,$fontfile,$comment);
+
+} while(($boxtxt[2]-$boxtxt[0]) > 800 && $fontsize > 20);
 
 $boxtxt = imagettfbbox($fontsize,0,$fontfile,$comment);
-$comment_x=(1024-($boxtxt[2]-$boxtxt[0])) / 2;
+$comment_x=150+(800-($boxtxt[2]-$boxtxt[0])) / 2;
 
 imagettftext($image,$fontsize,0,10+$comment_x,60,$fontcolor,$fontfile,$comment);
 
@@ -73,7 +71,7 @@ $date_x=(1024-($boxdate[2]-$boxdate[0])) / 2;
 imagettftext($image,20,0,10+$date_x,110,$fontcolor,$fontfile,$date);
 
 ## Wide Map
-imagecopymerge ( $image, $map, 5, 135, 800,800 , 1014, 627, 70 );
+imagecopymerge ( $image, $map, 5, 135, 0,0 , 390,350, 60 );
 
 ## Photo
 $photo_size_x = imagesx($photo);
@@ -90,7 +88,7 @@ if($photo_size_x > $photo_size_y) {
 	$size_max=$size_max-30;
 	$photo_new_size_x = $size_max;
 	$photo_new_size_y = $size_max/$ratio;
-	$photo_x = 280+((824-$photo_new_size_x)/2);
+	$photo_x = 400+((625-$photo_new_size_x)/2);
 	$photo_y = 135;
 }
 else {
@@ -103,10 +101,10 @@ else {
 imagecopyresized ( $image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y );
 
 # Logo
-imagecopy ( $image, $logo,890,635,0,0,125,125);
+imagecopy ( $image, $logo,2,5,0,0,125,125);
 
 ## Zoomed map
-imagecopymerge ( $image, $map_zoom,0,400,0,0,390,390,100);
+imagecopymerge ( $image, $map_zoom,5,400,0,0,390,360,100);
 
 ## Generate image
 imagepng($image);
