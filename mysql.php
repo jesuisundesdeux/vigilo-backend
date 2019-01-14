@@ -1,3 +1,3 @@
 <?php
-$db=mysqli_connect('mariadb','mplcpobs','kljh76bggh!','mplcpobs');
+$db=mysqli_connect('mariadb','XXXXXXX','XXXXXX','mplcpobs');
 
