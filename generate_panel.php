@@ -59,7 +59,7 @@ do {
 } while(($boxtxt[2]-$boxtxt[0]) > 800 && $fontsize > 20);
 
 $boxtxt = imagettfbbox($fontsize,0,$fontfile,$comment);
-$comment_x=150+(800-($boxtxt[2]-$boxtxt[0])) / 2;
+$comment_x=130+(800-($boxtxt[2]-$boxtxt[0])) / 2;
 
 imagettftext($image,$fontsize,0,10+$comment_x,60,$fontcolor,$fontfile,$comment);
 
