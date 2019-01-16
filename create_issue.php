@@ -1,5 +1,5 @@
 <?php
-require_once('./mysql.php');
+require_once('./common.php');
 function RandomStringGenerator($n) 
 { 
     // Variable which store final string 

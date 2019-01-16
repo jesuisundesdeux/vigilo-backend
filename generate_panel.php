@@ -1,6 +1,7 @@
 <?php
 header ("Content-type: image/png");
-require_once('./mysql.php');
+require_once('./common.php');
+date_default_timezone_set('Europe/Paris');
 
 
 # Get issue information
@@ -11,9 +12,6 @@ $coordinates_lat=$result['obs_coordinates_lat'];
 $coordinates_lon=$result['obs_coordinates_lon'];
 $comment=$result['obs_comment'];
 $time=$result['obs_time'];
-
-# Generate Maps
-$mapquestapi_key="gEiOG0t0mVAO4fW6EliL2X7sJ9VTLdyN";
 
 ## Wide map
 $size='390,350';
