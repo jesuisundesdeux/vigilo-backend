@@ -78,30 +78,36 @@ $photo_size_x = imagesx($photo);
 $photo_size_y = imagesy($photo);
 
 $ratio = $photo_size_x / $photo_size_y;
-$size_max=500;
+$photo_canvas_w = 1024-380;
+$photo_canvas_h = 768-135;
+
 if($photo_size_x > $photo_size_y) {
-	$photo_new_size_x = $size_max*$ratio;
-	$photo_new_size_y = $size_max;
-	$photo_x = 355;
-	$photo_y = 75+((620-$photo_new_size_y)/2);
+	$photo_new_size_x = $photo_canvas_w;
+	$photo_new_size_y = $photo_size_y;
+	while($photo_new_size_y > $photo_canvas_h or $photo_new_size_x > $photo_canvas_w) {
+	    $photo_new_size_y--;
+	    $photo_new_size_x = $photo_new_size_y*$ratio;
+	}
 } elseif($photo_size_x < $photo_size_y) {
-	$size_max=$size_max-30;
-	$photo_new_size_x = $size_max;
-	$photo_new_size_y = $size_max/$ratio;
-	$photo_x = 400+((625-$photo_new_size_x)/2);
-	$photo_y = 135;
+	$photo_new_size_y = $photo_canvas_h;
+	$photo_new_size_x = $photo_size_x;
+	while($photo_new_size_y > $photo_canvas_h or $photo_new_size_x > $photo_canvas_w) {
+	    $photo_new_size_x--;
+	    $photo_new_size_y = $photo_new_size_x/$ratio;
+	}
 }
 else {
-	$photo_new_size_x = $size_max;
-	$photo_new_size_y = $size_max;
-	$photo_x = 300;
-	$photo_y = 150;
+	$photo_new_size_x = $photo_canvas_w;
+	$photo_new_size_y = $photo_canvas_h;
+
 }
+$photo_x = 375+(($photo_canvas_w-$photo_new_size_x)/2);
+$photo_y = 130+(($photo_canvas_h-$photo_new_size_y)/2);
 
 imagecopyresized ( $image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y );
 
 # Logo
-imagecopy ( $image, $logo,2,5,0,0,125,125);
+imagecopy ( $image, $logo,2,6,0,0,125,125);
 
 ## Zoomed map
 imagecopymerge ( $image, $map_zoom,5,400,0,0,390,360,100);
