@@ -29,7 +29,7 @@ $map = imagecreatefromjpeg($map_download_path);
 ## Zoomed map
 $size_zoom='390,390';
 $zoom_zoom=19;
-$url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$coordinates_lat.','.$coordinates_lon;
+$url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$coordinates_lat.','.$coordinates_lon.'&type=hyb';
 $map_download_path_zoom = './maps/'.$token.'_zoom.jpg';
 
 if(!file_exists($map_download_path_zoom)) {
