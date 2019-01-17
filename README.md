@@ -9,7 +9,7 @@ docker-compose up
 
 *Test new creation*
 ```
-curl -d 'coordinates_lat=0&coordinates_lon=0&comment=comment&categorie=categorie' -X POST 'http://localhost/create_issue.php'
+curl -d 'coordinates_lat=0&coordinates_lon=0&comment=comment&categorie=1' -X POST 'http://localhost/create_issue.php'
 ```
 
 *phpmyadmin*
