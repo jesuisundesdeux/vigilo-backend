@@ -1,0 +1,32 @@
+db:
+  image: mariadb
+  restart: always
+  volumes:
+    - /data/docker/jsudd/mysql:/var/lib/mysql
+    - .:/data:ro
+  command: --init-file /data/init.sql
+  environment:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_USER: username
+    MYSQL_PASSWORD: passwd
+    MYSQL_DATABASE: dbname
+  ports:
+    - "3306:3306"
+
+web:
+   image: tutum/apache-php
+   ports:
+     - "80:80"
+   links:
+     - db
+   volumes:
+     - .:/app
+
+phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+        PMA_HOST: db    
+    links:
+        - db
+    ports:
+        - "8888:80"    
