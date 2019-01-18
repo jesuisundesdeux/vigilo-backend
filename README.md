@@ -3,7 +3,7 @@
 *Launch docker*
 
 ```
-docker-compose up
+MAPQUEST_API=xxxx docker-compose up
 # sudo chown -R $(id -u):$(id -g) ./app
 ```
 

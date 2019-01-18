@@ -27,7 +27,6 @@ if(mysqli_num_rows($query) == 1) {
   	file_put_contents($map_download_path, $content);
   }
   
-  error_log($map_download_path)
   $map = imagecreatefromjpeg($map_download_path);
   
   ## Zoomed map

@@ -15,6 +15,8 @@ db:
 
 web:
    image: tutum/apache-php
+   environment:
+     MAPQUEST_API: ${MAPQUEST_API}
    ports:
      - "80:80"
    links:
