@@ -1,45 +1,20 @@
 <?php
 require_once('./common.php');
-$status = 0;
 
-function RandomStringGenerator($n) 
-{ 
-    // Variable which store final string 
-    $generated_string = ""; 
-      
-    // Create a string with the help of  
-    // small letters, capital letters and 
-    // digits. 
-    $domain = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"; 
-      
-    // Find the lenght of created string 
-    $len = strlen($domain); 
-      
-    // Loop to create random string 
-    for ($i = 0; $i < $n; $i++) 
-    { 
-        // Generate a random index to pick 
-        // characters 
-        $index = rand(0, $len - 1); 
-          
-        // Concatenating the character  
-        // in resultant string 
-        $generated_string = $generated_string . $domain[$index]; 
-    } 
-      
-    // Return the random generated string 
-    return $generated_string; 
-} 
+# Generate Unique ID
+$token=str_replace('.','',uniqid('', true));
 
-
-$token=RandomStringGenerator(30); 
-
+# Get Web form datas
 $coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
 $comment = mysqli_real_escape_string($db,$_POST['comment']);
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 
+# Init Datas
+$status = 0;
 $json = array('token' => $token, 'status' => 0);
+
+# Insert user datas to MySQL Database
 error_log(!empty($coordinates_lat).'-'.!empty($coordinates_lon) .'-'.!empty($comment).'-'.!empty($categorie));
 if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
 
@@ -56,9 +31,12 @@ else {
   error_log('CREATE_ISSUE : Field not supported');
 }
 
-$json['status'] = $status;
+# If error force return 500 ERROR CODE
 if($status != 0) {
   http_response_code(500);
 }
+
+# Return Token value
+$json['status'] = $status;
 echo json_encode($json);
 ?>
