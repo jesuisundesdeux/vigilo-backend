@@ -3,7 +3,7 @@ db:
   restart: always
   volumes:
     - /data/docker/jsudd/mysql:/var/lib/mysql
-    - .:/data:ro
+    - ./mysql:/data:ro
   command: --init-file /data/init.sql
   environment:
     MYSQL_ROOT_PASSWORD: root
@@ -20,7 +20,7 @@ web:
    links:
      - db
    volumes:
-     - .:/app
+     - ./app:/app
 
 phpmyadmin:
     image: phpmyadmin/phpmyadmin
