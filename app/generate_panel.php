@@ -16,6 +16,20 @@ if(mysqli_num_rows($query) == 1) {
   $comment=$result['obs_comment'];
   $time=$result['obs_time'];
   
+  ## Get steet informations
+  $url_steet='https://www.mapquestapi.com/geocoding/v1/reverse?key='.$mapquestapi_key.'&location='.$coordinates_lat.'%2C'.$coordinates_lon.'&outFormat=json&thumbMaps=false&delimiter=%2C';
+  $street_download_path = './places/'.$token.'.json';
+
+  if(!file_exists($street_download_path)) {
+    $json_content = file_get_contents($url_steet);
+  	file_put_contents($street_download_path, $json_content);
+  } else {
+    $json_content = file_get_contents($street_download_path);
+  }
+
+  $json_street = json_decode($json_content, true); 
+  $street_name = $json_street['results'][0]['locations'][0]['street'];
+
   ## Wide map
   $size='390,350';
   $zoom=14;
@@ -34,7 +48,7 @@ if(mysqli_num_rows($query) == 1) {
   $zoom_zoom=19;
   $url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$coordinates_lat.','.$coordinates_lon.'&type=hyb';
   $map_download_path_zoom = './maps/'.$token.'_zoom.jpg';
-  
+    
   if(!file_exists($map_download_path_zoom)) {
   	$content_zoom = file_get_contents($url_zoom);
   	file_put_contents($map_download_path_zoom, $content_zoom);
@@ -52,6 +66,7 @@ if(mysqli_num_rows($query) == 1) {
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
   $fontfile = './DejaVuSans.ttf'; 
   $fontsize = 41;
+
   ### Title / comment
   do {
   	$fontsize--;
@@ -63,6 +78,8 @@ if(mysqli_num_rows($query) == 1) {
   $comment_x=130+(800-($boxtxt[2]-$boxtxt[0])) / 2;
   
   imagettftext($image,$fontsize,0,10+$comment_x,60,$fontcolor,$fontfile,$comment);
+  
+  imagettftext($image,$fontsize,0,10+$comment_x,200,$fontcolor,$fontfile,$street_name);
   
   ### Date
   $date = date('d/m/Y H:i',$time);
