@@ -66,7 +66,8 @@ if(mysqli_num_rows($query) == 1) {
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
   $fontfile = './DejaVuSans.ttf'; 
   $fontsize = 41;
-
+  $white = imagecolorallocate($image, 255, 255, 255);
+  
   ### Title / comment
   do {
   	$fontsize--;
@@ -77,16 +78,19 @@ if(mysqli_num_rows($query) == 1) {
   $boxtxt = imagettfbbox($fontsize,0,$fontfile,$comment);
   $comment_x=130+(800-($boxtxt[2]-$boxtxt[0])) / 2;
   
-  imagettftext($image,$fontsize,0,10+$comment_x,60,$fontcolor,$fontfile,$comment);
+  imagettftext($image,$fontsize,0,10+$comment_x,60,$white,$fontfile,$comment);
   
-  imagettftext($image,$fontsize,0,10+$comment_x,200,$fontcolor,$fontfile,$street_name);
+  # draw Street
+  imagettftext($image,20,0,120,120,$white,$fontfile,$street_name);
   
   ### Date
   $date = date('d/m/Y H:i',$time);
-  $boxdate = imagettfbbox(20,0,'./DejaVuSans.ttf',$date);
-  $date_x=(1024-($boxdate[2]-$boxdate[0])) / 2;
+  $boxdate = imagettfbbox(16,0,'./DejaVuSans.ttf',$date);
+  $date_size = $boxdate[2]-$boxdate[0]; 
+  $date_x=(1024-$date_size) / 2;
+  $date_x=1024-$date_size-20;
   
-  imagettftext($image,20,0,10+$date_x,110,$fontcolor,$fontfile,$date);
+  imagettftext($image,16,0,$date_x,120,$white,$fontfile,$date);
   
   ## Wide Map
   imagecopymerge ( $image, $map, 5, 135, 0,0 , 390,350, 60 );
