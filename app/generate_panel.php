@@ -15,18 +15,17 @@ if(mysqli_num_rows($query) == 1) {
   $coordinates_lon=$result['obs_coordinates_lon'];
   $comment=$result['obs_comment'];
   $time=$result['obs_time'];
-  
-  ## Get steet informations
-  $url_steet='https://www.mapquestapi.com/geocoding/v1/reverse?key='.$mapquestapi_key.'&location='.$coordinates_lat.'%2C'.$coordinates_lon.'&outFormat=json&thumbMaps=false&delimiter=%2C';
-  $street_download_path = './places/'.$token.'.json';
 
-  if(!file_exists($street_download_path)) {
-    $json_content = file_get_contents($url_steet);
-  	file_put_contents($street_download_path, $json_content);
-  } else {
-    $json_content = file_get_contents($street_download_path);
+  $qcount = mysqli_query($db,"SELECT count(*) as nbsignalement FROM obs_list") or die(mysqli_error());
+  $nbsignalement=0;
+  if(mysqli_num_rows($qcount) == 1) {
+    $rcount = mysqli_fetch_array($qcount);
+    $nbsignalement=$rcount['nbsignalement'];
   }
-
+  
+  # Street information created by create_issue
+  $street_download_path = './places/'.$token.'.json';
+  $json_content = file_get_contents($street_download_path);
   $json_street = json_decode($json_content, true); 
   $street_name = $json_street['results'][0]['locations'][0]['street'];
 
@@ -67,6 +66,8 @@ if(mysqli_num_rows($query) == 1) {
   $fontfile = './DejaVuSans.ttf'; 
   $fontsize = 41;
   $white = imagecolorallocate($image, 255, 255, 255);
+  $red = imagecolorallocate($image, 255, 0, 0);
+  $black = imagecolorallocate($image, 0, 0, 0);
   
   ### Title / comment
   do {
@@ -133,6 +134,11 @@ if(mysqli_num_rows($query) == 1) {
   
   ## Zoomed map
   imagecopymerge ( $image, $map_zoom,5,400,0,0,390,360,100);
+  
+  # Nb Signalements
+  $tsignalement=$nbsignalement . " signalements";
+  imagefilledrectangle ($image, 0,730,396,760,$black);
+  imagettftext($image,14,0,5,754,$white,$fontfile,$tsignalement);
   
   ## Generate image
   imagepng($image);

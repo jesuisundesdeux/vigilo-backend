@@ -12,7 +12,7 @@ $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 
 # Init Datas
 $status = 0;
-$json = array('token' => $token, 'status' => 0);
+$json = array('token' => $token, 'status' => 0, 'street' => 'Rue non trouvé');
 
 # Insert user datas to MySQL Database
 error_log(!empty($coordinates_lat).'-'.!empty($coordinates_lon) .'-'.!empty($comment).'-'.!empty($categorie));
@@ -36,7 +36,22 @@ if($status != 0) {
   http_response_code(500);
 }
 
+## Get steet informations
+$url_steet='https://www.mapquestapi.com/geocoding/v1/reverse?key='.$mapquestapi_key.'&location='.$coordinates_lat.'%2C'.$coordinates_lon.'&outFormat=json&thumbMaps=false&delimiter=%2C';
+$street_download_path = './places/'.$token.'.json';
+
+if(!file_exists($street_download_path)) {
+  $json_content = file_get_contents($url_steet);
+  file_put_contents($street_download_path, $json_content);
+} else {
+  $json_content = file_get_contents($street_download_path);
+}
+
+$json_street = json_decode($json_content, true); 
+$street_name = $json_street['results'][0]['locations'][0]['street'];
+
 # Return Token value
 $json['status'] = $status;
+$json['street'] = $street_name;
 echo json_encode($json);
 ?>
