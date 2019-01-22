@@ -1,6 +1,7 @@
 <?php
 header ("Content-type: image/png");
 require_once('./common.php');
+require_once('./functions.php');
 date_default_timezone_set('Europe/Paris');
 
 
@@ -16,13 +17,21 @@ if(mysqli_num_rows($query) == 1) {
   $comment=$result['obs_comment'];
   $time=$result['obs_time'];
 
-  $qcount = mysqli_query($db,"SELECT count(*) as nbsignalement FROM obs_list") or die(mysqli_error());
-  $nbsignalement=0;
-  if(mysqli_num_rows($qcount) == 1) {
-    $rcount = mysqli_fetch_array($qcount);
-    $nbsignalement=$rcount['nbsignalement'];
+#  $qcount = mysqli_query($db,"SELECT count(*) as nbsignalement FROM obs_list") or die(mysqli_error());
+   $nbsignalement=0;
+#  if(mysqli_num_rows($qcount) == 1) {
+#    $rcount = mysqli_fetch_array($qcount);
+#    $nbsignalement=$rcount['nbsignalement'];
+#  }
+
+
+  # Check closest issues
+  $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_token FROM obs_list");
+  while($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
+    if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 100) {
+      $nbsignalement++;       
+    }
   }
-  
   # Street information created by create_issue
   $street_download_path = './places/'.$token.'.json';
   $json_content = file_get_contents($street_download_path);
@@ -136,7 +145,7 @@ if(mysqli_num_rows($query) == 1) {
   imagecopymerge ( $image, $map_zoom,5,400,0,0,390,360,100);
   
   # Nb Signalements
-  $tsignalement=$nbsignalement . " signalements";
+  $tsignalement=$nbsignalement . " signalements dans cette zone";
   imagefilledrectangle ($image, 0,730,396,760,$black);
   imagettftext($image,14,0,5,754,$white,$fontfile,$tsignalement);
   
