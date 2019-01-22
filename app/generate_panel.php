@@ -18,7 +18,7 @@ if(mysqli_num_rows($query) == 1) {
   $time=$result['obs_time'];
 
 #  $qcount = mysqli_query($db,"SELECT count(*) as nbsignalement FROM obs_list") or die(mysqli_error());
-   $nbsignalement=0;
+   $nbsignalement=1;
 #  if(mysqli_num_rows($qcount) == 1) {
 #    $rcount = mysqli_fetch_array($qcount);
 #    $nbsignalement=$rcount['nbsignalement'];
@@ -147,9 +147,9 @@ if(mysqli_num_rows($query) == 1) {
   imagecopymerge ( $image, $map_zoom,5,400,0,0,390,360,100);
   
   # Nb Signalements
-  $tsignalement=$nbsignalement . " signalements dans cette zone";
+  $tsignalement=$nbsignalement . " signalement(s) dans cette zone";
   imagefilledrectangle ($image, 0,730,396,760,$black);
-  imagettftext($image,14,0,5,754,$white,$fontfile,$tsignalement);
+  imagettftext($image,14,0,10,754,$white,$fontfile,$tsignalement);
   
   ## Generate image
   imagepng($image);
