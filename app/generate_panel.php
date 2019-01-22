@@ -29,9 +29,10 @@ if(mysqli_num_rows($query) == 1) {
   $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_token FROM obs_list");
   $additionalmarkers='';
   while($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-    if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30) {
+     if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30) {
+      error_log($result_issues_coordinates['obs_token']);
       $nbsignalement++; 
-      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-5da058||';
+      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-ff9b05||';
     }
   }
   # Street information created by create_issue
