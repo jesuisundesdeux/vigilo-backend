@@ -15,7 +15,6 @@ $status = 0;
 $json = array('token' => $token, 'status' => 0, 'street' => 'Rue non trouvé');
 
 # Insert user datas to MySQL Database
-error_log(!empty($coordinates_lat).'-'.!empty($coordinates_lon) .'-'.!empty($comment).'-'.!empty($categorie));
 if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
 
   mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`) VALUES
