@@ -107,7 +107,7 @@ if(mysqli_num_rows($query) == 1) {
   imagettftext($image,16,0,$date_x,120,$white,$fontfile,$date);
   
   ## Wide Map
-  imagecopymerge ( $image, $map, 5, 135, 0,0 , 390,350, 60 );
+  imagecopymerge ( $image, $map, 5, 135, 0,0 , 390,350, 90 );
   
   ## Photo
   $photo_size_x = imagesx($photo);
