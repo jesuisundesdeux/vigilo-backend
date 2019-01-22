@@ -10,7 +10,7 @@ $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
 $comment = mysqli_real_escape_string($db,$_POST['comment']);
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
-$time = $time / 1000;
+$time = floor($time / 1000);
 
 # Init Datas
 $status = 0;
