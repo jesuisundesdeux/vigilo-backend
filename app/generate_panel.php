@@ -27,9 +27,11 @@ if(mysqli_num_rows($query) == 1) {
 
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_token FROM obs_list");
+  $additionalmarkers='';
   while($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-    if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 100) {
-      $nbsignalement++;       
+    if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30) {
+      $nbsignalement++; 
+      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-5da058||';
     }
   }
   # Street information created by create_issue
@@ -54,7 +56,8 @@ if(mysqli_num_rows($query) == 1) {
   ## Zoomed map
   $size_zoom='390,390';
   $zoom_zoom=19;
-  $url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$coordinates_lat.','.$coordinates_lon.'&type=hyb';
+  $url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$additionalmarkers.$coordinates_lat.','.$coordinates_lon.'|marker-ff0000&type=hyb';
+  error_log($url_zoom);
   $map_download_path_zoom = './maps/'.$token.'_zoom.jpg';
     
   if(!file_exists($map_download_path_zoom)) {
