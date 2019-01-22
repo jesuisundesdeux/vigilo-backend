@@ -30,7 +30,6 @@ if(mysqli_num_rows($query) == 1) {
   $additionalmarkers='';
   while($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
      if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30) {
-      error_log($result_issues_coordinates['obs_token']);
       $nbsignalement++; 
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-ff9b05||';
     }
@@ -58,7 +57,6 @@ if(mysqli_num_rows($query) == 1) {
   $size_zoom='390,390';
   $zoom_zoom=19;
   $url_zoom='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size_zoom.'&zoom='.$zoom_zoom.'&locations='.$additionalmarkers.$coordinates_lat.','.$coordinates_lon.'|marker-ff0000&type=hyb';
-  error_log($url_zoom);
   $map_download_path_zoom = './maps/'.$token.'_zoom.jpg';
     
   if(!file_exists($map_download_path_zoom)) {

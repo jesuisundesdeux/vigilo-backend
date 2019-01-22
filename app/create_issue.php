@@ -9,16 +9,17 @@ $coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
 $comment = mysqli_real_escape_string($db,$_POST['comment']);
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
+$time = mysqli_real_escape_string($db,$_POST['time']);
+$time = $time / 1000;
 
 # Init Datas
 $status = 0;
 $json = array('token' => $token, 'status' => 0, 'street' => 'Rue non trouvé');
-
 # Insert user datas to MySQL Database
 if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
 
   mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`) VALUES
-				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$comment.'","'.$categorie.'","'.$token.'","'.time().'",0)') ;
+				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0)') ;
 
   if($mysqlerror = mysqli_error($db)) {
     $status = 1;
