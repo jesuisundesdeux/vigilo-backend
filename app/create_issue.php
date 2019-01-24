@@ -2,15 +2,22 @@
 require_once('./common.php');
 
 # Generate Unique ID
-$token=str_replace('.','',uniqid('', true));
+#$token=str_replace('.','',uniqid('', true));
 
 # Get Web form datas
+$token = mysqli_real_escape_string($db,$_POST['token']);
 $coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
 $comment = mysqli_real_escape_string($db,$_POST['comment']);
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
 $time = floor($time / 1000);
+
+# Check if token exist
+$query_token = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+if(mysqli_num_rows($query_token) == 1) {
+  $token=strtoupper(substr(str_replace('.','',uniqid('', true)), 0, 8));
+}
 
 # Init Datas
 $status = 0;

@@ -26,12 +26,27 @@ if(mysqli_num_rows($query) == 1) {
 
 
   # Check closest issues
-  $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_token FROM obs_list");
+  $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
   $additionalmarkers='';
+  $color_recent = 'db0000';
+  $color_month = 'db7800';
+  $color_old = 'a8a8a8';
   while($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-     if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30) {
-      $nbsignalement++; 
-      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-ff9b05||';
+    if(distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'],'m') < 30 && $result_issues_coordinates['obs_token'] != $token) {
+       $osb_time = $result_issues_coordinates['obs_time'];
+       if(time() - $osb_time < 3600*24*30) {
+         $color = $color_recent;
+       }
+       elseif(time() - $osb_time < 3600*24*30*6) {
+	 $color = $color_month;
+       }
+       else {
+	 $color = $color_old;
+       }
+
+       $nbsignalement++;
+
+      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'].','.$result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
   # Street information created by create_issue
@@ -44,6 +59,7 @@ if(mysqli_num_rows($query) == 1) {
   $size='390,350';
   $zoom=14;
   $url='https://www.mapquestapi.com/staticmap/v5/map?key='.$mapquestapi_key.'&center='.$coordinates_lat.','.$coordinates_lon.'&size='.$size.'&zoom='.$zoom.'&locations='.$coordinates_lat.','.$coordinates_lon;
+  #https://www.mapquestapi.com/staticmap/v5/map?key=gEiOG0t0mVAO4fW6EliL2X7sJ9VTLdyN&center=43.59892875839891,3.90309290376607&size=390,390&locations=43.59892875839891,3.90309290376607&type=hyb&zoom=19&shape=radius:0.03km|border:000000|fill:d6d4d490|weight:0|43.59892875839891,3.90309290376607
   $map_download_path = './maps/'.$token.'.jpg';
   
   if(!file_exists($map_download_path)) {
@@ -90,8 +106,17 @@ if(mysqli_num_rows($query) == 1) {
   $boxtxt = imagettfbbox($fontsize,0,$fontfile,$comment);
   $comment_x=130+(800-($boxtxt[2]-$boxtxt[0])) / 2;
   
-  imagettftext($image,$fontsize,0,10+$comment_x,60,$white,$fontfile,$comment);
-  
+  imagettftext($image,$fontsize,0,10+$comment_x,80,$white,$fontfile,$comment);
+ 
+
+  # draw ID 
+  $issue_id_txt_fontsize = 16;
+  $issue_id_txt = $token;
+  $box_issue_id = imagettfbbox($issue_id_txt_fontsize,0,$fontfile,$issue_id_txt);
+  $issue_id_size = $box_issue_id[2] - $box_issue_id[0];
+  $issue_id_txt_x=1024-$issue_id_size-20;
+  imagettftext($image,$issue_id_txt_fontsize,0,$issue_id_txt_x,30,$white,$fontfile,$issue_id_txt);
+
   # draw Street
   imagettftext($image,20,0,120,120,$white,$fontfile,$street_name);
   
@@ -99,7 +124,6 @@ if(mysqli_num_rows($query) == 1) {
   $date = date('d/m/Y H:i',$time);
   $boxdate = imagettfbbox(16,0,'./DejaVuSans.ttf',$date);
   $date_size = $boxdate[2]-$boxdate[0]; 
-  $date_x=(1024-$date_size) / 2;
   $date_x=1024-$date_size-20;
   
   imagettftext($image,16,0,$date_x,120,$white,$fontfile,$date);
