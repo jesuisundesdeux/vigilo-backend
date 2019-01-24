@@ -7,23 +7,15 @@ date_default_timezone_set('Europe/Paris');
 
 # Get issue information
 $token = mysqli_real_escape_string($db,$_GET['token']);
-$query = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1") or die(mysqli_error());
+$query = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
 
 if(mysqli_num_rows($query) == 1) {
-
   $result = mysqli_fetch_array($query);
   $coordinates_lat=$result['obs_coordinates_lat'];
   $coordinates_lon=$result['obs_coordinates_lon'];
   $comment=$result['obs_comment'];
   $time=$result['obs_time'];
-
-#  $qcount = mysqli_query($db,"SELECT count(*) as nbsignalement FROM obs_list") or die(mysqli_error());
-   $nbsignalement=1;
-#  if(mysqli_num_rows($qcount) == 1) {
-#    $rcount = mysqli_fetch_array($qcount);
-#    $nbsignalement=$rcount['nbsignalement'];
-#  }
-
+  $nbsignalement=1;
 
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db,"SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
@@ -118,7 +110,7 @@ if(mysqli_num_rows($query) == 1) {
   imagettftext($image,$issue_id_txt_fontsize,0,$issue_id_txt_x,30,$white,$fontfile,$issue_id_txt);
 
   # draw Street
-  imagettftext($image,20,0,120,120,$white,$fontfile,$street_name);
+  imagettftext($image,16,0,120,120,$white,$fontfile,$street_name);
   
   ### Date
   $date = date('d/m/Y H:i',$time);
