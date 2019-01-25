@@ -13,6 +13,7 @@ if(mysqli_num_rows($query) == 1) {
   $result = mysqli_fetch_array($query);
   $coordinates_lat=$result['obs_coordinates_lat'];
   $coordinates_lon=$result['obs_coordinates_lon'];
+  $street_name =$result['obs_address_string'];
   $comment=$result['obs_comment'];
   $time=$result['obs_time'];
   $nbsignalement=1;
@@ -42,10 +43,10 @@ if(mysqli_num_rows($query) == 1) {
     }
   }
   # Street information created by create_issue
-  $street_download_path = './places/'.$token.'.json';
-  $json_content = file_get_contents($street_download_path);
-  $json_street = json_decode($json_content, true); 
-  $street_name = $json_street['results'][0]['locations'][0]['street'];
+  #$street_download_path = './places/'.$token.'.json';
+  #$json_content = file_get_contents($street_download_path);
+  #$json_street = json_decode($json_content, true); 
+  #$street_name = $json_street['results'][0]['locations'][0]['street'];
 
   ## Wide map
   $size='390,350';
