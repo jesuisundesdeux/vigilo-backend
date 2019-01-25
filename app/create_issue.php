@@ -14,6 +14,13 @@ $address = mysqli_real_escape_string($db,$_POST['address']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
 $time = floor($time / 1000);
 
+if(isset($_POST['version'])) {
+  $version = mysqli_real_escape_string($db,$_POST['version']);
+}
+else {
+  $version = 0;
+}
+
 # Check if token exist
 $query_token = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if(mysqli_num_rows($query_token) == 1 OR empty($token)) {
@@ -27,8 +34,8 @@ $json = array('token' => $token, 'status' => 0);
 # Insert user datas to MySQL Database
 if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
 
-  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`) VALUES
-				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0)') ;
+  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`) VALUES
+				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'")') ;
 
   if($mysqlerror = mysqli_error($db)) {
     $status = 1;

@@ -5,11 +5,13 @@ CREATE TABLE `obs_list` (
  `obs_id` int(11) AUTO_INCREMENT NOT NULL,
  `obs_coordinates_lat` varchar(255) COLLATE utf8_bin NOT NULL,
  `obs_coordinates_lon` varchar(255) COLLATE utf8_bin NOT NULL,
+ `obs_address_string` varchar(255) COLLATE utf8_bin NOT NULL,
  `obs_comment` text COLLATE utf8_bin NOT NULL,
  `obs_categorie` smallint(6) NOT NULL DEFAULT 1,
  `obs_token` varchar(30) COLLATE utf8_bin NOT NULL,
  `obs_time` bigint(20) NOT NULL,
  `obs_status` smallint(6) NOT NULL,
+ `obs_app_version` int(11) NOT NULL,
  PRIMARY KEY (obs_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
