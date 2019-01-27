@@ -4,3 +4,4 @@ app/places/*.json
 app/datas.php
 mysql/obs_list.sql
 app/caches
+SyncSettings.ffs_gui
