@@ -4,7 +4,7 @@ db:
   volumes:
     - /data/docker/jsudd/mysql:/var/lib/mysql
     - ./mysql:/data:ro
-  command: --init-file /data/init.sql
+  command: --init-file /data/${MYSQL_INIT_FILE}
   environment:
     MYSQL_ROOT_PASSWORD: root
     MYSQL_USER: username
