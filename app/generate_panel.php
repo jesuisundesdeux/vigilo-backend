@@ -192,7 +192,7 @@ if (mysqli_num_rows($query) == 1) {
     ## Resize image
     $ratio = $background_w/$resize_with;
     $imageresized = imagecreatetruecolor($resize_with, intval($background_h/$ratio));
-    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, 400, 300, 1024, 768);
+    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_with, intval($background_h/$ratio), 1024, 768);
     imagepng($imageresized, $img_filename);
     imagepng($imageresized);
   }
