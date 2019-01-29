@@ -187,16 +187,15 @@ if (mysqli_num_rows($query) == 1) {
   # Generate image files
   if ($resize_with == -1) {
     imagepng($image, $img_filename);
+    imagepng($image);
   } else {
     ## Resize image
     $ratio = $background_w/$resize_with;
     $imageresized = imagecreatetruecolor($resize_with, intval($background_h/$ratio));
-    imagecopyresized($imageresized, $image, 0, 0, 0, 0, 400, 300, 1024, 768);
+    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, 400, 300, 1024, 768);
     imagepng($imageresized, $img_filename);
+    imagepng($imageresized);
   }
-  
-  # Output image into navigator
-  imagepng($image);
 } else {
   error_log('GENERATE_IMAGE : Token ' . $token . ' not found');
   http_response_code(500);
