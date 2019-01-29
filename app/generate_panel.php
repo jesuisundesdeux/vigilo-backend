@@ -3,11 +3,11 @@ header("Content-type: image/png");
 require_once('./common.php');
 require_once('./functions.php');
 date_default_timezone_set('Europe/Paris');
-$MAX_IMG_SIZE=1024; // For limit attack
-
+$MAX_IMG_SIZE = 1024; // For limit attack
+$PERCENT_PIXELATED=5;
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
-if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) < $MAX_IMG_SIZE ) {
+if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) < $MAX_IMG_SIZE) {
   $resize_with = intval($_GET["s"]);
   $img_filename = './caches/' . $token . '_w' . $resize_with . '.png';
 } else {
@@ -15,7 +15,7 @@ if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) < $MAX_I
   $img_filename = './caches/' . $token . '_full.png';
 }
 
-# Use caches if available
+## Use caches if available
 if (file_exists($img_filename)) {
   $image = imagecreatefrompng($img_filename);
   imagepng($image);
@@ -32,8 +32,9 @@ if (mysqli_num_rows($query) == 1) {
   $street_name = $result['obs_address_string'];
   $comment = $result['obs_comment'];
   $time = $result['obs_time'];
+  $approved = $result['obs_approved'];
   $nbsignalement = 1;
-
+  
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
   $additionalmarkers = '';
@@ -95,6 +96,18 @@ if (mysqli_num_rows($query) == 1) {
   $background_w = imagesx($image);
   $background_h = imagesy($image);
   
+  if ( ! $approved and ($resize_with == -1 or $resize_with>600)) {
+    # Pixelate user image
+    $reduced = imagecreatetruecolor($background_w, $background_h);
+    imagecopyresized($reduced, $photo, 0, 0, 0, 0, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED), $background_w, $background_h);
+
+    $photo = imagecreatetruecolor($background_w, $background_h);
+    imagecopyresized($photo, $reduced, 0, 0, 0, 0, $background_w, $background_h, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED));
+}
+
+
+
+
   # Create image
   
   ## Text
@@ -184,15 +197,16 @@ if (mysqli_num_rows($query) == 1) {
   imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsignalement);
   
   
-  # Generate image files
+  # Generate full size image
   if ($resize_with == -1) {
-    imagepng($image, $img_filename);
-    imagepng($image);
+      # Use user original image
+      imagepng($image, $img_filename);
+      imagepng($image);
   } else {
-    ## Resize image
-    $ratio = $background_w/$resize_with;
-    $imageresized = imagecreatetruecolor($resize_with, intval($background_h/$ratio));
-    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_with, intval($background_h/$ratio), 1024, 768);
+    # Resize image
+    $ratio = $background_w / $resize_with;
+    $imageresized = imagecreatetruecolor($resize_with, intval($background_h / $ratio));
+    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_with, intval($background_h / $ratio), 1024, 768);
     imagepng($imageresized, $img_filename);
     imagepng($imageresized);
   }

@@ -9,7 +9,7 @@ $query = mysqli_query($db, "SELECT * FROM obs_list ORDER BY obs_time DESC");
 
 if (mysqli_num_rows($query) > 0) {
   echo '<table cellpadding="0" cellspacing="0" class="db-table">';
-  echo '<tr><th>time</th><th>street_name</th><th>comment</th><th>categorie<th>photo</th></tr>';
+  echo '<tr><th>time</th><th>street_name</th><th>comment</th><th>categorie<th>photo</th><th>approved</th></tr>';
   while ($result = mysqli_fetch_array($query)) {
     $coordinates_lat = $result['obs_coordinates_lat'];
     $coordinates_lon = $result['obs_coordinates_lon'];
@@ -20,6 +20,7 @@ if (mysqli_num_rows($query) > 0) {
     $time = $result['obs_time'];
     $status = $result['obs_status'];
     $version = $result['obs_app_version'];
+    $approved = $result['obs_approved'];
 
     echo '<tr>';
     echo '<td>'.$time.'</td>';
@@ -29,6 +30,7 @@ if (mysqli_num_rows($query) > 0) {
 
 #    echo '<td><a href="/generate_panel.php?token='.$token.'">'.$token.'<a/></td>';
     echo '<td><a href="/generate_panel.php?token='.$token.'"><img src="/generate_panel.php?s='.$sresample.'&token='.$token.'"</img><a/></td>';
+    echo '<td>'.$approved.'</td>';
 
     echo "</tr>\n";
   }
