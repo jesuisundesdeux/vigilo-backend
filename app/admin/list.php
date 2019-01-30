@@ -1,6 +1,6 @@
 <?php
-require_once('./common.php');
-require_once('./functions.php');
+require_once('../common.php');
+require_once('../functions.php');
 date_default_timezone_set('Europe/Paris');
 $sresample=200;
 
@@ -30,7 +30,7 @@ if (mysqli_num_rows($query) > 0) {
     echo '<td>'.$categorie.'</td>';
 
 #    echo '<td><a href="/generate_panel.php?token='.$token.'">'.$token.'<a/></td>';
-    echo '<td><a href="/generate_panel.php?token='.$token.'"><img src="/generate_panel.php?s='.$sresample.'&token='.$token.'"</img><a/></td>';
+    echo '<td><a href="/admin/photo.php?token='.$token.'" target="_blank"><img src="/generate_panel.php?s='.$sresample.'&token='.$token.'"</img><a/></td>';
     echo '<td>'.$approved.'</td>';
 
     echo "</tr>\n";

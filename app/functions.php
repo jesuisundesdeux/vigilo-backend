@@ -17,3 +17,9 @@ function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         }
         return $meter;
 }
+
+function delete_token_cache($token) {
+    foreach(glob(__DIR__."/caches/".$token."*") as $file) {
+        unlink($file);
+    }
+}
