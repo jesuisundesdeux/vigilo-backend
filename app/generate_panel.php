@@ -7,6 +7,8 @@ $MAX_IMG_SIZE = 1024; // For limit attack
 $PERCENT_PIXELATED=5;
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
+$secretid = mysqli_real_escape_string($db, $_GET['secretid']);
+
 if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) < $MAX_IMG_SIZE) {
   $resize_with = intval($_GET["s"]);
   $img_filename = './caches/' . $token . '_w' . $resize_with . '.png';
@@ -24,6 +26,7 @@ if (file_exists($img_filename)) {
 
 # Get issue information
 $query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
+#$query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' AND obs_secretid='".$secretid."' LIMIT 1");
 
 if (mysqli_num_rows($query) == 1) {
   $result = mysqli_fetch_array($query);
@@ -211,6 +214,6 @@ if (mysqli_num_rows($query) == 1) {
     imagepng($imageresized);
   }
 } else {
-  error_log('GENERATE_IMAGE : Token ' . $token . ' not found');
+  error_log('GENERATE_IMAGE : Token ' . $token . ' and/or secretid : ' . $secretid . ' not found');
   http_response_code(500);
 }

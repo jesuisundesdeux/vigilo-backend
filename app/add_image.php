@@ -1,10 +1,13 @@
 <?php
 require_once('./common.php');
 $token = $_GET['token'];
+$secretid = $_GET['secretid'];
 
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
+$secretid = mysqli_real_escape_string($db, $secretid);
 $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+#$checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' AND obs_secretid='".$secretid."' LIMIT 1");
 
 if(mysqli_num_rows($checktoken_query) == 1) {
   $data = file_get_contents('php://input');
@@ -26,7 +29,7 @@ if(mysqli_num_rows($checktoken_query) == 1) {
    }
 }
 else {
-    error_log("ADD_IMAGE : Token : ".$token." do not exist.");
+    error_log("ADD_IMAGE : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
     $status = 1;
 
 }
