@@ -1,6 +1,6 @@
 <?php
-$db=mysqli_connect('mariadb','mplcpobs','kljh76bggh!','mplcpobs');
+$db=mysqli_connect(getenv("DB_HOST"),getenv("DB_USER"),getenv("DB_PASS"),getenv("DB_DBNAME"));
 mysqli_set_charset($db, 'utf8' );
-# Generate Maps
-$mapquestapi_key="gEiOG0t0mVAO4fW6EliL2X7sJ9VTLdyN";
 
+# Generate Maps
+$mapquestapi_key=getenv("MAPQUEST_API");
