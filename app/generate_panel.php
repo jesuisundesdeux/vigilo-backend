@@ -109,8 +109,6 @@ if (mysqli_num_rows($query) == 1) {
 }
 
 
-
-
   # Create image
   
   ## Text
@@ -166,26 +164,32 @@ if (mysqli_num_rows($query) == 1) {
 
   if ($photo_size_x > $photo_size_y) {
     $photo_new_size_x = $photo_canvas_w;
-    $photo_new_size_y = $photo_size_y;
+    $photo_new_size_y = $photo_new_size_x / $ratio;
     while ($photo_new_size_y > $photo_canvas_h or $photo_new_size_x > $photo_canvas_w) {
       $photo_new_size_y--;
       $photo_new_size_x = $photo_new_size_y * $ratio;
     }
   } elseif ($photo_size_x < $photo_size_y) {
     $photo_new_size_y = $photo_canvas_h;
-    $photo_new_size_x = $photo_size_x;
-    while ($photo_new_size_y > $photo_canvas_h or $photo_new_size_x > $photo_canvas_w) {
+    $photo_new_size_x = $photo_new_size_y * $ratio ;
+    while($photo_new_size_x > $photo_canvas_w or $photo_new_size_y > $photo_canvas_h) {
       $photo_new_size_x--;
-      $photo_new_size_y = $photo_new_size_x / $ratio;
+      $photo_new_size_y=$photo_new_size_x / $ratio;
     }
   } else {
-    $photo_new_size_x = $photo_canvas_w;
-    $photo_new_size_y = $photo_canvas_h;
-
+    if($photo_canvas_w > $photo_canvas_h) {
+      $photo_new_size_x = $photo_new_size_y = $photo_canvas_h;
+    }
+    else {
+      $photo_new_size_x = $photo_new_size_y = $photo_canvas_w;
+    }
   }
   $photo_x = 375 + (($photo_canvas_w - $photo_new_size_x) / 2);
   $photo_y = 130 + (($photo_canvas_h - $photo_new_size_y) / 2);
 
+  error_log('size : '. $photo_size_x.'x'.$photo_size_y);
+  error_log('ratio :' .$ratio);
+  error_log('final size: '.$photo_new_size_x.'x'.$photo_new_size_y);
   imagecopyresized($image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y);
   
   # Logo
