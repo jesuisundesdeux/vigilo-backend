@@ -2,7 +2,7 @@
 require_once('./common.php');
 
 # Generate Unique ID
-#$token=str_replace('.','',uniqid('', true));
+$secretid=str_replace('.','',uniqid('', true));
 
 # Get Web form datas
 $token = mysqli_real_escape_string($db,$_POST['token']);
@@ -30,12 +30,12 @@ if(mysqli_num_rows($query_token) == 1 OR empty($token)) {
 # Init Datas
 $status = 0;
 #$json = array('token' => $token, 'status' => 0, 'street' => 'Rue non trouvé');
-$json = array('token' => $token, 'status' => 0);
+$json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
 # Insert user datas to MySQL Database
 if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
 
-  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`) VALUES
-				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'")') ;
+  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`) VALUES
+				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'")') ;
 
   if($mysqlerror = mysqli_error($db)) {
     $status = 1;
