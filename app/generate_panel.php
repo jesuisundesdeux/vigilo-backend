@@ -199,6 +199,9 @@ if (mysqli_num_rows($query) == 1) {
   $tsignalement = $nbsignalement . " signalement(s) dans cette zone";
   imagefilledrectangle($image, 0, 730, 396, 760, $black);
   imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsignalement);
+
+  # Texte fait avec Vigilo
+#  imagettftext($image, 12, 0, 860, 760, $white, $fontfile, "Générée avec Vǐgǐlo");
   
   
   # Generate full size image
