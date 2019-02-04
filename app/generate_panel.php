@@ -4,16 +4,16 @@ require_once('./common.php');
 require_once('./functions.php');
 date_default_timezone_set('Europe/Paris');
 $MAX_IMG_SIZE = 1024; // For limit attack
+$resize_width = $MAX_IMG_SIZE; // default width
 $PERCENT_PIXELATED=5;
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
 $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
 
-if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) < $MAX_IMG_SIZE) {
-  $resize_with = intval($_GET["s"]);
-  $img_filename = './caches/' . $token . '_w' . $resize_with . '.png';
+if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_IMG_SIZE) {
+  $resize_width = intval($_GET["s"]);
+  $img_filename = './caches/' . $token . '_w' . $resize_width . '.png';
 } else {
-  $resize_with = -1;
   $img_filename = './caches/' . $token . '_full.png';
 }
 
@@ -26,7 +26,6 @@ if (file_exists($img_filename)) {
 
 # Get issue information
 $query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
-#$query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' AND obs_secretid='".$secretid."' LIMIT 1");
 
 if (mysqli_num_rows($query) == 1) {
   $result = mysqli_fetch_array($query);
@@ -36,6 +35,10 @@ if (mysqli_num_rows($query) == 1) {
   $comment = $result['obs_comment'];
   $time = $result['obs_time'];
   $approved = $result['obs_approved'];
+  if($secretid == $result['obs_secretid']) {
+    $approved = 1;
+  }
+
   $nbsignalement = 1;
   
   # Check closest issues
@@ -60,11 +63,6 @@ if (mysqli_num_rows($query) == 1) {
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
-  # Street information created by create_issue
-  #$street_download_path = './places/'.$token.'.json';
-  #$json_content = file_get_contents($street_download_path);
-  #$json_street = json_decode($json_content, true); 
-  #$street_name = $json_street['results'][0]['locations'][0]['street'];
 
   ## Wide map
   $size = '390,350';
@@ -99,14 +97,14 @@ if (mysqli_num_rows($query) == 1) {
   $background_w = imagesx($image);
   $background_h = imagesy($image);
   
-  if ( ! $approved and ($resize_with == -1 or $resize_with>600)) {
+  if ( ! $approved and $resize_width>300) {
     # Pixelate user image
     $reduced = imagecreatetruecolor($background_w, $background_h);
     imagecopyresized($reduced, $photo, 0, 0, 0, 0, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED), $background_w, $background_h);
 
     $photo = imagecreatetruecolor($background_w, $background_h);
     imagecopyresized($photo, $reduced, 0, 0, 0, 0, $background_w, $background_h, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED));
-}
+  }
 
 
   # Create image
@@ -205,19 +203,22 @@ if (mysqli_num_rows($query) == 1) {
   
   
   # Generate full size image
-  if ($resize_with == -1) {
-      # Use user original image
-      imagepng($image, $img_filename);
-      imagepng($image);
+  if($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
+    imagepng($image);
+  }
+  else if ($approved && $resize_width == $MAX_IMG_SIZE) {
+    # Use user original image
+    imagepng($image, $img_filename);
+    imagepng($image);
   } else {
     # Resize image
-    $ratio = $background_w / $resize_with;
-    $imageresized = imagecreatetruecolor($resize_with, intval($background_h / $ratio));
-    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_with, intval($background_h / $ratio), 1024, 768);
+    $ratio = $background_w / $resize_width;
+    $imageresized = imagecreatetruecolor($resize_width, intval($background_h / $ratio));
+    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, intval($background_h / $ratio), 1024, 768);
     imagepng($imageresized, $img_filename);
     imagepng($imageresized);
   }
 } else {
-  error_log('GENERATE_IMAGE : Token ' . $token . ' and/or secretid : ' . $secretid . ' not found');
+  error_log('GENERATE_IMAGE : Token ' . $token . ' not found');
   http_response_code(500);
 }

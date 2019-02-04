@@ -19,7 +19,7 @@ if (mysqli_num_rows($query) == 1) {
   echo '<tr><th>photo</th><th>action</th></tr>';
 
   echo '<tr>';
-  echo '<td><img src="/generate_panel.php?token='.$token.'"></img></td>';
+  echo '<td><img src="/generate_panel.php?token='.$token.'&s=500"></img></td>';
   echo '<td>';
   echo '<a href="/admin/set_approve.php?approve=1&token='.$token.'">Approuver photo</a></br>';
   echo '<a href="/admin/set_approve.php?approve=0&token='.$token.'">Désapprouver photo</a></br>';
