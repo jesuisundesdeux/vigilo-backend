@@ -33,6 +33,8 @@ if (mysqli_num_rows($query) == 1) {
   $coordinates_lon = $result['obs_coordinates_lon'];
   $street_name = $result['obs_address_string'];
   $comment = $result['obs_comment'];
+  $categorie_id = $result['obs_categorie'];
+  $categorie_string=$categorie[$categorie_id];
   $time = $result['obs_time'];
   $approved = $result['obs_approved'];
   if($secretid == $result['obs_secretid']) {
@@ -108,26 +110,41 @@ if (mysqli_num_rows($query) == 1) {
 
 
   # Create image
-  
-  ## Text
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
   $fontfile = './DejaVuSans.ttf';
+  $white = imagecolorallocate($image, 255, 255, 255);
+  $black = imagecolorallocate($image, 0, 0, 0);
+  $fontcolor = imagecolorallocate($image, 54, 66, 86);
+ 
+
+  ## Categorie title
   $fontsize = 41;
   $white = imagecolorallocate($image, 255, 255, 255);
-  $red = imagecolorallocate($image, 255, 0, 0);
-  $black = imagecolorallocate($image, 0, 0, 0);
+  do {
+    $fontsize--;
+    $boxtitle = imagettfbbox($fontsize, 0, $fontfile, $categorie_string);
+
+  } while (($boxtitle[2] - $boxtitle[0]) > 800 && $fontsize > 20);
+
+  $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
+  $title_x = 130 + (800 - ($boxtitle[2] - $boxtitle[0])) / 2;
+
+  imagettftext($image, $fontsize, 0, 10 + $title_x, 70, $white, $fontfile, $categorie_string);
+
+  ## Text
+  $fontsize = 16;
   
   ### Title / comment
   do {
     $fontsize--;
     $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
 
-  } while (($boxtxt[2] - $boxtxt[0]) > 800 && $fontsize > 20);
+  } while (($boxtxt[2] - $boxtxt[0]) > 800 && $fontsize > 10);
 
   $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
   $comment_x = 130 + (800 - ($boxtxt[2] - $boxtxt[0])) / 2;
 
-  imagettftext($image, $fontsize, 0, 10 + $comment_x, 80, $white, $fontfile, $comment);
+  imagettftext($image, $fontsize, 0, 10 + $comment_x, 95, $white, $fontfile, $comment);
  
 
   # draw ID 
@@ -139,7 +156,7 @@ if (mysqli_num_rows($query) == 1) {
   imagettftext($image, $issue_id_txt_fontsize, 0, $issue_id_txt_x, 30, $white, $fontfile, $issue_id_txt);
 
   # draw Street
-  imagettftext($image, 16, 0, 120, 120, $white, $fontfile, $street_name);
+  imagettftext($image, 16, 0, 120, 125, $white, $fontfile, $street_name);
   
   ### Date
   $date = date('d/m/Y H:i', $time);
@@ -147,7 +164,7 @@ if (mysqli_num_rows($query) == 1) {
   $date_size = $boxdate[2] - $boxdate[0];
   $date_x = 1024 - $date_size - 20;
 
-  imagettftext($image, 16, 0, $date_x, 120, $white, $fontfile, $date);
+  imagettftext($image, 16, 0, $date_x, 125, $white, $fontfile, $date);
   
   ## Wide Map
   imagecopymerge($image, $map, 5, 135, 0, 0, 390, 350, 90);
