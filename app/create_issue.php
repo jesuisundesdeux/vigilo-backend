@@ -1,5 +1,6 @@
 <?php
 require_once('./common.php');
+require_once('./functions.php');
 
 # Generate Unique ID
 $secretid=str_replace('.','',uniqid('', true));
@@ -32,10 +33,28 @@ $status = 0;
 #$json = array('token' => $token, 'status' => 0, 'street' => 'Rue non trouvé');
 $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
 # Insert user datas to MySQL Database
-if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie)) {
+if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($comment) and !empty($categorie) and !empty($time) and !empty($address)) {
 
-  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`) VALUES
-				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'")') ;
+  $group_id = 0;
+  $group_query = mysqli_query($db,"SELECT * FROM obs_groups");
+  while($group_result = mysqli_fetch_array($group_query)) {
+      if($group_result['group_categorie'] == $categorie && $group_result['group_address_string'] == $address) {
+        $group_id = $group_result['group_id'];
+        break;
+      }
+      elseif($group_result['group_categorie'] == $categorie && distance($group_result['group_coordinates_lat'], $group_result['group_coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < 50) {
+        $group_id = $group_result['group_id'];
+        break;
+      }
+  }
+  if($group_id == 0) {
+    mysqli_query($db,'INSERT INTO obs_groups (`group_address_string`,`group_coordinates_lat`,`group_coordinates_lon`,`group_categorie`) VALUES
+      ("'.$address.'","'.$coordinates_lat.'","'.$coordinates_lon.'","'.$categorie.'")') ;
+    $group_id = mysqli_insert_id($db);
+  }
+
+  mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`,`obs_group`) VALUES
+				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'","'.$group_id.'")') ;
 
   if($mysqlerror = mysqli_error($db)) {
     $status = 1;
