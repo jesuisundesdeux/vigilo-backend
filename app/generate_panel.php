@@ -115,6 +115,7 @@ if (mysqli_num_rows($query) == 1) {
   $white = imagecolorallocate($image, 255, 255, 255);
   $black = imagecolorallocate($image, 0, 0, 0);
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
+  $fontcolorgrey = imagecolorallocate($image, 219, 219,219);
  
 
   ## Categorie title
@@ -129,7 +130,7 @@ if (mysqli_num_rows($query) == 1) {
   $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
   $title_x = 130 + (800 - ($boxtitle[2] - $boxtitle[0])) / 2;
 
-  imagettftext($image, $fontsize, 0, 10 + $title_x, 70, $white, $fontfile, $categorie_string);
+  imagettftext($image, $fontsize, 0, 10 + $title_x, 75, $white, $fontfile, $categorie_string);
 
   ## Text
   $fontsize = 16;
@@ -144,7 +145,7 @@ if (mysqli_num_rows($query) == 1) {
   $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
   $comment_x = 130 + (800 - ($boxtxt[2] - $boxtxt[0])) / 2;
 
-  imagettftext($image, $fontsize, 0, 10 + $comment_x, 95, $white, $fontfile, $comment);
+  imagettftext($image, $fontsize, 0, 10 + $comment_x, 100, $fontcolorgrey, $fontfile, $comment);
  
 
   # draw ID 
@@ -156,7 +157,7 @@ if (mysqli_num_rows($query) == 1) {
   imagettftext($image, $issue_id_txt_fontsize, 0, $issue_id_txt_x, 30, $white, $fontfile, $issue_id_txt);
 
   # draw Street
-  imagettftext($image, 16, 0, 120, 125, $white, $fontfile, $street_name);
+  imagettftext($image, 16, 0, 120, 128, $white, $fontfile, $street_name);
   
   ### Date
   $date = date('d/m/Y H:i', $time);
@@ -164,7 +165,7 @@ if (mysqli_num_rows($query) == 1) {
   $date_size = $boxdate[2] - $boxdate[0];
   $date_x = 1024 - $date_size - 20;
 
-  imagettftext($image, 16, 0, $date_x, 125, $white, $fontfile, $date);
+  imagettftext($image, 16, 0, $date_x, 128, $white, $fontfile, $date);
   
   ## Wide Map
   imagecopymerge($image, $map, 5, 135, 0, 0, 390, 350, 90);
