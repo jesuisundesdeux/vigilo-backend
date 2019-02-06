@@ -8,7 +8,13 @@ $resize_width = $MAX_IMG_SIZE; // default width
 $PERCENT_PIXELATED=5;
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
-$secretid = mysqli_real_escape_string($db, $_GET['secretid']);
+
+if(isset($_GET['secretid'])) {
+  $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
+}
+else {
+  $secretid = Null;
+}
 
 if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_IMG_SIZE) {
   $resize_width = intval($_GET["s"]);
@@ -99,7 +105,7 @@ if (mysqli_num_rows($query) == 1) {
   $background_w = imagesx($image);
   $background_h = imagesy($image);
   
-  if ( ! $approved and $resize_width>300) {
+/*  if ( ! $approved and $resize_width>300) {
     # Pixelate user image
     $reduced = imagecreatetruecolor($background_w, $background_h);
     imagecopyresized($reduced, $photo, 0, 0, 0, 0, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED), $background_w, $background_h);
@@ -107,7 +113,7 @@ if (mysqli_num_rows($query) == 1) {
     $photo = imagecreatetruecolor($background_w, $background_h);
     imagecopyresized($photo, $reduced, 0, 0, 0, 0, $background_w, $background_h, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED));
   }
-
+*/
 
   # Create image
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
@@ -203,6 +209,12 @@ if (mysqli_num_rows($query) == 1) {
   $photo_x = 375 + (($photo_canvas_w - $photo_new_size_x) / 2);
   $photo_y = 130 + (($photo_canvas_h - $photo_new_size_y) / 2);
 
+
+  if ( ! $approved and $resize_width>300) {
+    # Pixelate user image
+    $photo = imagescale($photo,round($photo_size_x / $PERCENT_PIXELATED),round($photo_size_y / $PERCENT_PIXELATED));
+    $photo = imagescale($photo,$photo_size_x,$photo_size_y);
+  }
   imagecopyresized($image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y);
   
   # Logo
@@ -219,12 +231,12 @@ if (mysqli_num_rows($query) == 1) {
   # Texte fait avec Vigilo
 #  imagettftext($image, 12, 0, 860, 760, $white, $fontfile, "Générée avec Vǐgǐlo");
   
-  
+
   # Generate full size image
   if($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
     imagepng($image);
   }
-  else if ($approved && $resize_width == $MAX_IMG_SIZE) {
+  else if ($resize_width == $MAX_IMG_SIZE) {
     # Use user original image
     imagepng($image, $img_filename);
     imagepng($image);
