@@ -1,12 +1,12 @@
 <?php
 require_once('./common.php');
+ini_set('max_input_vars', '3000');
 $token = $_GET['token'];
 $secretid = $_GET['secretid'];
 
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 $secretid = mysqli_real_escape_string($db, $secretid);
-#$checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' AND obs_secretid='".$secretid."' LIMIT 1");
 
 if(mysqli_num_rows($checktoken_query) == 1) {
@@ -25,6 +25,9 @@ if(mysqli_num_rows($checktoken_query) == 1) {
         unlink('images/'.$filename.'.jpg');
         error_log('ADD_IMAGE : File type not supported : '. $detectedType);
         $status = 1;
+      }
+      else {
+        mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
       }
    }
 }
