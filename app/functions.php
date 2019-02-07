@@ -23,3 +23,11 @@ function delete_token_cache($token) {
         unlink($file);
     }
 }
+function getrole($privatekey, $acls) {
+  foreach($acls as $key => $value) {
+    if(in_array($privatekey,$value)) {
+      return $key;
+    }
+  }
+  return False; 
+}

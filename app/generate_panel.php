@@ -7,6 +7,14 @@ $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
 $PERCENT_PIXELATED=5;
 
+if(isset($_GET['key'])) {
+  $key = $_GET['key'];
+}
+else {
+  $key = Null;
+}
+
+
 $token = mysqli_real_escape_string($db, $_GET['token']);
 
 if(isset($_GET['secretid'])) {
@@ -24,7 +32,7 @@ if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_
 }
 
 ## Use caches if available
-if (file_exists($img_filename)) {
+if (file_exists($img_filename) AND !getrole($key, $acls) == "admin") {
   $image = imagecreatefrompng($img_filename);
   imagepng($image);
   return;
@@ -43,11 +51,12 @@ if (mysqli_num_rows($query) == 1) {
   $categorie_string=$categorie[$categorie_id];
   $time = $result['obs_time'];
   $approved = $result['obs_approved'];
-  if($secretid == $result['obs_secretid']) {
+  $groupid = $result['obs_group'];
+  if($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
     $approved = 1;
   }
 
-  $nbsignalement = 1;
+  #$nbsignalement = 1;
   
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
@@ -66,17 +75,20 @@ if (mysqli_num_rows($query) == 1) {
         $color = $color_old;
       }
 
-      $nbsignalement++;
+ #     $nbsignalement++;
 
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
 
+  
+  $nbsimilarobs_query = mysqli_query($db,'SELECT * FROM obs_list WHERE obs_group="'.$groupid.'"');
+  $nbsimilarobs = mysqli_num_rows($nbsimilarobs_query);
+
   ## Wide map
   $size = '390,350';
   $zoom = 14;
   $url = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquestapi_key . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size . '&zoom=' . $zoom . '&locations=' . $coordinates_lat . ',' . $coordinates_lon;
-  #https://www.mapquestapi.com/staticmap/v5/map?key=gEiOG0t0mVAO4fW6EliL2X7sJ9VTLdyN&center=43.59892875839891,3.90309290376607&size=390,390&locations=43.59892875839891,3.90309290376607&type=hyb&zoom=19&shape=radius:0.03km|border:000000|fill:d6d4d490|weight:0|43.59892875839891,3.90309290376607
   $map_download_path = './maps/' . $token . '.jpg';
 
   if (!file_exists($map_download_path)) {
@@ -105,16 +117,6 @@ if (mysqli_num_rows($query) == 1) {
   $background_w = imagesx($image);
   $background_h = imagesy($image);
   
-/*  if ( ! $approved and $resize_width>300) {
-    # Pixelate user image
-    $reduced = imagecreatetruecolor($background_w, $background_h);
-    imagecopyresized($reduced, $photo, 0, 0, 0, 0, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED), $background_w, $background_h);
-
-    $photo = imagecreatetruecolor($background_w, $background_h);
-    imagecopyresized($photo, $reduced, 0, 0, 0, 0, $background_w, $background_h, round($background_w / $PERCENT_PIXELATED), round($background_h / $PERCENT_PIXELATED));
-  }
-*/
-
   # Create image
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
   $fontfile = './DejaVuSans.ttf';
@@ -223,10 +225,10 @@ if (mysqli_num_rows($query) == 1) {
   ## Zoomed map
   imagecopymerge($image, $map_zoom, 5, 400, 0, 0, 390, 360, 100);
   
-  # Nb Signalements
-  $tsignalement = $nbsignalement . " signalement(s) dans cette zone";
+  # Nb Similar Obs
+  $tsimilarobs = $nbsimilarobs . ' observations pour ce problème';
   imagefilledrectangle($image, 0, 730, 396, 760, $black);
-  imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsignalement);
+  imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsimilarobs);
 
   # Texte fait avec Vigilo
 #  imagettftext($image, 12, 0, 860, 760, $white, $fontfile, "Générée avec Vǐgǐlo");
