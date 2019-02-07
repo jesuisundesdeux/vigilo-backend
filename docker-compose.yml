@@ -2,7 +2,7 @@ db:
   image: mariadb
   restart: always
   volumes:
-    - /data/docker/jsudd/mysql:/var/lib/mysql
+    - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
     - ./mysql:/data:ro
   command: --init-file /data/${MYSQL_INIT_FILE}
   environment:
@@ -22,6 +22,9 @@ web:
    links:
      - db
    volumes:
+     - ${VOLUME_PATH}/files/caches:/app/caches
+     - ${VOLUME_PATH}/files/maps:/app/maps
+     - ${VOLUME_PATH}/files/images:/app/images
      - ./app:/app
 
 phpmyadmin:
