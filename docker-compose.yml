@@ -22,10 +22,10 @@ web:
    links:
      - db
    volumes:
+     - ./app:/app
      - ${VOLUME_PATH}/files/caches:/app/caches
      - ${VOLUME_PATH}/files/maps:/app/maps
      - ${VOLUME_PATH}/files/images:/app/images
-     - ./app:/app
 
 phpmyadmin:
     image: phpmyadmin/phpmyadmin
