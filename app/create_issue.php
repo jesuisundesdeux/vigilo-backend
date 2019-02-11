@@ -57,9 +57,9 @@ else {
   if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
   
     $group_id = 0;
-    $group_query = mysqli_query($db,"SELECT * FROM obs_groups");
+    $group_query = mysqli_query($db,"SELECT * FROM obs_groups ORDER BY group_id");
     while($group_result = mysqli_fetch_array($group_query)) {
-        if($group_result['group_categorie'] == $categorie && $group_result['group_address_string'] == $address) {
+        if($group_result['group_categorie'] == $categorie && str_replace(' ','',$group_result['group_address_string']) == str_replace(' ','',$address)) {
           $group_id = $group_result['group_id'];
           break;
         }
