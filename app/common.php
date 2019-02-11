@@ -18,5 +18,10 @@ $categorie = array(
 9 => "Zone accidentogène",
 100 => "Autre");
 
-$acls=array( "admin" => array('')); // add admin keys
+# ACL
+$roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
+while($roles_result = mysqli_fetch_array($roles_query)) {
+  $role = $roles_result['role_name'];
+  $acls[$role][] = $roles_result['role_key'];
+}
 
