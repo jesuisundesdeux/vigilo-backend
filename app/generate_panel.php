@@ -214,8 +214,12 @@ if (mysqli_num_rows($query) == 1) {
 
   if ( ! $approved and $resize_width>300) {
     # Pixelate user image
-    $photo = imagescale($photo,round($photo_size_x / $PERCENT_PIXELATED),round($photo_size_y / $PERCENT_PIXELATED));
-    $photo = imagescale($photo,$photo_size_x,$photo_size_y);
+    $tmpImage = ImageCreateTrueColor($photo_size_x,$photo_size_y);
+    imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_size_x / $PERCENT_PIXELATED), round($photo_size_y / $PERCENT_PIXELATED), $photo_size_x, $photo_size_y);
+    
+    # Create 100% version ... blow it back up to it's initial size:
+    $pixelated = ImageCreateTrueColor($photo_size_x, $photo_size_y);
+    imagecopyresized($photo, $tmpImage, 0, 0, 0, 0, $photo_size_x, $photo_size_y, round($photo_size_x / $PERCENT_PIXELATED), round($photo_size_y / $PERCENT_PIXELATED));
   }
   imagecopyresized($image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y);
   
