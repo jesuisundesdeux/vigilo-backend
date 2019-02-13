@@ -19,6 +19,13 @@ if(getrole($key, $acls) == "admin") {
 
     $query = mysqli_query($db, "UPDATE obs_list set obs_approved=1 WHERE obs_token='" . $token . "'");
     delete_token_cache($token);
+
+    $checktoken_result = mysqli_fetch_array($checktoken_query);
+    $comment = $checktoken_result['obs_comment'];
+    $time = $checktoken_result['obs_time'];
+    if($time > (time() - 3600 * 24)) {
+      tweet($comment . ' #JeSuisUnDesDeux', 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token=.'$token);
+    }
   }
 }
 else {

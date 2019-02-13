@@ -1,4 +1,5 @@
 <?php
+require_once('lib/codebird-php/codebird.php');
 // https://numa-bord.com/miniblog/php-calcul-de-distance-entre-2-coordonnees-gps-latitude-longitude/
 function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         $earth_radius = 6378137;   // Terre = sphère de 6378km de rayon
@@ -23,6 +24,24 @@ function delete_token_cache($token) {
         unlink($file);
     }
 }
+function tweet($text,$image) {
+   \Codebird\Codebird::setConsumerKey(getenv("TWITTER_CONSUMER"), getenv("TWITTER_CONSUMERSECRET"));
+  $cb = \Codebird\Codebird::getInstance();
+  $cb->setToken(getenv("TWITTER_ACCESSTOKEN"), getenv("TWITTER_ACCESSTOKENSECRET"));
+$reply = $cb->media_upload(array(
+    'media' => $image
+));
+$mediaID = $reply->media_id_string;
+
+
+  $params = array(
+    'status' => $text,
+    'media_ids' => $mediaID
+  );
+$reply = $cb->statuses_update($params);
+
+}
+
 function getrole($privatekey, $acls) {
   foreach($acls as $key => $value) {
     if(in_array($privatekey,$value)) {
@@ -31,3 +50,4 @@ function getrole($privatekey, $acls) {
   }
   return False; 
 }
+
