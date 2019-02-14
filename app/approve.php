@@ -14,7 +14,7 @@ $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 
 if(getrole($key, $acls) == "admin") {
-  $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_comment,obs_time FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+  $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 
   if(mysqli_num_rows($checktoken_query) == 1) {
 
@@ -24,8 +24,10 @@ if(getrole($key, $acls) == "admin") {
     $checktoken_result = mysqli_fetch_array($checktoken_query);
     $comment = $checktoken_result['obs_comment'];
     $time = $checktoken_result['obs_time'];
+    $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
+    $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
     if($time > (time() - 3600 * 24)) {
-      tweet($comment . ' #JeSuisUnDesDeux', 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
+      tweet($comment . ' #JeSuisUnDesDeux #VG_'.$token. ' https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$$coordinates_lat.'/'.$coordinates_lon, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
     }
   }
 }
