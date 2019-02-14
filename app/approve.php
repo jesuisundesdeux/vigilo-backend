@@ -27,7 +27,7 @@ if(getrole($key, $acls) == "admin") {
     $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
     $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
     if($time > (time() - 3600 * 24)) {
-      tweet($comment . ' #JeSuisUnDesDeux #VG_'.$token. ' https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$$coordinates_lat.'/'.$coordinates_lon, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
+      tweet($comment . ' #JeSuisUnDesDeux #VG_'.$token. ' https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$coordinates_lat.'/'.$coordinates_lon, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
     }
   }
 }
