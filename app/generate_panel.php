@@ -228,7 +228,7 @@ if (mysqli_num_rows($query) == 1) {
   imagecopymerge($image, $map_zoom, 5, 400, 0, 0, 390, 360, 100);
   
   # Nb Similar Obs
-  $tsimilarobs = $nbsimilarobs . ' observations similaires proches';
+  $tsimilarobs = $nbsimilarobs . ' observation(s) similaire(s) à proximité';
   imagefilledrectangle($image, 0, 730, 396, 760, $black);
   imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsimilarobs);
 
