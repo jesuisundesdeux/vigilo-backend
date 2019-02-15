@@ -58,30 +58,30 @@ if (mysqli_num_rows($query) == 1) {
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
   $additionalmarkers = '';
-  $nbsimilarobs = 0;
+  #$nbsimilarobs = 0;
   $color_recent = 'db0000';
   $color_month = 'db7800';
   $color_old = 'a8a8a8';
   while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-    if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 500 && $result_issues_coordinates['obs_token'] != $token) {
-      $osb_time = $result_issues_coordinates['obs_time'];
+    if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 30 && $result_issues_coordinates['obs_token'] != $token) {
+      $obs_time = $result_issues_coordinates['obs_time'];
       if (time() - $osb_time < 3600 * 24 * 30) {
         $color = $color_recent;
-      } elseif (time() - $osb_time < 3600 * 24 * 30 * 6) {
+      } elseif (time() - $obs_time < 3600 * 24 * 30 * 6) {
         $color = $color_month;
       } else {
         $color = $color_old;
       }
 
-      $nbsimilarobs++;
+  #    $nbsimilarobs++;
 
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
 
   
-#  $nbsimilarobs_query = mysqli_query($db,'SELECT * FROM obs_list WHERE obs_group="'.$groupid.'"');
-#  $nbsimilarobs = mysqli_num_rows($nbsimilarobs_query);
+  $nbsimilarobs_query = mysqli_query($db,'SELECT * FROM obs_list WHERE obs_group="'.$groupid.'"');
+  $nbsimilarobs = mysqli_num_rows($nbsimilarobs_query);
 
   ## Wide map
   $size = '390,350';
@@ -228,7 +228,7 @@ if (mysqli_num_rows($query) == 1) {
   imagecopymerge($image, $map_zoom, 5, 400, 0, 0, 390, 360, 100);
   
   # Nb Similar Obs
-  $tsimilarobs = $nbsimilarobs . ' observations dans cette zone';
+  $tsimilarobs = $nbsimilarobs . ' observations similaires proches';
   imagefilledrectangle($image, 0, 730, 396, 760, $black);
   imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsimilarobs);
 

@@ -63,7 +63,7 @@ else {
           $group_id = $group_result['group_id'];
           break;
         }
-        elseif($group_result['group_categorie'] == $categorie && distance($group_result['group_coordinates_lat'], $group_result['group_coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < 50) {
+        elseif($group_result['group_categorie'] == $categorie && distance($group_result['group_coordinates_lat'], $group_result['group_coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < 200) {
           $group_id = $group_result['group_id'];
           break;
         }
