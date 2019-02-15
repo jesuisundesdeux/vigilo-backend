@@ -1,6 +1,6 @@
 <?php
-require_once('./common.php');
-require_once('./functions.php');
+require_once('../common.php');
+require_once('../functions.php');
 
 // Script to map or create obs gorups
 
