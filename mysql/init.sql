@@ -2,22 +2,19 @@ CREATE DATABASE IF NOT EXISTS dbname;
 
 USE dbname;
 
--- phpMyAdmin SQL Dump
--- version 4.7.2
--- https://www.phpmyadmin.net/
---
--- Hôte : mariadb
--- Généré le :  jeu. 07 fév. 2019 à 16:39
--- Version du serveur :  10.2.6-MariaDB-10.2.6+maria~jessie
--- Version de PHP :  7.0.16
-
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
 --
--- Base de données :  `mplcpobs`
+-- Base de données :  `dbname`
 --
 
 -- --------------------------------------------------------
@@ -57,6 +54,19 @@ CREATE TABLE `obs_list` (
   `obs_group` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `obs_roles`
+--
+
+CREATE TABLE `obs_roles` (
+  `role_id` int(11) NOT NULL,
+  `role_key` varchar(255) CHARACTER SET latin1 NOT NULL,
+  `role_name` varchar(45) CHARACTER SET latin1 NOT NULL,
+  `role_owner` varchar(255) CHARACTER SET latin1 NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ROW_FORMAT=COMPACT;
+
 --
 -- Index pour les tables déchargées
 --
@@ -76,6 +86,12 @@ ALTER TABLE `obs_list`
   ADD KEY `token` (`obs_token`);
 
 --
+-- Index pour la table `obs_roles`
+--
+ALTER TABLE `obs_roles`
+  ADD PRIMARY KEY (`role_id`);
+
+--
 -- AUTO_INCREMENT pour les tables déchargées
 --
 
@@ -83,13 +99,24 @@ ALTER TABLE `obs_list`
 -- AUTO_INCREMENT pour la table `obs_groups`
 --
 ALTER TABLE `obs_groups`
-  MODIFY `group_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `group_id` int(11) NOT NULL AUTO_INCREMENT;
+
 --
 -- AUTO_INCREMENT pour la table `obs_list`
 --
 ALTER TABLE `obs_list`
-  MODIFY `obs_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=450;COMMIT;
+  MODIFY `obs_id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT pour la table `obs_roles`
+--
+ALTER TABLE `obs_roles`
+  MODIFY `role_id` int(11) NOT NULL AUTO_INCREMENT;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
  INSERT INTO `obs_list` (`obs_id`, `obs_coordinates_lat`, `obs_coordinates_lon`, `obs_comment`, `obs_categorie`, `obs_token`, `obs_time`, `obs_status`,`obs_approved`) VALUES
 (19, '43.60063364932313', '3.9004433155059948', 'Parking sur le trottoir ', 1, 'ttueacArvsHCA81zNHD4tN8KvVj63l', 1547298289, 0,1);
