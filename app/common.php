@@ -6,7 +6,7 @@ mysqli_set_charset($db, 'utf8' );
 $mapquestapi_key=getenv("MAPQUEST_API");
 
 # Categories
-$categorie = array(
+/*$categorie = array(
 1 => "Non défini",
 2 => "Objet ou vehicule bloquant le passage",
 3 => "Aménagement incohérent",
@@ -16,6 +16,17 @@ $categorie = array(
 7 => "Incivilité récurrente sur la route",
 8 => "Aménagement exemplaire",
 9 => "Zone accidentogène",
+100 => "Autre");
+*/
+$categorie = array(
+2 => "Véhicule ou objet gênant (gcum)",
+3 => "Aménagement mal conçu",
+4 => "Défaut d'entretien",
+5 => "Absence d'arceaux de stationnement",
+6 => "Signalisation, marquage",
+7 => "Incivilité récurrente sur la route",
+8 => "Absence d'aménagement",
+9 => "Accident, chute, incident",
 100 => "Autre");
 
 # ACL
