@@ -28,7 +28,7 @@ if(getrole($key, $acls) == "admin") {
     $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
     $group = $checktoken_result['obs_group'];
     if($time > (time() - 3600 * 24)) {
-      tweet($comment . ' #JeSuisUnDesDeux #VG_'.$token. '\n- Similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?g='.$group.'\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$coordinates_lat.'/'.$coordinates_lon, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
+      tweet($comment . ' #JeSuisUnDesDeux #VG_'.$token. "\n- Similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?g=".$group."\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/".$coordinates_lat.'/'.$coordinates_lon, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token);
     }
   }
 }
