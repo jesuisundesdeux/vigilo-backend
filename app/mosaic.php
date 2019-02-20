@@ -1,5 +1,5 @@
 CTYPE html>
-
+<!-- https://codepen.io/desandro/full/RPKgEN -->
 <html>
 <head>
  <title>JeSuisUnDesDeux / Vigilo</title>
@@ -30,7 +30,7 @@ body { font-family: sans-serif; }
 
 .grid-sizer,
 .grid-item {
-  width: 33.333%;
+  width: 25%;
 }
 
 .grid-item {
@@ -87,7 +87,7 @@ $item= 0;
 foreach($content as $value) {
 if(($value['categorie'] == $cat OR $cat == 'all') AND ($value['group'] == $grp OR $grp == 'all')) {
 #  $item++;
-  echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 #  if($item == 5) {
 #    $item = 0;
 #    echo "<br />";
