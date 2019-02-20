@@ -14,6 +14,7 @@ else {
   $key = Null;
 }
 
+
 $token = mysqli_real_escape_string($db, $_GET['token']);
 
 if(isset($_GET['secretid'])) {
@@ -58,28 +59,25 @@ if (mysqli_num_rows($query) == 1) {
   # Check closest issues
   $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
   $additionalmarkers = '';
-  #$nbsimilarobs = 0;
   $color_recent = 'db0000';
   $color_month = 'db7800';
   $color_old = 'a8a8a8';
   while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
     if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 30 && $result_issues_coordinates['obs_token'] != $token) {
-      $obs_time = $result_issues_coordinates['obs_time'];
+      $osb_time = $result_issues_coordinates['obs_time'];
       if (time() - $osb_time < 3600 * 24 * 30) {
         $color = $color_recent;
-      } elseif (time() - $obs_time < 3600 * 24 * 30 * 6) {
+      } elseif (time() - $osb_time < 3600 * 24 * 30 * 6) {
         $color = $color_month;
       } else {
         $color = $color_old;
       }
 
-  #    $nbsimilarobs++;
-
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
 
-  
+ 
   $nbsimilarobs_query = mysqli_query($db,'SELECT * FROM obs_list WHERE obs_group="'.$groupid.'"');
   $nbsimilarobs = mysqli_num_rows($nbsimilarobs_query);
 
@@ -98,7 +96,7 @@ if (mysqli_num_rows($query) == 1) {
   
   ## Zoomed map
   $size_zoom = '390,390';
-  $zoom_zoom = 19;
+  $zoom_zoom = 17;
   $url_zoom = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquestapi_key . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size_zoom . '&zoom=' . $zoom_zoom . '&locations=' . $additionalmarkers . $coordinates_lat . ',' . $coordinates_lon . '|marker-ff0000&type=hyb';
   $map_download_path_zoom = './maps/' . $token . '_zoom.jpg';
 
@@ -106,136 +104,188 @@ if (mysqli_num_rows($query) == 1) {
     $content_zoom = file_get_contents($url_zoom);
     file_put_contents($map_download_path_zoom, $content_zoom);
   }
-  $map_zoom = imagecreatefromjpeg($map_download_path_zoom);
-  
+
+ 
+##################################### COMPOSING IMAGE #########################"
   ## Init other images components :
-  $image = imagecreatefrompng('./fondjsuisundesdeux.png'); // background
   $photo = imagecreatefromjpeg('./images/' . $token . '.jpg'); // issue photo
-  $logo = imagecreatefrompng('./jssud.png'); // logo #JeSuisUnDesDeux
-  $background_w = imagesx($image);
-  $background_h = imagesy($image);
-  
-  # Create image
-  $fontcolor = imagecolorallocate($image, 54, 66, 86);
-  $fontfile = './DejaVuSans.ttf';
-  $white = imagecolorallocate($image, 255, 255, 255);
-  $black = imagecolorallocate($image, 0, 0, 0);
+  $photo_w = imagesx($photo);
+  $photo_h = imagesy($photo);
+  $photo_ratio = $photo_w / $photo_h;
+
+  if($photo_ratio < 1) {
+    $backgroung_image = "panel_components/portrait/background.jpg";
+    $content_image = "panel_components/portrait/content.png";
+    $logo_image = "panel_components/portrait/logo.png";
+
+    $image = imagecreatefromjpeg($backgroung_image); // background
+    $background_w = imagesx($image);
+    $background_h = imagesy($image);
+
+    $photo_max_w = 470;
+    $photo_max_h = 800;
+
+    $photo_new_size_h = $photo_max_h;
+    $photo_new_size_w = $photo_new_size_h * $photo_ratio ;
+
+    while($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
+      $photo_new_size_w--;
+      $photo_new_size_h=$photo_new_size_w / $photo_ratio;
+    }
+
+    $photo_position_x = 380;
+    $photo_min_y = $background_h  - (103 + $photo_new_size_h);
+    $map_x = -10;
+    $map_y = 543;
+    $comment_y_frombottom = 50;
+    $comment_span_x = 0;
+    $categorie_y = 240;
+    $address_y = 330;
+    $date_y = 515;
+    $copyright_x= 2;
+
+  }
+  else {
+    $backgroung_image = "panel_components/landscape/background.jpg";
+    $content_image = "panel_components/landscape/content.png";
+    $logo_image = "panel_components/landscape/logo.png";
+
+    $image = imagecreatefromjpeg($backgroung_image); // background
+    $background_w = imagesx($image);
+    $background_h = imagesy($image);
+
+    $photo_max_w = 900;
+    $photo_max_h = 600;
+
+    $photo_new_size_h = $photo_max_h;
+    $photo_new_size_w = $photo_new_size_h * $photo_ratio ;
+    while($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
+      $photo_new_size_h--;
+      $photo_new_size_w=$photo_new_size_h * $photo_ratio;
+    }
+
+    $photo_position_x = $background_w-$photo_new_size_w;
+    $photo_min_y = 103;
+
+    $map_x = -5;
+    $map_y = 438;
+    $comment_y_frombottom = 40;
+    $comment_span_x = 423;
+    $categorie_y = 250;
+    $address_y = 330;
+    $date_y = 415;
+    $copyright_x= 280;
+  }
+
+  ## INIT IMAGE ##
+  $fontfile = './panel_components/texgyreheros-regular.otf';
   $fontcolor = imagecolorallocate($image, 54, 66, 86);
   $fontcolorgrey = imagecolorallocate($image, 219, 219,219);
- 
-
-  ## Categorie title
-  $fontsize = 41;
   $white = imagecolorallocate($image, 255, 255, 255);
-  do {
-    $fontsize--;
-    $boxtitle = imagettfbbox($fontsize, 0, $fontfile, $categorie_string);
+  $black = imagecolorallocate($image, 0, 0, 0);
 
-  } while (($boxtitle[2] - $boxtitle[0]) > 800 && $fontsize > 20);
-
-  $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
-  $title_x = 130 + (800 - ($boxtitle[2] - $boxtitle[0])) / 2;
-
-  imagettftext($image, $fontsize, 0, 10 + $title_x, 75, $white, $fontfile, $categorie_string);
-
-  ## Text
-  $fontsize = 16;
-  
-  ### Title / comment
-  do {
-    $fontsize--;
-    $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
-
-  } while (($boxtxt[2] - $boxtxt[0]) > 800 && $fontsize > 10);
-
-  $boxtxt = imagettfbbox($fontsize, 0, $fontfile, $comment);
-  $comment_x = 130 + (800 - ($boxtxt[2] - $boxtxt[0])) / 2;
-
-  imagettftext($image, $fontsize, 0, 10 + $comment_x, 100, $fontcolorgrey, $fontfile, $comment);
- 
-
-  # draw ID 
-  $issue_id_txt_fontsize = 16;
-  $issue_id_txt = $token;
-  $box_issue_id = imagettfbbox($issue_id_txt_fontsize, 0, $fontfile, $issue_id_txt);
-  $issue_id_size = $box_issue_id[2] - $box_issue_id[0];
-  $issue_id_txt_x = 1024 - $issue_id_size - 20;
-  imagettftext($image, $issue_id_txt_fontsize, 0, $issue_id_txt_x, 30, $white, $fontfile, $issue_id_txt);
-
-  # draw Street
-  imagettftext($image, 16, 0, 120, 128, $white, $fontfile, $street_name);
-  
-  ### Date
-  $date = date('d/m/Y H:i', $time);
-  $boxdate = imagettfbbox(16, 0, './DejaVuSans.ttf', $date);
-  $date_size = $boxdate[2] - $boxdate[0];
-  $date_x = 1024 - $date_size - 20;
-
-  imagettftext($image, 16, 0, $date_x, 128, $white, $fontfile, $date);
-  
-  ## Wide Map
-  imagecopymerge($image, $map, 5, 135, 0, 0, 390, 350, 90);
-  
+  ## ADD PHOTO
   ## Photo
-  $photo_size_x = imagesx($photo);
-  $photo_size_y = imagesy($photo);
-
-  $ratio = $photo_size_x / $photo_size_y;
-  $photo_canvas_w = 1024 - 380;
-  $photo_canvas_h = 768 - 135;
-
-  if ($photo_size_x > $photo_size_y) {
-    $photo_new_size_x = $photo_canvas_w;
-    $photo_new_size_y = $photo_new_size_x / $ratio;
-    while ($photo_new_size_y > $photo_canvas_h or $photo_new_size_x > $photo_canvas_w) {
-      $photo_new_size_y--;
-      $photo_new_size_x = $photo_new_size_y * $ratio;
-    }
-  } elseif ($photo_size_x < $photo_size_y) {
-    $photo_new_size_y = $photo_canvas_h;
-    $photo_new_size_x = $photo_new_size_y * $ratio ;
-    while($photo_new_size_x > $photo_canvas_w or $photo_new_size_y > $photo_canvas_h) {
-      $photo_new_size_x--;
-      $photo_new_size_y=$photo_new_size_x / $ratio;
-    }
-  } else {
-    if($photo_canvas_w > $photo_canvas_h) {
-      $photo_new_size_x = $photo_new_size_y = $photo_canvas_h;
-    }
-    else {
-      $photo_new_size_x = $photo_new_size_y = $photo_canvas_w;
-    }
-  }
-  $photo_x = 375 + (($photo_canvas_w - $photo_new_size_x) / 2);
-  $photo_y = 130 + (($photo_canvas_h - $photo_new_size_y) / 2);
-
+#  $photo_position_x = $background_w-$photo_new_size_w;
+  $photo_position_y = $photo_min_y;
 
   if ( ! $approved and $resize_width>300) {
     # Pixelate user image
-    $tmpImage = ImageCreateTrueColor($photo_size_x,$photo_size_y);
-    imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_size_x / $PERCENT_PIXELATED), round($photo_size_y / $PERCENT_PIXELATED), $photo_size_x, $photo_size_y);
-    
-    # Create 100% version ... blow it back up to it's initial size:
-    $pixelated = ImageCreateTrueColor($photo_size_x, $photo_size_y);
-    imagecopyresized($photo, $tmpImage, 0, 0, 0, 0, $photo_size_x, $photo_size_y, round($photo_size_x / $PERCENT_PIXELATED), round($photo_size_y / $PERCENT_PIXELATED));
+    $photo = imagescale($photo,round($photo_size_x / $PERCENT_PIXELATED),round($photo_size_y / $PERCENT_PIXELATED));
+    $photo = imagescale($photo,$photo_size_x,$photo_size_y);
   }
-  imagecopyresized($image, $photo, $photo_x, $photo_y, 0, 0, $photo_new_size_x, $photo_new_size_y, $photo_size_x, $photo_size_y);
-  
-  # Logo
-  imagecopy($image, $logo, 2, 6, 0, 0, 125, 125);
-  
-  ## Zoomed map
-  imagecopymerge($image, $map_zoom, 5, 400, 0, 0, 390, 360, 100);
-  
-  # Nb Similar Obs
-  $tsimilarobs = $nbsimilarobs . ' observation(s) similaire(s) à proximité';
+  imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h); 
+
+  ## ADD MAP ##
+  $map_zoom = imagecreatefromjpeg($map_download_path_zoom);
+  $mask = imagecreatetruecolor(360,360);
+  $transparent = imagecolorallocate($mask, 255, 0, 0);
+  $alpha = imagecolorallocate($mask, 0, 0, 0);
+
+  $map_zoom_circle = imagecreatetruecolor(360, 360);
+  imagecopymerge($map_zoom_circle,$map_zoom,0,0,0,0,imagesx($map_zoom),imagesy($map_zoom),100);
+
+  imagealphablending($map_zoom_circle, true);
+
+  imagecolortransparent($mask,$transparent);
+
+  imagefilledellipse($mask, 360/2, 360/2, 360, 360, $transparent);
+  imagecopymerge($map_zoom_circle, $mask, 0, 0, 0, 0, 360, 360, 100);
+  imagecolortransparent($map_zoom_circle,$alpha);
+  imagefill($map_zoom_circle, 0, 0, $alpha);
+
+  imagecopymerge($image, $map_zoom_circle, $map_x, $map_y, 0, 0, 360, 360, 100);
+
+  ## ADD MAP COPYRIGHTS ##
+  imagettftext($image, 7, 0, $copyright_x, $background_h-13, $white, $fontfile, "©2019 MAPQUEST ©OPENSTREETMAP ©MAPBOX");
+
+  ## ADD CONTENT BLOCK ##
+  $content_block = imagecreatefrompng($content_image);
+  imagecopy($image, $content_block, 0, 0, 0, 0, imagesx($content_block), imagesy($content_block)); 
+
+  ## ADD LOGO ##
+  $logo = imagecreatefrompng($logo_image); // logo #JeSuisUnDesDeux
+  imagecopy($image, $logo,0,0,0,0,imagesx($logo),imagesy($logo));
+
+  ## ADD COMMENT
+  $comment_color = imagecolorallocate($image, 255,219,80);
+  $comment_font_file = './panel_components/texgyreheros-italic.otf';
+  $comment_font_size = 25;
+
+  if(!empty($comment)) {
+    $comment = '"'.trim($comment) . '"';
+    $comment_box = imagettfbbox($comment_font_size, 0, $comment_font_file, $comment);
+    $comment_x = (($background_w - $comment_span_x) - ($comment_box[2] - $comment_box[0])) / 2;
+    imagettftext($image,$comment_font_size ,0,$comment_span_x + $comment_x,$background_h-$comment_y_frombottom,$comment_color,$comment_font_file,$comment);
+  } 
+
+  ## ADD TOKEN
+  $token_font_size = 25;
+  $token_font_file = './panel_components/texgyreheros-regular.otf';
+  imagettftext($image,$token_font_size,0,200,160,$black,$token_font_file,$token);  
+
+  ## ADD CATEGORIE
+  $categorie_font_size = 26;
+  $categorie_max_char_per_line = 18;
+  $categorie_font_file = './panel_components/texgyreheros-bold.otf';
+   
+  $categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n"); 
+
+/*  do {
+    $categorie_max_char_per_line--;
+    $categorie_string = str_replace('\n','',$categorie_string);
+    $categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
+    $categorie_box = imagettfbbox($categorie_font_size,0,$categorie_font_file,$categorie_string);
+  } while(($categorie_box[2] - $categorie_box[0]) > 380);*/
+  imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categorie_string);
+ 
+  ## ADD ADDRESS
+  $address_font_size = 18;
+  $address_max_char_per_line = 25;
+  $address_font_file = './panel_components/texgyreheros-bold.otf';
+  $street_name = wordwrap($street_name,$address_max_char_per_line,"\n");
+
+/*  do {
+    $address_font_size--;
+    $address_max_char_per_line++;
+    $street_name = str_replace('\n','',$street_name);
+    $street_name = wordwrap($street_name, $address_max_char_per_line, "\n");
+    $address_box = imagettfbbox($address_font_size,0,$address_font_file,$street_name);
+  } while(($address_box[1] - $address_box[7]) > 80 or ($address_box[2] - $address_box[0]) > 350);
+*/
+  imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$street_name);
+
+  ## ADD DATE 
+  $date = date('d/m/Y H:i', $time);
+  $date_font_size = 15;
+  $date_font_file = './panel_components/texgyreheros-regular.otf';
+  imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
+/*
+ # Nb Similar Obs
+  $tsimilarobs = $nbsimilarobs . ' observations pour ce problème';
   imagefilledrectangle($image, 0, 730, 396, 760, $black);
   imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsimilarobs);
-
-  # Texte fait avec Vigilo
-#  imagettftext($image, 12, 0, 860, 760, $white, $fontfile, "Générée avec Vǐgǐlo");
-  
-
+*/
   # Generate full size image
   if($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
     imagepng($image);
@@ -246,9 +296,11 @@ if (mysqli_num_rows($query) == 1) {
     imagepng($image);
   } else {
     # Resize image
-    $ratio = $background_w / $resize_width;
-    $imageresized = imagecreatetruecolor($resize_width, intval($background_h / $ratio));
-    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, intval($background_h / $ratio), 1024, 768);
+    $panel_ratio = $background_w / $background_h;
+    $resize_height  = $resize_width / $panel_ratio;
+    $imageresized = imagecreatetruecolor($resize_width, $resize_height);
+   
+    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, $resize_height, $background_w, $background_h);
     imagepng($imageresized, $img_filename);
     imagepng($imageresized);
   }
