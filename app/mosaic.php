@@ -1,4 +1,3 @@
-CTYPE html>
 <!-- https://codepen.io/desandro/full/RPKgEN -->
 <html>
 <head>
