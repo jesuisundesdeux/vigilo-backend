@@ -63,7 +63,7 @@ if (mysqli_num_rows($query) == 1) {
   $color_month = 'db7800';
   $color_old = 'a8a8a8';
   while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-    if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 30 && $result_issues_coordinates['obs_token'] != $token) {
+    if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 200 && $result_issues_coordinates['obs_token'] != $token) {
       $osb_time = $result_issues_coordinates['obs_time'];
       if (time() - $osb_time < 3600 * 24 * 30) {
         $color = $color_recent;
