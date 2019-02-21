@@ -1,3 +1,7 @@
+<?php
+require_once('./common.php');
+require_once('./functions.php');
+?>
 <!-- https://codepen.io/desandro/full/RPKgEN -->
 <html>
 <head>
@@ -83,9 +87,10 @@ $data = file_get_contents($url);
 
 $content = json_decode($data,true);
 $item= 0;
-$filter = array('distance' => 200,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1)
+$filter = array('distance' => 400,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
+$similar = sameas($db,$token,$filter);
 foreach($content as $value) {
-  if(($value['categorie'] == $cat OR $cat == 'all') AND (in_array($token,sameas($db,$token,$filter))) OR $token = 'all') {
+  if(($value['categorie'] == $cat OR $cat == 'all') AND (in_array($value['token'],$similar)) OR $token == 'all') {
     echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
   }
 }
@@ -122,5 +127,4 @@ $grid.imagesLoaded().progress( function() {
 
   <script src="https://static.codepen.io/assets/editor/live/css_reload-5619dc0905a68b2e6298901de54f73cefe4e079f65a75406858d92924b4938bf.js"></script>
 </body></html>
-
 

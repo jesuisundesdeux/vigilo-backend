@@ -1,5 +1,4 @@
-<?php
-require_once('lib/codebird-php/codebird.php');
+re_once('lib/codebird-php/codebird.php');
 // https://numa-bord.com/miniblog/php-calcul-de-distance-entre-2-coordonnees-gps-latitude-longitude/
 function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         $earth_radius = 6378137;   // Terre = sphère de 6378km de rayon
@@ -62,13 +61,14 @@ function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 
     $coordinates_lon = $result['obs_coordinates_lon'];
     $address = $result['obs_address_string'];
     foreach($groups as $key => $value) {
-      if(($value['categorie'] == $categorie OR $filter['fcategorie'] == 0) AND 
-        (str_replace(' ','',$value['address_string']) == str_replace(' ','',$address) OR $filter['faddress'] == 0) AND
+      if($value['categorie'] == $categorie OR $filter['fcategorie'] == 0) {
+        if((str_replace(' ','',$value['address_string']) == str_replace(' ','',$address) OR $filter['faddress'] == 0) OR
         (distance($value['coordinates_lat'], $value['coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < $filter['distance'] OR $filter['fdistance'] == 0)) {
   	      $groups[$key]['tokens'][] = $token;
   	      $groups[$key]['count']++;
   	      $in_group = 1;
-  	      break;
+	      break;
+        }
       }
    }
    if($in_group == 0) {
@@ -79,7 +79,7 @@ function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 
 }
 
 function sameas($db,$token,$filter=array()) {
-  $groups = generategroups($db,$filter);
+	$groups = generategroups($db,$filter);
   foreach($groups as $value) {
     if(in_array($token,$value['tokens'])) {
       return $value['tokens'];
