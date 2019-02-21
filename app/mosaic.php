@@ -87,7 +87,7 @@ $data = file_get_contents($url);
 
 $content = json_decode($data,true);
 $item= 0;
-$filter = array('distance' => 200,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
+$filter = array('distance' => 300,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
 $similar = sameas($db,$token,$filter);
 foreach($content as $value) {
   if(($value['categorie'] == $cat OR $cat == 'all') AND (in_array($value['token'],$similar)) OR $token == 'all') {
