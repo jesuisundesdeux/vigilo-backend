@@ -1,4 +1,5 @@
-re_once('lib/codebird-php/codebird.php');
+<?php
+require_once('lib/codebird-php/codebird.php');
 // https://numa-bord.com/miniblog/php-calcul-de-distance-entre-2-coordonnees-gps-latitude-longitude/
 function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         $earth_radius = 6378137;   // Terre = sphère de 6378km de rayon
