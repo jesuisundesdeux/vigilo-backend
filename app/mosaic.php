@@ -19,7 +19,7 @@ body { font-family: sans-serif; }
 /* ---- grid ---- */
 
 .grid {
-  background: #DDD;
+  background: #000000;
 }
 
 /* clear fix */
