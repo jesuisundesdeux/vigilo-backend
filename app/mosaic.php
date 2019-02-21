@@ -90,7 +90,7 @@ $item= 0;
 $filter = array('distance' => 300,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
 $similar = sameas($db,$token,$filter);
 foreach($content as $value) {
-  if(($value['categorie'] == $cat OR $cat == 'all') AND (in_array($value['token'],$similar)) OR $token == 'all') {
+  if(($value['categorie'] == $cat OR $cat == 'all') AND ((in_array($value['token'],$similar)) OR $token == 'all')) {
     echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
   }
 }
