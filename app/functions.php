@@ -51,3 +51,39 @@ function getrole($privatekey, $acls) {
   return False; 
 }
 
+function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 'fcategorie' => 0,'faddress' => 0)) {
+  $query = mysqli_query($db,"SELECT * FROM obs_list");
+  $groups = array();
+  while($result = mysqli_fetch_array($query)) {
+    $in_group = 0;
+    $token = $result['obs_token'];
+    $categorie = $result['obs_categorie'];
+    $coordinates_lat = $result['obs_coordinates_lat'];
+    $coordinates_lon = $result['obs_coordinates_lon'];
+    $address = $result['obs_address_string'];
+    foreach($groups as $key => $value) {
+      if(($value['categorie'] == $categorie OR $filter['fcategorie'] == 0) AND 
+        (str_replace(' ','',$value['address_string']) == str_replace(' ','',$address) OR $filter['faddress'] == 0) AND
+        (distance($value['coordinates_lat'], $value['coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < $filter['distance'] OR $filter['fdistance'] == 0)) {
+  	      $groups[$key]['tokens'][] = $token;
+  	      $groups[$key]['count']++;
+  	      $in_group = 1;
+  	      break;
+      }
+   }
+   if($in_group == 0) {
+     $groups[] = array("categorie" => $categorie, 'address_string' => $address, 'coordinates_lat' => $coordinates_lat, 'coordinates_lon' => $coordinates_lon, 'tokens' => array($token), 'count' => 1);
+   }
+ }
+ return $groups;
+}
+
+function sameas($db,$token,$filter=array()) {
+  $groups = generategroups($db,$filter);
+  foreach($groups as $value) {
+    if(in_array($token,$value['tokens'])) {
+      return $value['tokens'];
+    }
+  }
+}
+

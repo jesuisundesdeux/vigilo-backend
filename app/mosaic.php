@@ -70,11 +70,11 @@ else {
   $cat = 'all';
 }
 
-if(isset($_GET['g']) AND !empty($_GET['g'])) {
-  $grp = $_GET['g'] ;
+if(isset($_GET['t']) AND !empty($_GET['t'])) {
+  $token = $_GET['t'] ;
 }
 else {
-  $grp = 'all';
+  $token = 'all';
 }
 
 $url = 'https://vigilo.jesuisundesdeux.org/get_issues.php';
@@ -83,15 +83,11 @@ $data = file_get_contents($url);
 
 $content = json_decode($data,true);
 $item= 0;
+$filter = array('distance' => 200,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1)
 foreach($content as $value) {
-if(($value['categorie'] == $cat OR $cat == 'all') AND ($value['group'] == $grp OR $grp == 'all')) {
-#  $item++;
-  echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
-#  if($item == 5) {
-#    $item = 0;
-#    echo "<br />";
-#  }
-}
+  if(($value['categorie'] == $cat OR $cat == 'all') AND (in_array($token,sameas($db,$token,$filter))) OR $token = 'all') {
+    echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  }
 }
 ?>
 </div>
