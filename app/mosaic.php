@@ -63,14 +63,14 @@ body { font-family: sans-serif; }
 <?php
 
 
-if(isset($_GET['c'])) {
+if(isset($_GET['c']) AND !empty($_GET['g'])) {
   $cat = $_GET['c'] ;
 }
 else {
   $cat = 'all';
 }
 
-if(isset($_GET['g'])) {
+if(isset($_GET['g']) AND !empty($_GET['g'])) {
   $grp = $_GET['g'] ;
 }
 else {
