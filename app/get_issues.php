@@ -30,7 +30,7 @@ if ($stoday) {
 
 mysqli_set_charset( $db, 'utf8');
 
-$query = mysqli_query($db, "SELECT obs_token,obs_coordinates_lat,obs_coordinates_lon,obs_address_string,obs_comment,obs_time,obs_categorie,obs_group,obs_approved FROM obs_list WHERE obs_complete=1 ".$where." ORDER BY obs_time DESC");
+$query = mysqli_query($db, "SELECT obs_token,obs_coordinates_lat,obs_coordinates_lon,obs_address_string,obs_comment,obs_time,obs_categorie,obs_approved FROM obs_list WHERE obs_complete=1 ".$where." ORDER BY obs_time DESC");
 # Export categories
 $json = array();
 
@@ -44,7 +44,6 @@ if (mysqli_num_rows($query) > 0) {
                    "comment"=> $result['obs_comment'],
                    "time"=>$result['obs_time'],
                    "categorie"=>$result['obs_categorie'],
-                   "group"=>$result['obs_group'],
                    "approved"=>$result['obs_approved']);
 		if(isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
       $lat = mysqli_real_escape_string($db,$_GET['lat']);

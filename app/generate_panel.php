@@ -51,7 +51,6 @@ if (mysqli_num_rows($query) == 1) {
   $categorie_string=$categorie[$categorie_id];
   $time = $result['obs_time'];
   $approved = $result['obs_approved'];
-  $groupid = $result['obs_group'];
   if($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
     $approved = 1;
   }
@@ -76,10 +75,6 @@ if (mysqli_num_rows($query) == 1) {
       $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
     }
   }
-
- 
-  $nbsimilarobs_query = mysqli_query($db,'SELECT * FROM obs_list WHERE obs_group="'.$groupid.'"');
-  $nbsimilarobs = mysqli_num_rows($nbsimilarobs_query);
 
   ## Wide map
   $size = '390,350';
@@ -280,12 +275,7 @@ if (mysqli_num_rows($query) == 1) {
   $date_font_size = 15;
   $date_font_file = './panel_components/texgyreheros-regular.otf';
   imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
-/*
- # Nb Similar Obs
-  $tsimilarobs = $nbsimilarobs . ' observations pour ce problème';
-  imagefilledrectangle($image, 0, 730, 396, 760, $black);
-  imagettftext($image, 14, 0, 10, 754, $white, $fontfile, $tsimilarobs);
-*/
+
   # Generate full size image
   if($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
     imagepng($image);
