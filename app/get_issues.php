@@ -43,6 +43,7 @@ if (mysqli_num_rows($query) > 0) {
                    "address"=>$result['obs_address_string'],
                    "comment"=> $result['obs_comment'],
                    "time"=>$result['obs_time'],
+                   "group"=>0,
                    "categorie"=>$result['obs_categorie'],
                    "approved"=>$result['obs_approved']);
 		if(isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
