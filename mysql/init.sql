@@ -18,21 +18,6 @@ SET time_zone = "+00:00";
 --
 
 -- --------------------------------------------------------
-
---
--- Structure de la table `obs_groups`
---
-
-CREATE TABLE `obs_groups` (
-  `group_id` int(11) NOT NULL,
-  `group_address_string` varchar(255) CHARACTER SET latin1 NOT NULL,
-  `group_coordinates_lat` varchar(255) COLLATE utf8_bin NOT NULL,
-  `group_coordinates_lon` varchar(255) COLLATE utf8_bin NOT NULL,
-  `group_categorie` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
 --
 -- Structure de la table `obs_list`
 --
@@ -50,8 +35,7 @@ CREATE TABLE `obs_list` (
   `obs_app_version` int(11) NOT NULL,
   `obs_approved` tinyint(1) NOT NULL DEFAULT 0,
   `obs_secretid` varchar(60) COLLATE utf8_bin NOT NULL,
-  `obs_complete` tinyint(1) NOT NULL DEFAULT 0,
-  `obs_group` int(11) NOT NULL DEFAULT 0
+  `obs_complete` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -70,14 +54,6 @@ CREATE TABLE `obs_roles` (
 --
 -- Index pour les tables déchargées
 --
-
---
--- Index pour la table `obs_groups`
---
-ALTER TABLE `obs_groups`
-  ADD PRIMARY KEY (`group_id`),
-  ADD KEY `group_id` (`group_id`);
-
 --
 -- Index pour la table `obs_list`
 --
@@ -94,13 +70,6 @@ ALTER TABLE `obs_roles`
 --
 -- AUTO_INCREMENT pour les tables déchargées
 --
-
---
--- AUTO_INCREMENT pour la table `obs_groups`
---
-ALTER TABLE `obs_groups`
-  MODIFY `group_id` int(11) NOT NULL AUTO_INCREMENT;
-
 --
 -- AUTO_INCREMENT pour la table `obs_list`
 --
