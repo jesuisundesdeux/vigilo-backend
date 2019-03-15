@@ -75,5 +75,6 @@ if($status != 0) {
 
 # Return Token value
 $json['status'] = $status;
+$json['group'] = 0;
 echo json_encode($json);
 ?>
