@@ -1,5 +1,7 @@
 <?php
 require_once('./common.php');
+header('BACKEND_VERSION: '.BACKEND_VERSION);
+
 require_once('./functions.php');
 
 $status = 0;

@@ -1,6 +1,8 @@
 <?php
 header("Content-type: image/png");
 require_once('./common.php');
+header('BACKEND_VERSION: '.BACKEND_VERSION);
+
 require_once('./functions.php');
 
 $MAX_IMG_SIZE = 1024; // For limit attack

@@ -1,5 +1,7 @@
 <?php
 require_once('./common.php');
+header('BACKEND_VERSION: '.BACKEND_VERSION);
+
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
 
@@ -58,4 +60,5 @@ if (mysqli_num_rows($query) > 0) {
     }
   }
 }
+
 echo json_encode($json,JSON_PRETTY_PRINT);

@@ -1,7 +1,7 @@
 <?php
-date_default_timezone_set('Europe/Paris');
-
 define('BACKEND_VERSION','1');
+
+date_default_timezone_set('Europe/Paris');
 
 $db=mysqli_connect(getenv("DB_HOST"),getenv("DB_USER"),getenv("DB_PASS"),getenv("DB_DBNAME"));
 mysqli_set_charset($db, 'utf8' );

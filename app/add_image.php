@@ -1,5 +1,7 @@
 <?php
 require_once('./common.php');
+header('BACKEND_VERSION: '.BACKEND_VERSION);
+
 ini_set('max_input_vars', '3000');
 $token = $_GET['token'];
 $secretid = $_GET['secretid'];
