@@ -27,7 +27,14 @@ if ($stoday) {
   $where .= " AND obs_time>".$BEFORE_TIME;
 }
 
-$query = mysqli_query($db, "SELECT obs_token,obs_coordinates_lat,obs_coordinates_lon,obs_address_string,obs_comment,obs_time,obs_categorie,obs_approved FROM obs_list WHERE obs_complete=1 ".$where." ORDER BY obs_time DESC");
+if (isset($_GET["count"]) and is_numeric($_GET["count"])) {
+  $limit = 'LIMIT '.$_GET['count'];
+}
+else {
+  $limit = '';
+}
+
+$query = mysqli_query($db, "SELECT obs_token,obs_coordinates_lat,obs_coordinates_lon,obs_address_string,obs_comment,obs_time,obs_categorie,obs_approved FROM obs_list WHERE obs_complete=1 ".$where." ORDER BY obs_time DESC ".$limit);
 # Export categories
 $json = array();
 
