@@ -1,8 +1,13 @@
 <?php
 date_default_timezone_set('Europe/Paris');
 
+define('BACKEND_VERSION','1');
+
 $db=mysqli_connect(getenv("DB_HOST"),getenv("DB_USER"),getenv("DB_PASS"),getenv("DB_DBNAME"));
 mysqli_set_charset($db, 'utf8' );
+
+$urlbase = $_SERVER['SERVER_NAME'];
+$umap_url = 'https://umap.openstreetmap.fr/en/map/vigilo_286846#19/';
 
 # Generate Maps
 $mapquestapi_key=getenv("MAPQUEST_API");

@@ -81,7 +81,7 @@ else {
   $token = 'all';
 }
 
-$url = 'https://vigilo.jesuisundesdeux.org/get_issues.php';
+$url = 'https://'.$urlbase.'/get_issues.php';
 
 $data = file_get_contents($url);
 
@@ -91,14 +91,14 @@ $filter = array('distance' => 300,'fdistance' => 1, 'fcategorie' => 1,'faddress'
 $similar = sameas($db,$token,$filter);
 foreach($content as $value) {
   if(($value['categorie'] == $cat OR $cat == 'all') AND ((in_array($value['token'],$similar)) OR $token == 'all')) {
-    echo '<div class="grid-item"><a target="_blank" href="https://umap.openstreetmap.fr/en/map/vigilo_286846#19/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://vigilo.jesuisundesdeux.org/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+    echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
   }
 }
 ?>
 </div>
- <script src="https://static.codepen.io/assets/common/stopExecutionOnTimeout-de7e2ef6bfefd24b79a3f68b414b87b8db5b08439cac3f1012092b2290c719cd.js"></script>
+<script src="https://static.codepen.io/assets/common/stopExecutionOnTimeout-de7e2ef6bfefd24b79a3f68b414b87b8db5b08439cac3f1012092b2290c719cd.js"></script>
 
-  <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
 <script src='https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.js'></script>
 <script src='https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.js'></script>
 
