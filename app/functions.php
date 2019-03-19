@@ -24,6 +24,11 @@ function delete_token_cache($token) {
         unlink($file);
     }
 }
+function delete_map_cache($token) {
+    foreach(glob(__DIR__."/maps/".$token."*") as $file) {
+        unlink($file);
+    }
+}
 function tweet($text,$image,$twitter_ids) {
    \Codebird\Codebird::setConsumerKey($twitter_ids['consumer'], $twitter_ids['consumersecret']);
   $cb = \Codebird\Codebird::getInstance();

@@ -1,5 +1,6 @@
 <?php
 require_once('./common.php');
+require_once('./functions.php');
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 require_once('./functions.php');
@@ -36,6 +37,7 @@ else {
 $query_token = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 
 if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
+  delete_map_cache($token);
   $query_result = mysqli_fetch_array($query_token);
   $secretid = $query_result['obs_secretid'];
   $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
