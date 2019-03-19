@@ -24,10 +24,10 @@ function delete_token_cache($token) {
         unlink($file);
     }
 }
-function tweet($text,$image) {
-   \Codebird\Codebird::setConsumerKey(getenv("TWITTER_CONSUMER"), getenv("TWITTER_CONSUMERSECRET"));
+function tweet($text,$image,$twitter_ids) {
+   \Codebird\Codebird::setConsumerKey($twitter_ids['consumer'], $twitter_ids['consumersecret']);
   $cb = \Codebird\Codebird::getInstance();
-  $cb->setToken(getenv("TWITTER_ACCESSTOKEN"), getenv("TWITTER_ACCESSTOKENSECRET"));
+  $cb->setToken($twitter_ids['accesstoken'], $twitter_ids['accesstokensecret']);
 $reply = $cb->media_upload(array(
     'media' => $image
 ));

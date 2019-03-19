@@ -1,7 +1,6 @@
 <?php
 require_once('../common.php');
 require_once('../functions.php');
-date_default_timezone_set('Europe/Paris');
 
 # Get issue information
 $approve = intval($_GET["approve"]);

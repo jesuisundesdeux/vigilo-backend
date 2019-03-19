@@ -1,9 +1,20 @@
 <?php
+date_default_timezone_set('Europe/Paris');
+
 $db=mysqli_connect(getenv("DB_HOST"),getenv("DB_USER"),getenv("DB_PASS"),getenv("DB_DBNAME"));
 mysqli_set_charset($db, 'utf8' );
 
 # Generate Maps
 $mapquestapi_key=getenv("MAPQUEST_API");
+
+# Twitter configuration
+$twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"), 
+                     "consumersecret" => getenv("TWITTER_CONSUMERSECRET"),
+                     "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
+                     "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
+
+$tweet_content = "[COMMENT] #JeSuisUnDesDeux #VG_[TOKEN] \n- Similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON]";
+
 
 # Categories
 $categorie = array(

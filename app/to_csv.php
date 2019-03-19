@@ -3,7 +3,6 @@ require_once('./common.php');
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
 
-date_default_timezone_set('Europe/Paris');
 $separator = ',';
 
 $scategorie=-1;

@@ -2,7 +2,7 @@
 header("Content-type: image/png");
 require_once('./common.php');
 require_once('./functions.php');
-date_default_timezone_set('Europe/Paris');
+
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
 $PERCENT_PIXELATED=5;

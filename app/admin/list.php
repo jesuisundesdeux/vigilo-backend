@@ -1,7 +1,6 @@
 <?php
 require_once('../common.php');
 require_once('../functions.php');
-date_default_timezone_set('Europe/Paris');
 $sresample=200;
 
 # Get issue information

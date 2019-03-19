@@ -3,8 +3,6 @@ require_once('./common.php');
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
 
-date_default_timezone_set('Europe/Paris');
-
 $scategorie=-1;
 if (isset($_GET["c"]) and is_numeric($_GET["c"])) {
   $scategorie=intval($_GET["c"]);
