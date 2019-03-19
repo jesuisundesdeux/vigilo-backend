@@ -18,7 +18,7 @@ $twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"),
                      "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
                      "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
 
-$tweet_content = "[COMMENT] #JeSuisUnDesDeux #VG_[TOKEN] \n- Similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON]";
+$tweet_content = "[COMMENT]\n\n- Obs similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON] \n\n#Montpellier #JeSuisUnDesDeux #VG_[TOKEN]";
 
 
 # Categories

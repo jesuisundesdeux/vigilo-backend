@@ -262,14 +262,6 @@ if (mysqli_num_rows($query) == 1) {
   $address_font_file = './panel_components/texgyreheros-bold.otf';
   $street_name = wordwrap($street_name,$address_max_char_per_line,"\n");
 
-/*  do {
-    $address_font_size--;
-    $address_max_char_per_line++;
-    $street_name = str_replace('\n','',$street_name);
-    $street_name = wordwrap($street_name, $address_max_char_per_line, "\n");
-    $address_box = imagettfbbox($address_font_size,0,$address_font_file,$street_name);
-  } while(($address_box[1] - $address_box[7]) > 80 or ($address_box[2] - $address_box[0]) > 350);
-*/
   imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$street_name);
 
   ## ADD DATE 
