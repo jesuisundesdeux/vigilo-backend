@@ -67,7 +67,7 @@ body { font-family: sans-serif; }
 <?php
 
 
-if(isset($_GET['c']) AND !empty($_GET['g'])) {
+if(isset($_GET['c']) AND !empty($_GET['c'])) {
   $cat = $_GET['c'] ;
 }
 else {
