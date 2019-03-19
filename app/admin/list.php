@@ -28,8 +28,6 @@ if (mysqli_num_rows($query) > 0) {
     echo '<td>'.$street_name.'</td>';
     echo '<td>'.$comment.'</td>';
     echo '<td>'.$categorie.'</td>';
-
-#    echo '<td><a href="/generate_panel.php?token='.$token.'">'.$token.'<a/></td>';
     echo '<td><a href="/admin/photo.php?token='.$token.'" target="_blank"><img src="/generate_panel.php?s='.$sresample.'&token='.$token.'"</img><a/></td>';
     echo '<td>'.$approved.'</td>';
     echo '<td><a href="/delete.php?token='.$token.'&secretid='.$secretid.'">Supprimer</a></td>';

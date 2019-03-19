@@ -79,7 +79,7 @@ if (mysqli_num_rows($query) == 1) {
   }
 
   ## Wide map
-  $size = '390,350';
+  /*$size = '390,350';
   $zoom = 14;
   $url = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquestapi_key . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size . '&zoom=' . $zoom . '&locations=' . $coordinates_lat . ',' . $coordinates_lon;
   $map_download_path = './maps/' . $token . '.jpg';
@@ -87,9 +87,9 @@ if (mysqli_num_rows($query) == 1) {
   if (!file_exists($map_download_path)) {
     $content = file_get_contents($url);
     file_put_contents($map_download_path, $content);
-  }
+  }*/
 
-  $map = imagecreatefromjpeg($map_download_path);
+  //$map = imagecreatefromjpeg($map_download_path);
   
   ## Zoomed map
   $size_zoom = '390,390';
