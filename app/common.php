@@ -3,7 +3,8 @@ define('BACKEND_VERSION','1');
 
 date_default_timezone_set('Europe/Paris');
 
-$db=mysqli_connect(getenv("DB_HOST"),getenv("DB_USER"),getenv("DB_PASS"),getenv("DB_DBNAME"));
+$db=mysqli_connect(getenv("MYSQL_HOST"),getenv("MYSQL_USER"),getenv("MYSQL_PASSWORD"),getenv("MYSQL_DATABASE"));
+
 mysqli_set_charset($db, 'utf8' );
 
 $urlbase = $_SERVER['SERVER_NAME'];
