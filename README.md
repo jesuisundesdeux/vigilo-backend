@@ -2,8 +2,12 @@
 
 *Launch docker*
 
+* Get an API Key pour the StaticMAP API on https://developer.mapquest.com/
+* Create a Twitter accound / create application on it and Get the keys (https://creerapplication.zendesk.com/hc/fr/articles/115000691364-Int%C3%A9grer-Twitter-dans-votre-application)
+* Then you are able to fill the "xxx" in ".env" and launch docker-compose
+
 ```
-MYSQL_HOST=db MYSQL_USER=root MYSQL_PASSWORD=root MYSQL_DATABASE=vigilodb MAPQUEST_API=xxxx docker-compose up
+docker-compose up
 
 # Optional
 # MYSQL_INIT_FILE=other_init_sql_file in mysql folder
