@@ -1,37 +1,56 @@
-db:
-  image: mariadb
-  restart: always
-  volumes:
-    - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
-    - ./mysql:/data:ro
-  command: --init-file /data/${MYSQL_INIT_FILE}
-  environment:
-    MYSQL_ROOT_PASSWORD: root
-    MYSQL_USER: username
-    MYSQL_PASSWORD: passwd
-    MYSQL_DATABASE: vigilodb
-  ports:
-    - "3306:3306"
-
-web:
-   image: tutum/apache-php
-   environment:
-     MAPQUEST_API: ${MAPQUEST_API}
-   ports:
-     - "80:80"
-   links:
-     - db
-   volumes:
-     - ./app:/app
-     - ${VOLUME_PATH}/files/caches:/app/caches
-     - ${VOLUME_PATH}/files/maps:/app/maps
-     - ${VOLUME_PATH}/files/images:/app/images
-
-phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+version: '2'
+services:
+  db:
+    image: mariadb
+    restart: always
+    volumes:
+      - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
+      - ./mysql:/data:ro
+    command: --init-file /data/${MYSQL_INIT_FILE}
     environment:
-        PMA_HOST: db    
-    links:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+    expose:
+      - "3306"
+    networks:
+      - vigilo
+  web:
+     image: tutum/apache-php
+     port:
+       - "80"
+     links:
+       - db
+     volumes:
+       - ./app:/app
+       - ${VOLUME_PATH}/files/caches:/app/caches
+       - ${VOLUME_PATH}/files/maps:/app/maps
+       - ${VOLUME_PATH}/files/images:/app/images
+     environment:
+       - MYSQL_USER
+       - MYSQL_PASSWORD
+       - MYSQL_DATABASE
+       - MYSQL_HOST
+       - MAPQUEST_API
+       - TWITTER_CONSUMER
+       - TWITTER_CONSUMERSECRET
+       - TWITTER_ACCESSTOKEN
+       - TWITTER_ACCESSTOKENSECRET
+     networks:
+       - vigilo
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      environment:
+          PMA_HOST: db
+      links:
         - db
-    ports:
-        - "8888:80"    
+      ports:
+        - "4242"
+      networks:
+        - vigilo
+networks:
+  vigilo:
+    internal: true
+
+
