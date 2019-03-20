@@ -9,7 +9,7 @@ db:
     MYSQL_ROOT_PASSWORD: root
     MYSQL_USER: username
     MYSQL_PASSWORD: passwd
-    MYSQL_DATABASE: dbname
+    MYSQL_DATABASE: vigilodb
   ports:
     - "3306:3306"
 
