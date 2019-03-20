@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS dbname;
+CREATE DATABASE IF NOT EXISTS vigilodb;
 
-USE dbname;
+USE vigilodb;
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
@@ -14,7 +14,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de données :  `dbname`
+-- Base de données :  `vigilodb`
 --
 
 -- --------------------------------------------------------
