@@ -12,14 +12,14 @@ services:
       - MYSQL_USER
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
-    expose:
-      - "3306"
+    ports:
+      - "3306:3306"
     #networks:
       #- vigilo
   web:
      image: tutum/apache-php
      ports:
-       - "80"
+       - "80:80"
      links:
        - db
      volumes:
