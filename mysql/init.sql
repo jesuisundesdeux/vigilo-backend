@@ -21,9 +21,9 @@ SET time_zone = "+00:00";
 --
 -- Structure de la table `obs_list`
 --
-
 CREATE TABLE `obs_list` (
   `obs_id` int(11) NOT NULL,
+  `obs_scope` varchar(255) COLLATE utf8_bin NOT NULL,
   `obs_coordinates_lat` varchar(255) COLLATE utf8_bin NOT NULL,
   `obs_coordinates_lon` varchar(255) COLLATE utf8_bin NOT NULL,
   `obs_address_string` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -37,7 +37,6 @@ CREATE TABLE `obs_list` (
   `obs_secretid` varchar(60) COLLATE utf8_bin NOT NULL,
   `obs_complete` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
 -- --------------------------------------------------------
 
 --
