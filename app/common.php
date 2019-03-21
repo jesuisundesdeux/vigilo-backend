@@ -35,6 +35,7 @@ $categorie = array(
 100 => "Autre");
 
 # ACL
+$acls = array();
 $roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
 while($roles_result = mysqli_fetch_array($roles_query)) {
   $role = $roles_result['role_name'];

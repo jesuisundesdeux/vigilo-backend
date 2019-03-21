@@ -187,9 +187,14 @@ if (mysqli_num_rows($query) == 1) {
   $photo_position_y = $photo_min_y;
 
   if ( ! $approved and $resize_width>300) {
-    # Pixelate user image
-    $photo = imagescale($photo,round($photo_size_x / $PERCENT_PIXELATED),round($photo_size_y / $PERCENT_PIXELATED));
-    $photo = imagescale($photo,$photo_size_x,$photo_size_y);
+    # Pixelate user image 
+    $tmpImage = ImageCreateTrueColor($photo_w, $photo_h);
+    imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_w / $PERCENT_PIXELATED), round($photo_h / $PERCENT_PIXELATED), $photo_w, $photo_h);
+
+    $pixelated = ImageCreateTrueColor($photo_w, $photo_h);
+    imagecopyresized($pixelated, $tmpImage, 0, 0, 0, 0, $photo_w, $photo_h, round($photo_w / $PERCENT_PIXELATED), round($photo_h / $PERCENT_PIXELATED));
+
+    $photo = $pixelated ;
   }
   imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h); 
 
