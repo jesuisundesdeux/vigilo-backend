@@ -31,6 +31,12 @@ if(isset($_POST['version'])) {
 else {
   $version = 0;
 }
+if(isset($_POST['scope'])) {
+  $scope = mysqli_real_escape_string($db,$_POST['scope']);
+}
+else {
+  $scope = 0;
+}
 
 
 # Check if token exist
@@ -60,8 +66,8 @@ else {
   $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
   # Insert user datas to MySQL Database
   if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
-    mysqli_query($db,'INSERT INTO obs_list (`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`) VALUES
-  				  ("'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'")') ;
+    mysqli_query($db,'INSERT INTO obs_list (`obs_scope`,`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`) VALUES
+  				  ("'.$scope.'","'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'")') ;
   
     if($mysqlerror = mysqli_error($db)) {
       $status = 1;
