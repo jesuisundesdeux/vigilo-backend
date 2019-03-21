@@ -14,11 +14,11 @@ services:
       - MYSQL_DATABASE
     expose:
       - "3306"
-    networks:
-      - vigilo
+    #networks:
+      #- vigilo
   web:
      image: tutum/apache-php
-     port:
+     ports:
        - "80"
      links:
        - db
@@ -37,8 +37,8 @@ services:
        - TWITTER_CONSUMERSECRET
        - TWITTER_ACCESSTOKEN
        - TWITTER_ACCESSTOKENSECRET
-     networks:
-       - vigilo
+     #networks:
+       #- vigilo
   phpmyadmin:
       image: phpmyadmin/phpmyadmin
       environment:
@@ -46,11 +46,11 @@ services:
       links:
         - db
       ports:
-        - "8888"
-      networks:
-        - vigilo
-networks:
-  vigilo:
-    internal: true
+        - "8888:80"
+      #networks:
+        #- vigilo
+#networks:
+  #vigilo:
+    #internal: true
 
 
