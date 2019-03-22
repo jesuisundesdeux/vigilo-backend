@@ -37,6 +37,8 @@ services:
        - TWITTER_CONSUMERSECRET
        - TWITTER_ACCESSTOKEN
        - TWITTER_ACCESSTOKENSECRET
+       - TWITTER_CONTENT
+       - UMAP_URL
      #networks:
        #- vigilo
   phpmyadmin:
