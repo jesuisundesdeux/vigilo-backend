@@ -19,7 +19,7 @@ $twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"),
                      "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
                      "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
 
-$tweet_content = getenv("TWITTER_CONTENT");
+$tweet_content = str_replace('\n',"\n",getenv("TWITTER_CONTENT"));
 
 # Categories
 $categorie = array(
