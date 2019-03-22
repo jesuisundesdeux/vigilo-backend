@@ -8,7 +8,7 @@ $db=mysqli_connect(getenv("MYSQL_HOST"),getenv("MYSQL_USER"),getenv("MYSQL_PASSW
 mysqli_set_charset($db, 'utf8' );
 
 $urlbase = $_SERVER['SERVER_NAME'];
-$umap_url = 'https://umap.openstreetmap.fr/en/map/vigilo_286846#19/';
+$umap_url = getenv("UMAP_URL");
 
 # Generate Maps
 $mapquestapi_key=getenv("MAPQUEST_API");
@@ -19,8 +19,7 @@ $twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"),
                      "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
                      "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
 
-$tweet_content = "[COMMENT]\n\n- Obs similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON] \n\n#Montpellier #JeSuisUnDesDeux #VG_[TOKEN]";
-
+$tweet_content = getenv("TWITTER_CONTENT");
 
 # Categories
 $categorie = array(
