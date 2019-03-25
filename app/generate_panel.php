@@ -16,8 +16,14 @@ else {
   $key = Null;
 }
 
-
-$token = mysqli_real_escape_string($db, $_GET['token']);
+if (isset($_GET['token'])) {
+  $token = mysqli_real_escape_string($db, $_GET['token']);
+}
+else {
+  error_log('GENERATE_IMAGE : Token not found');
+  http_response_code(500);
+  return;
+}
 
 if(isset($_GET['secretid'])) {
   $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
