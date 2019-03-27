@@ -50,7 +50,11 @@ if (mysqli_num_rows($query) == 1) {
   $street_name = $result['obs_address_string'];
   $comment = $result['obs_comment'];
   $categorie_id = $result['obs_categorie'];
-  $categorie_string=$categorie[$categorie_id];
+  foreach($categorie_lst as $value) {
+    if($value['catid'] == $categorie_id) { 
+      $categorie_string = $value['catname'];
+    }
+  }
   $time = $result['obs_time'];
   $approved = $result['obs_approved'];
   if($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {

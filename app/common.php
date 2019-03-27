@@ -33,6 +33,18 @@ $categorie = array(
 9 => "Accident, chute, incident",
 100 => "Autre");
 
+# Categories
+$categorie_lst = array(
+array("catid" => 2,"catname" => "Véhicule ou objet gênant (gcum)"),
+array("catid" => 3,"catname" => "Aménagement mal conçu"),
+array("catid" => 4,"catname" => "Défaut d'entretien"),
+array("catid" => 5,"catname" => "Absence d'arceaux de stationnement"),
+array("catid" => 6,"catname" => "Signalisation, marquage"),
+array("catid" => 7,"catname" => "Incivilité récurrente sur la route"),
+array("catid" => 8,"catname" => "Absence d'aménagement"),
+array("catid" => 9,"catname" => "Accident, chute, incident"),
+array("catid" => 100,"catname" => "Autre"));
+
 # ACL
 $acls = array();
 $roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
