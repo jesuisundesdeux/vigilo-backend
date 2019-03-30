@@ -17,8 +17,8 @@ $token = mysqli_real_escape_string($db, $token);
 
 /* Only admin can approve an observation */
 if (getrole($key, $acls) != "admin") {
-  error_log("ADD_IMAGE : Token : ".$token." and/or key not valid.");
-  http_response_code(500);
+  error_log("APPROVE : Unauthorized access.");
+  http_response_code(401);
   echo json_encode(array('status'=>1));
   return;
 }
