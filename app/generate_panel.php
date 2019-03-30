@@ -66,6 +66,13 @@ foreach ($categorie_lst as $value) {
     $categorie_string = $value['catname'];
   }
 }
+
+if (!isset($categorie_string)) {
+    error_log('GENERATE_IMAGE : unknown categorie_id: ' . $categorie_id);
+    http_response_code(500);
+    return;
+}
+
 $time = $result['obs_time'];
 $approved = $result['obs_approved'];
 if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
