@@ -3,12 +3,12 @@ require_once('./common.php');
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 ini_set('max_input_vars', '3000');
-$token = $_GET['token'];
-$secretid = $_GET['secretid'];
 
 $status = 0;
 
 if (isset($_GET['token']) && isset($_GET['secretid'])) {
+  $token = $_GET['token'];
+  $secretid = $_GET['secretid'];
   $token = mysqli_real_escape_string($db, $token);
   $secretid = mysqli_real_escape_string($db, $secretid);
 } else {
