@@ -16,14 +16,14 @@ else {
   $key = Null;
 }
 
-if (isset($_GET['token'])) {
-  $token = mysqli_real_escape_string($db, $_GET['token']);
-}
-else {
+/* Token is mandatory */
+if (!isset($_GET['token'])) {
   error_log('GENERATE_IMAGE : Token not found');
   http_response_code(500);
   return;
 }
+
+$token = mysqli_real_escape_string($db, $_GET['token']);
 
 if(isset($_GET['secretid'])) {
   $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
