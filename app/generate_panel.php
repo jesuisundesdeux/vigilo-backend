@@ -9,7 +9,7 @@ $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
 $PERCENT_PIXELATED=5;
 
-if(isset($_GET['key'])) {
+if (isset($_GET['key'])) {
   $key = $_GET['key'];
 }
 else {
@@ -25,7 +25,7 @@ if (!isset($_GET['token'])) {
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
 
-if(isset($_GET['secretid'])) {
+if (isset($_GET['secretid'])) {
   $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
 }
 else {
@@ -61,14 +61,14 @@ $coordinates_lon = $result['obs_coordinates_lon'];
 $street_name = $result['obs_address_string'];
 $comment = $result['obs_comment'];
 $categorie_id = $result['obs_categorie'];
-foreach($categorie_lst as $value) {
-  if($value['catid'] == $categorie_id) { 
+foreach ($categorie_lst as $value) {
+  if ($value['catid'] == $categorie_id) {
     $categorie_string = $value['catname'];
   }
 }
 $time = $result['obs_time'];
 $approved = $result['obs_approved'];
-if($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
+if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
   $approved = 1;
 }
 
@@ -125,12 +125,14 @@ $photo_w = imagesx($photo);
 $photo_h = imagesy($photo);
 $photo_ratio = $photo_w / $photo_h;
 
-if($photo_ratio < 1) {
+# Portrait format
+if ($photo_ratio < 1) {
   $backgroung_image = "panel_components/portrait/background.jpg";
   $content_image = "panel_components/portrait/content.png";
   $logo_image = "panel_components/portrait/logo.png";
 
-  $image = imagecreatefromjpeg($backgroung_image); // background
+  # Load background image
+  $image = imagecreatefromjpeg($backgroung_image);
   $background_w = imagesx($image);
   $background_h = imagesy($image);
 
@@ -140,9 +142,9 @@ if($photo_ratio < 1) {
   $photo_new_size_h = $photo_max_h;
   $photo_new_size_w = $photo_new_size_h * $photo_ratio ;
 
-  while($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
+  while ($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
     $photo_new_size_w--;
-    $photo_new_size_h=$photo_new_size_w / $photo_ratio;
+    $photo_new_size_h = $photo_new_size_w / $photo_ratio;
   }
 
   $photo_position_x = 380;
@@ -157,12 +159,14 @@ if($photo_ratio < 1) {
   $copyright_x= 2;
 
 }
+# Landscape format
 else {
   $backgroung_image = "panel_components/landscape/background.jpg";
   $content_image = "panel_components/landscape/content.png";
   $logo_image = "panel_components/landscape/logo.png";
 
-  $image = imagecreatefromjpeg($backgroung_image); // background
+  # Load background image
+  $image = imagecreatefromjpeg($backgroung_image);
   $background_w = imagesx($image);
   $background_h = imagesy($image);
 
@@ -171,9 +175,9 @@ else {
 
   $photo_new_size_h = $photo_max_h;
   $photo_new_size_w = $photo_new_size_h * $photo_ratio ;
-  while($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
+  while ($photo_new_size_w > $photo_max_w or $photo_new_size_h > $photo_max_h) {
     $photo_new_size_h--;
-    $photo_new_size_w=$photo_new_size_h * $photo_ratio;
+    $photo_new_size_w = $photo_new_size_h * $photo_ratio;
   }
 
   $photo_position_x = $background_w-$photo_new_size_w;
@@ -201,7 +205,7 @@ $black = imagecolorallocate($image, 0, 0, 0);
 # $photo_position_x = $background_w-$photo_new_size_w;
 $photo_position_y = $photo_min_y;
 
-if ( ! $approved and $resize_width>300) {
+if (!$approved and $resize_width > 300) {
   # Pixelate user image 
   $tmpImage = ImageCreateTrueColor($photo_w, $photo_h);
   imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_w / $PERCENT_PIXELATED), round($photo_h / $PERCENT_PIXELATED), $photo_w, $photo_h);
@@ -211,7 +215,7 @@ if ( ! $approved and $resize_width>300) {
 
   $photo = $pixelated ;
 }
-imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h); 
+imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h);
 
 ## ADD MAP ##
 $map_zoom = imagecreatefromjpeg($map_download_path_zoom);
@@ -238,7 +242,7 @@ imagettftext($image, 7, 0, $copyright_x, $background_h-13, $white, $fontfile, "Â
 
 ## ADD CONTENT BLOCK ##
 $content_block = imagecreatefrompng($content_image);
-imagecopy($image, $content_block, 0, 0, 0, 0, imagesx($content_block), imagesy($content_block)); 
+imagecopy($image, $content_block, 0, 0, 0, 0, imagesx($content_block), imagesy($content_block));
 
 ## ADD LOGO ##
 $logo = imagecreatefrompng($logo_image); // logo #JeSuisUnDesDeux
@@ -249,24 +253,24 @@ $comment_color = imagecolorallocate($image, 255,219,80);
 $comment_font_file = './panel_components/texgyreheros-italic.otf';
 $comment_font_size = 25;
 
-if(!empty($comment)) {
+if (!empty($comment)) {
   $comment = '"'.trim($comment) . '"';
   $comment_box = imagettfbbox($comment_font_size, 0, $comment_font_file, $comment);
   $comment_x = (($background_w - $comment_span_x) - ($comment_box[2] - $comment_box[0])) / 2;
   imagettftext($image,$comment_font_size ,0,$comment_span_x + $comment_x,$background_h-$comment_y_frombottom,$comment_color,$comment_font_file,$comment);
-} 
+}
 
 ## ADD TOKEN
 $token_font_size = 25;
 $token_font_file = './panel_components/texgyreheros-regular.otf';
-imagettftext($image,$token_font_size,0,200,160,$black,$token_font_file,$token);  
+imagettftext($image,$token_font_size,0,200,160,$black,$token_font_file,$token);
 
 ## ADD CATEGORIE
 $categorie_font_size = 26;
 $categorie_max_char_per_line = 18;
 $categorie_font_file = './panel_components/texgyreheros-bold.otf';
- 
-$categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n"); 
+
+$categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
 
 /*  do {
   $categorie_max_char_per_line--;
@@ -284,14 +288,14 @@ $street_name = wordwrap($street_name,$address_max_char_per_line,"\n");
 
 imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$street_name);
 
-## ADD DATE 
+## ADD DATE
 $date = date('d/m/Y H:i', $time);
 $date_font_size = 15;
 $date_font_file = './panel_components/texgyreheros-regular.otf';
 imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
 
 # Generate full size image
-if($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
+if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
   imagepng($image);
 }
 else if ($resize_width == $MAX_IMG_SIZE) {
@@ -303,7 +307,7 @@ else if ($resize_width == $MAX_IMG_SIZE) {
   $panel_ratio = $background_w / $background_h;
   $resize_height  = $resize_width / $panel_ratio;
   $imageresized = imagecreatetruecolor($resize_width, $resize_height);
- 
+
   imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, $resize_height, $background_w, $background_h);
   imagepng($imageresized, $img_filename);
   imagepng($imageresized);
