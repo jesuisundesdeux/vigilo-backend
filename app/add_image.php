@@ -30,16 +30,17 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 $data = file_get_contents('php://input');
 
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
+$filepath = 'images/'.$filename.'.jpg';
 
-if (!(file_put_contents('images/'.$filename.'.jpg',$data))) {
+if (!(file_put_contents($filepath, $data))) {
   error_log('ADD_IMAGE : Error uploading image');
   $status = 1;
 }
 else {
   $allowedTypes = array(IMAGETYPE_JPEG);
-  $detectedType = exif_imagetype('images/'.$filename.'.jpg');
-  if(!array($detectedType, $allowedTypes)) {
-    unlink('images/'.$filename.'.jpg');
+  $detectedType = exif_imagetype($filepath);
+  if (!array($detectedType, $allowedTypes)) {
+    unlink($filepath);
     error_log('ADD_IMAGE : File type not supported : '. $detectedType);
     $status = 1;
   }
