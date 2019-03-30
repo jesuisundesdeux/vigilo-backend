@@ -5,7 +5,7 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 require_once('./functions.php');
 $token = $_GET['token'];
 
-if(isset($_GET['key'])) {
+if (isset($_GET['key'])) {
   $key = $_GET['key'];
 }
 else {
@@ -15,10 +15,10 @@ else {
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 
-if(getrole($key, $acls) == "admin") {
+if (getrole($key, $acls) == "admin") {
   $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 
-  if(mysqli_num_rows($checktoken_query) == 1) {
+  if (mysqli_num_rows($checktoken_query) == 1) {
 
     $query = mysqli_query($db, "UPDATE obs_list set obs_approved=1 WHERE obs_token='" . $token . "'");
     delete_token_cache($token);
@@ -28,7 +28,7 @@ if(getrole($key, $acls) == "admin") {
     $time = $checktoken_result['obs_time'];
     $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
     $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
-    if($time > (time() - 3600 * 24)) {
+    if ($time > (time() - 3600 * 24)) {
       $tweet_content = str_replace('[COMMENT]',$comment,$tweet_content);
       $tweet_content = str_replace('[TOKEN]',$token,$tweet_content);
       $tweet_content = str_replace('[COORDINATES_LON]',$coordinates_lon,$tweet_content);
@@ -43,7 +43,7 @@ else {
 
 }
 
-if($status != 0) {
+if ($status != 0) {
     http_response_code(500);
 }
 echo json_encode(array('status'=>$status));
