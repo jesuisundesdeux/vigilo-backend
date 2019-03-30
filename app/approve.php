@@ -43,12 +43,14 @@ $comment = $checktoken_result['obs_comment'];
 $time = $checktoken_result['obs_time'];
 $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
 $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
+
+/* Don't tweet observations if they are more than one-day old */
 if ($time > (time() - 3600 * 24)) {
-  $tweet_content = str_replace('[COMMENT]',$comment,$tweet_content);
-  $tweet_content = str_replace('[TOKEN]',$token,$tweet_content);
-  $tweet_content = str_replace('[COORDINATES_LON]',$coordinates_lon,$tweet_content);
-  $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat,$tweet_content);
-  tweet($tweet_content, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token,$twitter_ids);
+  $tweet_content = str_replace('[COMMENT]', $comment, $tweet_content);
+  $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
+  $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
+  $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
+  tweet($tweet_content, 'https://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $twitter_ids);
 }
 
 if ($status != 0) {
