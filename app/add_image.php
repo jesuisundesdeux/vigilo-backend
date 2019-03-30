@@ -18,8 +18,8 @@ if (isset($_GET['token']) && isset($_GET['secretid'])) {
   return;
 }
 
+/* Check existence of token and secretid */
 $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' AND obs_secretid='".$secretid."' LIMIT 1");
-
 if (mysqli_num_rows($checktoken_query) != 1) {
   error_log("ADD_IMAGE : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
   http_response_code(500);
@@ -27,8 +27,8 @@ if (mysqli_num_rows($checktoken_query) != 1) {
   return;
 }
 
+/* Save image */
 $data = file_get_contents('php://input');
-
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
 $filepath = 'images/'.$filename.'.jpg';
 
