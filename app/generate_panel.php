@@ -7,7 +7,7 @@ require_once('./functions.php');
 
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
-$PERCENT_PIXELATED=5;
+$PERCENT_PIXELATED = 5;
 
 if (isset($_GET['key'])) {
   $key = $_GET['key'];
@@ -205,16 +205,25 @@ $black = imagecolorallocate($image, 0, 0, 0);
 # $photo_position_x = $background_w-$photo_new_size_w;
 $photo_position_y = $photo_min_y;
 
+# Image is pixelated until approved by a moderator
 if (!$approved and $resize_width > 300) {
-  # Pixelate user image 
-  $tmpImage = ImageCreateTrueColor($photo_w, $photo_h);
-  imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_w / $PERCENT_PIXELATED), round($photo_h / $PERCENT_PIXELATED), $photo_w, $photo_h);
 
+  $tmpImage = ImageCreateTrueColor($photo_max_w, $photo_max_h);
   $pixelated = ImageCreateTrueColor($photo_w, $photo_h);
-  imagecopyresized($pixelated, $tmpImage, 0, 0, 0, 0, $photo_w, $photo_h, round($photo_w / $PERCENT_PIXELATED), round($photo_h / $PERCENT_PIXELATED));
 
-  $photo = $pixelated ;
+  # First resize the picture - $PERCENT_PIXELATED ratio will increase/decrease data loss
+  imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_max_w / $PERCENT_PIXELATED), round($photo_max_h / $PERCENT_PIXELATED), $photo_w, $photo_h);
+  imagecopyresized($pixelated, $tmpImage, 0, 0, 0, 0, $photo_w, $photo_h, round($photo_max_w / $PERCENT_PIXELATED), round($photo_max_h / $PERCENT_PIXELATED));
+
+  # Then apply pixelating + gaussian filters
+  imagefilter($pixelated, IMG_FILTER_PIXELATE, 5);
+
+  # Gaussian blur reduces pixel effect on small images
+  imagefilter($pixelated, IMG_FILTER_GAUSSIAN_BLUR);
+
+  $photo = $pixelated;
 }
+
 imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h);
 
 ## ADD MAP ##
