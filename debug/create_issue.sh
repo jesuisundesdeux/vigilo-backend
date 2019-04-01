@@ -1,26 +1,25 @@
 #!/bin/bash
 
-# Montpellier
-LAT=43.6029503
-LON=3.8822349
+. ./config.sh
 
-# Châtillon
-LAT=48.80399
-LON=2.28887
+# This script creates an issue for testing purpose
+# Change parameters in this script and/or config.sh
 
 TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
 DATE=$(date "+%s")
-PORT=80
+
+COMMENT="Comment test"
+POSTAL_ADDRESS="42 rue du vélo"
+CATEGORY=1
 
 curl --data "coordinates_lat=${LAT}" \
      --data "coordinates_lon=${LON}" \
-     --data "comment=comment" \
-     --data "comment=comment" \
-     --data "categorie=1" \
+     --data "comment=${COMMENT}" \
+     --data "categorie=${CATEGORY}" \
      --data "token=${TOKEN}" \
      --data "time=${DATE}" \
-     --data "address='42 rue du vélo'" \
+     --data "address=${POSTAL_ADDRESS}" \
      -X POST \
-     'http://localhost:${PORT}/create_issue.php'
+     "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
 exit 0
