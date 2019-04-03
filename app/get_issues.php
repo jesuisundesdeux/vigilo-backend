@@ -22,40 +22,49 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
-$where = "";
+$where = '';
+$added_fields='';
 
 /* Filters */
 # Categorie
 if (isset($_GET['c']) and is_numeric($_GET['c'])) {
   $scategorie=intval($_GET['c']);
-  $where .= ' AND obs_categorie='.$scategorie;
+  $where .= ' AND obs_categorie = '.$scategorie;
 }
 
 # Last 24h
 if (isset($_GET['t'])) {
-  $where .= ' AND obs_time>'.$BEFORE_TIME;
+  $where .= ' AND obs_time > '.$BEFORE_TIME;
 }
 
 # Status
 if (isset($_GET['status']) and is_numeric($_GET['status'])) {
   $sstatus = intval($_GET['status']);
-  $where .= 'AND obs_status='.$sstatus;
+  $where .= 'AND obs_status = '.$sstatus;
 }
 
-# Count
-if (isset($_GET['count']) and is_numeric($_GET['count'])) {
-  $limit = 'LIMIT '.$_GET['count'];
-}
-else {
-  $limit = '';
+# Token
+if (isset($_GET['token']) AND !empty($_GET['token']) {
+  $stoken = mysqli_real_escape_string($db,$_GET['token']);
+  $where .= " AND obs_token = '".$stoken."'";
 }
 
+# Scope 
 if(isset($_GET['scope']) and !empty($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db,$_GET['scope']);
   if($scope != '34_montpellier') {
     $where .= " AND obs_scope = '".$scope."'";
   }
 }
+
+# Count
+if (isset($_GET['count']) and is_numeric($_GET['count'])) {
+  $limit = 'LIMIT '.intval($_GET['count']);
+}
+else {
+  $limit = '';
+}
+
 $query = mysqli_query($db, "SELECT obs_token,
                                    obs_coordinates_lat,
                                    obs_coordinates_lon,
@@ -63,6 +72,7 @@ $query = mysqli_query($db, "SELECT obs_token,
                                    obs_comment,
                                    obs_time,
                                    obs_categorie,
+                                   ".$added_fields."
                                    obs_approved 
                              FROM obs_list
                              WHERE obs_complete=1 
