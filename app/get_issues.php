@@ -44,7 +44,7 @@ if (isset($_GET['status']) and is_numeric($_GET['status'])) {
 }
 
 # Token
-if (isset($_GET['token']) AND !empty($_GET['token']) {
+if (isset($_GET['token']) AND !empty($_GET['token'])) {
   $stoken = mysqli_real_escape_string($db,$_GET['token']);
   $where .= " AND obs_token = '".$stoken."'";
 }
