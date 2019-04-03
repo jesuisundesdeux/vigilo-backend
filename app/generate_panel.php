@@ -304,15 +304,15 @@ $categorie_font_size = 26;
 $categorie_max_char_per_line = 18;
 $categorie_font_file = './panel_components/texgyreheros-bold.otf';
 
-$categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
+$categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
+$categories_nblines = substr_count($categorie_string_formatted,"\n");
+error_log($categories_nblines);
+if($categories_nblines > 1) {
+  $categorie_max_char_per_line = 25;
+  $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
+}
 
-/*  do {
-  $categorie_max_char_per_line--;
-  $categorie_string = str_replace('\n','',$categorie_string);
-  $categorie_string = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
-  $categorie_box = imagettfbbox($categorie_font_size,0,$categorie_font_file,$categorie_string);
-} while(($categorie_box[2] - $categorie_box[0]) > 380);*/
-imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categorie_string);
+imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categorie_string_formatted);
 
 ## ADD ADDRESS
 $address_font_size = 18;
