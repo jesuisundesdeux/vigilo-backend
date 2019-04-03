@@ -60,6 +60,12 @@ if(isset($_GET['scope']) and !empty($_GET['scope'])) {
 # Count
 if (isset($_GET['count']) and is_numeric($_GET['count'])) {
   $limit = 'LIMIT '.intval($_GET['count']);
+
+  if (isset($_GET['offset']) and is_numeric($_GET['offset'])) {
+    $offset = intval($_GET['offset']);
+    $limit .= ' OFFSET '.$offset;
+  }
+
 }
 else {
   $limit = '';
