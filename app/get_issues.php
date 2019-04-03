@@ -22,43 +22,54 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
+$where = "";
 
-$scategorie=-1;
-if (isset($_GET["c"]) and is_numeric($_GET["c"])) {
-  $scategorie=intval($_GET["c"]);
+/* Filters */
+# Categorie
+if (isset($_GET['c']) and is_numeric($_GET['c'])) {
+  $scategorie=intval($_GET['c']);
+  $where .= ' AND obs_categorie='.$scategorie;
 }
 
-# filter observations last 24h
-$stoday=isset($_GET["t"]);
-
-# Filter observations by categories
-$where="";
-if ($stoday or $scategorie > -1) {
-  $where=" Where";
+# Last 24h
+if (isset($_GET['t'])) {
+  $where .= ' AND obs_time>'.$BEFORE_TIME;
 }
 
-if ($scategorie > -1) {
-  $where .= " AND obs_categorie=".$scategorie;
+# Status
+if (isset($_GET['status']) and is_numeric($_GET['status'])) {
+  $sstatus = intval($_GET['status']);
+  $where .= 'AND obs_status='.$sstatus;
 }
 
-if ($stoday) {
-  $where .= " AND obs_time>".$BEFORE_TIME;
-}
-
-if (isset($_GET["count"]) and is_numeric($_GET["count"])) {
+# Count
+if (isset($_GET['count']) and is_numeric($_GET['count'])) {
   $limit = 'LIMIT '.$_GET['count'];
 }
 else {
   $limit = '';
 }
 
-if(isset($_GET["scope"]) and !empty($_GET["scope"])) {
-  $scope = mysqli_real_escape_string($db,$_GET["scope"]);
+if(isset($_GET['scope']) and !empty($_GET['scope'])) {
+  $scope = mysqli_real_escape_string($db,$_GET['scope']);
   if($scope != '34_montpellier') {
     $where .= " AND obs_scope = '".$scope."'";
   }
 }
-$query = mysqli_query($db, "SELECT obs_token,obs_coordinates_lat,obs_coordinates_lon,obs_address_string,obs_comment,obs_time,obs_categorie,obs_approved FROM obs_list WHERE obs_complete=1 ".$where." ORDER BY obs_time DESC ".$limit);
+$query = mysqli_query($db, "SELECT obs_token,
+                                   obs_coordinates_lat,
+                                   obs_coordinates_lon,
+                                   obs_address_string,
+                                   obs_comment,
+                                   obs_time,
+                                   obs_categorie,
+                                   obs_approved 
+                             FROM obs_list
+                             WHERE obs_complete=1 
+                             AND (obs_approved=0 OR obs_approved=1)
+                             ".$where." 
+                             ORDER BY obs_time DESC 
+                             ".$limit);
 # Export categories
 $json = array();
 
@@ -74,6 +85,7 @@ if (mysqli_num_rows($query) > 0) {
                    "group"=>0,
                    "categorie"=>$result['obs_categorie'],
                    "approved"=>$result['obs_approved']);
+
 		if(isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
       $lat = mysqli_real_escape_string($db,$_GET['lat']);
       $lon = mysqli_real_escape_string($db,$_GET['lon']);
