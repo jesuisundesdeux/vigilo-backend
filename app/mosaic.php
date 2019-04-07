@@ -25,45 +25,7 @@ require_once('./functions.php');
 <head>
  <title>JeSuisUnDesDeux / Vigilo</title>
  <meta charset="UTF-8">
-
-      <style>
-      * { box-sizing: border-box; }
-
-/* force scrollbar */
-html { overflow-y: scroll; }
-
-body { font-family: sans-serif; }
-
-/* ---- grid ---- */
-
-.grid {
-  background: #000000;
-}
-
-/* clear fix */
-.grid:after {
-  content: '';
-  display: block;
-  clear: both;
-}
-
-/* ---- .grid-item ---- */
-
-.grid-sizer,
-.grid-item {
-  width: 25%;
-}
-
-.grid-item {
-  float: left;
-}
-
-.grid-item img {
-  display: block;
-  max-width: 100%;
-}
-
-    </style>
+ <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
 
   <script>
   window.console = window.console || function(t) {};
