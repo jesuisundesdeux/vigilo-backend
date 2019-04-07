@@ -85,14 +85,14 @@ body { font-family: sans-serif; }
 <?php
 
 
-if(isset($_GET['c']) AND !empty($_GET['c'])) {
+if (isset($_GET['c']) AND !empty($_GET['c'])) {
   $cat = $_GET['c'] ;
 }
 else {
   $cat = 'all';
 }
 
-if(isset($_GET['t']) AND !empty($_GET['t'])) {
+if (isset($_GET['t']) AND !empty($_GET['t'])) {
   $token = $_GET['t'] ;
 }
 else {
@@ -106,9 +106,11 @@ $data = file_get_contents($url);
 $content = json_decode($data,true);
 $item= 0;
 $filter = array('distance' => 300,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
-$similar = sameas($db,$token,$filter);
-foreach($content as $value) {
-  if(($value['categorie'] == $cat OR $cat == 'all') AND ((in_array($value['token'],$similar)) OR $token == 'all')) {
+$similar = sameas($db, $token, $filter);
+
+foreach ($content as $value) {
+  if (($value['categorie'] == $cat OR $cat == 'all') AND
+     ((in_array($value['token'], $similar)) OR $token == 'all')) {
     echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
   }
 }
