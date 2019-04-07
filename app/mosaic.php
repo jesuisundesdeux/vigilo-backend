@@ -62,17 +62,30 @@ else {
 $url = 'https://'.$urlbase.'/get_issues.php';
 
 $data = file_get_contents($url);
-
+/*
+ *  TODO
+ *  We should use get_issues filters instead of filtering the whole list
+ *  each time we call mosaic.php
+ */
 $content = json_decode($data,true);
 $item= 0;
-$filter = array('distance' => 300,'fdistance' => 1, 'fcategorie' => 1,'faddress' => 1);
+$filter = array('distance' => 300,
+                'fdistance' => 1,
+                'fcategorie' => 1,
+                'faddress' => 1);
 $similar = sameas($db, $token, $filter);
 
 foreach ($content as $value) {
-  if (($value['categorie'] == $cat OR $cat == 'all') AND
-     ((in_array($value['token'], $similar)) OR $token == 'all')) {
-    echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  if ($cat != 'all' && $value['categorie'] != $cat) {
+    /* Wrong category - Do not display */
+    continue;
   }
+  if ($token != 'all' &&
+      (!isset($similar) OR !in_array($value['token'], $similar))) {
+    /* Wrong token - Do not display */
+    continue;
+  }
+  echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 }
 ?>
 </div>
