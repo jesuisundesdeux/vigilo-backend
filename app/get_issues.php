@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 require_once('./common.php');
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 
+header('Content-Type: application/json');
+
 require_once('./functions.php');
 $BEFORE_TIME=time() - (2*24 * 60 * 60);
 $where = '';
