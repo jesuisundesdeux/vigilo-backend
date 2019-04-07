@@ -1,0 +1,1 @@
+ALTER TABLE `obs_list` ADD `obs_scope` varchar(255) COLLATE utf8_bin NOT NULL;

@@ -2,7 +2,13 @@ app/images/*.jpg
 app/maps/*.jpg
 app/places/*.json
 app/datas.php
-mysql/obs_list.sql
 app/caches
 app/common.php
 SyncSettings.ffs_gui
+
+mysql/obs_list.sql
+mysql/init/sql_migration.sql
+
+# Installation application via make
+.virtualenv
+shunit2*
