@@ -24,7 +24,7 @@ require_once('./functions.php');
 <html>
 <head>
   <title>JeSuisUnDesDeux / Vigilo</title>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
   <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
 
   <script>
