@@ -28,6 +28,8 @@ services:
        - ${VOLUME_PATH}/files/maps:/app/maps
        - ${VOLUME_PATH}/files/images:/app/images
      environment:
+       - VIGILO_NAME
+       - VIGILO_LANGUAGE
        - MYSQL_USER
        - MYSQL_PASSWORD
        - MYSQL_DATABASE
@@ -38,6 +40,7 @@ services:
        - TWITTER_ACCESSTOKEN
        - TWITTER_ACCESSTOKENSECRET
        - TWITTER_CONTENT
+       - TWITTER_EXPIRY_TIME
        - UMAP_URL
      #networks:
        #- vigilo
