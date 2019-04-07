@@ -21,9 +21,10 @@ require_once('./common.php');
 require_once('./functions.php');
 ?>
 <!-- https://codepen.io/desandro/full/RPKgEN -->
-<html>
+<!DOCTYPE html>
+<?php echo '<html lang="'.$vigilo_lang.'">'; ?>
 <head>
-  <title>JeSuisUnDesDeux / Vigilo</title>
+  <?php echo '<title>'.$vigilo_name.'</title>'; ?>
   <meta http-equiv="Content-type" content="text/html; charset=utf-8">
   <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
 

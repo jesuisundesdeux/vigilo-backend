@@ -27,6 +27,8 @@ mysqli_set_charset($db, 'utf8' );
 
 $urlbase = $_SERVER['SERVER_NAME'];
 $umap_url = getenv("UMAP_URL");
+$vigilo_name = getenv("VIGILO_NAME");
+$vigilo_lang = getenv("VIGILO_LANGUAGE");
 
 # Generate Maps
 $mapquestapi_key=getenv("MAPQUEST_API");
