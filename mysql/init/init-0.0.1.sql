@@ -15,4 +15,4 @@ CREATE TABLE `obs_list` (
 ALTER TABLE `obs_list` ADD KEY `token` (`obs_token`);
 
 INSERT INTO `obs_list` (`obs_id`, `obs_coordinates_lat`, `obs_coordinates_lon`, `obs_comment`, `obs_categorie`, `obs_token`, `obs_time`, `obs_status`) VALUES
-(19, '43.60063364932313', '3.9004433155059948', 'Parking sur le trottoir ', 1, 'ttueacArvsHCA81zNHD4tN8KvVj63l', 1547298289, 0);
+(19, '43.60063364932313', '3.9004433155059948', 'Parking sur le trottoir ', 1, '123456BA', 1547298289, 0);

@@ -160,7 +160,7 @@ test_createIssueSetedToken () {
 }
 
 
-createIssueSecretID () {
+test_createIssueSecretID () {
     LAT=43.6029503
     LON=3.8822349
     TIMESTAMP=$(date +"%s")
@@ -178,6 +178,15 @@ createIssueSecretID () {
     
     cat /tmp/curl.out | egrep -o '"secretid":"[0-9a-f]{22}"' > /dev/null
     assertEquals $? 1
+}
+
+test_getIssues () {
+    rm -f /tmp/curl.out
+    curl -s --output /tmp/curl.out \
+"${VIGILO_SERVER}:${VIGILO_PORT}/get_issues.php"
+    
+    cat /tmp/curl.out | egrep -o '123456BA' > /dev/null
+    assertEquals $? 0
 }
 
 . shunit2/shunit2
