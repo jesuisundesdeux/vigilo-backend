@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-define('BACKEND_VERSION','1');
+define('BACKEND_VERSION','0.0.7');
 
 date_default_timezone_set('Europe/Paris');
 
