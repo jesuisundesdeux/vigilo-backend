@@ -7,7 +7,7 @@ app/caches
 app/common.php
 
 # Database
-mysql/init/sql_migration.sql
+mysql/sql_migration.sql
 
 # Scripts
 scripts/config.sh

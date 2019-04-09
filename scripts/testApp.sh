@@ -177,7 +177,7 @@ test_createIssueSecretID () {
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
     
     cat /tmp/curl.out | egrep -o '"secretid":"[0-9a-f]{22}"' > /dev/null
-    assertEquals $? 1
+    assertEquals $? 0
 }
 
 test_getIssues () {

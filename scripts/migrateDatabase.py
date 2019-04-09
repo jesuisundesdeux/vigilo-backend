@@ -5,13 +5,14 @@
 
 """
 Usage:
-  get_mysql_init4version.py [-f=<from> | --from=<from>] [-t=<to> | --to=<to>]
+  get_mysql_init4version.py [-f=<from> | --from=<from>] [-t=<to> | --to=<to>] [--test]
   get_mysql_init4version.py (-h | --help)
   get_mysql_init4version.py --version
 
 Options:
   -f=<nb> --from=<from>                     From version
   -t=<to> --to=<to>                         To version
+  --test                                    Populate datas for unit test
   -h --help                                 Aide
 """
 
@@ -41,18 +42,32 @@ if __name__ == '__main__':
     fromversion = convertToIntVersion(opts['--from'])
     toversion = convertToIntVersion(opts['--to'])
 
-    searchpath = os.path.join(os.path.dirname(__file__),'../mysql/init')
-    files = glob.glob(f'{searchpath}/init-*.sql')
+    searchpath = os.path.abspath(os.path.join(os.path.dirname(__file__),'../mysql'))
+    files = glob.glob(f'{searchpath}/init/init-*.sql')
     sqlmigration = ""
-    for filename in sorted(files):
-      version = filename.replace(f'{searchpath}/',"")
-      findversion = convertToIntVersion(version.replace('init-','').replace('.sql',''))
-      if findversion>=fromversion and findversion<=toversion:
-        with open(filename, 'r') as f:
+
+    for initfilename in sorted(files):
+      initversion = initfilename.replace(f'{searchpath}/init/',"")
+      version = initversion.replace('init-','').replace('.sql','')
+
+      numericalversion = convertToIntVersion(version)
+      if numericalversion>=fromversion and numericalversion<=toversion:
+        # Init SQL Database
+        with open(initfilename, 'r') as initfile:
           sqlmigration += f"\n\n--------------------\n"
-          sqlmigration += f"-- {version}\n"
+          sqlmigration += f"-- init {version}\n"
           sqlmigration += f"--------------------\n\n\n"
-          sqlmigration += f.read() 
+          sqlmigration += initfile.read() 
+
+        # Populate datas for unit test
+        populatefilename = f'{searchpath}/populate/populate-{version}.sql'
+        if opts['--test'] and os.path.exists(populatefilename):
+          with open(populatefilename, 'r') as populatefile:
+            sqlmigration += f"\n\n--------------------\n"
+            sqlmigration += f"-- populate test {version}\n"
+            sqlmigration += f"--------------------\n\n\n"
+            sqlmigration += populatefile.read() 
+
 
     with open(f'{searchpath}/sql_migration.sql', 'w') as f:
       f.write(sqlmigration)

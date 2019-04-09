@@ -25,7 +25,7 @@ shunit2:
 
 
 init-db: .virtualenv ## Test application in docker container
-	${VPYTHON} ./scripts/migrateDatabase.py -f ${FROM} -t ${TO}
+	${VPYTHON} ./scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test
 	docker-compose up -d
 
 
