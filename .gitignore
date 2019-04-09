@@ -13,7 +13,6 @@ mysql/sql_migration.sql
 scripts/config.sh
 
 # Installation application via make
-.virtualenv
 shunit2*
 
 # Misc
