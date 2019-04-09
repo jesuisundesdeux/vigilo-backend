@@ -42,20 +42,10 @@ $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 $address = mysqli_real_escape_string($db,$_POST['address']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
 $time = floor($time / 1000);
+$explanation = (isset($_POST['explanation']) ? mysqli_real_escape_string($db,$_POST['explanation']) : '');
+$version = (isset($_POST['version']) ? mysqli_real_escape_string($db,$_POST['version']) : 0);
+$scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db,$_POST['scope']) : 0);
 $status = 0;
-if(isset($_POST['version'])) {
-  $version = mysqli_real_escape_string($db,$_POST['version']);
-}
-else {
-  $version = 0;
-}
-if(isset($_POST['scope'])) {
-  $scope = mysqli_real_escape_string($db,$_POST['scope']);
-}
-else {
-  $scope = 0;
-}
-
 
 # Check if token exist
 $query_token = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
@@ -69,6 +59,7 @@ if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
   mysqli_query($db,'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
                                         obs_coordinates_lon="'.$coordinates_lon.'",
                                         obs_comment="'.$comment.'",
+                                        obs_explanation="'.$explanation.'",
                                         obs_address_string="'.$address.'",
                                         obs_categorie="'.$categorie.'",
                                         obs_time="'.$time.'",
@@ -80,13 +71,39 @@ else {
   if(mysqli_num_rows($query_token) == 1 or empty($token)) {
     $token=strtoupper(substr(str_replace('.','',uniqid('', true)), 0, 8));
   }
+
   # Init Datas
   $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
+
   # Insert user datas to MySQL Database
   if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
-    mysqli_query($db,'INSERT INTO obs_list (`obs_scope`,`obs_coordinates_lat`,`obs_coordinates_lon`,`obs_address_string`,`obs_comment`,`obs_categorie`,`obs_token`,`obs_time`,`obs_status`,`obs_app_version`,`obs_secretid`) VALUES
-  				  ("'.$scope.'","'.$coordinates_lat.'","'.$coordinates_lon.'","'.$address.'","'.$comment.'","'.$categorie.'","'.$token.'","'.$time.'",0,"'.$version.'","'.$secretid.'")') ;
-  
+    mysqli_query($db,'INSERT INTO obs_list (
+                                    `obs_scope`,
+                                    `obs_coordinates_lat`,
+                                    `obs_coordinates_lon`,
+                                    `obs_address_string`,
+                                    `obs_comment`,
+                                    `obs_explanation`,
+                                    `obs_categorie`,
+                                    `obs_token`,
+                                    `obs_time`,
+                                    `obs_status`,
+                                    `obs_app_version`,
+                                    `obs_secretid`) 
+                             VALUES (
+                                 "'.$scope.'",
+                                 "'.$coordinates_lat.'",
+                                 "'.$coordinates_lon.'",
+                                 "'.$address.'",
+                                 "'.$comment.'",
+                                 "'.$explanation.'",
+                                 "'.$categorie.'",
+                                 "'.$token.'",
+                                 "'.$time.'",
+                                 0,
+                                 "'.$version.'",
+                                 "'.$secretid.'")');
+        
     if($mysqlerror = mysqli_error($db)) {
       $status = 1;
       error_log('CREATE_ISSUE : MySQL Error '.$mysqlerror);
