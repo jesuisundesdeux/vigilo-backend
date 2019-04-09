@@ -32,4 +32,6 @@ make test-db
 # other commands
 make stop clean init-db
 make stop clean test-app [SCOPE=montpellier]
+# Debug into mariadb container
+# docker-compose exec db sh -c 'mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "select * from obs_list;" vigilodb'
 ```

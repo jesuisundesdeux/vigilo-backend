@@ -5,7 +5,7 @@ services:
     restart: always
     volumes:
       - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
-      - ./mysql/init/sql_migration.sql:/docker-entrypoint-initdb.d/sql_migration.sql:ro
+      - ./mysql/sql_migration.sql:/docker-entrypoint-initdb.d/sql_migration.sql:ro
     environment:
       - MYSQL_ROOT_PASSWORD
       - MYSQL_USER
