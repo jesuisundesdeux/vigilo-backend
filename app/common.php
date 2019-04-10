@@ -41,7 +41,7 @@ $twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"),
 
 $tweet_content = str_replace('\n',"\n",getenv("TWITTER_CONTENT"));
 
-# Categories
+# Categories *** LEGACY ***
 $categorie = array(
 2 => "Véhicule ou objet gênant (gcum)",
 3 => "Aménagement mal conçu",
