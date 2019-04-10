@@ -28,6 +28,7 @@ CREATE TABLE `obs_list` (
   `obs_coordinates_lon` varchar(255) COLLATE utf8_bin NOT NULL,
   `obs_address_string` varchar(255) COLLATE utf8_bin NOT NULL,
   `obs_comment` varchar(255) COLLATE utf8_bin NOT NULL,
+  `obs_explanation` text COLLATE utf8_bin NOT NULL DEFAULT '',
   `obs_categorie` smallint(6) NOT NULL DEFAULT 1,
   `obs_token` varchar(30) COLLATE utf8_bin NOT NULL,
   `obs_time` bigint(20) NOT NULL,
