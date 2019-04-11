@@ -51,10 +51,18 @@ services:
         - db
       ports:
         - "8888:80"
-      #networks:
-        #- vigilo
-#networks:
-  #vigilo:
-    #internal: true
-
-
+  netdata:
+      image: netdata/netdata
+      hostname: vigilo.org
+      environment:
+          PGID: ${DOCKER_GROUP_ID}
+      ports:
+        - 19999:19999
+      cap_add:
+        - SYS_PTRACE
+      security_opt:
+        - apparmor:unconfined
+      volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /var/run/docker.sock:/var/run/docker.sock:ro
