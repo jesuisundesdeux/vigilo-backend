@@ -1,8 +1,19 @@
+# PHP Application
 app/images/*.jpg
 app/maps/*.jpg
 app/places/*.json
 app/datas.php
-mysql/obs_list.sql
 app/caches
 app/common.php
+
+# Database
+mysql/sql_migration.sql
+
+# Scripts
+scripts/config.sh
+
+# Installation application via make
+shunit2*
+
+# Misc
 SyncSettings.ffs_gui

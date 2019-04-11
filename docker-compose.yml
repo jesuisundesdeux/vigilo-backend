@@ -5,8 +5,7 @@ services:
     restart: always
     volumes:
       - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
-      - ./mysql:/data:ro
-    command: --init-file /data/${MYSQL_INIT_FILE}
+      - ./mysql/sql_migration.sql:/docker-entrypoint-initdb.d/sql_migration.sql:ro
     environment:
       - MYSQL_ROOT_PASSWORD
       - MYSQL_USER
@@ -17,16 +16,16 @@ services:
     #networks:
       #- vigilo
   web:
-     image: tutum/apache-php
+     image: badele/vigilo-backend
      ports:
        - "80:80"
      links:
        - db
      volumes:
-       - ./app:/app
-       - ${VOLUME_PATH}/files/caches:/app/caches
-       - ${VOLUME_PATH}/files/maps:/app/maps
-       - ${VOLUME_PATH}/files/images:/app/images
+       - ./app:/var/www/html
+       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
+       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
+       - ${VOLUME_PATH}/files/images:/var/www/html/images
      environment:
        - VIGILO_NAME
        - VIGILO_LANGUAGE

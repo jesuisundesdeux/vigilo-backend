@@ -18,6 +18,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 require_once('lib/codebird-php/codebird.php');
+
+function tokenGenerator($length) {
+  $bytes = random_bytes($length);
+  return strtoupper(bin2hex($bytes));
+}
+
+
 // https://numa-bord.com/miniblog/php-calcul-de-distance-entre-2-coordonnees-gps-latitude-longitude/
 function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         $earth_radius = 6378137;   // Terre = sphère de 6378km de rayon

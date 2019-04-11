@@ -23,3 +23,12 @@ docker-compose up
 
 *phpmyadmin*
 Go to `http://localhost:8888`
+
+### Tools
+
+```
+make SCOPE=montpellier stop clean test-app show-db
+
+# List all available commands
+make
+

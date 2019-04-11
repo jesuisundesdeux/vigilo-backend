@@ -69,7 +69,8 @@ if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
 else {
 
   if(mysqli_num_rows($query_token) == 1 or empty($token)) {
-    $token=strtoupper(substr(str_replace('.','',uniqid('', true)), 0, 8));
+    $token=tokenGenerator(4);
+
   }
 
   # Init Datas
@@ -106,17 +107,20 @@ else {
         
     if($mysqlerror = mysqli_error($db)) {
       $status = 1;
+      $error_code = "Could not insert field";
       error_log('CREATE_ISSUE : MySQL Error '.$mysqlerror);
     }
   }
   else {
     $status = 1;
+    $error_code = "Empty field not supported";
     error_log('CREATE_ISSUE : Field not supported');
   }
 }  
 # If error force return 500 ERROR CODE
 if($status != 0) {
   http_response_code(500);
+  $json['error_code'] = $error_code;
 }
 
 # Return Token value
