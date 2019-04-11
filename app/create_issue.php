@@ -69,7 +69,8 @@ if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
 else {
 
   if(mysqli_num_rows($query_token) == 1 or empty($token)) {
-    $token=strtoupper(substr(str_replace('.','',uniqid('', true)), 0, 8));
+    $token=tokenGenerator(4);
+
   }
 
   # Init Datas

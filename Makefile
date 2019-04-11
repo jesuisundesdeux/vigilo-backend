@@ -1,6 +1,6 @@
 UID=$(shell id -u)
-FROM=0.0.1
-TO=0.0.7
+FROM=0.0.2
+TO=0.0.2
 SHUNIT=2.1.7
 SCOPE=montpellier
 
@@ -21,6 +21,9 @@ shunit2:
 init-db: ## Test application in docker container
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
 	docker-compose up -d
+
+show-db:
+	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" vigilodb'
 
 
 debug-db: init-db

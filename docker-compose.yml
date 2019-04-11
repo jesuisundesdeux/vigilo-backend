@@ -16,16 +16,16 @@ services:
     #networks:
       #- vigilo
   web:
-     image: tutum/apache-php
+     image: badele/vigilo-backend
      ports:
        - "80:80"
      links:
        - db
      volumes:
-       - ./app:/app
-       - ${VOLUME_PATH}/files/caches:/app/caches
-       - ${VOLUME_PATH}/files/maps:/app/maps
-       - ${VOLUME_PATH}/files/images:/app/images
+       - ./app:/var/www/html
+       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
+       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
+       - ${VOLUME_PATH}/files/images:/var/www/html/images
      environment:
        - VIGILO_NAME
        - VIGILO_LANGUAGE

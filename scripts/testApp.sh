@@ -9,24 +9,7 @@ oneTimeSetUp () {
     sleep 10
 }
 
-test_createGoodIssue () {
-    TIMESTAMP=$(date +"%s")
-
-    rm -f /tmp/curl.out
-    curl -s --output /tmp/curl.out \
-    -d  "coordinates_lat=${LAT}\
-&coordinates_lon=${LON}\
-&categorie=1\
-&address=ceci est une rue\
-&comment=test test_createGoodIssue\
-&scope=34_Montpellier\
-&time=${TIMESTAMP}\
-" -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
-    cat /tmp/curl.out | grep '"status":0' > /dev/null
-    assertEquals $? 0
-}
-
+# Test create issue with empty Lat field
 test_createIssueMissingLat () {
     LAT=43.6029503
     LON=3.8822349
@@ -36,8 +19,8 @@ test_createIssueMissingLat () {
     curl -s --output /tmp/curl.out \
     -d  "coordinates_lon=${LON}\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueMissingLat\
+&address=test_createIssueMissingLat\
+&comment=test_createIssueMissingLat\
 &scope=34_Montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
@@ -46,6 +29,7 @@ test_createIssueMissingLat () {
     assertEquals $? 0
 }
 
+# Test create issue with empty Lon field
 test_createIssueMissingLon () {
     LAT=43.6029503
     LON=3.8822349
@@ -55,8 +39,8 @@ test_createIssueMissingLon () {
     curl -s --output /tmp/curl.out \
     -d  "coordinates_lat=${LAT}\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueMissingLon\
+&address=test_createIssueMissingLon\
+&comment=test_createIssueMissingLon\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
     
@@ -64,6 +48,7 @@ test_createIssueMissingLon () {
     assertEquals $? 0
 }
 
+# Test create issue with empty Categorie field
 test_createIssueMissingCategorie () {
     LAT=43.6029503
     LON=3.8822349
@@ -73,8 +58,8 @@ test_createIssueMissingCategorie () {
     curl -s --output /tmp/curl.out \
     -d  "&coordinates_lat=${LAT}\
 &coordinates_lon=${LON}\
-&address=ceci est une rue\
-&comment=test test_createIssueMissingCategorie\
+&address=test_createIssueMissingCategorie\
+&comment=test_createIssueMissingCategorie\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
     
@@ -82,6 +67,7 @@ test_createIssueMissingCategorie () {
     assertEquals $? 0
 }
 
+# Test create issue with empty Address field
 test_createIssueMissingAddress () {
     LAT=43.6029503
     LON=3.8822349
@@ -92,7 +78,7 @@ test_createIssueMissingAddress () {
     -d  "coordinates_lat=${LAT}\
 &coordinates_lon=${LON}\
 &categorie=1\
-&comment=test test_createIssueMissingAddress\
+&comment=test_createIssueMissingAddress\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
     
@@ -100,6 +86,7 @@ test_createIssueMissingAddress () {
     assertEquals $? 0
 }
 
+# Test create issue with empty Time field
 test_createIssueMissingTime () {
     LAT=43.6029503
     LON=3.8822349
@@ -110,14 +97,15 @@ test_createIssueMissingTime () {
     -d  "coordinates_lat=${LAT}\
 &coordinates_lon=${LON}\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueMissingTime\
+&address=test_createIssueMissingTime\
+&comment=test_createIssueMissingTime\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
     
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
+# Test create issue with empty Token field
 test_createIssueEmptyToken () {
     LAT=43.6029503
     LON=3.8822349
@@ -128,8 +116,8 @@ test_createIssueEmptyToken () {
     -d  "coordinates_lat=${LAT}\
 &coordinates_lon=${LON}\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueEmptyToken\
+&address=test_createIssueEmptyToken\
+&comment=test_createIssueEmptyToken\
 &scope=34_Montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
@@ -138,6 +126,7 @@ test_createIssueEmptyToken () {
     assertEquals $? 0
 }
 
+# Test create issue and verify returned token
 test_createIssueSetedToken () {
     LAT=43.6029503
     LON=3.8822349
@@ -149,8 +138,8 @@ test_createIssueSetedToken () {
 &coordinates_lon=${LON}\
 &token=ABCDEF01\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueEmptyToken\
+&address=test_createIssueSetedToken\
+&comment=test_createIssueSetedToken\
 &scope=34_Montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
@@ -159,7 +148,7 @@ test_createIssueSetedToken () {
     assertEquals $? 0
 }
 
-
+# Test create issue and verify returned SecretID
 test_createIssueSecretID () {
     LAT=43.6029503
     LON=3.8822349
@@ -170,8 +159,8 @@ test_createIssueSecretID () {
     -d  "coordinates_lat=${LAT}\
 &coordinates_lon=${LON}\
 &categorie=1\
-&address=ceci est une rue\
-&comment=test test_createIssueSecretID
+&address=test_createIssueSecretID
+&comment=test_createIssueSecretID
 &scope=34_Montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
@@ -180,12 +169,40 @@ test_createIssueSecretID () {
     assertEquals $? 0
 }
 
+# Test create issue with good all parameters
+test_createGoodIssue () {
+    TIMESTAMP=$(date +"%s")
+
+    rm -f /tmp/curl.out
+    curl -s --output /tmp/curl.out \
+    -d  "coordinates_lat=${LAT}\
+&coordinates_lon=${LON}\
+&categorie=1\
+&address=test_createGoodIssue\
+&comment=test_createGoodIssue\
+&scope=34_Montpellier\
+&time=${TIMESTAMP}\
+" -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
+    
+    cat /tmp/curl.out | grep '"status":0' > /dev/null
+    assertEquals $? 0
+}
+
+
+# Test retrieving issue
 test_getIssues () {
     rm -f /tmp/curl.out
     curl -s --output /tmp/curl.out \
 "${VIGILO_SERVER}:${VIGILO_PORT}/get_issues.php"
     
-    cat /tmp/curl.out | egrep -o '123456BA' > /dev/null
+    cat /tmp/curl.out | egrep -o '"token": "5UNYMG1Y",' > /dev/null
+    assertEquals $? 0
+}
+
+
+# test token is uniq
+test_uniqToken () {
+    docker-compose exec db sh -c 'mysql --skip-column-names --batch --raw -u root --password=$MYSQL_ROOT_PASSWORD -e "select max(counted) from (select obs_token,count(*) as counted from obs_list group by obs_token) as counts;" vigilodb' | egrep '^1' > /dev/null
     assertEquals $? 0
 }
 

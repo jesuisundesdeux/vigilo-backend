@@ -27,11 +27,8 @@ Go to `http://localhost:8888`
 ### Tools
 
 ```
-make test-db
+make SCOPE=montpellier stop clean test-app show-db
 
-# other commands
-make stop clean init-db
-make stop clean test-app [SCOPE=montpellier]
-# Debug into mariadb container
-# docker-compose exec db sh -c 'mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "select * from obs_list;" vigilodb'
-```
+# List all available commands
+make
+
