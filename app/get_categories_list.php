@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 include('./common.php');
 header('BACKEND_VERSION: '.BACKEND_VERSION);
+header('Content-Type: application/json');
 
 echo json_encode($categorie_lst);
 ?>
