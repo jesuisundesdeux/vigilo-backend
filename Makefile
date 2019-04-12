@@ -3,6 +3,13 @@ FROM=0.0.2
 TO=0.0.2
 SHUNIT=2.1.7
 SCOPE=montpellier
+NOW=$(shell date +'%Y%m%d%H%M%S')
+
+# Database information
+DBNAME=vigilodb
+DBFILE=dump.sql
+DBSERVER=127.0.0.1
+DBPASSWORD=xxxx
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -21,6 +28,12 @@ shunit2:
 init-db: ## Test application in docker container
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
 	docker-compose up -d
+
+backup-db: ## Backup a mysql docker container
+	docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'MYSQL_PWD=${DBPASSWORD} mysqldump -h ${DBSERVER} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${DBNAME} > /dump/dump-${NOW}.sql'
+
+restore-db: ## Restore a mysql docker container
+	docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${DBSERVER} -u root --password=${DBPASSWORD} ${DBNAME} < /dump/${DBFILE}'
 
 show-db:
 	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" vigilodb'
