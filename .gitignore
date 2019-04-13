@@ -6,9 +6,11 @@ app/datas.php
 app/caches
 app/common.php
 
+# Backup
+backup/
+
 # Database
 mysql/sql_migration.sql
-mysql/dump/
 
 # Scripts
 scripts/config.sh

@@ -32,7 +32,11 @@ make SCOPE=montpellier stop clean init-db start unittest show-db
 
 # Test server with backuped database
 #make backup-db DBSERVER=192.168.0.1
-make SCOPE=montpellier DBSERVER=192.168.0.1 DBFILE=dump-20190412233147.sql stop clean restore-db start show-db
+make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-db start show-db
+
+# Test server with backuped bundle
+#make backup-bundle DBSERVER=192.168.0.1
+make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-bundle start show-db
 
 # List all available commands
 make
