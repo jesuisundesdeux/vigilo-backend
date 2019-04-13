@@ -27,6 +27,7 @@ require_once('./functions.php');
   <?php echo '<title>'.$vigilo_name.'</title>'; ?>
   <meta http-equiv="Content-type" content="text/html; charset=utf-8">
   <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/style/favicon.png">
 
   <script>
   window.console = window.console || function(t) {};
