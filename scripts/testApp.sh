@@ -4,10 +4,10 @@ SCOPE=$1
 
 . $(dirname $0)/config.sh
 
-oneTimeSetUp () {
-    echo "Waiting 10 sec for stating container ..."
-    sleep 10
-}
+# oneTimeSetUp () {
+#     echo "Waiting 10 sec for stating container ..."
+#     sleep 10
+# }
 
 # Test create issue with empty Lat field
 test_createIssueMissingLat () {

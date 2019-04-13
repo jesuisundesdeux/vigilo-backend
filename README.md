@@ -27,7 +27,12 @@ Go to `http://localhost:8888`
 ### Tools
 
 ```
-make SCOPE=montpellier stop clean test-app show-db
+# Run unit test with cleaned database
+make SCOPE=montpellier stop clean init-db start unittest show-db
+
+# Test server with backuped database
+#make backup-db DBSERVER=192.168.0.1
+make SCOPE=montpellier DBSERVER=192.168.0.1 DBFILE=dump-20190412233147.sql stop clean restore-db start show-db
 
 # List all available commands
 make

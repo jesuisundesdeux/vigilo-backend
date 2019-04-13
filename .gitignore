@@ -8,6 +8,7 @@ app/common.php
 
 # Database
 mysql/sql_migration.sql
+mysql/dump/
 
 # Scripts
 scripts/config.sh
