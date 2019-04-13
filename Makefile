@@ -25,25 +25,32 @@ shunit2:
 	ln -s shunit2-${SHUNIT} shunit2
 	rm v${SHUNIT}.tar.gz
 
-init-db: ## Test application in docker container
+init-db: ## Init database with unit tests datas
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
-	docker-compose up -d
 
 backup-db: ## Backup a mysql docker container
 	docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'MYSQL_PWD=${DBPASSWORD} mysqldump -h ${DBSERVER} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${DBNAME} > /dump/dump-${NOW}.sql'
 
 restore-db: ## Restore a mysql docker container
-	docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${DBSERVER} -u root --password=${DBPASSWORD} ${DBNAME} < /dump/${DBFILE}'
+	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${DBSERVER} -u root --password=${DBPASSWORD} ${DBNAME} < /dump/${DBFILE}'
+	cp mysql/dump/${DBFILE} mysql/sql_migration.sql 
 
 show-db:
 	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" vigilodb'
 
-
 debug-db: init-db
 	docker-compose logs --no-color -f db
 
+unittest: shunit2
+	cp scripts/${SCOPE}.sh scripts/config.sh
+	scripts/testApp.sh
 
-test-app: shunit2 init-db
+start:
+	@docker-compose up -d
+	@echo "Waiting 10 sec for stating container and restoring database ..."
+	@sleep 10
+
+test-app: shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
 	scripts/testApp.sh
 
@@ -53,8 +60,8 @@ stop:
 
 clean: ## Clean some files
 	-docker-compose rm -f
-	-sudo rm -rf /data/docker/jsudd/
-
+	-test -e /data/docker/jsudd && sudo rm -rf /data/docker/jsudd/
+	-test -e mysql/sql_migration.sql && sudo rm -rf mysql/sql_migration.sql
 
 clean-packages: ## Clean some files
 	-$(RM) -r shunit2*
