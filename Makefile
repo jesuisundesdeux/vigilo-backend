@@ -6,16 +6,19 @@ SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
 
 # Database information
-DBNAME=vigilodb
 BKDATE=NODATE
-DBSERVER=127.0.0.1
-DBPASSWORD=xxxx
+
+# Get .env parameters
+MYSQL_HOST :=$(shell cat .env | grep MYSQL_HOST | cut -d"=" -f2)
+MYSQL_ROOT_PASSWORD :=$(shell cat .env | grep MYSQL_ROOT_PASSWORD | cut -d"=" -f2)
+MYSQL_DATABASE :=$(shell cat .env | grep MYSQL_DATABASE | cut -d"=" -f2)
+MYSQL_INIT_FILE :=$(shell cat .env | grep MYSQL_INIT_FILE | cut -d"=" -f2)
+VOLUME_PATH :=$(shell cat .env | grep VOLUME_PATH | cut -d"=" -f2)
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
 
 all: help
-
 
 help:
 	@grep "##" Makefile | grep -v "@grep"
@@ -33,20 +36,20 @@ init-db: ## Init database with unit tests datas
 
 
 backup-db: ## Backup a mysql docker container
-	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${DBPASSWORD} mysqldump -h ${DBSERVER} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${DBNAME} > /dump/dump-${NOW}.sql'
+	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'
 
 
 restore-db: ## Restore a mysql docker container
-	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${DBSERVER} -u root --password=${DBPASSWORD} ${DBNAME} < /dump/${DBFILE}'
-	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/sql_migration.sql 
+	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
+	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
 
 
 show-db: ## Show database content
-	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" vigilodb'
+	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
 
 
 list-bundle: ## list a bundle backups
-	@-ls -alh backup/bundle | grep "bundle-"
+	@-ls -alh backup/bundle | grep "bundle-" | sed 's/bundle-//' | sed 's/\.tgz//'
 
 
 backup-bundle: backup-db ## backup database and image files
@@ -58,7 +61,8 @@ restore-bundle: ## Restore a bundle backup
 	test -e app/images && rm -f app/images/*
 	test -e app/maps && rm -f app/maps/*
 	tar -xvzf backup/bundle/bundle-${BKDATE}.tgz
-	cp backup/mysql/dump-${BKDATE}.sql mysql/sql_migration.sql
+	sudo rsync -avr app/caches app/images app/maps ${VOLUME_PATH}/files/
+	cp backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE}
 
 
 debug-db: init-db
@@ -88,7 +92,7 @@ stop: ## Stop a docker stack
 clean: ## Clean some files
 	-docker-compose rm -f
 	-test -e /data/docker/jsudd && sudo rm -rf /data/docker/jsudd/
-	-test -e mysql/sql_migration.sql && sudo rm -rf mysql/sql_migration.sql
+	-test -e mysql/${MYSQL_INIT_FILE} && sudo rm -rf mysql/${MYSQL_INIT_FILE}
 
 
 clean-packages: ## Clean some files
