@@ -59,7 +59,7 @@ else {
   $token = 'all';
 }
 
-$url = 'https://'.$urlbase.'/get_issues.php';
+$url = $http_protocol.'://'.$urlbase.'/get_issues.php';
 
 $data = file_get_contents($url);
 /*
@@ -85,7 +85,7 @@ foreach ($content as $value) {
     /* Wrong token - Do not display */
     continue;
   }
-  echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="https://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="'.$http_protocol.'://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 }
 ?>
 </div>
