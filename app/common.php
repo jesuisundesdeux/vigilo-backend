@@ -16,31 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+require_once('./config.php');
 
 define('BACKEND_VERSION','0.0.2');
 
 date_default_timezone_set('Europe/Paris');
 
-$db=mysqli_connect(getenv("MYSQL_HOST"),getenv("MYSQL_USER"),getenv("MYSQL_PASSWORD"),getenv("MYSQL_DATABASE"));
+$db=mysqli_connect($config['MYSQL_HOST'],$config['MYSQL_USER'],$config['MYSQL_PASSWORD'],$config['MYSQL_DATABASE']);
 
 mysqli_set_charset($db, 'utf8' );
 
 $http_protocol = strpos(strtolower($_SERVER['SERVER_PROTOCOL']),'https') === FALSE ? 'http' : 'https';
-$urlbase = $_SERVER['SERVER_NAME'];
-$umap_url = getenv("UMAP_URL");
-$vigilo_name = getenv("VIGILO_NAME");
-$vigilo_lang = getenv("VIGILO_LANGUAGE");
-
-# Generate Maps
-$mapquestapi_key=getenv("MAPQUEST_API");
-
-# Twitter configuration
-$twitter_ids = array("consumer" => getenv("TWITTER_CONSUMER"), 
-                     "consumersecret" => getenv("TWITTER_CONSUMERSECRET"),
-                     "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
-                     "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
-
-$tweet_content = str_replace('\n',"\n",getenv("TWITTER_CONTENT"));
 
 # Categories *** LEGACY ***
 $categorie = array(

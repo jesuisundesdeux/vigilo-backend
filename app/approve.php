@@ -70,13 +70,12 @@ if($approved == 1) {
   $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
   
   /* Don't tweet observations if they are more than N-hours old */
-  $expiry_time = getenv("TWITTER_EXPIRY_TIME");
-  if ($time > (time() - 3600 * $expiry_time)) {
-    $tweet_content = str_replace('[COMMENT]', $comment, $tweet_content);
+  if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'])) {
+    $tweet_content = str_replace('[COMMENT]', $comment, $config['TWITTER_CONTENT']);
     $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
     $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
     $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
-    tweet($tweet_content, $http_protocol.'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $twitter_ids);
+    tweet($tweet_content, $http_protocol.'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $config['TWITTER_IDS']);
   } else {
     error_log("APPROVE : Token : ".$token." older than ".$expiry_time."h. We won't tweet it.");
   }

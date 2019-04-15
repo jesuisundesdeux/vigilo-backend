@@ -22,9 +22,9 @@ require_once('./functions.php');
 ?>
 <!-- https://codepen.io/desandro/full/RPKgEN -->
 <!DOCTYPE html>
-<?php echo '<html lang="'.$vigilo_lang.'">'; ?>
+<?php echo '<html lang="'.$config['VIGILO_LANGUAGE'].'">'; ?>
 <head>
-  <?php echo '<title>'.$vigilo_name.'</title>'; ?>
+  <?php echo '<title>'.$config['VIGILO_NAME'].'</title>'; ?>
   <meta http-equiv="Content-type" content="text/html; charset=utf-8">
   <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
   <link rel="icon" type="image/png" href="/style/favicon.png">
@@ -60,7 +60,7 @@ else {
   $token = 'all';
 }
 
-$url = $http_protocol.'://'.$urlbase.'/get_issues.php';
+$url = $http_protocol.'://'.$config['URLBASE'].'/get_issues.php';
 
 $data = file_get_contents($url);
 /*
@@ -86,7 +86,7 @@ foreach ($content as $value) {
     /* Wrong token - Do not display */
     continue;
   }
-  echo '<div class="grid-item"><a target="_blank" href="'.$umap_url.'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="'.$http_protocol.'://'.$urlbase.'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  echo '<div class="grid-item"><a target="_blank" href="'.$config['UMAP_URL'].'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="'.$http_protocol.'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 }
 ?>
 </div>

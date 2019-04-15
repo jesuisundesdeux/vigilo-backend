@@ -118,23 +118,10 @@ while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates
   }
 }
 
-## Wide map
-/*$size = '390,350';
-$zoom = 14;
-$url = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquestapi_key . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size . '&zoom=' . $zoom . '&locations=' . $coordinates_lat . ',' . $coordinates_lon;
-$map_download_path = './maps/' . $token . '.jpg';
-
-if (!file_exists($map_download_path)) {
-  $content = file_get_contents($url);
-  file_put_contents($map_download_path, $content);
-}*/
-
-//$map = imagecreatefromjpeg($map_download_path);
-
 ## Zoomed map
 $size_zoom = '390,390';
 $zoom_zoom = 17;
-$url_zoom = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquestapi_key . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size_zoom . '&zoom=' . $zoom_zoom . '&locations=' . $additionalmarkers . $coordinates_lat . ',' . $coordinates_lon . '|marker-ff0000&type=hyb';
+$url_zoom = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $config['MAPQUEST_API'] . '&center=' . $coordinates_lat . ',' . $coordinates_lon . '&size=' . $size_zoom . '&zoom=' . $zoom_zoom . '&locations=' . $additionalmarkers . $coordinates_lat . ',' . $coordinates_lon . '|marker-ff0000&type=hyb';
 $map_download_path_zoom = './maps/' . $token . '_zoom.jpg';
 
 if (!file_exists($map_download_path_zoom)) {
