@@ -25,6 +25,7 @@ $db=mysqli_connect(getenv("MYSQL_HOST"),getenv("MYSQL_USER"),getenv("MYSQL_PASSW
 
 mysqli_set_charset($db, 'utf8' );
 
+$http_protocol = strpos(strtolower($_SERVER['SERVER_PROTOCOL']),'https') === FALSE ? 'http' : 'https';
 $urlbase = $_SERVER['SERVER_NAME'];
 $umap_url = getenv("UMAP_URL");
 $vigilo_name = getenv("VIGILO_NAME");
