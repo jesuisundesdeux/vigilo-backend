@@ -26,8 +26,6 @@ $db=mysqli_connect($config['MYSQL_HOST'],$config['MYSQL_USER'],$config['MYSQL_PA
 
 mysqli_set_charset($db, 'utf8' );
 
-$http_protocol = strpos(strtolower($_SERVER['SERVER_PROTOCOL']),'https') === FALSE ? 'http' : 'https';
-
 # Categories *** LEGACY ***
 $categorie = array(
 2 => "Véhicule ou objet gênant (gcum)",

@@ -75,7 +75,7 @@ if($approved == 1) {
     $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
     $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
     $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
-    tweet($tweet_content, $http_protocol.'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $config['TWITTER_IDS']);
+    tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $config['TWITTER_IDS']);
   } else {
     error_log("APPROVE : Token : ".$token." older than ".$expiry_time."h. We won't tweet it.");
   }

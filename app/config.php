@@ -26,6 +26,7 @@ $config['MYSQL_DATABASE'] = getenv("MYSQL_DATABASE");
 
 /* Server configuration */
 $config['URLBASE'] = $_SERVER['SERVER_NAME'];
+$config['HTTP_PROTOCOL'] = strpos(strtolower($_SERVER['SERVER_PROTOCOL']),'https') === FALSE ? 'http' : 'https';
 
 /* UMAP configuration */
 $config['UMAP_URL'] = getenv("UMAP_URL");
