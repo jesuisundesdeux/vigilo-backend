@@ -1,4 +1,5 @@
 UID=$(shell id -u)
+WWW_DATA_UID=33
 FROM=0.0.2
 TO=0.0.2
 SHUNIT=2.1.7
@@ -62,6 +63,7 @@ restore-bundle: ## Restore a bundle backup
 	test -e app/maps && rm -f app/maps/*
 	tar -xvzf backup/bundle/bundle-${BKDATE}.tgz
 	sudo rsync -avr app/caches app/images app/maps ${VOLUME_PATH}/files/
+	sudo chown -R ${WWW_DATA_UID} ${VOLUME_PATH}/files/caches ${VOLUME_PATH}/files/images ${VOLUME_PATH}/files/maps
 	cp backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE}
 
 
