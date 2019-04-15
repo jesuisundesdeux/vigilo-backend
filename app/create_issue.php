@@ -38,7 +38,7 @@ else {
 $token = mysqli_real_escape_string($db,$_POST['token']);
 $coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
-$comment = mysqli_real_escape_string($db,$_POST['comment']);
+$comment = utf8_encode(mysqli_real_escape_string($db,$_POST['comment']));
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 $address = mysqli_real_escape_string($db,$_POST['address']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
