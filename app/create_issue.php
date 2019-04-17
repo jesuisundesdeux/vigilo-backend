@@ -38,12 +38,12 @@ else {
 $token = mysqli_real_escape_string($db,$_POST['token']);
 $coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
-$comment = utf8_encode(mysqli_real_escape_string($db,$_POST['comment']));
+$comment = removeEmoji(mysqli_real_escape_string($db,$_POST['comment']));
 $categorie = mysqli_real_escape_string($db,$_POST['categorie']);
 $address = mysqli_real_escape_string($db,$_POST['address']);
 $time = mysqli_real_escape_string($db,$_POST['time']);
 $time = floor($time / 1000);
-$explanation = (isset($_POST['explanation']) ? utf8_encode(mysqli_real_escape_string($db,$_POST['explanation'])) : '');
+$explanation = (isset($_POST['explanation']) ? removeEmoji(mysqli_real_escape_string($db,$_POST['explanation'])) : '');
 $version = (isset($_POST['version']) ? mysqli_real_escape_string($db,$_POST['version']) : 0);
 $scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db,$_POST['scope']) : 0);
 $status = 0;
