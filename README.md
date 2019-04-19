@@ -28,7 +28,7 @@ Go to `http://localhost:8888`
 
 ```
 # Run unit test with cleaned database
-make SCOPE=montpellier stop clean init-db start unittest show-db
+make ENV=unittest SCOPE=montpellier stop clean init-db start unittest show-db
 
 # Test server with backuped database
 #make backup-db DBSERVER=192.168.0.1

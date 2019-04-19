@@ -19,34 +19,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /* Database configuration */
 
-$config['MYSQL_HOST'] = getenv("MYSQL_HOST");
-$config['MYSQL_USER'] = getenv("MYSQL_USER");
-$config['MYSQL_PASSWORD'] = getenv("MYSQL_PASSWORD");
-$config['MYSQL_DATABASE'] = getenv("MYSQL_DATABASE");
+$config['MYSQL_HOST'] = "db";
+$config['MYSQL_USER'] = "mysqluser";
+$config['MYSQL_PASSWORD'] = "xxxx";
+$config['MYSQL_DATABASE'] = "vigilodb";
 
 /* Server configuration */
 $config['URLBASE'] = $_SERVER['SERVER_NAME'];
 $config['HTTP_PROTOCOL'] = 'https';
 
 /* UMAP configuration */
-$config['UMAP_URL'] = getenv("UMAP_URL");
+$config['UMAP_URL'] = "https://umap....#19/";
 
 /* Naming configuration */
-$config['VIGILO_NAME'] = getenv("VIGILO_NAME");
-$config['VIGILO_LANGUAGE'] = getenv("VIGILO_LANGUAGE");
+$config['VIGILO_NAME'] = "JeSuisUnDesDeux / Vigilo";
+$config['VIGILO_LANGUAGE'] = "fr-FR";
 
 /* External MapQuest API configuration */
-$config['MAPQUEST_API'] = getenv("MAPQUEST_API");
+$config['MAPQUEST_API'] = "xxxx";
 
 /* Approve / tweeter configuration */
-$config['APPROVE_TWITTER_EXPTIME'] = getenv("TWITTER_EXPIRY_TIME");
+$config['APPROVE_TWITTER_EXPTIME'] = 24;
 
 /* Twitter configuration */
-$config['TWITTER_IDS'] =  array("consumer" => getenv("TWITTER_CONSUMER"), 
-                     "consumersecret" => getenv("TWITTER_CONSUMERSECRET"),
-                     "accesstoken" => getenv("TWITTER_ACCESSTOKEN"),
-                     "accesstokensecret" => getenv("TWITTER_ACCESSTOKENSECRET"));
+$config['TWITTER_IDS'] =  array("consumer" => "xxxx", 
+                     "consumersecret" => "xxxx", 
+                     "accesstoken" => "xxxx", 
+                     "accesstokensecret" => "xxxx");
 
-$config['TWITTER_CONTENT'] = str_replace('\n',"\n",getenv("TWITTER_CONTENT"));
-
-
+$config['TWITTER_CONTENT'] = str_replace('\n',"\n","what you want to be tweeted");

@@ -27,20 +27,7 @@ services:
        - ${VOLUME_PATH}/files/maps:/var/www/html/maps
        - ${VOLUME_PATH}/files/images:/var/www/html/images
      environment:
-       - VIGILO_NAME
-       - VIGILO_LANGUAGE
-       - MYSQL_USER
-       - MYSQL_PASSWORD
-       - MYSQL_DATABASE
-       - MYSQL_HOST
-       - MAPQUEST_API
-       - TWITTER_CONSUMER
-       - TWITTER_CONSUMERSECRET
-       - TWITTER_ACCESSTOKEN
-       - TWITTER_ACCESSTOKENSECRET
-       - TWITTER_CONTENT
-       - TWITTER_EXPIRY_TIME
-       - UMAP_URL
+       - ENV 
      #networks:
        #- vigilo
   phpmyadmin:

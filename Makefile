@@ -1,7 +1,8 @@
+ENV:=unittest
 UID=$(shell id -u)
 WWW_DATA_UID=33
 FROM=0.0.2
-TO=0.0.2
+TO=0.0.3
 SHUNIT=2.1.7
 SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
@@ -10,11 +11,11 @@ NOW:=$(shell date +'%Y%m%d%H%M%S')
 BKDATE=NODATE
 
 # Get .env parameters
-MYSQL_HOST :=$(shell cat .env | grep MYSQL_HOST | cut -d"=" -f2)
-MYSQL_ROOT_PASSWORD :=$(shell cat .env | grep MYSQL_ROOT_PASSWORD | cut -d"=" -f2)
-MYSQL_DATABASE :=$(shell cat .env | grep MYSQL_DATABASE | cut -d"=" -f2)
-MYSQL_INIT_FILE :=$(shell cat .env | grep MYSQL_INIT_FILE | cut -d"=" -f2)
-VOLUME_PATH :=$(shell cat .env | grep VOLUME_PATH | cut -d"=" -f2)
+MYSQL_HOST :=$(shell cat .env_${ENV} | grep MYSQL_HOST | cut -d"=" -f2)
+MYSQL_ROOT_PASSWORD :=$(shell cat .env_${ENV} | grep MYSQL_ROOT_PASSWORD | cut -d"=" -f2)
+MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
+MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
+VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -23,7 +24,6 @@ all: help
 
 help:
 	@grep "##" Makefile | grep -v "@grep"
-
 
 shunit2:
 	wget https://github.com/kward/shunit2/archive/v${SHUNIT}.tar.gz
@@ -44,8 +44,10 @@ restore-db: ## Restore a mysql docker container
 	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
 	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
 
+env: ## copy docker-compose .env environment
+		cp .env_${ENV} .env
 
-show-db: ## Show database content
+show-db:  ## Show database content
 	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
 
 
@@ -67,16 +69,16 @@ restore-bundle: ## Restore a bundle backup
 	cp backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE}
 
 
-debug-db: init-db
+debug-db: env init-db
 	docker-compose logs --no-color -f db
 
 
-unittest: shunit2
+unittest: env shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
 	scripts/testApp.sh
 
 
-start: ## Start a docker compose stack
+start: env ## Start a docker compose stack
 	@docker-compose up -d
 	@echo "Waiting 10 sec for stating container and restoring database ..."
 	@sleep 10
@@ -87,11 +89,11 @@ test-app: shunit2
 	scripts/testApp.sh
 
 
-stop: ## Stop a docker stack
+stop: env ## Stop a docker stack
 	docker-compose stop
 
 
-clean: ## Clean some files
+clean: .env ## Clean some files
 	-docker-compose rm -f
 	-test -e /data/docker/jsudd && sudo rm -rf /data/docker/jsudd/
 	-test -e mysql/${MYSQL_INIT_FILE} && sudo rm -rf mysql/${MYSQL_INIT_FILE}
