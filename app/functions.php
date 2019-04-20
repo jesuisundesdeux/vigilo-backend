@@ -136,8 +136,8 @@ function removeEmoji($text) {
     $clean_text = preg_replace($regexTransport, '', $clean_text);
 
     // Match flags (iOS)
-    $regexTransport = '/[\x{1F1E0}-\x{1F1FF}]/u';
-    $clean_text = preg_replace($regexTransport, '', $clean_text);
+    $regexFlag = '/[\x{1F1E0}-\x{1F1FF}]/u';
+    $clean_text = preg_replace($regexFlag, '', $clean_text);
 
 
     return $clean_text;

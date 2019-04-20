@@ -20,8 +20,9 @@ mysql/sql_migration.sql
 # Scripts
 scripts/config.sh
 
-# Installation application via make
+# Unit test
 shunit2*
+.phpunit*
 
 # Misc
 SyncSettings.ffs_gui

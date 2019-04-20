@@ -73,9 +73,13 @@ debug-db: env init-db
 	docker-compose logs --no-color -f db
 
 
-unittest: env shunit2
+test-app: env shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
 	scripts/testApp.sh
+
+unittest:
+	docker run --rm -ti -e ENV=${ENV} -v ${pwd}:/var/www/html badele/vigilo-backend phpunit	
+	@#docker-compose exec web phpunit
 
 
 start: env ## Start a docker compose stack
