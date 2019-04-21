@@ -15,66 +15,120 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+ */
 
-require_once('./common.php');
-require_once('./functions.php');
-$separator = ',';
+$cwd = dirname(__FILE__);
 
-$scategorie=-1;
-if (isset($_GET["c"]) and is_numeric($_GET["c"])) {
-  $scategorie=intval($_GET["c"]);
-}
+require_once("${cwd}/./common.php");
+require_once("${cwd}/./functions.php");
 
-# filter observations last 24h
-if (isset($_GET["t"]) and is_numeric($_GET["t"])) {
-  $timefilter=$_GET["t"];
-}
+class ToCSV
+{
+  protected $db = -1;
+  protected $separator = ',';
+  protected $categorie = -1;
+  protected $timefilter = -1;
 
-# Filter observations by categories
-$filtered=false;
-$where="";
-if ($timefilter or $scategorie > -1) {
-  $where=" Where";
-}
-
-if ($scategorie > -1) {
-  if ($filtered) {
-    $where .= " And";
+  function __construct()
+  {
+    global $db;
+    $this->db = $db;
   }
-  $where .= " obs_categorie=".$scategorie;
-  $filtered=true;
-}
 
-if ($timefilter) {
-  if ($filtered) {
-    $where .= " And";
+  public function setCategorie($value) : void
+  {
+    if (!is_numeric($value)) {
+      throw new Exception("${value} is not numeric value");
+    }
+
+    $this->categorie = intval($value);
   }
-  $where .= " obs_time>".$timefilter;
-  $filtered=true;
-}
 
-echo
-$query = "SELECT * FROM obs_list".$where;
-$rquery = mysqli_query($db, $query);
+  public function setTime($value) : void
+  {
+    if (!is_numeric($value)) {
+      throw new Exception("${value} is not numeric value");
+    }
 
-# Export categories
-if (mysqli_num_rows($rquery) > 0) {
-  echo 'lat' . $separator . 'long' . $separator . 'rue' . $separator . 'comment' . $separator . 'categorie' . $separator . 'token' . $separator . "time\n";
-  while ($result = mysqli_fetch_array($rquery)) {
-    $coordinates_lat = $result['obs_coordinates_lat'];
-    $coordinates_lon = $result['obs_coordinates_lon'];
-    $street_name = $result['obs_address_string'];
-    $comment = $result['obs_comment'];
-    $categorie = $result['obs_categorie'];
-    $token = $result['obs_token'];
-    $time = $result['obs_time'];
-    $status = $result['obs_status'];
-    $version = $result['obs_app_version'];
+    $this->timefilter = intval($value);
 
-    $line = $coordinates_lat . '~' . $coordinates_lon . '~' . $street_name . '~' . $comment . '~' . $categorie . '~' . $token . '~' . $time . "\n";
-    $line = str_replace(',', '_', $line);
-    $line = str_replace('~', ',', $line);
-    echo $line;
+  }
+
+  public function getQuery() : string
+  {
+    # Filter observations by categories
+    $filtered = false;
+    $where = "";
+    if ($this->timefilter > -1 or $this->categorie > -1) {
+      $where = " Where";
+    }
+
+    if ($this->categorie > -1) {
+      if ($filtered) {
+        $where .= " And";
+      }
+      $where .= " obs_categorie=" . $this->categorie;
+      $filtered = true;
+    }
+
+    if ($this->timefilter > -1) {
+      if ($filtered) {
+        $where .= " And";
+      }
+      $where .= " obs_time>=" . $this->timefilter;
+      $filtered = true;
+    }
+
+    $query = "SELECT * FROM obs_list" . $where;
+    return $query;
+
+  }
+
+  public function getDatas() : array
+  {
+    $lines = array();
+    array_push($lines,'lat' . $this->separator . 'long' . $this->separator . 'rue' . $this->separator . 'comment' . $this->separator . 'categorie' . $this->separator . 'token' . $this->separator . "time\n");
+    $rquery = mysqli_query($this->db, $this->getQuery());
+
+    if (mysqli_num_rows($rquery) == 0) {
+      return $lines;
+    }
+
+    while ($result = mysqli_fetch_array($rquery)) {
+      $coordinates_lat = $result['obs_coordinates_lat'];
+      $coordinates_lon = $result['obs_coordinates_lon'];
+      $street_name = $result['obs_address_string'];
+      $comment = $result['obs_comment'];
+      $categorie = $result['obs_categorie'];
+      $token = $result['obs_token'];
+      $time = $result['obs_time'];
+      $status = $result['obs_status'];
+      $version = $result['obs_app_version'];
+
+      $line = $coordinates_lat . '~' . $coordinates_lon . '~' . $street_name . '~' . $comment . '~' . $categorie . '~' . $token . '~' . $time . "\n";
+      $line = str_replace(',', '_', $line);
+      $line = str_replace('~', $this->separator, $line);
+      array_push($lines,$line);
+    }
+
+    return $lines;
   }
 }
+
+if (!debug_backtrace()) {
+  $tocsv = new ToCSV();
+
+  if (isset($_GET["c"]) and is_numeric($_GET["c"])) {
+    $tocsv->scategorie = intval($_GET["c"]);
+  }
+
+  if (isset($_GET["t"]) and is_numeric($_GET["t"])) {
+    $tocsv->timefilter = $_GET["t"];
+  }
+
+  echo "============";
+
+  echo $tocsv->getQuery();
+  echo $tocsv->getDatas();
+}
+

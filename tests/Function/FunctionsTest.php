@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 use PHPUnit\Framework\TestCase;
 
+set_include_path(implode(PATH_SEPARATOR, array(
+    realpath(__DIR__ . '/../..'),
+    get_include_path()
+)));
+
 require_once('app/functions.php');
 
 $TOKEN1="ABCDEF01";

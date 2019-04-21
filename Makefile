@@ -16,6 +16,7 @@ MYSQL_ROOT_PASSWORD :=$(shell cat .env_${ENV} | grep MYSQL_ROOT_PASSWORD | cut -
 MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
+ROOT_APP_DIR :=$(shell cat .env_${ENV} | grep ROOT_APP_DIR | cut -d"=" -f2)
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -44,11 +45,11 @@ restore-db: ## Restore a mysql docker container
 	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
 	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
 
-env: ## copy docker-compose .env environment
+env: ## copy docker-compose -f docker-compose_${ENV}.yml .env environment
 		cp .env_${ENV} .env
 
 show-db:  ## Show database content
-	docker-compose exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
+	docker-compose -f docker-compose_${ENV}.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
 
 
 list-bundle: ## list a bundle backups
@@ -70,20 +71,16 @@ restore-bundle: ## Restore a bundle backup
 
 
 debug-db: env init-db
-	docker-compose logs --no-color -f db
+	docker-compose -f docker-compose_${ENV}.yml logs --no-color -f db
 
 
-test-app: env shunit2
-	cp scripts/${SCOPE}.sh scripts/config.sh
-	scripts/testApp.sh
-
-unittest:
-	docker run --rm -ti -e ENV=${ENV} -v ${pwd}:/var/www/html badele/vigilo-backend phpunit	
-	@#docker-compose exec web phpunit
+unittest: env
+	docker-compose -f docker-compose_${ENV}.yml up -d
+	docker-compose -f docker-compose_${ENV}.yml exec web phpunit
 
 
 start: env ## Start a docker compose stack
-	@docker-compose up -d
+	@docker-compose -f docker-compose_${ENV}.yml up -d
 	@echo "Waiting 10 sec for stating container and restoring database ..."
 	@sleep 10
 
@@ -94,12 +91,12 @@ test-app: shunit2
 
 
 stop: env ## Stop a docker stack
-	docker-compose stop
+	docker-compose -f docker-compose_${ENV}.yml stop
 
 
 clean: .env ## Clean some files
-	-docker-compose rm -f
-	-test -e /data/docker/jsudd && sudo rm -rf /data/docker/jsudd/
+	-docker-compose -f docker-compose_${ENV}.yml rm -f
+	-test -e /data/docker/jsudd-${ENV} && sudo rm -rf /data/docker/jsudd-${ENV}
 	-test -e mysql/${MYSQL_INIT_FILE} && sudo rm -rf mysql/${MYSQL_INIT_FILE}
 
 

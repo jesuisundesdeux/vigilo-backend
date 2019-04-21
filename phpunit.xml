@@ -10,9 +10,9 @@
         <testsuite name="Function">
             <directory suffix="Test.php">./tests/Function</directory>
         </testsuite>
-        <!-- <testsuite name="Application">
-            <directory suffix="Test.php">./tests/Application</directory>
-        </testsuite> -->
+        <testsuite name="Database">
+            <directory suffix="Test.php">./tests/Database</directory>
+        </testsuite>
     </testsuites>
     <filter>
         <whitelist processUncoveredFilesFromWhitelist="true">
@@ -20,7 +20,6 @@
         </whitelist>
     </filter>
     <php>
-        <includePath>.</includePath>
         <server name="SERVER_NAME" 
             value="unittest"/>
     </php>

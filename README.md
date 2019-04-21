@@ -27,8 +27,11 @@ Go to `http://localhost:8888`
 ### Tools
 
 ```
-# PHP unittest 
+# PHP unittest without mysql server
 make unittest
+
+# PHP unittest with mysql server
+make ENV=unittest stop clean init-db start unittest
 
 # Test application with cleaned database
 make ENV=unittest SCOPE=montpellier stop clean init-db start test-app show-db
