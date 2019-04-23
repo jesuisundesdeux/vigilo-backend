@@ -18,16 +18,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 require_once('./common.php');
+require_once('./functions.php');
+
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 
-header('Content-Type: application/json');
-
-require_once('./functions.php');
-$BEFORE_TIME=time() - (2*24 * 60 * 60);
-$where = '';
-$added_fields='';
+$format_list = array(
+           'csv' => 'text/csv',
+           'json' => 'application/json',
+           'geojson' => 'application/json'); 
+            
+if (isset($_GET['format']) and !empty($_GET['format'])) {
+  $format = $_GET['format'];
+  if (!array_key_exists($format,$format_list)) {
+    $format = 'json';
+  }
+}
+else {
+  $format = 'json';
+}
+header('Content-Type: '.$format_list[$format]);
 
 /* Filters */
+$BEFORE_TIME=time() - (2*24 * 60 * 60);
+$where = '';
+
 # Categorie
 if (isset($_GET['c']) and is_numeric($_GET['c'])) {
   $scategorie=intval($_GET['c']);
@@ -81,7 +95,6 @@ $query = mysqli_query($db, "SELECT obs_token,
                                    obs_explanation,
                                    obs_time,
                                    obs_categorie,
-                                   ".$added_fields."
                                    obs_approved 
                              FROM obs_list
                              WHERE obs_complete=1 
@@ -121,4 +134,59 @@ if (mysqli_num_rows($query) > 0) {
   }
 }
 
-echo json_encode($json,JSON_PRETTY_PRINT);
+switch ($format) {
+  case 'json':
+    echo json_encode($json,JSON_PRETTY_PRINT);
+    break;
+
+  case 'csv':
+    $sep = ',';
+    $firstline = '';
+
+    foreach (array_keys($issue) as $column) {
+      $firstline .= $column . $sep;
+    }
+    echo rtrim($firstline,',');
+    echo "\n";
+    
+    foreach ($json as $data) {
+      $line = '';
+      foreach ($data as $value) {
+       $line .= str_replace(',','_',$value) . $sep;
+      }
+      echo rtrim($line,',') ."\n";
+    }
+    break;
+  case 'geojson':
+    $features = array();
+    foreach($json as $key => $value) {
+      $features[] = array(
+        'type' => 'Feature',
+        'geometry' => array(
+             'type' => 'Point', 
+             'coordinates' => array(
+                  $value['coordinates_lat'], 
+                  $value['coordinates_lon']
+             ),
+         ),
+        'properties' => array(
+          'token' => $value['token'],
+          'address' => $value['address'],
+          'comment' => $value['comment'],
+          'explanation' => $value['explanation'],
+          'time' => $value['time'],
+          'group' => $value['group'],
+          'categorie' => $value['categorie'],
+          'approved' => $value['approved'],
+            ),
+      );
+    }
+    $new_data = array(
+      'type' => "FeatureCollection",
+      'features' => $features,
+    );
+    echo json_encode($new_data, JSON_PRETTY_PRINT);
+    break;
+
+}
+
