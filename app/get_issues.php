@@ -39,7 +39,6 @@ else {
 header('Content-Type: '.$format_list[$format]);
 
 /* Filters */
-$BEFORE_TIME=time() - (2*24 * 60 * 60);
 $where = '';
 
 # Categorie
@@ -48,9 +47,11 @@ if (isset($_GET['c']) and is_numeric($_GET['c'])) {
   $where .= ' AND obs_categorie = '.$scategorie;
 }
 
-# Last 24h
-if (isset($_GET['t'])) {
-  $where .= ' AND obs_time > '.$BEFORE_TIME;
+# Time filter
+if (isset($_GET["t"]) and is_numeric($_GET["t"])) {
+  $timefilter=$_GET["t"];
+  $where .= ' AND obs_time > '.$timefilter;
+
 }
 
 # Status
