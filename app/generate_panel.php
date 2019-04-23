@@ -293,7 +293,7 @@ $categorie_font_file = './panel_components/texgyreheros-bold.otf';
 
 $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
 $categories_nblines = substr_count($categorie_string_formatted,"\n");
-error_log($categories_nblines);
+
 if($categories_nblines > 1) {
   $categorie_max_char_per_line = 25;
   $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
