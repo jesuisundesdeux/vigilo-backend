@@ -45,12 +45,12 @@ function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
 }
 
 function delete_token_cache($token) {
-    foreach(glob(__DIR__."/caches/".$token."*") as $file) {
+    foreach(glob(__DIR__."/../caches/".$token."*") as $file) {
         unlink($file);
     }
 }
 function delete_map_cache($token) {
-    foreach(glob(__DIR__."/maps/".$token."*") as $file) {
+    foreach(glob(__DIR__."/../maps/".$token."*") as $file) {
         unlink($file);
     }
 }

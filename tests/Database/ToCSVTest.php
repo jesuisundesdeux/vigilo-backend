@@ -24,7 +24,7 @@ set_include_path(implode(PATH_SEPARATOR, array(
     get_include_path()
 )));
 
-require_once(realpath("app/common.php"));
+require_once(realpath("app/includes/common.php"));
 require_once(realpath("app/to_csv_live.php"));
 
 class DatabaseTest extends TestCase

@@ -24,7 +24,7 @@ set_include_path(implode(PATH_SEPARATOR, array(
     get_include_path()
 )));
 
-require_once('app/functions.php');
+require_once('app/includes/functions.php');
 
 $TOKEN1="ABCDEF01";
 $TOKEN2="ABCDEF02";
