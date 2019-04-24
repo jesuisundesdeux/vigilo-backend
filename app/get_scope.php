@@ -46,7 +46,8 @@ if ($scope != 0) {
             'map_zoom' => $result['scope_map_zoom'],
             'contact_email' => $result['scope_contact_email'],
             'sharing_content_text' => $result['scope_sharing_content_text'],
-            'umap_url' => $result['scope_umap_url']);
+            'umap_url' => $result['scope_umap_url'],
+            'backend_version' => BACKEND_VERSION);
   }
 }
 else {
