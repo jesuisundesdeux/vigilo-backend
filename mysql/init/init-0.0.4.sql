@@ -1,6 +1,8 @@
+
 CREATE TABLE `obs_scopes` (
   `scope_id` int(11) NOT NULL,
   `scope_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `scope_display_name` varchar(255) COLLATE utf8_bin NOT NULL,
   `scope_coordinate_lat_min` varchar(255) COLLATE utf8_bin NOT NULL,
   `scope_coordinate_lat_max` varchar(255) COLLATE utf8_bin NOT NULL,
   `scope_coordinate_lon_min` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -11,6 +13,7 @@ CREATE TABLE `obs_scopes` (
   `scope_sharing_content_text` varchar(255) COLLATE utf8_bin NOT NULL,
   `scope_umap_url` varchar(255) COLLATE utf8_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ROW_FORMAT=COMPACT;
+
 
 ALTER TABLE `obs_scopes`
   ADD KEY `scope_id` (`scope_id`);
