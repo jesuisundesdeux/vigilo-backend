@@ -14,11 +14,9 @@ CREATE TABLE `obs_scopes` (
 
 ALTER TABLE `obs_scopes`
   ADD KEY `scope_id` (`scope_id`);
--
+
 ALTER TABLE `obs_scopes`
   MODIFY `scope_id` int(11) NOT NULL AUTO_INCREMENT;
-COMMIT;
-
 
 CREATE TABLE `obs_config` (
   `config_id` int(11) NOT NULL,
@@ -31,6 +29,5 @@ ALTER TABLE `obs_config`
 
 ALTER TABLE `obs_config`
   MODIFY `config_id` int(11) NOT NULL AUTO_INCREMENT;
-COMMIT;
 
 INSERT INTO `obs_config` (`config_id`, `config_param`, `config_value`) VALUES (NULL, 'vigilo_db_version', '0.0.4');
