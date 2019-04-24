@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-require_once('lib/codebird-php/codebird.php');
+require_once(dirname(__FILE__) . '/../lib/codebird-php/codebird.php');
 
 function tokenGenerator($length) {
   $bytes = random_bytes($length);
