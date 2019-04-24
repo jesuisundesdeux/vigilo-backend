@@ -19,8 +19,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 header('Cache-Control: no-cache, must-revalidate, max-age=0');
 
-require_once('./common.php');
-require_once('./functions.php');
+$cwd = dirname(__FILE__);
+
+require_once("${cwd}/includes/common.php");
+require_once("${cwd}/includes/functions.php");
 
 $realm = 'Acces restreint';
 
