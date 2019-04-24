@@ -24,7 +24,7 @@ set_include_path(implode(PATH_SEPARATOR, array(
     get_include_path()
 )));
 
-require_once('app/config/config_' . getenv("ENV") . '.php');
+require_once('app/config/config.php');
 
 class ConfigTest extends TestCase
 {

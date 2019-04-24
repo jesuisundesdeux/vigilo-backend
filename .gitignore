@@ -9,7 +9,7 @@ app/maps/*.jpg
 app/places/*.json
 app/datas.php
 app/caches
-app/common.php
+app/config/config.php
 
 # Backup
 backup/

@@ -76,7 +76,7 @@ debug-db: env init-db
 
 unittest: env
 	docker-compose -f docker-compose_${ENV}.yml up -d
-	docker-compose -f docker-compose_${ENV}.yml exec web phpunit
+	docker-compose -f docker-compose_${ENV}.yml exec web phpunit -c phpunit.xml
 
 
 start: env ## Start a docker compose stack

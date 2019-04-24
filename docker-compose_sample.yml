@@ -22,7 +22,7 @@ services:
        - db
      volumes:
        - ./:${ROOT_APP_DIR}
-       - ./app/config/config_unittest.php:${ROOT_APP_DIR}/app/config/config.php
+       - ./app/config_unittest.php:${ROOT_APP_DIR}/app/config.php
        - ${VOLUME_PATH}/files/caches/index.html:${ROOT_APP_DIR}/app/caches/index.html
        - ${VOLUME_PATH}/files/maps/index.html:${ROOT_APP_DIR}/app/maps/index.html
        - ${VOLUME_PATH}/files/images/index.html:${ROOT_APP_DIR}/app/images/index.html
