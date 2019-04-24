@@ -46,7 +46,7 @@ if ($scope != 0) {
             'map_zoom' => $result['scope_map_zoom'],
             'contact_email' => $result['scope_contact_email'],
             'tweet_content' => $result['scope_sharing_content_text'],
-            'umap_url' => $result['scope_umap_url'],
+            'map_url' => $result['scope_umap_url'],
             'backend_version' => BACKEND_VERSION);
   }
 }
