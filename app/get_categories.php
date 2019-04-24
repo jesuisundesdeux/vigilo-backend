@@ -1,4 +1,6 @@
 <?php
+/************* LEGACY ************/
+/******* TO DELETE *************/
 /*
 Copyright (C) 2019 Velocité Montpellier
 
