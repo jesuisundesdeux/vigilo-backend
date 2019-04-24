@@ -48,3 +48,4 @@ $config['TWITTER_IDS'] =  array("consumer" => "xxxx",
                      "accesstokensecret" => "xxxx");
 
 $config['TWITTER_CONTENT'] = str_replace('\n',"\n","what you want to be tweeted");
+
