@@ -37,6 +37,7 @@ if ($scope != 0) {
   else {
     $result = mysqli_fetch_array($query);
     $json = array(
+            'scope' => $result['scope_name'],
             'display_name' => $result['scope_display_name'],
             'coordinate_lat_min' => $result['scope_coordinate_lat_min'],
             'coordinate_lat_max' => $result['scope_coordinate_lat_max'],
