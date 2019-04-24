@@ -27,14 +27,20 @@ Go to `http://localhost:8888`
 ### Tools
 
 ```
-# Run unit test with cleaned database
-make ENV=unittest SCOPE=montpellier stop clean init-db start unittest show-db
+# PHP unittest without mysql server
+make unittest
 
-# Test server with backuped database
+# PHP unittest with mysql server
+make ENV=unittest stop clean init-db start unittest
+
+# Test application with cleaned database
+make ENV=unittest SCOPE=montpellier stop clean init-db start test-app show-db
+
+# Start server with backuped database
 #make backup-db DBSERVER=192.168.0.1
 make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-db start show-db
 
-# Test server with backuped bundle
+# Startserver with backuped bundle
 #make backup-bundle DBSERVER=192.168.0.1
 make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-bundle start show-db
 

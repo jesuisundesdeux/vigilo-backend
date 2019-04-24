@@ -9,7 +9,7 @@ app/maps/*.jpg
 app/places/*.json
 app/datas.php
 app/caches
-app/common.php
+app/config/config.php
 
 # Backup
 backup/
@@ -20,8 +20,9 @@ mysql/sql_migration.sql
 # Scripts
 scripts/config.sh
 
-# Installation application via make
+# Unit test
 shunit2*
+.phpunit*
 
 # Misc
 SyncSettings.ffs_gui
