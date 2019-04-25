@@ -294,23 +294,32 @@ $categorie_font_size = 26;
 $categorie_max_char_per_line = 18;
 $categorie_font_file = './panel_components/texgyreheros-bold.otf';
 
-$categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
-$categories_nblines = substr_count($categorie_string_formatted,"\n");
+$categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "===");
+$categories_nblines = substr_count($categorie_string_formatted,"===");
 
 if($categories_nblines > 1) {
   $categorie_max_char_per_line = 25;
-  $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "\n");
+  $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "===");
 }
 
-imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categorie_string_formatted);
+$categories_lines = explode('===',$categorie_string_formatted);
+foreach($categories_lines as $categories_line) {
+  imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categories_line);
+  $categorie_y += 35;
+}
 
 ## ADD ADDRESS
 $address_font_size = 18;
 $address_max_char_per_line = 25;
 $address_font_file = './panel_components/texgyreheros-bold.otf';
-$street_name = wordwrap($street_name,$address_max_char_per_line,"\n");
+$street_name = wordwrap($street_name,$address_max_char_per_line,"===");
 
-imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$street_name);
+$address_lines = explode('===',$street_name);
+
+foreach($address_lines as $address_line) {
+  imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$address_line);
+  $address_y += 28;
+}
 
 ## ADD DATE
 $date = date('d/m/Y H:i', $time);
