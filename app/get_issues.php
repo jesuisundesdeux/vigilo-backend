@@ -150,7 +150,7 @@ class GetIssues
       $where .= 'AND obs_status = ' . $this->status;
     }
 
-    $query = mysqli_query($this->db, "SELECT obs_token,
+    $query = "SELECT obs_token,
     obs_coordinates_lat,
     obs_coordinates_lon,
     obs_address_string,
@@ -164,7 +164,9 @@ WHERE obs_complete=1
 AND (obs_approved=0 OR obs_approved=1)
 " . $where . " 
 ORDER BY obs_time DESC 
-" . $limit);
+" . $limit;
+
+    return $query;
   }
 
 
@@ -208,7 +210,7 @@ ORDER BY obs_time DESC
 
   public function outputToWebServer() : void
   {
-    $json = $export->getIssues();
+    $json = $this->getIssues();
 
     header('Content-Type: ' . $this->formatheader);
     switch ($this->format) {
@@ -302,7 +304,7 @@ if (!debug_backtrace()) {
     $export->setCategorie($_GET['c']);
   }
 
-  # Export categories
-  $export->exportToWebServer($json);
+  # Export datas
+  $export->outputToWebServer();
 }
 
