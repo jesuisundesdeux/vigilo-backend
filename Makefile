@@ -87,7 +87,7 @@ start: env ## Start a docker compose stack
 
 test-webserver: shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
-	scripts/testApp.sh
+	scripts/testApp.sh ${ENV} ${SCOPE}
 
 
 stop: env ## Stop a docker stack
