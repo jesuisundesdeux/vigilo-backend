@@ -146,6 +146,7 @@ if ($photo_ratio < 1) {
   $backgroung_image = "panel_components/portrait/background.jpg";
   $content_image = "panel_components/portrait/content.png";
   $logo_image = "panel_components/portrait/logo.png";
+  $resolved_image = 'panel_components/portrait/resolved.png';
 
   # Load background image
   $image = imagecreatefromjpeg($backgroung_image);
@@ -185,6 +186,7 @@ else {
   $backgroung_image = "panel_components/landscape/background.jpg";
   $content_image = "panel_components/landscape/content.png";
   $logo_image = "panel_components/landscape/logo.png";
+  $resolved_image = 'panel_components/landscape/resolved.png';
 
   # Load background image
   $image = imagecreatefromjpeg($backgroung_image);
@@ -342,14 +344,11 @@ $date_font_file = './panel_components/texgyreheros-regular.otf';
 imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
 
 ## ADD RESOLVED
-
-$resolved_image = 'panel_components/portrait/resolved.png';
 $resolved = imagecreatefrompng($resolved_image);
 
 if($statusobs == 1) {
   imagecopyresized($image, $resolved, $resolved_x, $resolved_y, 0, 0, $resolved_w, $resolved_h,imagesx($resolved), imagesy($resolved));
 }
-
 
 # Generate full size image
 if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
