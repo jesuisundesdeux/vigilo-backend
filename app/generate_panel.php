@@ -82,6 +82,7 @@ $coordinates_lon = $result['obs_coordinates_lon'];
 $street_name = $result['obs_address_string'];
 $comment = $result['obs_comment'];
 $categorie_id = $result['obs_categorie'];
+$statusobs = $result['obs_status'];
 foreach ($categorie_lst as $value) {
   if ($value['catid'] == $categorie_id) {
     $categorie_string = $value['catname'];
@@ -172,6 +173,11 @@ if ($photo_ratio < 1) {
   $address_y = 330;
   $date_y = 515;
   $copyright_x= 2;
+  
+  $resolved_x = 520;
+  $resolved_y = -15;
+  $resolved_w = 300;
+  $resolved_h = 150;
 
 }
 # Landscape format
@@ -206,6 +212,13 @@ else {
   $address_y = 330;
   $date_y = 415;
   $copyright_x= 280;
+
+  $resolved_x = 960;
+  $resolved_y = -15;
+  $resolved_w = 300;
+  $resolved_h = 150;
+
+
 }
 
 ## INIT IMAGE ##
@@ -214,6 +227,7 @@ $fontcolor = imagecolorallocate($image, 54, 66, 86);
 $fontcolorgrey = imagecolorallocate($image, 219, 219,219);
 $white = imagecolorallocate($image, 255, 255, 255);
 $black = imagecolorallocate($image, 0, 0, 0);
+$green = imagecolorallocate($image,35, 122, 68);
 
 ## ADD PHOTO
 ## Photo
@@ -327,6 +341,16 @@ $date_font_size = 15;
 $date_font_file = './panel_components/texgyreheros-regular.otf';
 imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
 
+## ADD RESOLVED
+
+$resolved_image = 'panel_components/portrait/resolved.png';
+$resolved = imagecreatefrompng($resolved_image);
+
+if($statusobs == 1) {
+  imagecopyresized($image, $resolved, $resolved_x, $resolved_y, 0, 0, $resolved_w, $resolved_h,imagesx($resolved), imagesy($resolved));
+}
+
+
 # Generate full size image
 if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
   imagepng($image);
@@ -345,3 +369,4 @@ else if ($resize_width == $MAX_IMG_SIZE) {
   imagepng($imageresized, $img_filename);
   imagepng($imageresized);
 }
+

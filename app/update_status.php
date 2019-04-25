@@ -40,6 +40,14 @@ if(isset($_GET['secretid'])) {
 else {
   $secretid= 0;
 }
+
+if(isset($_GET['statusobs']) && is_numeric($_GET['statusobs'])) {
+  $statusobs = mysqli_real_escape_string($db, $_GET['obs']);
+}
+else {
+  $statusobs= 0;
+}
+
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 
@@ -51,13 +59,11 @@ else {
 }
 
 if(mysqli_num_rows($checktoken_query) == 1) {
-  mysqli_query($db,"DELETE FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
-  unlink('images/'.$token.'.jpg');
+  mysqli_query($db,"UPDATE obs_list SET obs_status='".$statusobs."' WHERE obs_token='".$token."' LIMIT 1");
   delete_token_cache($token);
-  delete_map_cache($token);
 }
 else {
-    error_log("DELETE_OBS : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
+    error_log("UPDATE_STATUS : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
     $status = 1;
 
 }
