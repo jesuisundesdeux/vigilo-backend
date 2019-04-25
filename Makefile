@@ -85,7 +85,7 @@ start: env ## Start a docker compose stack
 	@sleep 10
 
 
-test-app: shunit2
+test-webserver: shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
 	scripts/testApp.sh
 
