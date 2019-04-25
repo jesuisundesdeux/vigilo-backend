@@ -22,7 +22,7 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
-header("Content-type: image/png");
+header("Content-type: image/jpeg");
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 
@@ -55,15 +55,15 @@ else {
 
 if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_IMG_SIZE) {
   $resize_width = intval($_GET["s"]);
-  $img_filename = './caches/' . $token . '_w' . $resize_width . '.png';
+  $img_filename = './caches/' . $token . '_w' . $resize_width . '.jpg';
 } else {
-  $img_filename = './caches/' . $token . '_full.png';
+  $img_filename = './caches/' . $token . '_full.jpg';
 }
 
 ## Use caches if available
 if (file_exists($img_filename) AND !getrole($key, $acls) == "admin") {
-  $image = imagecreatefrompng($img_filename);
-  imagepng($image);
+  $image = imagecreatefromjpeg($img_filename);
+  imagejpeg($image);
   return;
 }
 
@@ -352,12 +352,12 @@ if($statusobs == 1) {
 
 # Generate full size image
 if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
-  imagepng($image);
+  imagejpeg($image);
 }
 else if ($resize_width == $MAX_IMG_SIZE) {
   # Use user original image
-  imagepng($image, $img_filename);
-  imagepng($image);
+  imagejpeg($image, $img_filename);
+  imagejpeg($image);
 } else {
   # Resize image
   $panel_ratio = $background_w / $background_h;
@@ -365,7 +365,7 @@ else if ($resize_width == $MAX_IMG_SIZE) {
   $imageresized = imagecreatetruecolor($resize_width, $resize_height);
 
   imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, $resize_height, $background_w, $background_h);
-  imagepng($imageresized, $img_filename);
-  imagepng($imageresized);
+  imagejpeg($imageresized, $img_filename);
+  imagejpeg($imageresized);
 }
 
