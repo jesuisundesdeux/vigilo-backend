@@ -27,4 +27,3 @@ services:
        - ${VOLUME_PATH}/files/maps:${ROOT_APP_DIR}/maps
        - ${VOLUME_PATH}/files/images:${ROOT_APP_DIR}/images
        - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
-
