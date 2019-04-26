@@ -22,9 +22,8 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
-header("Content-type: image/jpeg");
 header('BACKEND_VERSION: '.BACKEND_VERSION);
-
+header("Content-type: image/jpeg");
 
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
