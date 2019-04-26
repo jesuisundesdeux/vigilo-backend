@@ -23,7 +23,7 @@ global $config;
 
 define('BACKEND_VERSION','0.0.5');
 
-date_default_timezone_set('Europe/Paris');
+date_default_timezone_set($config['VIGILO_TIMEZONE']);
 
 $db=mysqli_connect($config['MYSQL_HOST'],$config['MYSQL_USER'],$config['MYSQL_PASSWORD'],$config['MYSQL_DATABASE']);
 

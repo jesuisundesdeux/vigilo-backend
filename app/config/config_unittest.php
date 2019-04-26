@@ -39,6 +39,7 @@ $config['UMAP_URL'] = "https://umap....#19";
 /* Naming configuration */
 $config['VIGILO_NAME'] = "JeSuisUnDesDeux / Vigilo";
 $config['VIGILO_LANGUAGE'] = "fr-FR";
+$config['VIGILO_TIMEZONE'] = "Europe/Paris";
 
 /* External MapQuest API configuration */
 $config['MAPQUEST_API'] = "xxxx";
