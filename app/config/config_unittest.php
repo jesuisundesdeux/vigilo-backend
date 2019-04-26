@@ -28,8 +28,13 @@ $config['MYSQL_DATABASE'] = "vigilodb";
 $config['URLBASE'] = $_SERVER['SERVER_NAME'];
 $config['HTTP_PROTOCOL'] = 'https';
 
-/* UMAP configuration */
-$config['UMAP_URL'] = "https://umap....#19/";
+/* UMAP configuration
+ *
+ * It is important to remove any slash at the end of this url
+ * With a slash, zoom to observation won't work when you click on a
+ * picture from mosaic.php page.
+ */
+$config['UMAP_URL'] = "https://umap....#19";
 
 /* Naming configuration */
 $config['VIGILO_NAME'] = "JeSuisUnDesDeux / Vigilo";
