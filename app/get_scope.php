@@ -24,18 +24,10 @@ require_once("${cwd}/includes/functions.php");
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json');
 
-function jsonError($error_msg)
-{
-  error_log('GET_SCOPE: '.$error_msg);
-  $json = array('status' => 500, 'error' => $error_msg);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-}
-
 if (isset($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db, $_GET['scope']);
 } else {
-  jsonError('Scope is not defined');
+  jsonError('GET_SCOPE', 'Scope is not defined');
   return;
 }
 
@@ -44,7 +36,7 @@ $query = mysqli_query($db, "SELECT * FROM obs_scopes
                             LIMIT 1");
 
 if (mysqli_num_rows($query) == 0) {
-  jsonError('Scope '.$scope.' does not exist');
+  jsonError('GET_SCOPE', 'Scope '.$scope.' does not exist');
   return;
 }
 
