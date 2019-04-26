@@ -22,7 +22,7 @@ require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (isset($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db, $_GET['scope']);

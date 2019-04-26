@@ -26,8 +26,8 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 
 $format_list = array(
            'csv' => 'text/csv',
-           'json' => 'application/json',
-           'geojson' => 'application/json'); 
+           'json' => 'application/json; charset=utf-8',
+           'geojson' => 'application/json; charset=utf-8');
             
 if (isset($_GET['format']) and !empty($_GET['format'])) {
   $format = $_GET['format'];

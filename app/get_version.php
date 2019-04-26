@@ -22,7 +22,7 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 
 echo json_encode(array('version'=>BACKEND_VERSION));
