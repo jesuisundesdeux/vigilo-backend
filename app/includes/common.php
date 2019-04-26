@@ -25,7 +25,10 @@ define('BACKEND_VERSION','0.0.5');
 
 date_default_timezone_set($config['VIGILO_TIMEZONE']);
 
-$db=mysqli_connect($config['MYSQL_HOST'],$config['MYSQL_USER'],$config['MYSQL_PASSWORD'],$config['MYSQL_DATABASE']);
+$db = mysqli_connect($config['MYSQL_HOST'],
+                     $config['MYSQL_USER'],
+                     $config['MYSQL_PASSWORD'],
+                     $config['MYSQL_DATABASE']);
 
 mysqli_set_charset($db, $config['MYSQL_CHARSET']);
 
@@ -57,7 +60,7 @@ array("catid" => 100,"catname" => "Autre")
 # ACL
 $acls = array();
 $roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
-while($roles_result = mysqli_fetch_array($roles_query)) {
+while ($roles_result = mysqli_fetch_array($roles_query)) {
   $role = $roles_result['role_name'];
   $acls[$role][] = $roles_result['role_key'];
 }
