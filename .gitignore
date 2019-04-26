@@ -25,3 +25,4 @@ shunit2*
 
 # Misc
 SyncSettings.ffs_gui
+*.swp
