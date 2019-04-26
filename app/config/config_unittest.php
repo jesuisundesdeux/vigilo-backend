@@ -23,6 +23,7 @@ $config['MYSQL_HOST'] = "db";
 $config['MYSQL_USER'] = "mysqluser";
 $config['MYSQL_PASSWORD'] = "xxxx";
 $config['MYSQL_DATABASE'] = "vigilodb";
+$config['MYSQL_CHARSET'] = "utf8";
 
 /* Server configuration */
 $config['URLBASE'] = $_SERVER['SERVER_NAME'];

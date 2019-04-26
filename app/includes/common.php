@@ -27,7 +27,7 @@ date_default_timezone_set($config['VIGILO_TIMEZONE']);
 
 $db=mysqli_connect($config['MYSQL_HOST'],$config['MYSQL_USER'],$config['MYSQL_PASSWORD'],$config['MYSQL_DATABASE']);
 
-mysqli_set_charset($db, 'utf8' );
+mysqli_set_charset($db, $config['MYSQL_CHARSET']);
 
 # Categories *** LEGACY ***
 $categorie = array(
