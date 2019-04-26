@@ -42,7 +42,7 @@ else {
 }
 
 if(isset($_GET['statusobs']) && is_numeric($_GET['statusobs'])) {
-  $statusobs = mysqli_real_escape_string($db, $_GET['obs']);
+  $statusobs = mysqli_real_escape_string($db, $_GET['statusobs']);
 }
 else {
   $statusobs= 0;
