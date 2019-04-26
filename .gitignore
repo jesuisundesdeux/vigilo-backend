@@ -1,7 +1,5 @@
 # Environment files
 .env
-app/config.php
-
 
 # PHP Application
 app/images/*.jpg
