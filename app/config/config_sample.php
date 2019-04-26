@@ -43,7 +43,14 @@ $config['VIGILO_LANGUAGE'] = "fr-FR";
 /* External MapQuest API configuration */
 $config['MAPQUEST_API'] = "xxxx";
 
-/* Approve / tweeter configuration */
+/* Approve / Tweeter configuration
+ *
+ * This is a duration in hours.
+ *
+ * Observations done within this period will be published on Twitter
+ * when approved. Beyond this duration, observations will be stored in
+ * database but not published on Twitter.
+ */
 $config['APPROVE_TWITTER_EXPTIME'] = 24;
 
 /* Twitter configuration */
