@@ -114,9 +114,11 @@ ___
 
 ##### Récupération informations scope
 
-| Version backend |
-| ------- |
-| >= 0.0.4 |
+###### Compatibilité
+
+Version backend >= 0.0.4
+
+######  Requête
 
     GET /get_scope.php?
 
