@@ -135,7 +135,7 @@ class GetIssueTest extends TestCase
         $export = new GetIssues();
         $export->setCount(3);
         $result = $export->getIssues();
-
+        
         $this->assertEquals(count($result), 3);
     }
 }

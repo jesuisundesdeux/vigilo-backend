@@ -148,7 +148,6 @@ class GetIssues
         $offset = intval($_GET['offset']);
         $limit .= ' OFFSET ' . $offset;
       }
-      $where .= 'AND obs_status = ' . $this->status;
     }
 
     $query = "SELECT obs_token,
