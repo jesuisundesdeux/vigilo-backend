@@ -251,8 +251,6 @@ ___
 
 #### Observations
 
-___
-
 ##### Ajout d'une image à l'observation
 
 ###### Compatibilité
@@ -460,7 +458,7 @@ ___
 | str | address | Adresse de l'observation | >= 0.0.1 |
 | str | comment | Remarque de l'observation | >= 0.0.1 |
 | str | explanation | Explications de l'observation  | >= 0.0.1 |
-| str | time | Timestamp (en secondes) de l'observation | >= 0.0.1 |
+| int | time | Timestamp (en secondes) de l'observation | >= 0.0.1 |
 | int | group | Groupe de l'observation | LEGACY |
 | int | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | int | approved | Etat d'approbation de l'observation | >= 0.0.1 |
@@ -475,7 +473,7 @@ ___
 | str | coordinate_lon_min | Longitude minimum de la zone en dégré décimal  | >= 0.0.5 |
 | str | coordinate_lon_max | Longitude maximum de la zone en dégré décimal  | >= 0.0.5 |
 | str | map_center_string | Latitude + "," + Longitude du centre de la carte qui doit être affichée | >= 0.0.5 |
-| str | map_zoom | Zoom de la carte à afficher | >= 0.0.5 |
+| int | map_zoom | Zoom de la carte à afficher | >= 0.0.5 |
 | str | contact_email | Adresse mail de contact du scope  | >= 0.0.5 |
 | str | tweet_content | ontenu du tweet qui mis par défaut via le composant de partage de l'application | >= 0.0.5 |
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |
