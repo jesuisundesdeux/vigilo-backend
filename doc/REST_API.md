@@ -45,8 +45,6 @@ ___
 - [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation) : Ajout de l'image 
 - [Récupération panel](#récupération-panel) : Génération du panel
 
-___
-
 ## Méthodes 
 
 ### Récupération d'informations
