@@ -18,7 +18,7 @@ services:
      working_dir: /app
      ports:
        - "80:80"
-     links:
+     depends_on:
        - db
      volumes:
        - ./:${ROOT_APP_DIR}

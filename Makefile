@@ -6,6 +6,7 @@ TO=0.0.3
 SHUNIT=2.1.7
 SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
+WAIT:=8
 
 # Database information
 BKDATE=NODATE
@@ -81,13 +82,13 @@ unittest: env
 
 start: env ## Start a docker compose stack
 	@docker-compose -f docker-compose_${ENV}.yml up -d
-	@echo "Waiting 10 sec for stating container and restoring database ..."
-	@sleep 10
+	@echo "Waiting ${WAIT} sec for stating container and restoring database ..."
+	@sleep ${WAIT}
 
 
-test-app: shunit2
+test-webserver: shunit2
 	cp scripts/${SCOPE}.sh scripts/config.sh
-	scripts/testApp.sh
+	scripts/testApp.sh ${ENV} ${SCOPE}
 
 
 stop: env ## Stop a docker stack

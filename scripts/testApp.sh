@@ -1,6 +1,10 @@
 #!/bin/bash
+ENV=$1
+SCOPE=$2
 
-SCOPE=$1
+# Fix for shunit2 (remove command line parameters, shunit2 reead command line parameters)
+shift
+shift
 
 . $(dirname $0)/config.sh
 
@@ -202,7 +206,7 @@ test_getIssues () {
 
 # test token is uniq
 test_uniqToken () {
-    docker-compose exec db sh -c 'mysql --skip-column-names --batch --raw -u root --password=$MYSQL_ROOT_PASSWORD -e "select max(counted) from (select obs_token,count(*) as counted from obs_list group by obs_token) as counts;" vigilodb' | egrep '^1' > /dev/null
+    docker-compose -f docker-compose_${ENV}.yml exec db sh -c 'mysql --skip-column-names --batch --raw -u root --password=$MYSQL_ROOT_PASSWORD -e "select max(counted) from (select obs_token,count(*) as counted from obs_list group by obs_token) as counts;" vigilodb' | egrep '^1' > /dev/null
     assertEquals $? 0
 }
 
