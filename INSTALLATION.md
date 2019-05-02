@@ -86,18 +86,18 @@ INSERT INTO `obs_scopes`
 
 ##### Via Vigilo Android
 
-# Ouvrir Vigilo
-# Créer une nouvelle observation
-# Choisir une photo
-# Cliquer sur la photo pour passer en mode edition
-# Appuyer 15 fois sur l'icone affichage des outils (tout en bas à droite)
-# Dès qu'un rectangle s'affiche en bas, annuler la création de l'observation et revenir sur la liste des observation
-# Un message affichant "texte copié" s'affiche / votre clé est copié automatiquement
-# ajouter la clé dans la table obs_role avec pour role name "admin" et role_owner le nom du propriétaire du compte.
+* Ouvrir Vigilo
+* Créer une nouvelle observation
+* Choisir une photo
+* Cliquer sur la photo pour passer en mode edition
+* Appuyer 15 fois sur l'icone affichage des outils (tout en bas à droite)
+* Dès qu'un rectangle s'affiche en bas, annuler la création de l'observation et revenir sur la liste des observation
+* Un message affichant "texte copié" s'affiche / votre clé est copié automatiquement
+* ajouter la clé dans la table obs_role avec pour role name "admin" et role_owner le nom du propriétaire du compte.
 
 ##### Via Web
 
-# Ajouter le login / mot de passe dans une entrée dans la table obs_role (mot de passe en sha256)
+* Ajouter le login / mot de passe dans une entrée dans la table obs_role (mot de passe en sha256)
 
 
 
