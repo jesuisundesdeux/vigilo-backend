@@ -1,6 +1,14 @@
 Présentation API Vigilo
 ============
 
+## Sommaire
+
+ - [Méthodes](#méthodes)
+   - Configurations
+     - [ACL](#vérification_ACL)
+
+___
+
 ## Méthodes 
 
 ### Récupération d'informations
