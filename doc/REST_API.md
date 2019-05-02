@@ -322,7 +322,7 @@ JSON : Retourne les informations d'identification de l'observation
 | ---- | ----|------------ | ------------- | 
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
 
-##### Obetenir liste status en CSV (legacy)
+##### Obtenir liste observations en CSV (legacy)
 
 | Version backend |
 | ------- |
