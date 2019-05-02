@@ -22,10 +22,11 @@ services:
      links:
        - db
      volumes:
-       - ./app:/var/www/html
-       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
-       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
-       - ${VOLUME_PATH}/files/images:/var/www/html/images
+       - ./app:${ROOT_APP_DIR}
+       - ./app/config/config_dev.php:${ROOT_APP_DIR}/config/config.php
+       - ${VOLUME_PATH}/files/caches:${ROOT_APP_DIR}/caches
+       - ${VOLUME_PATH}/files/maps:${ROOT_APP_DIR}/maps
+       - ${VOLUME_PATH}/files/images:${ROOT_APP_DIR}/images
      environment:
        - ENV 
      #networks:

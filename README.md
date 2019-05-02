@@ -34,7 +34,7 @@ make unittest
 make ENV=unittest stop clean init-db start unittest
 
 # Test application with cleaned database
-make ENV=unittest SCOPE=montpellier stop clean init-db start test-app show-db
+make ENV=dev SCOPE=montpellier stop clean init-db start test-webserver show-db
 
 # Start server with backuped database
 #make backup-db DBSERVER=192.168.0.1
