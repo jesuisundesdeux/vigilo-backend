@@ -161,7 +161,6 @@ ___
 
 #### Observations
 
-___
 ##### Récupération panel
 
 ###### Compatibilité
