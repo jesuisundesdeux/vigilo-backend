@@ -122,6 +122,53 @@ Retourne une image
 | image/png | / | Image | <= 0.0.4 |
 | image/jpeg | / | Image | >= 0.0.5 |
 
+##### Récupération liste observations
+
+| Version backend |
+| ------- |
+| <= 0.0.1 |
+
+    GET /get_issues.php?
+
+###### Arguments
+
+| Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
+| ------------ | ---- | ----|------------ | ------------- | --------------|
+| URL | int | c | | filtre selon catégorie | >= 0.0.1 |
+| URL | int | t | |  filtre selon date | Changé en timestamp à partir de >= 0.0.5 |
+| URL | str | scope | | filtre selon scope  | >= 0.0.1 |
+| URL | int | status |  | filtre selon status de l'observation | >= 0.0.1 |
+| URL | int | token |  | filtre selon token de l'observation | >= 0.0.1 |
+| URL | int | count |  | limite le nombre d'occurences | >= 0.0.1 |
+| URL | int | offset |  | démarrage le nombre d'occurence en décallé | >= 0.0.1 |
+| URL | str | format |  | format (json,csv,geojson) | >= 0.0.3 |
+
+###### Retour
+
+JSON : Retourne la liste des [observations](#observation).
+
+##### Récupération photo originale
+
+| Version backend |
+| ------- |
+| >= 0.0.1 |
+
+    GET /get_photo.php?
+
+###### Arguments
+
+| Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
+| ------------ | ---- | ----|------------ | ------------- | --------------|
+| URL | str | key | X | Clé privé de l'utilisateur | >= 0.0.1 |
+| URL | str | token | X | Token de l'observation | >= 0.0.1 |
+
+###### Retour
+
+Retourne une image
+
+| Type | Nom | Description | Compatibilité |
+| ---- | ----|------------ | ------------- | 
+| image/jpeg | / | Image | >= 0.0.1 |
 
 
 #### Ajout/modifications informations
