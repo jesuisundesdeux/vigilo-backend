@@ -27,7 +27,7 @@ Présentation API Vigilo
    - [Catégories](#catégories)
    - [Observations](#observations)
    - [Scope](#scope)
-   - [Status](#status)
+   - [Statut](#statut)
  
        
        
@@ -74,7 +74,7 @@ JSON : Retourne les informations suivantes :
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
 | str | role | Rôle correspondant à la clé (admin) | >= 0.0.1 |
 
 ___
@@ -208,7 +208,7 @@ Version backend >= 0.0.1
 | URL | int | c | | filtre selon catégorie | >= 0.0.1 |
 | URL | int | t | |  filtre selon date | Changé en timestamp à partir de >= 0.0.5 |
 | URL | str | scope | | filtre selon scope  | >= 0.0.1 |
-| URL | int | status |  | filtre selon status de l'observation | >= 0.0.1 |
+| URL | int | status |  | filtre selon statut de l'observation | >= 0.0.1 |
 | URL | int | token |  | filtre selon token de l'observation | >= 0.0.1 |
 | URL | int | count |  | limite le nombre d'occurences | >= 0.0.1 |
 | URL | int | offset |  | démarrage le nombre d'occurence en décallé | >= 0.0.1 |
@@ -276,7 +276,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
 
 ___
 
@@ -303,7 +303,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
 
 ___
 
@@ -339,7 +339,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
 | str | token | Retourne le token généré | >= 0.0.1 |
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.1 |
 | int | group | LEGACY | LEGACY |
@@ -371,7 +371,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
 
 ___
 
@@ -421,7 +421,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.5 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.5 |
 
 ___
 
@@ -480,7 +480,7 @@ ___
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |
 | str | backend_version | Version du backend| >= 0.0.5 |
 
-### Status
+### Statut
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
