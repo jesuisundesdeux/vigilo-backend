@@ -3,7 +3,9 @@ Présentation API Vigilo
 
 ## Sommaire
 
- - [Méthodes](#méthodes)
+ - Workflows
+   - [Ajout d'une observation](#ajout-dune-observation)
+ - Méthodes
    - Récupération d'informations
      - Configurations
        - [Vérification Acl](#vérification-acl)
@@ -25,6 +27,8 @@ Présentation API Vigilo
    - [Catégories](#catégories)
    - [Observations](#observations)
    - [Scope](#scope)
+   - [Status](#status)
+ 
        
        
        
