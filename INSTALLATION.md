@@ -2,6 +2,12 @@
 
 ### Pré-requis 
 
+#### Connaissances 
+
+* OS Linux
+* Docker (si serveur dédié)
+* LAMP (si hebergement mutualisé)
+
 #### Vigilo-Backend
 
 Vigilo-Backend necessite soit :
@@ -16,9 +22,34 @@ Obtenir une clé d'API MapQuest sur le module StaticMAP API => https://developer
 
 ##### Twitter
 
-Créer un compte Twitter application dédié (voir https://creerapplication.zendesk.com/hc/fr/articles/115000691364-Int%C3%A9grer-Twitter-dans-votre-application)
+Créer un compte Twitter application dédié 
+(voir https://creerapplication.zendesk.com/hc/fr/articles/115000691364-Int%C3%A9grer-Twitter-dans-votre-application)
 
 #### Serveur dédié
+
+Cloner le repo git complet.
+``` $ git clone https://github.com/jesuisundesdeux/vigilo-backend.git ```
+
+Copier le .env_sample vers .env
+
+``` $ cp .env_sample .env_prod```
+
+Adapter les valeurs dans ```.env_prod``` :
+* VOLUME_PATH : Repertoire persistent sur le serveur  où seront stockées les données de Vigilo 
+* MYSQL_ROOT_PASSWORD : Mot de passe root de la base de données 
+* MYSQL_PASSWORD : Mot de passe du compte vigilo de la base de données
+
+Copier le docker-compose_sample.yml vers docker_compose_prod.yml
+
+``` $ cp docker-compose_sample.yml docker-compose_prod.yml ```
+
+Adapter si besoin ce fichier au contexte du serveur sur lequel il est hebergé.
+
+Lancer le service :
+
+``` 
+$ make ENV=prod env start
+```
 
 #### Hebergement mutualisé
 
@@ -34,7 +65,7 @@ Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'or
 
 #### config.php
 
-Copier le fichier config/config_sample.php dans config/config.php.
+Copier le fichier ```config/config_sample.php``` dans ```config/config.php```.
 
 Renseigner les différents valeurs à configurer.
  
