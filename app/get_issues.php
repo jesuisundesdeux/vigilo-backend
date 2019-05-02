@@ -23,6 +23,7 @@ require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
+header('Access-Control-Allow-Origin: https://tcoupin.gitlab.io');
 
 class GetIssues
 {

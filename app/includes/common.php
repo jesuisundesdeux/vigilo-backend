@@ -21,7 +21,7 @@ require_once(dirname(__FILE__) . "/../config/config.php");
 
 global $config;
 
-define('BACKEND_VERSION','0.0.5');
+define('BACKEND_VERSION','0.0.6');
 
 date_default_timezone_set($config['VIGILO_TIMEZONE']);
 

@@ -23,6 +23,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: https://tcoupin.gitlab.io');
 
 if (isset($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db, $_GET['scope']);
