@@ -45,17 +45,18 @@ ___
 - [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation) : Ajout de l'image 
 - [Récupération panel](#récupération-panel) : Génération du panel
 
+___
+
 ## Méthodes 
 
 ### Récupération d'informations
 
 #### Configurations
 
+___
 ##### Vérification ACL
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+**Version backend** : >= 0.0.1
 
     GET /acl.php?
 
@@ -74,6 +75,8 @@ JSON : Retourne les informations suivantes :
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
 | str | role | Rôle correspondant à la clé (admin) | >= 0.0.1 |
 
+___
+
 ##### Récupération catégories
 
 | Version backend |
@@ -91,6 +94,8 @@ JSON : Retourne les informations suivantes :
 
 JSON : Retourne les informations des [Catégories](#categories).
 
+___
+
 ##### Récupération catégories (legacy)
 
 | Version backend |
@@ -98,6 +103,8 @@ JSON : Retourne les informations des [Catégories](#categories).
 | LEGACY |
 
     GET /get_categories.php?
+
+___
 
 ##### Récupération informations scope
 
@@ -116,6 +123,8 @@ JSON : Retourne les informations des [Catégories](#categories).
 ###### Retour
 
 JSON : Retourne les informations du [Scope](#scope).
+
+___
 
 ##### Récupération version backend (legacy)
 
@@ -138,8 +147,11 @@ JSON : Retourne la version du backend
 | ---- | ----|------------ | ------------- | 
 | str | version | Version du backend | >= 0.0.3 |
 
+___
+
 #### Observations
 
+___
 ##### Récupération panel
 
 | Version backend |
@@ -166,6 +178,8 @@ Retourne une image
 | image/png | / | Image | <= 0.0.4 |
 | image/jpeg | / | Image | >= 0.0.5 |
 
+___
+
 ##### Récupération liste observations
 
 | Version backend |
@@ -191,6 +205,8 @@ Retourne une image
 
 JSON : Retourne la liste des [observations](#observation).
 
+___
+
 ##### Récupération photo originale
 
 | Version backend |
@@ -214,10 +230,13 @@ Retourne une image
 | ---- | ----|------------ | ------------- | 
 | image/jpeg | / | Image | >= 0.0.1 |
 
+___
 
 ### Ajout/modifications informations
 
 #### Observations
+
+___
 
 ##### Ajout d'une image à l'observation
 
@@ -244,6 +263,7 @@ JSON : Retourne les informations d'identification de l'observation
 | ---- | ----|------------ | ------------- | 
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
 
+___
 
 ##### Approuver observation
 
@@ -268,6 +288,7 @@ JSON : Retourne les informations d'identification de l'observation
 | ---- | ----|------------ | ------------- | 
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
 
+___
 
 ##### Création observation
 
@@ -304,6 +325,8 @@ JSON : Retourne les informations d'identification de l'observation
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.1 |
 | int | group | LEGACY | LEGACY |
 
+___
+
 ##### Suppression observation
 
 | Version backend |
@@ -329,6 +352,8 @@ JSON : Retourne les informations d'identification de l'observation
 | ---- | ----|------------ | ------------- | 
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.1 |
 
+___
+
 ##### Obtenir liste observations en CSV (legacy)
 
 | Version backend |
@@ -345,6 +370,8 @@ JSON : Retourne les informations d'identification de l'observation
 ###### Retour
 
 CSV : Retourne les informations d'identification de l'observation
+
+___
 
 ##### Changer status observation
 
@@ -371,6 +398,8 @@ JSON : Retourne les informations d'identification de l'observation
 | ---- | ----|------------ | ------------- | 
 | bool | status | Retourne le [status](#status) de l'appel  | >= 0.0.5 |
 
+___
+
 ##### Obtenir carte en cache
 
 | Version backend |
@@ -379,8 +408,11 @@ JSON : Retourne les informations d'identification de l'observation
 
     GET /maps/{TOKEN}_zoom.jpg
 
+___
+
 
 ## Données
+
 
 ### Catégories
 
