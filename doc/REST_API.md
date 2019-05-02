@@ -4,8 +4,33 @@ Présentation API Vigilo
 ## Sommaire
 
  - [Méthodes](#méthodes)
-   - Configurations
-     - [ACL](#vérification_ACL)
+   - Récupération d'informations
+     - Configurations
+       - [Vérification Acl](#vérification-acl)
+       - [Récupération catégories](#récupération-catégories)
+       - [Récupération informations scope](#récupération-informations-scope)
+     - Observations
+       - [Récupération panel](#récupération-panel)
+       - [Récupération liste observations](#récupération-liste-observations)
+       - [Récupération photo originale](#récupération-photo-originale)
+   - Ajout/modifications informations
+     - Observations
+       - [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation)
+       - [Approuver observation](#approuver-observation)
+       - [Création observation](#création-observation)
+       - [Suppression observation](#suppression-observation)
+       - [Changer status observation](#changer-status-observation)
+       - [Obtenir carte en cache](#obtenir-carte-en-cache)
+ - [Données](#données)
+   - [Catégories](#catégories)
+   - [Observations](#observations)
+   - [Scope](#scope)
+       
+       
+       
+     
+     
+     
 
 ___
 
@@ -179,7 +204,9 @@ Retourne une image
 | image/jpeg | / | Image | >= 0.0.1 |
 
 
-#### Ajout/modifications informations
+### Ajout/modifications informations
+
+#### Observations
 
 ##### Ajout d'une image à l'observation
 
