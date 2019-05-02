@@ -18,7 +18,7 @@ Image générée via ```generate_panel.php``` contenantn une synthèse de l'obse
 
 #### Scope 
 
-Instance d'une zone géographique au sein d'un backend permettant la coohatition de plusieurs zones sur un même backend
+Instance d'une zone géographique au sein d'un backend permettant la coohabitation de plusieurs zones sur un même backend
 
 #### Token 
 
