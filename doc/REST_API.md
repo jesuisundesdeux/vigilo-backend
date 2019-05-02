@@ -56,7 +56,11 @@ ___
 ___
 ##### Vérification ACL
 
-**Version backend** : >= 0.0.1
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /acl.php?
 
@@ -79,9 +83,11 @@ ___
 
 ##### Récupération catégories
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /get_categories_list.php?
 
@@ -98,9 +104,11 @@ ___
 
 ##### Récupération catégories (legacy)
 
-| Version backend |
-| ------- |
-| LEGACY |
+###### Compatibilité
+
+LEGACY
+
+######  Requête
 
     GET /get_categories.php?
 
@@ -128,9 +136,11 @@ ___
 
 ##### Récupération version backend (legacy)
 
-| Version backend |
-| ------- |
-| <= 0.0.3 |
+###### Compatibilité
+
+Version backend <= 0.0.3
+
+######  Requête
 
     GET /get_version.php?
 
@@ -154,9 +164,11 @@ ___
 ___
 ##### Récupération panel
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /generate_panel.php?
 
@@ -182,9 +194,11 @@ ___
 
 ##### Récupération liste observations
 
-| Version backend |
-| ------- |
-| <= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /get_issues.php?
 
@@ -209,9 +223,11 @@ ___
 
 ##### Récupération photo originale
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /get_photo.php?
 
@@ -240,9 +256,11 @@ ___
 
 ##### Ajout d'une image à l'observation
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     POST /add_image.php?
     
@@ -267,9 +285,11 @@ ___
 
 ##### Approuver observation
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     POST /approve.php?
 
@@ -292,9 +312,11 @@ ___
 
 ##### Création observation
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     POST /create_issue.php?
 
@@ -329,9 +351,11 @@ ___
 
 ##### Suppression observation
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /delete.php?
 
@@ -356,9 +380,11 @@ ___
 
 ##### Obtenir liste observations en CSV (legacy)
 
-| Version backend |
-| ------- |
-| <= 0.0.5 |
+###### Compatibilité
+
+Version backend <= 0.0.5
+
+######  Requête
 
     GET /to_csv.php?
 
@@ -375,9 +401,11 @@ ___
 
 ##### Changer status observation
 
-| Version backend |
-| ------- |
-| >= 0.0.5 |
+###### Compatibilité
+
+Version backend >= 0.0.5
+
+######  Requête
 
     GET /update_status.php?
 
@@ -402,9 +430,11 @@ ___
 
 ##### Obtenir carte en cache
 
-| Version backend |
-| ------- |
-| >= 0.0.1 |
+###### Compatibilité
+
+Version backend >= 0.0.1
+
+######  Requête
 
     GET /maps/{TOKEN}_zoom.jpg
 
