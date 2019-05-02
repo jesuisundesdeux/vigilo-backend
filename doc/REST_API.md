@@ -459,6 +459,7 @@ ___
 | str | comment | Remarque de l'observation | >= 0.0.1 |
 | str | explanation | Explications de l'observation  | >= 0.0.1 |
 | int | time | Timestamp (en secondes) de l'observation | >= 0.0.1 |
+| int | status | Statut de l'obseration (0 non résoleu / 1 résolue) | >= 0.0.6 |
 | int | group | Groupe de l'observation | LEGACY |
 | int | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | int | approved | Etat d'approbation de l'observation | >= 0.0.1 |
