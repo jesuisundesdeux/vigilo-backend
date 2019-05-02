@@ -155,7 +155,7 @@ JSON : Retourne la version du backend
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| str | version | Version du backend | >= 0.0.3 |
+| str | version | Version du backend | <= 0.0.3 |
 
 ___
 
