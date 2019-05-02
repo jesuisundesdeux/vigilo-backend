@@ -37,6 +37,13 @@ Présentation API Vigilo
      
 
 ___
+## Workflows 
+
+### Ajout d'une observation
+
+- [Création observation](#création-observation) : Création de l'entrée et récupération des informations d'identification
+- [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation) : Ajout de l'image 
+- [Récupération panel](#récupération-panel) : Génération du panel
 
 ## Méthodes 
 
