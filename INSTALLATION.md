@@ -4,8 +4,7 @@
 
 #### Connaissances 
 
-* OS Linux
-* Docker (si serveur dédié)
+* OS Linux / Docker (si serveur dédié)
 * LAMP (si hebergement mutualisé)
 
 #### Vigilo-Backend
