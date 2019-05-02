@@ -27,7 +27,10 @@ Créer un compte Twitter application dédié
 #### Serveur dédié
 
 Cloner le repo git complet.
-``` $ git clone https://github.com/jesuisundesdeux/vigilo-backend.git ```
+
+```
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git 
+```
 
 Copier le .env_sample vers .env
 
