@@ -21,7 +21,7 @@ Présentation API Vigilo
        - [Suppression observation](#suppression-observation)
        - [Changer status observation](#changer-status-observation)
        - [Obtenir carte en cache](#obtenir-carte-en-cache)
- - [Données](#données)
+ - Données
    - [Catégories](#catégories)
    - [Observations](#observations)
    - [Scope](#scope)
