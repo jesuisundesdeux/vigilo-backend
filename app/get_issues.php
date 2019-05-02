@@ -158,6 +158,7 @@ class GetIssues
     obs_comment,
     obs_explanation,
     obs_time,
+    obs_status,
     obs_categorie,
     obs_approved 
 FROM obs_list
@@ -187,6 +188,7 @@ ORDER BY obs_time DESC
           "comment" => $result['obs_comment'],
           "explanation" => $result['obs_explanation'],
           "time" => $result['obs_time'],
+          "status" => $result['obs_status'],
           "group" => 0,
           "categorie" => $result['obs_categorie'],
           "approved" => $result['obs_approved']
