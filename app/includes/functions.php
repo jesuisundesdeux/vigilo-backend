@@ -143,3 +143,11 @@ function removeEmoji($text) {
     return $clean_text;
 }
 
+function jsonError($prefix, $error_msg)
+{
+  error_log($prefix.': '.$error_msg);
+  $json = array('status' => 500, 'error' => $error_msg);
+  http_response_code(500);
+  echo json_encode($json, JSON_PRETTY_PRINT);
+}
+

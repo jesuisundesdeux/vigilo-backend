@@ -29,8 +29,8 @@ class GetIssues
 
   private $format_list = array(
     'csv' => 'text/csv',
-    'json' => 'application/json',
-    'geojson' => 'application/json'
+    'json' => 'application/json; charset=utf-8',
+    'geojson' => 'application/json; charset=utf-8'
   );
 
   protected $format = 'json';

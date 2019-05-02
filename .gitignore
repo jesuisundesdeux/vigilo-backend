@@ -1,7 +1,6 @@
 # Environment files
 .env
-app/config.php
-
+docker-compose.yml
 
 # PHP Application
 app/images/*.jpg
@@ -26,3 +25,4 @@ shunit2*
 
 # Misc
 SyncSettings.ffs_gui
+*.swp

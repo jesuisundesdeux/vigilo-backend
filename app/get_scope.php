@@ -22,42 +22,37 @@ require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-$status = 0;
-$json = array();
-$scope = (isset($_GET['scope']) ? mysqli_real_escape_string($db,$_GET['scope']) : 0);
-
-if ($scope != 0) {
-	$query = mysqli_query($db, "SELECT * FROM obs_scopes WHERE scope_name='".$scope."' LIMIT 1");  
-  if(mysqli_num_rows($query) == 0) {
-    $status = 1;
-    error_log('Scope: '.$scope . ' do not exist !');
-  }
-  else {
-    $result = mysqli_fetch_array($query);
-    $json = array(
-            'display_name' => $result['scope_display_name'],
-            'coordinate_lat_min' => $result['scope_coordinate_lat_min'],
-            'coordinate_lat_max' => $result['scope_coordinate_lat_max'],
-            'coordinate_lon_min' => $result['scope_coordinate_lon_min'],
-            'coordinate_lon_max' => $result['scope_coordinate_lon_max'],
-            'map_center_string' => $result['scope_map_center_string'],
-            'map_zoom' => $result['scope_map_zoom'],
-            'contact_email' => $result['scope_contact_email'],
-            'tweet_content' => $result['scope_sharing_content_text'],
-            'map_url' => $result['scope_umap_url'],
-            'backend_version' => BACKEND_VERSION);
-  }
-}
-else {
-  $status = 1;
-  error_log('Scope is not defined');
+if (isset($_GET['scope'])) {
+  $scope = mysqli_real_escape_string($db, $_GET['scope']);
+} else {
+  jsonError('GET_SCOPE', 'Scope is not defined');
+  return;
 }
 
-if($status != 0) {
-  http_response_code(500);
+$query = mysqli_query($db, "SELECT * FROM obs_scopes
+                            WHERE scope_name='".$scope."'
+                            LIMIT 1");
+
+if (mysqli_num_rows($query) == 0) {
+  jsonError('GET_SCOPE', 'Scope '.$scope.' does not exist');
+  return;
 }
 
-echo json_encode($json,JSON_PRETTY_PRINT);
+$result = mysqli_fetch_array($query);
+$json = array(
+        'display_name' => $result['scope_display_name'],
+        'coordinate_lat_min' => $result['scope_coordinate_lat_min'],
+        'coordinate_lat_max' => $result['scope_coordinate_lat_max'],
+        'coordinate_lon_min' => $result['scope_coordinate_lon_min'],
+        'coordinate_lon_max' => $result['scope_coordinate_lon_max'],
+        'map_center_string' => $result['scope_map_center_string'],
+        'map_zoom' => $result['scope_map_zoom'],
+        'contact_email' => $result['scope_contact_email'],
+        'tweet_content' => $result['scope_sharing_content_text'],
+        'map_url' => $result['scope_umap_url'],
+        'backend_version' => BACKEND_VERSION);
+
+echo json_encode($json, JSON_PRETTY_PRINT);
 
