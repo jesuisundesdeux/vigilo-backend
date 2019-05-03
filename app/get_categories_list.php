@@ -23,7 +23,7 @@ require_once("${cwd}/includes/common.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: https://tcoupin.gitlab.io');
+header('Access-Control-Allow-Origin: *');
 
 echo json_encode($categorie_lst);
 ?>
