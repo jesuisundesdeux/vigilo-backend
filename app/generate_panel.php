@@ -343,9 +343,8 @@ $date_font_file = './panel_components/texgyreheros-regular.otf';
 imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
 
 ## ADD RESOLVED
-$resolved = imagecreatefrompng($resolved_image);
-
 if($statusobs == 1) {
+  $resolved = imagecreatefrompng($resolved_image);
   imagecopyresized($image, $resolved, $resolved_x, $resolved_y, 0, 0, $resolved_w, $resolved_h,imagesx($resolved), imagesy($resolved));
 }
 
