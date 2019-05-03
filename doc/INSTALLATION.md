@@ -13,6 +13,9 @@ Vigilo-Backend necessite soit :
 * Un serveur dédié sur lequel est installé Docker
 * Un hébergement PHP/MySQL
 
+Versions :
+* PHP >= 7.1
+
 #### Services externes
 
 ##### MapQuest
