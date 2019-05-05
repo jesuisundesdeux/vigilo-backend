@@ -27,9 +27,9 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 # Generate Unique ID
-$secretid=str_replace('.','',uniqid('', true));
+$secretid=str_replace('.', '', uniqid('', true));
 
-if(isset($_GET['key'])) {
+if (isset($_GET['key'])) {
   $key = $_GET['key'];
 }
 else {
@@ -37,28 +37,28 @@ else {
 }
 
 # Get Web form datas
-$token = mysqli_real_escape_string($db,$_POST['token']);
-$coordinates_lat = mysqli_real_escape_string($db,$_POST['coordinates_lat']);
-$coordinates_lon = mysqli_real_escape_string($db,$_POST['coordinates_lon']);
-$comment = removeEmoji(mysqli_real_escape_string($db,$_POST['comment']));
-$categorie = mysqli_real_escape_string($db,$_POST['categorie']);
-$address = mysqli_real_escape_string($db,$_POST['address']);
-$time = mysqli_real_escape_string($db,$_POST['time']);
+$token = mysqli_real_escape_string($db, $_POST['token']);
+$coordinates_lat = mysqli_real_escape_string($db, $_POST['coordinates_lat']);
+$coordinates_lon = mysqli_real_escape_string($db, $_POST['coordinates_lon']);
+$comment = removeEmoji(mysqli_real_escape_string($db, $_POST['comment']));
+$categorie = mysqli_real_escape_string($db, $_POST['categorie']);
+$address = mysqli_real_escape_string($db, $_POST['address']);
+$time = mysqli_real_escape_string($db, $_POST['time']);
 $time = floor($time / 1000);
-$explanation = (isset($_POST['explanation']) ? removeEmoji(mysqli_real_escape_string($db,$_POST['explanation'])) : '');
-$version = (isset($_POST['version']) ? mysqli_real_escape_string($db,$_POST['version']) : 0);
-$scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db,$_POST['scope']) : 0);
+$explanation = (isset($_POST['explanation']) ? removeEmoji(mysqli_real_escape_string($db, $_POST['explanation'])) : '');
+$version = (isset($_POST['version']) ? mysqli_real_escape_string($db, $_POST['version']) : 0);
+$scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db, $_POST['scope']) : 0);
 $status = 0;
 
 # Check if token exist
-$query_token = mysqli_query($db,"SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+$query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 
-if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
+if (mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
   delete_map_cache($token);
   delete_token_cache($token);
   $query_result = mysqli_fetch_array($query_token);
   $secretid = $query_result['obs_secretid'];
-  $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
+  $json = array('token' => $token, 'status' => 0, 'secretid'=>$secretid);
   mysqli_query($db,'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
                                         obs_coordinates_lon="'.$coordinates_lon.'",
                                         obs_comment="'.$comment.'",
@@ -71,17 +71,16 @@ if(mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
 }
 else {
 
-  if(mysqli_num_rows($query_token) == 1 or empty($token)) {
-    $token=tokenGenerator(4);
-
+  if (mysqli_num_rows($query_token) == 1 or empty($token)) {
+    $token = tokenGenerator(4);
   }
 
   # Init Datas
-  $json = array('token' => $token, 'status' => 0,'secretid'=>$secretid);
+  $json = array('token' => $token, 'status' => 0, 'secretid' => $secretid);
 
   # Insert user datas to MySQL Database
-  if(!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
-    mysqli_query($db,'INSERT INTO obs_list (
+  if (!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
+    mysqli_query($db, 'INSERT INTO obs_list (
                                     `obs_scope`,
                                     `obs_coordinates_lat`,
                                     `obs_coordinates_lon`,
@@ -108,7 +107,7 @@ else {
                                  "'.$version.'",
                                  "'.$secretid.'")');
         
-    if($mysqlerror = mysqli_error($db)) {
+    if ($mysqlerror = mysqli_error($db)) {
       $status = 1;
       $error_code = "Could not insert field";
       error_log('CREATE_ISSUE : MySQL Error '.$mysqlerror);
@@ -121,7 +120,7 @@ else {
   }
 }  
 # If error force return 500 ERROR CODE
-if($status != 0) {
+if ($status != 0) {
   http_response_code(500);
   $json['error_code'] = $error_code;
 }
