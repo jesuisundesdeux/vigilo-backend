@@ -24,6 +24,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
 
 # Generate Unique ID
 $secretid=str_replace('.','',uniqid('', true));
