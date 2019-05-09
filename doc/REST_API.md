@@ -207,7 +207,7 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | int | c | | filtre selon catégorie | >= 0.0.1 |
 | URL | int | t | |  filtre selon date | Changé en timestamp à partir de >= 0.0.5 |
-| URL | str | scope | | filtre selon scope  | >= 0.0.1 |
+| URL | str | scope | X | filtre selon scope  | >= 0.0.1 |
 | URL | int | status |  | filtre selon statut de l'observation | >= 0.0.1 |
 | URL | int | token |  | filtre selon token de l'observation | >= 0.0.1 |
 | URL | int | count |  | limite le nombre d'occurences | >= 0.0.1 |
