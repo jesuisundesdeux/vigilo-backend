@@ -296,6 +296,7 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | | Clé privé de l'utilisateur | >= 0.0.1 |
 | Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
+| Form | int | approved | | 0 => A approuver / 1 => Approuvé / 2 => Désapprouvé | >= 0.0.1 |
 
 ###### Retour
 
