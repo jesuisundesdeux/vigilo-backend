@@ -50,75 +50,89 @@ $version = (isset($_POST['version']) ? mysqli_real_escape_string($db, $_POST['ve
 $scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db, $_POST['scope']) : 0);
 $status = 0;
 
-# Check if token exist
-$query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
-
-if (mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
-  delete_map_cache($token);
-  delete_token_cache($token);
-  $query_result = mysqli_fetch_array($query_token);
-  $secretid = $query_result['obs_secretid'];
-  $json = array('token' => $token, 'status' => 0, 'secretid'=>$secretid);
-  mysqli_query($db,'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
-                                        obs_coordinates_lon="'.$coordinates_lon.'",
-                                        obs_comment="'.$comment.'",
-                                        obs_explanation="'.$explanation.'",
-                                        obs_address_string="'.$address.'",
-                                        obs_categorie="'.$categorie.'",
-                                        obs_time="'.$time.'",
-                                        obs_app_version="'.$version.'"
-                    WHERE obs_token="'.$token.'" AND obs_secretid="'.$secretid.'"');
-}
-else {
-
-  if (mysqli_num_rows($query_token) == 1 or empty($token)) {
-    $token = tokenGenerator(4);
-  }
-
-  # Init Datas
-  $json = array('token' => $token, 'status' => 0, 'secretid' => $secretid);
-
-  # Insert user datas to MySQL Database
-  if (!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
-    mysqli_query($db, 'INSERT INTO obs_list (
-                                    `obs_scope`,
-                                    `obs_coordinates_lat`,
-                                    `obs_coordinates_lon`,
-                                    `obs_address_string`,
-                                    `obs_comment`,
-                                    `obs_explanation`,
-                                    `obs_categorie`,
-                                    `obs_token`,
-                                    `obs_time`,
-                                    `obs_status`,
-                                    `obs_app_version`,
-                                    `obs_secretid`) 
-                             VALUES (
-                                 "'.$scope.'",
-                                 "'.$coordinates_lat.'",
-                                 "'.$coordinates_lon.'",
-                                 "'.$address.'",
-                                 "'.$comment.'",
-                                 "'.$explanation.'",
-                                 "'.$categorie.'",
-                                 "'.$token.'",
-                                 "'.$time.'",
-                                 0,
-                                 "'.$version.'",
-                                 "'.$secretid.'")');
-        
-    if ($mysqlerror = mysqli_error($db)) {
-      $status = 1;
-      $error_code = "Could not insert field";
-      error_log('CREATE_ISSUE : MySQL Error '.$mysqlerror);
-    }
+# Check scope compliancy
+$query_scope = mysqli_query($db, "SELECT * FROM obs_scopes WHERE scope_name='".$scope."' LIMIT 1");
+$result_scope = mysqli_fetch_array($query_scope);
+if($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
+   $coordinates_lat <= $result_scope['scope_coordinate_lat_max'] &&
+   $coordinates_lon >= $result_scope['scope_coordinate_lon_min'] &&
+   $coordinates_lon <= $result_scope['scope_coordinate_lon_max']) {
+  
+  # Check if token exist
+  $query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+  
+  if (mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
+    delete_map_cache($token);
+    delete_token_cache($token);
+    $result_token = mysqli_fetch_array($query_token);
+    $secretid = $result_token['obs_secretid'];
+    $json = array('token' => $token, 'status' => 0, 'secretid'=>$secretid);
+    mysqli_query($db,'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
+                                          obs_coordinates_lon="'.$coordinates_lon.'",
+                                          obs_comment="'.$comment.'",
+                                          obs_explanation="'.$explanation.'",
+                                          obs_address_string="'.$address.'",
+                                          obs_categorie="'.$categorie.'",
+                                          obs_time="'.$time.'",
+                                          obs_app_version="'.$version.'"
+                      WHERE obs_token="'.$token.'" AND obs_secretid="'.$secretid.'"');
   }
   else {
-    $status = 1;
-    $error_code = "Empty field not supported";
-    error_log('CREATE_ISSUE : Field not supported');
-  }
-}  
+  
+    if (mysqli_num_rows($query_token) == 1 or empty($token)) {
+      $token = tokenGenerator(4);
+    }
+  
+    # Init Datas
+    $json = array('token' => $token, 'status' => 0, 'secretid' => $secretid);
+  
+    # Insert user datas to MySQL Database
+    if (!empty($coordinates_lat) and !empty($coordinates_lon) and !empty($categorie) and !empty($time) and !empty($address)) {
+      mysqli_query($db, 'INSERT INTO obs_list (
+                                      `obs_scope`,
+                                      `obs_coordinates_lat`,
+                                      `obs_coordinates_lon`,
+                                      `obs_address_string`,
+                                      `obs_comment`,
+                                      `obs_explanation`,
+                                      `obs_categorie`,
+                                      `obs_token`,
+                                      `obs_time`,
+                                      `obs_status`,
+                                      `obs_app_version`,
+                                      `obs_secretid`) 
+                               VALUES (
+                                   "'.$scope.'",
+                                   "'.$coordinates_lat.'",
+                                   "'.$coordinates_lon.'",
+                                   "'.$address.'",
+                                   "'.$comment.'",
+                                   "'.$explanation.'",
+                                   "'.$categorie.'",
+                                   "'.$token.'",
+                                   "'.$time.'",
+                                   0,
+                                   "'.$version.'",
+                                   "'.$secretid.'")');
+          
+      if ($mysqlerror = mysqli_error($db)) {
+        $status = 1;
+        $error_code = "Could not insert field";
+        error_log('CREATE_ISSUE : MySQL Error '.$mysqlerror);
+      }
+    }
+    else {
+      $status = 1;
+      $error_code = "Empty field not supported";
+      error_log('CREATE_ISSUE : Field not supported');
+    }
+  }  
+}
+else {
+  $status = 1;
+  $error_code = "Coordinates out of range in the scope";
+  error_log('CREATE ISSUE' . $error_code);
+}
 # If error force return 500 ERROR CODE
 if ($status != 0) {
   http_response_code(500);
