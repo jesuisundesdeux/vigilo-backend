@@ -85,6 +85,7 @@ Créer une entrée pour chaque scope souhaité :
 INSERT INTO `obs_scopes` 
                 (`scope_name`,
                 `scope_display_name`,
+                `scope_department`,
                 `scope_coordinate_lat_min`, 
                 `scope_coordinate_lat_max`, 
                 `scope_coordinate_lon_min`, 
@@ -93,10 +94,12 @@ INSERT INTO `obs_scopes`
                 `scope_map_zoom`, 
                 `scope_contact_email`, 
                 `scope_sharing_content_text`, 
+                `scope_twitter`,
                 `scope_umap_url`
          ) VALUES
                 ('ID_DU_SCOPE',
                  'NOM_SCOPE',
+                 'DEPARTEMENT',
                  'COORDONNEE_LAT_MIN',
                  'COORDONNEE_LAT_MAX', 
                  'COORDONNEE_LON_MIN', 
@@ -105,17 +108,20 @@ INSERT INTO `obs_scopes`
                  'ZOOM', 
                  'CONTACT_EMAIL', 
                  'TWEET_CONTENT', 
+                 'TWITTER',
                  'MAP_URL'
             );
 ```
 
 * ID_DU_SCOPE : Numero du département + "_" + nom ville attaché (exemple : 34_montpellier)
 * NOM_SCOPE : Nom affiché du scope dans Vigilo (exemple : Montpellier)
+* DEPARTEMENT : Numéro du département du scope. Permet de trier / filtrer les instances de Vigilo dans les applications clientes.
 * COORDONNEE_LAT_MIN / COORDONNEE_LAT_MAX / COORDONNEE_LON_MIN / COORDONNEE_LON_MAX : Limites géographique en degré décimal de la zone
 * COORDONNEES_CENTRE_CARTE : Latitude + "," + Longitude du centre de la carte qui sera affichée
 * ZOOM : Zoom de la carte qui sera affiché (voir Zoom Google Map)
 * CONTACT_EMAIL : Adresse mail de contact de l'instance
 * TWEET_CONTENT : Contenu du tweet qui mis par défaut via le composant de partage de l'application
+* TWITTER : Compte Twitter associé à l'instance de Vigilo
 * MAP_URL : Adresse de la carte où sont affichées les observations
 
 #### Modération

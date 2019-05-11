@@ -44,6 +44,7 @@ if (mysqli_num_rows($query) == 0) {
 $result = mysqli_fetch_array($query);
 $json = array(
         'display_name' => $result['scope_display_name'],
+        'department' => $result['scope_department'],
         'coordinate_lat_min' => $result['scope_coordinate_lat_min'],
         'coordinate_lat_max' => $result['scope_coordinate_lat_max'],
         'coordinate_lon_min' => $result['scope_coordinate_lon_min'],
@@ -52,6 +53,7 @@ $json = array(
         'map_zoom' => $result['scope_map_zoom'],
         'contact_email' => $result['scope_contact_email'],
         'tweet_content' => $result['scope_sharing_content_text'],
+        'twitter' => $result['scope_twitter'],
         'map_url' => $result['scope_umap_url'],
         'backend_version' => BACKEND_VERSION);
 
