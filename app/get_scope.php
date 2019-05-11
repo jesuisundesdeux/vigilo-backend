@@ -42,6 +42,23 @@ if (mysqli_num_rows($query) == 0) {
 }
 
 $result = mysqli_fetch_array($query);
+
+$query_cities = mysqli_query($db, "SELECT * FROM obs_cities
+                                   WHERE city_scope='".$result['scope_id']."'");
+$json_cities = array();
+
+while ($result_cities = mysqli_fetch_array($query_cities)) {
+  $json_city = array(
+      "id" => $result_cities['city_id'],
+      "name" => $result_cities['city_name'],
+      "postcode" => $result_cities['city_postcode'],
+      "area" => $result_cities['city_area'],
+      "population" => $result_cities['city_population'],
+      "website" => $result_cities['city_website']
+  );
+  $json_cities[] = $json_city;
+}
+
 $json = array(
         'display_name' => $result['scope_display_name'],
         'department' => $result['scope_department'],
@@ -55,7 +72,8 @@ $json = array(
         'tweet_content' => $result['scope_sharing_content_text'],
         'twitter' => $result['scope_twitter'],
         'map_url' => $result['scope_umap_url'],
-        'backend_version' => BACKEND_VERSION);
+        'backend_version' => BACKEND_VERSION,
+        'cities' => $json_cities);
 
 echo json_encode($json, JSON_PRETTY_PRINT);
 

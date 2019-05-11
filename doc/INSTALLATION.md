@@ -124,6 +124,41 @@ INSERT INTO `obs_scopes`
 * TWITTER : Compte Twitter associé à l'instance de Vigilo
 * MAP_URL : Adresse de la carte où sont affichées les observations
 
+##### Listing des villes
+
+Chaque scope est constitué de une ou plusieurs villes. Ces villes sont listées
+et décrites dans la table obs_cities.
+
+Créer une entrée par ville du scope.
+
+```
+INSERT INTO `obs_cities`
+                (`city_id`,
+                `city_scope`,
+                `city_name`,
+                `city_postcode`,
+                `city_area`,
+                `city_population`,
+                `city_website`
+         ) VALUES
+                (ID_DE_LA_VILLE,
+                 ID_DU_SCOPE,
+                 NOM_DE_LA_VILLE,
+                 CODE_POSTAL,
+                 SUPERFICIE,
+                 POPULATION,
+                 WEBSITE
+         );
+```
+
+* ID_DE_LA_VILLE : valeur auto incrémentée
+* ID_DU_SCOPE : identifiant unique entier définissant le scope
+* NOM_DE_LA_VILLE : Nom entier de la ville
+* NOM_DE_LA_VILLE : Code postal de la ville
+* SUPERFICIE : Superficie de la ville en km2
+* POPULATION : Nombre d'habitants de la ville
+* WEBSITE : Site web de la ville
+
 #### Modération
 
 ##### Via Vigilo Android
