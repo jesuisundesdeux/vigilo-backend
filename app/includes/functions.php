@@ -159,4 +159,5 @@ function getCategorieName($catid) {
       $categorie_string = $value['catname'];
     }
   }
+  return $categorie_string;
 }
