@@ -1,4 +1,5 @@
 <?php
+/**** LEGACY *****/
 /*
 Copyright (C) 2019 Velocité Montpellier
 
@@ -25,6 +26,8 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
-echo json_encode($categorie_lst);
+$categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json");
+$categories_list = json_decode($categories_json,JSON_OBJECT_AS_ARRAY));
+echo json_encode($categories_list);
 ?>
 

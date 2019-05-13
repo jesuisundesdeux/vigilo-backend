@@ -82,11 +82,7 @@ $street_name = $result['obs_address_string'];
 $comment = $result['obs_comment'];
 $categorie_id = $result['obs_categorie'];
 $statusobs = $result['obs_status'];
-foreach ($categorie_lst as $value) {
-  if ($value['catid'] == $categorie_id) {
-    $categorie_string = $value['catname'];
-  }
-}
+$categorie_string = getCategorieName($categorie_id);
 
 if (!isset($categorie_string)) {
     error_log('GENERATE_IMAGE : unknown categorie_id: ' . $categorie_id);

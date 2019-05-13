@@ -32,31 +32,6 @@ $db = mysqli_connect($config['MYSQL_HOST'],
 
 mysqli_set_charset($db, $config['MYSQL_CHARSET']);
 
-# Categories *** LEGACY ***
-$categorie = array(
-2 => "Véhicule ou objet gênant (gcum)",
-3 => "Aménagement mal conçu",
-4 => "Défaut d'entretien",
-5 => "Absence d'arceaux de stationnement",
-6 => "Signalisation, marquage",
-7 => "Incivilité récurrente sur la route",
-8 => "Absence d'aménagement",
-9 => "Accident, chute, incident",
-100 => "Autre");
-
-# Categories
-$categorie_lst = array(
-array("catid" => 8,"catname" => "Absence d'aménagement"),
-array("catid" => 3,"catname" => "Aménagement mal conçu"),
-array("catid" => 4,"catname" => "Défaut d'entretien"),
-array("catid" => 5,"catname" => "Absence d'arceaux de stationnement"),
-array("catid" => 2,"catname" => "Véhicule ou objet gênant"),
-array("catid" => 9,"catname" => "Accident, chute, incident"),
-array("catid" => 6,"catname" => "Signalisation, marquage"),
-array("catid" => 7,"catname" => "Incivilité récurrente sur la route"),
-array("catid" => 100,"catname" => "Autre")
-);
-
 # ACL
 $acls = array();
 $roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
