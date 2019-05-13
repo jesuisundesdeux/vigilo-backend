@@ -1,0 +1,2 @@
+INSERT INTO `obs_scopes` ( `scope_name`, `scope_display_name`, `scope_coordinate_lat_min`, `scope_coordinate_lat_max`, `scope_coordinate_lon_min`, `scope_coordinate_lon_max`, `scope_map_center_string`, `scope_map_zoom`, `scope_contact_email`, `scope_sharing_content_text`, `scope_umap_url`) VALUES
+('34_montpellier', 'Montpellier', '43.4569', '43.779', '3.6914', '4.1432', '43.60413756443483, 3.873367309570313', 12, 'velocite34@gmail.com', '#JeSuisUnDesDeux @montpellier3m', 'https://umap.openstreetmap.fr/en/map/vigilo_286846');
