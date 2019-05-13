@@ -15,8 +15,8 @@ ALTER TABLE `obs_twitteraccounts`
 ALTER TABLE `obs_scopes` ADD `scope_twitteraccountid` INT NOT NULL AFTER `scope_twitter`;
 
 
-/* Mettre à jour les contenus en majuscule selon ce qui a été renseigné dans config.php */
-
+/* Mettre à jour les contenus en majuscule selon ce qui a été renseigné dans config.php et executer à la main */
+/*
 INSERT INTO `obs_config` (`config_param`, `config_value`) VALUES 
                   ('vigilo_urlbase', 'URLBASE'), 
                   ('vigilo_http_proto', 'HTTP_PROTOCOL'),
@@ -34,6 +34,8 @@ INSERT INTO `obs_twitteraccounts` (`ta_consumer`, `ta_consumersecret`, `ta_acces
                           'TWITTER_IDS_accesstokensecret');
 
 UPDATE `obs_scopes` SET `scope_twitteraccountid` = '1';
+*/
+
 ALTER TABLE `obs_scopes` ADD `scope_twittercontent` VARCHAR(500) NOT NULL AFTER `scope_twitteraccount`;
 
 UPDATE `obs_scopes` SET `scope_twittercontent` = '[COMMENT]\\n\\n- Obs similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON] \\n\\n#Montpellier #JeSuisUnDesDeux #VG_[TOKEN]';

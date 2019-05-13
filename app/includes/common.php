@@ -52,7 +52,7 @@ while($config_result = mysqli_fetch_array($config_query)) {
     case 'mysql_charset':
       $config['MYSQL_CHARSET'] = $config_result['config_value'];
     break;
-    case 'vigilo_timezone';
+    case 'vigilo_timezone':
       $config['VIGILO_TIMEZONE'] = $config_result['config_value'];
     break;
   }
