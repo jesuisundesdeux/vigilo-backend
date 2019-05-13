@@ -139,12 +139,42 @@ class GetIssueTest extends TestCase
         $this->assertEquals(count($result), 3);
     }
 
-    public function testExportByCount()
+    public function testGetLimitAndOffsetSqlQuery()
+    {
+      $export = new GetIssues();
+
+      $result = $export->getLimitQuery(15, -1);
+      $this->assertEquals($result, "LIMIT 15");
+
+      $result = $export->getLimitQuery(3, 1);
+      $this->assertEquals($result, "LIMIT 3 OFFSET 1");
+    }
+
+    public function testGetSqlQuery()
     {
         $export = new GetIssues();
-        $export->setCount(2);
-        $result = $export->getIssues();
+        $export->setCount(3);
+        $export->setScope("34_montpellier");
+        $export->setToken("4XUXXEUX");
+        $export->setCategorie(2);
+        $export->setTimefilter(1554454520);
+        $result = $export->getQuery();
 
-        $this->assertEquals(count($result), 2);
+        $this->assertEquals($result, "SELECT obs_token,
+    obs_coordinates_lat,
+    obs_coordinates_lon,
+    obs_address_string,
+    obs_comment,
+    obs_explanation,
+    obs_time,
+    obs_status,
+    obs_categorie,
+    obs_approved
+FROM obs_list
+WHERE obs_complete=1
+AND (obs_approved=0 OR obs_approved=1)
+ AND obs_categorie = 2 AND obs_time > 1554454520 AND obs_token = '4XUXXEUX'
+ORDER BY obs_time DESC
+LIMIT 3");
     }
 }
