@@ -151,3 +151,12 @@ function jsonError($prefix, $error_msg)
   echo json_encode($json, JSON_PRETTY_PRINT);
 }
 
+function getCategorieName($catid) {
+  $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json"); 
+  $categories_list = json_decode($categories_json,JSON_OBJECT_AS_ARRAY);
+  foreach ($categories_list as $value) {
+    if ($value['catid'] == $catid) {
+      $categorie_string = $value['catname'];
+    }
+  }
+}
