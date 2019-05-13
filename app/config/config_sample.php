@@ -23,43 +23,4 @@ $config['MYSQL_HOST'] = "db";
 $config['MYSQL_USER'] = "mysqluser";
 $config['MYSQL_PASSWORD'] = "xxxx";
 $config['MYSQL_DATABASE'] = "vigilodb";
-$config['MYSQL_CHARSET'] = "utf8";
-
-/* Server configuration */
-$config['URLBASE'] = $_SERVER['SERVER_NAME'];
-$config['HTTP_PROTOCOL'] = 'https';
-
-/* UMAP configuration
- *
- * It is important to remove any slash at the end of this url
- * With a slash, zoom to observation won't work when you click on a
- * picture from mosaic.php page.
- */
-$config['UMAP_URL'] = "https://umap....#19";
-
-/* Naming configuration */
-$config['VIGILO_NAME'] = "JeSuisUnDesDeux / Vigilo";
-$config['VIGILO_LANGUAGE'] = "fr-FR";
-$config['VIGILO_TIMEZONE'] = "Europe/Paris";
-
-/* External MapQuest API configuration */
-$config['MAPQUEST_API'] = "xxxx";
-
-/* Approve / Tweeter configuration
- *
- * This is a duration in hours.
- *
- * Observations done within this period will be published on Twitter
- * when approved. Beyond this duration, observations will be stored in
- * database but not published on Twitter.
- */
-$config['APPROVE_TWITTER_EXPTIME'] = 24;
-
-/* Twitter configuration */
-$config['TWITTER_IDS'] =  array("consumer" => "xxxx", 
-                     "consumersecret" => "xxxx", 
-                     "accesstoken" => "xxxx", 
-                     "accesstokensecret" => "xxxx");
-
-$config['TWITTER_CONTENT'] = str_replace('\n',"\n","what you want to be tweeted");
 
