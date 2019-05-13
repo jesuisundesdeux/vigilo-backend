@@ -36,13 +36,13 @@ while($config_result = mysqli_fetch_array($config_query)) {
     break;
     case "vigilo_http_proto":
       $config['HTTP_PROTOCOL'] =  $config_result['config_value'];
-    break:
+    break;
     case 'vigilo_name':
       $config['VIGILO_NAME'] = $config_result['config_value'];
-    break:
+    break;
     case 'vigilo_language':
       $config['VIGILO_LANGUAGE'] = $config_result['config_value'];
-    break:
+    break;
     case 'vigilo_mapquest_api':
       $config['MAPQUEST_API'] = $config_result['config_value'];      
     break;
