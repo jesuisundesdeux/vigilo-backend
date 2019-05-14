@@ -32,7 +32,8 @@ else {
 									VALUES ('".$config['TWITTER_IDS']['consumer']."',
 											'".$config['TWITTER_IDS']['consumersecret']."',
 											'".$config['TWITTER_IDS']['accesstoken']."',
-											'".$config['TWITTER_IDS']['accesstokensecret']."'");
+											'".$config['TWITTER_IDS']['accesstokensecret']."')");
+
 
 	  mysqli_query($db, "UPDATE obs_scopes SET scope_twittercontent = '".$config['TWITTER_CONTENT']."'"); 
 	  echo "<p>Le fichier config.php peut être nettoyé, supprimer tout sauf le bloc /* Database configuration */</p>";
