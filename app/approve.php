@@ -51,7 +51,7 @@ if (isset($_GET['approved']) and is_numeric($_GET['approved'])) {
 }
 
 /* Check existence of token database */
-$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if (mysqli_num_rows($checktoken_query) != 1) {
   error_log("APPROVE : Token : ".$token." does not exist.");
   http_response_code(500);
@@ -63,6 +63,7 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 $query = mysqli_query($db, "UPDATE obs_list set obs_approved=".$approved." WHERE obs_token='" . $token . "'");
 
 if($approved == 1) {
+
   /* Now remove the cache for this observation to remove blurring */
   delete_token_cache($token);
   
@@ -71,16 +72,39 @@ if($approved == 1) {
   $time = $checktoken_result['obs_time'];
   $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
   $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
+  $scope = $checktoken_result['obs_scope'];
   
-  /* Don't tweet observations if they are more than N-hours old */
-  if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'])) {
-    $tweet_content = str_replace('[COMMENT]', $comment, $config['TWITTER_CONTENT']);
-    $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
-    $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
-    $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
-    tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $config['TWITTER_IDS']);
-  } else {
-    error_log("APPROVE : Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.");
+  $scope_query = mysqli_query($db,"SELECT obs_scopes.scope_twitteraccountid,
+                                          obs_scopes.scope_twittercontent,
+                                          obs_twitteraccounts.ta_consumer,
+                                          obs_twitteraccounts.ta_consumersecret,
+                                          obs_twitteraccounts.ta_accesstoken,
+                                          obs_twitteraccounts.ta_accesstokensecret  
+                                   FROM obs_scopes, obs_twitteraccounts 
+                                   WHERE obs_scopes.scope_twitteraccount= obs_twitteraccounts.ta_id 
+                                     AND obs_scopes.scope_name = '".$scope."'");
+  $scope_result = mysqli_fetch_array($scope_query);
+  if(!empty($scope_result['ta_consumer']) && !empty($scope_result['ta_consumersecret']) && !empty($scope_result['ta_accesstoken']) && !empty($scope_result['ta_accesstokensecret'])) {
+
+    $twitter_ids =  array("consumer" => $scope_result['ta_consumer'], 
+                     "consumersecret" => $scope_result['ta_consumersecret'], 
+                     "accesstoken" => $scope_result['ta_accesstoken'], 
+                     "accesstokensecret" => $scope_result['ta_accesstokensecret']);
+    $tweet_content = $scope_result['scope_twittercontent'];
+
+    /* Don't tweet observations if they are more than N-hours old */
+    if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'])) {
+      $tweet_content = str_replace('[COMMENT]', $comment, $config['TWITTER_CONTENT']);
+      $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
+      $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
+      $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
+      tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $config['TWITTER_IDS']);
+    } else {
+      error_log("APPROVE : Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.");
+    }
+  }
+  else {
+    error_log("APPROVE : Empty Twitter informations on scope");
   }
 }
 if ($status != 0) {

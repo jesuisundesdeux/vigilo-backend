@@ -16,6 +16,5 @@ ALTER TABLE `obs_cities`
 
 ALTER TABLE `obs_cities`
   MODIFY `city_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
-COMMIT;
 
 UPDATE `obs_config` SET `config_value` = '0.0.8' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
