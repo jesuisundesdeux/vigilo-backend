@@ -43,5 +43,3 @@ UPDATE `obs_scopes` SET `scope_twittercontent` = '[COMMENT]\\n\\n- Obs similaire
 UPDATE `obs_config` SET `config_value` = '0.0.9' WHERE `obs_config`.`config_id` = 1;
 
 
-COMMIT;
-

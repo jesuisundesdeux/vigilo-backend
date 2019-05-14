@@ -22,8 +22,13 @@ services:
        - db
      volumes:
        - ./app:${ROOT_APP_DIR}
-       - ./config.php:${ROOT_APP_DIR}/config/config.php
        - ${VOLUME_PATH}/files/caches:${ROOT_APP_DIR}/caches
        - ${VOLUME_PATH}/files/maps:${ROOT_APP_DIR}/maps
        - ${VOLUME_PATH}/files/images:${ROOT_APP_DIR}/images
        - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
+    environment:
+      - MYSQL_HOST
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+
