@@ -7,8 +7,17 @@
 
 #### 0.0.8 to 0.0.9
 
-* Modify mysql/init/init-0.0.9.sql to change the upcase words
+##### Docker only
+
+* Update docker_compose as docker_compose_sample
+
+##### All
+
 * Launch mysql/init/init-0.0.9.sql in MySQL
+* Upload install_app/upgrade.php at the app root
+* Execute /upgrade.php?from=0.0.8&to=0.0.9
+* Remove /upgrade.php
+* Clean config.php (remove everyvariables except /* Database configuration */)
 * Update sources code
 
 
