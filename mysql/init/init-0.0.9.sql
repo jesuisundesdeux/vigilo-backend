@@ -14,27 +14,7 @@ ALTER TABLE `obs_twitteraccounts`
 
 ALTER TABLE `obs_scopes` ADD `scope_twitteraccountid` INT NOT NULL AFTER `scope_twitter`;
 
-
-/* Mettre à jour les contenus en majuscule selon ce qui a été renseigné dans config.php et executer à la main */
-/*
-INSERT INTO `obs_config` (`config_param`, `config_value`) VALUES 
-                  ('vigilo_urlbase', 'URLBASE'), 
-                  ('vigilo_http_proto', 'HTTP_PROTOCOL'),
-                  ('vigilo_name', 'VIGILO_NAME'),
-                  ('vigilo_language', 'VIGILO_LANGUAGE'), 
-                  ('vigilo_mapquest_api', 'MAPQUEST_API'),
-                  ('twitter_expiry_time', 'APPROVE_TWITTER_EXPTIME'),
-                  ('mysql_charset', 'MYSQL_CHARSET'),
-                  ('vigilo_timezone', 'VIGILO_TIMEZONE');
-
-INSERT INTO `obs_twitteraccounts` (`ta_consumer`, `ta_consumersecret`, `ta_accesstoken`, `ta_accesstokensecret`)
-                  VALUES ('TWITTER_IDS_consumer',
-                          'TWITTER_IDS_consumersecret',
-                          'TWITTER_IDS_accesstoken'
-                          'TWITTER_IDS_accesstokensecret');
-
 UPDATE `obs_scopes` SET `scope_twitteraccountid` = '1';
-*/
 
 ALTER TABLE `obs_scopes` ADD `scope_twittercontent` VARCHAR(500) NOT NULL AFTER `scope_twitteraccount`;
 
