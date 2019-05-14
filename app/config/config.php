@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /* Database configuration */
 
 $config['MYSQL_HOST'] = getenv('MYSQL_HOST');
-$config['MYSQL_USER'] = getenv('MYSQL_USER')
+$config['MYSQL_USER'] = getenv('MYSQL_USER');
 $config['MYSQL_PASSWORD'] = getenv('MYSQL_PASSWORD');
 $config['MYSQL_DATABASE'] = getenv('MYSQL_DATABASE');
 
