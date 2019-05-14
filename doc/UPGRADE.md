@@ -7,10 +7,6 @@
 
 #### 0.0.8 to 0.0.9
 
-##### Docker only
-
-* Update docker_compose as docker_compose_sample
-
 ##### All
 
 * Launch mysql/init/init-0.0.9.sql in MySQL
@@ -20,4 +16,6 @@
 * Clean config.php (remove everyvariables except /* Database configuration */)
 * Update sources code
 
+##### Docker only
 
+* Update docker_compose as docker_compose_sample
