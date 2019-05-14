@@ -16,7 +16,7 @@ ALTER TABLE `obs_scopes` ADD `scope_twitteraccountid` INT NOT NULL AFTER `scope_
 
 UPDATE `obs_scopes` SET `scope_twitteraccountid` = '1';
 
-ALTER TABLE `obs_scopes` ADD `scope_twittercontent` VARCHAR(500) NOT NULL AFTER `scope_twitteraccount`;
+ALTER TABLE `obs_scopes` ADD `scope_twittercontent` VARCHAR(500) NOT NULL AFTER `scope_twitteraccountid`;
 
 UPDATE `obs_scopes` SET `scope_twittercontent` = '[COMMENT]\\n\\n- Obs similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON] \\n\\n#Montpellier #JeSuisUnDesDeux #VG_[TOKEN]';
 
