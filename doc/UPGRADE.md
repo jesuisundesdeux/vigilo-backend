@@ -13,8 +13,8 @@
 * Upload install_app/upgrade.php in the app root
 * Execute /upgrade.php?from=0.0.8&to=0.0.9
 * Remove /upgrade.php
-* Clean config.php (remove everyvariables except /* Database configuration */)
 * Update sources code
+* Clean config.php (remove everyvariables except /* Database configuration */)
 
 ##### Docker only
 
