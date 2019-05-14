@@ -40,6 +40,7 @@ ALTER TABLE `obs_scopes` ADD `scope_twittercontent` VARCHAR(500) NOT NULL AFTER 
 
 UPDATE `obs_scopes` SET `scope_twittercontent` = '[COMMENT]\\n\\n- Obs similaires : https://vigilo.jesuisundesdeux.org/mosaic.php?t=[TOKEN]\\n- Carte : https://umap.openstreetmap.fr/en/map/vigilo_286846#19/[COORDINATES_LAT]/[COORDINATES_LON] \\n\\n#Montpellier #JeSuisUnDesDeux #VG_[TOKEN]';
 
-UPDATE `obs_config` SET `config_value` = '0.0.9' WHERE `obs_config`.`config_id` = 1;
-
 ALTER TABLE `obs_config` ADD UNIQUE(`config_param`);
+
+UPDATE `obs_config` SET `config_value` = '0.0.9' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
+
