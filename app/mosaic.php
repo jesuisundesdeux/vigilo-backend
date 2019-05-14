@@ -89,7 +89,7 @@ foreach ($content as $value) {
     /* Wrong token - Do not display */
     continue;
   }
-  echo '<div class="grid-item"><a target="_blank" href="'.$config['UMAP_URL'].'/'.$value['coordinates_lat'].'/'.$value['coordinates_lon'].'"><img width="100%" src="'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  echo '<div class="grid-item"><a target="_blank" href="/generate_panel.php?token='.$token.'"><img width="100%" src="'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 }
 ?>
 </div>
