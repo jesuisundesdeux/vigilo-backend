@@ -14,7 +14,7 @@
 * Execute /upgrade.php?from=0.0.8&to=0.0.9
 * Remove /upgrade.php
 * Update sources code
-* Clean config.php (remove everyvariables except /* Database configuration */)
+* Clean config.php (remove all ariables except in the bloc /* Database configuration */)
 
 ##### Docker only
 
