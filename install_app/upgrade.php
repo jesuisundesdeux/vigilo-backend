@@ -11,10 +11,10 @@ $query_result = mysqli_fetch_array($query_version);
 echo "<p>Version actuelle code: " . BACKEND_VERSION . '</p>';
 echo "<p>Version de la base: " . $query_result['config_value'] . '</p>';
 
-if(BACKEND_VERSION != $query_result['config_value']) {
+/*if(BACKEND_VERSION != $query_result['config_value']) {
   echo "La base n'est pas à jour, veuillez executer dans l'ordre les fichiers de mysql/init/ à partir de init-" . $query_result['config_value'] . ".sql (exlue) jusqu'à init-".BACKEND_VERSION.".sql (inclus)" ; 
 }
-else {
+else {*/
   if(isset($_GET['from']) && isset($_GET['to'])) {  
 	$from = $_GET['from']; 
 	$to = $_GET['to']; 
@@ -39,5 +39,5 @@ else {
 	  echo "<p>Le fichier config.php peut être nettoyé, supprimer tout sauf le bloc /* Database configuration */</p>";
 	}
   }  
-}
+//}
 
