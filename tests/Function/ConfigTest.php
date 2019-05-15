@@ -67,24 +67,16 @@ class ConfigTest extends TestCase
     {
         global $config;
 
-        $this->assertTrue(isset($config['UMAP_URL']) != null);
         $this->assertTrue(isset($config['MAPQUEST_API']) != null);
     }
 
     /**
      * @depends testConfigurationExist
      */    
-    public function testTwitterConfiguration()
+    public function testTwitterGlobalConfiguration()
     {
         global $config;
 
         $this->assertTrue(isset($config['APPROVE_TWITTER_EXPTIME']) != null);
-        $this->assertTrue(isset($config['TWITTER_CONTENT']) != null);
-        
-        $this->assertIsArray($config['TWITTER_IDS']);
-        $this->assertArrayHasKey('consumer',$config['TWITTER_IDS']);
-        $this->assertArrayHasKey('consumersecret',$config['TWITTER_IDS']);
-        $this->assertArrayHasKey('accesstoken',$config['TWITTER_IDS']);
-        $this->assertArrayHasKey('accesstokensecret',$config['TWITTER_IDS']);
-    }
+     }
 }

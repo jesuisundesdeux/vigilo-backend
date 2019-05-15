@@ -1,6 +1,5 @@
 # Environment files
 .env
-docker-compose.yml
 
 # PHP Application
 app/images/*.jpg
