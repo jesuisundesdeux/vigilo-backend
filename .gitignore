@@ -25,5 +25,6 @@ shunit2*
 .phpunit*
 
 # Misc
+version.txt
 SyncSettings.ffs_gui
 *.swp

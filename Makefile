@@ -1,7 +1,7 @@
 ENV:=unittest
 UID=$(shell id -u)
 WWW_DATA_UID=33
-FROM=0.0.2
+#FROM=0.0.2
 TO=0.0.9
 SHUNIT=2.1.7
 SCOPE=montpellier
@@ -18,6 +18,7 @@ MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
 BIND :=$(shell cat .env_${ENV} | grep BIND | cut -d"=" -f2)
+FROM :=$(shell cat version.txt)
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -110,4 +111,4 @@ install: env create-db start
 	cp install_app/install.php app/install.php
 	@echo "Listening on ${BIND}"
 	@echo "Please go on http://${BIND}/install.php"
-        
+	@echo "${TO}" > version.txt 
