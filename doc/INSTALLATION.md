@@ -82,18 +82,17 @@ Adapter les valeurs dans ```.env_prod``` :
 * VOLUME_PATH : Repertoire persistent sur le serveur  où seront stockées les données de Vigilo 
 * MYSQL_ROOT_PASSWORD : Mot de passe root de la base de données 
 * MYSQL_PASSWORD : Mot de passe du compte vigilo de la base de données
-
-Copier le docker-compose_sample.yml vers docker_compose_prod.yml
-
-``` $ cp docker-compose_sample.yml docker-compose_prod.yml ```
+* BIND : Adresse d'écoute HOST:PORT
 
 Adapter si besoin ce fichier au contexte du serveur sur lequel il est hebergé.
 
 Lancer le service :
 
 ``` 
-$ make ENV=prod env start
+$ make ENV=prod install
 ```
+- Aller ensuite sur http://IP/install.php et remplir les champs.
+- Supprimer ensuite le fichier app/install.php
 
 #### Hebergement mutualisé
 
@@ -107,11 +106,9 @@ Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'or
 
 ### Configuration
 
-#### config.php
+#### config/config.php
 
-Copier le fichier ```config/config_sample.php``` dans ```config/config.php```.
-
-Renseigner les différents valeurs à configurer.
+Renseigner les différents valeurs à configurer concernant la base de données.
  
 #### Base de données
 
