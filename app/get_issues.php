@@ -302,8 +302,8 @@ if (!debug_backtrace()) {
     $export->setScope($_GET['scope']);
   }
 
-  if (isset($_GET['c'])) {
-    $export->setCategorie($_GET['c']);
+  if (isset($_GET['count'])) {
+    $export->setCount($_GET['count']);
   }
 
   # Export datas
