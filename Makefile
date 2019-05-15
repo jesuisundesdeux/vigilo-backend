@@ -1,12 +1,13 @@
 ENV:=unittest
 UID=$(shell id -u)
+GID=$(shell id -g)
 WWW_DATA_UID=33
 FROM=0.0.2
 TO=0.0.3
 SHUNIT=2.1.7
 SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
-WAIT:=8
+WAIT:=10
 
 # Database information
 BKDATE=NODATE
@@ -18,9 +19,6 @@ MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
 ROOT_APP_DIR :=$(shell cat .env_${ENV} | grep ROOT_APP_DIR | cut -d"=" -f2)
-
-makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
-pwd := $(dir $(makefile_path))
 
 all: help
 
@@ -35,16 +33,16 @@ shunit2:
 
 
 init-db: ## Init database with unit tests datas
-	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
+	docker run --rm -ti -v ${PWD}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
 
 
 backup-db: ## Backup a mysql docker container
-	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'
+	docker run --rm -ti -v ${PWD}/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'
 
 
 restore-db: ## Restore a mysql docker container
-	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
-	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
+	#docker run --rm -ti -v ${PWD}/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
+	cp ${PWD}/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
 
 env: ## copy docker-compose -f docker-compose_${ENV}.yml .env environment
 		cp .env_${ENV} .env
@@ -84,6 +82,8 @@ start: env ## Start a docker compose stack
 	@docker-compose -f docker-compose_${ENV}.yml up -d
 	@echo "Waiting ${WAIT} sec for stating container and restoring database ..."
 	@sleep ${WAIT}
+	docker-compose -f docker-compose_${ENV}.yml exec web chown 33:33 /var/www/html
+	docker-compose -f docker-compose_${ENV}.yml exec web chmod ug+s /var/www/html
 
 
 test-webserver: shunit2
