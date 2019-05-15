@@ -112,9 +112,9 @@ Renseigner les différents valeurs à configurer concernant la base de données.
  
 #### Initialisation Vigilo
 
-Copier le fichier install_app/install.php sur l'hebergement et y accéder.
-Remplir tous les champs et valider.
-Supprimer install.php.
+* Copier le fichier install_app/install.php sur l'hebergement et y accéder.
+* Remplir tous les champs et valider.
+* Supprimer install.php.
 
 ##### Listing des villes
 
