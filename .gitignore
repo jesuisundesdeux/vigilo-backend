@@ -1,6 +1,5 @@
 # Environment files
 .env
-docker-compose.yml
 
 # PHP Application
 app/images/*.jpg
@@ -8,7 +7,9 @@ app/maps/*.jpg
 app/places/*.json
 app/datas.php
 app/caches
-app/config/config.php
+app/install.php
+
+#app/config/config.php
 
 # Backup
 backup/
@@ -24,5 +25,6 @@ shunit2*
 .phpunit*
 
 # Misc
+version.txt
 SyncSettings.ffs_gui
 *.swp

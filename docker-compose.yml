@@ -1,0 +1,35 @@
+version: '2'
+services:
+  db:
+    image: mariadb
+    restart: always
+    volumes:
+      - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
+      - ./mysql/sql_migration.sql:/docker-entrypoint-initdb.d/sql_migration.sql:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+    expose:
+      - "3306"
+  web:
+     image: badele/vigilo-backend
+     working_dir: /unittest
+     ports:
+       - "${BIND}:80"
+     links:
+       - db
+     volumes:
+       - ./:/unittest
+       - ./app:/var/www/html
+       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
+       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
+       - ${VOLUME_PATH}/files/images:/var/www/html/images
+       - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
+     environment:
+       - MYSQL_HOST
+       - MYSQL_USER
+       - MYSQL_PASSWORD
+       - MYSQL_DATABASE
+
