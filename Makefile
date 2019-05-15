@@ -17,6 +17,7 @@ MYSQL_ROOT_PASSWORD :=$(shell cat .env_${ENV} | grep MYSQL_ROOT_PASSWORD | cut -
 MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
+BIND :=$(shell cat .env_${ENV} | grep BIND | cut -d"=" -f2)
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -32,10 +33,11 @@ shunit2:
 	ln -s shunit2-${SHUNIT} shunit2
 	rm v${SHUNIT}.tar.gz
 
+create-db: ## Init empty database
+	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
 
 init-db: ## Init database with unit tests datas
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
-
 
 backup-db: ## Backup a mysql docker container
 	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'
@@ -46,7 +48,7 @@ restore-db: ## Restore a mysql docker container
 	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
 
 env: ## copy docker-compose -f docker-compose_${ENV}.yml .env environment
-		cp .env_${ENV} .env
+	cp .env_${ENV} .env
 
 show-db:  ## Show database content
 	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
@@ -102,3 +104,10 @@ clean: .env ## Clean some files
 
 clean-packages: ## Clean some files
 	-$(RM) -r shunit2*
+
+
+install: env create-db start
+	cp install_app/install.php app/install.php
+	@echo "Listening on ${BIND}"
+	@echo "Please go on http://${BIND}/install.php"
+        
