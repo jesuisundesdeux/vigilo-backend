@@ -24,6 +24,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/jpeg");
+ini_set('memory_limit','256M');
 
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
