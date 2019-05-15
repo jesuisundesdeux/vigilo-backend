@@ -16,8 +16,8 @@ services:
   web:
      image: badele/vigilo-backend
      working_dir: /unittest
-     expose:
-       - "80"
+     ports:
+       - "${BIND}:80"
      links:
        - db
      volumes:
