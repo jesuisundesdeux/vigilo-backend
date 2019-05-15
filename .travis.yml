@@ -7,3 +7,5 @@ services:
 script:
   - sudo service mysql stop # travis has a mysql server up, must stop it for mariadb port
   - make ENV=unittest stop clean init-db start unittest
+  - make stop clean install-with-data
+  - ./test/e2e/get_issues.sh
