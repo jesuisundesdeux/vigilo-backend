@@ -51,7 +51,7 @@ if __name__ == '__main__':
       version = initversion.replace('init-','').replace('.sql','')
 
       numericalversion = convertToIntVersion(version)
-      if numericalversion>=fromversion and numericalversion<=toversion:
+      if numericalversion>fromversion and numericalversion<=toversion:
         # Init SQL Database
         with open(initfilename, 'r') as initfile:
           sqlmigration += f"\n\n--------------------\n"
@@ -68,6 +68,6 @@ if __name__ == '__main__':
             sqlmigration += f"--------------------\n\n\n"
             sqlmigration += populatefile.read() 
 
-
+    os.remove(f'{searchpath}/sql_migration.sql')
     with open(f'{searchpath}/sql_migration.sql', 'w') as f:
       f.write(sqlmigration)
