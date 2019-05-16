@@ -1,8 +1,8 @@
 ENV:=unittest
 UID=$(shell id -u)
 WWW_DATA_UID=33
-FROM=0.0.2
-TO=0.0.9
+#FROM=0.0.2
+#TO=0.0.9
 SHUNIT=2.1.7
 SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
@@ -18,7 +18,15 @@ MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
 BIND :=$(shell cat .env_${ENV} | grep BIND | cut -d"=" -f2)
-#FROM :=$(shell cat version.txt)
+TO :=$(shell ls mysql/init/init-* | sort -V | tail -1 | sed -e "s/.*init-//" -e s"/\.sql//")
+
+ifneq ("$(wildcard version.txt)","")
+	FROM:=$(shell cat version.txt)
+	INSTALLED=TRUE
+else
+	FROM=0.0.2
+	INSTALLED=FALSE
+endif
 
 makefile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 pwd := $(dir $(makefile_path))
@@ -111,6 +119,12 @@ install: env create-db start
 	cp install_app/install.php app/install.php
 	@echo "Listening on ${BIND}"
 	@echo "Please go on http://${BIND}/install.php"
+	@echo "${TO}" > version.txt
+
+upgrade-db: create-db # Upgrade DB structure
+	test -e mysql/sql_migration.sql && rm -f mysql/sql_migration.sql
+	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD ${MYSQL_DATABASE} < /docker-entrypoint-initdb.d/sql_migration.sql'
+	@echo "Upgrade from ${FROM} to ${TO}"
 	@echo "${TO}" > version.txt
 
 install-with-data: env init-db start

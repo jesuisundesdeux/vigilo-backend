@@ -35,6 +35,7 @@ def convertToIntVersion(version):
   return int(intversion)
 
 if __name__ == '__main__':
+
     opts = docopt(__doc__, version='get_mysql_init4version.py 0.1')
     docopt(__doc__, argv=None, help=True, version=None, options_first=False)
 
@@ -44,6 +45,7 @@ if __name__ == '__main__':
 
     searchpath = os.path.abspath(os.path.join(os.path.dirname(__file__),'../mysql'))
     files = glob.glob(f'{searchpath}/init/init-*.sql')
+
     sqlmigration = ""
 
     for initfilename in sorted(files):
@@ -51,7 +53,7 @@ if __name__ == '__main__':
       version = initversion.replace('init-','').replace('.sql','')
 
       numericalversion = convertToIntVersion(version)
-      if numericalversion>=fromversion and numericalversion<=toversion:
+      if (numericalversion>fromversion and numericalversion<=toversion) or (fromversion == 2 and numericalversion == 2):
         # Init SQL Database
         with open(initfilename, 'r') as initfile:
           sqlmigration += f"\n\n--------------------\n"
@@ -67,7 +69,6 @@ if __name__ == '__main__':
             sqlmigration += f"-- populate test {version}\n"
             sqlmigration += f"--------------------\n\n\n"
             sqlmigration += populatefile.read() 
-
 
     with open(f'{searchpath}/sql_migration.sql', 'w') as f:
       f.write(sqlmigration)
