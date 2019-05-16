@@ -40,6 +40,8 @@ class GetIssues
   protected $status = -1;
   protected $timefilter = -1;
   protected $token = "";
+  protected $token_filters = array('distance' => 0, 'categorie' => 0, 'address' => 0);
+  protected $token_filter_enabled = False;
   protected $scope = "";
   protected $count = -1;
   protected $offset = -1;
@@ -90,6 +92,17 @@ class GetIssues
   public function setToken($value) : void
   {
     $this->token = $value;
+  }
+
+  public function setTokenFilers($filters,$fdistance=-1) {
+    $filters_list = explode(',',$filters);
+    foreach($filters_list as $filtername) {
+      $this->token_filters[$filtername] = 1;
+      $this->token_filter_enabled = True;
+    }
+    if(is_numeric($fdistance)) {
+      $this->token_filter_distance = intval($fdistance);
+    }
   }
 
   public function setScope($value) : void
@@ -145,7 +158,7 @@ class GetIssues
       $where .= 'AND obs_status = ' . $this->status;
     }
 
-    if ($this->token != "") {
+    if ($this->token != "" && !$this->token_filter_enabled) {
       $where .= " AND obs_token = '" . $this->token . "'";
     }
 
@@ -182,6 +195,11 @@ ORDER BY obs_time DESC
   {
     $json = array();
 
+    if($this->token_filter_enabled) {
+      $token_query = mysqli_query($this->db,"SELECT * FROM obs_list WHERE obs_token='".$this->token."' LIMIT 1");
+      $token_result = mysqli_fetch_array($token_query);
+    }
+
     $rquery = mysqli_query($this->db, $this->getQuery());
     if (mysqli_num_rows($rquery) > 0) {
       while ($result = mysqli_fetch_array($rquery)) {
@@ -207,8 +225,16 @@ ORDER BY obs_time DESC
           if (distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm') <= $radius) {
             $issue['distance'] = distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm');
             $json[] = $issue;
-          }
-        } else {
+	  }
+	} elseif($this->token_filter_enabled) {
+	  if($token_result['obs_categorie'] == $result['obs_categorie'] OR !$this->token_filters['categorie']) {
+    	    if(((str_replace(' ','',$token_result['obs_address_string']) == str_replace(' ','',$result['obs_address_string'])) AND $this->token_filters['address']) OR 
+            (distance($token_result['obs_coordinates_lat'], $token_result['obs_coordinates_lon'], $result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $unit = 'm') < $this->token_filter_distance AND $this->token_filters['distance'])) {
+                $json[] = $issue;
+	      }
+	  }
+	} 
+	else {
           $json[] = $issue;
         }
       }
@@ -303,6 +329,14 @@ if (!debug_backtrace()) {
 
   if (isset($_GET['token'])) {
     $export->setToken($_GET['token']);
+  }
+
+  if (isset($_GET['token']) && isset($_GET['tokenfilters'])) {
+    $export->setTokenFilers($_GET['tokenfilters']);
+  }
+
+  if (isset($_GET['token']) && isset($_GET['tokenfilters']) && isset($_GET['fdistance'])) {
+    $export->setTokenFilers($_GET['tokenfilters'],$_GET['fdistance']);
   }
 
   if (isset($_GET['scope'])) {
