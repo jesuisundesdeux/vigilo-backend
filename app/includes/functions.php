@@ -110,7 +110,7 @@ function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 
 }
 
 function sameas($db,$token,$filter=array()) {
-	$groups = generategroups($db,$filter);
+  $groups = generategroups($db,$filter);
   foreach($groups as $value) {
     if(in_array($token,$value['tokens'])) {
       return $value['tokens'];
