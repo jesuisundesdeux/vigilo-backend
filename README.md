@@ -1,32 +1,38 @@
-### Test
+# Vigilo Backend [![Build Status](https://travis-ci.org/jesuisundesdeux/vigilo-backend.svg?branch=master)](https://travis-ci.org/jesuisundesdeux/vigilo-backend)
+REST API to manage observations of the [Vigilo app](https://vigilo.city/fr/).
 
-*Launch docker*
+Documentation can be found [here](https://github.com/jesuisundesdeux/vigilo-backend/tree/master/doc).
 
-* Get an API Key pour the StaticMAP API on https://developer.mapquest.com/
-* Create a Twitter accound / create application on it and Get the keys (https://creerapplication.zendesk.com/hc/fr/articles/115000691364-Int%C3%A9grer-Twitter-dans-votre-application)
-* Then you are able to fill the "xxx" in ".env" and launch docker-compose
-
+## Development Quick Start
 ```
-docker-compose up
+# Start server with 10 observations
+make install-with-data
 
-# Optional
-# MYSQL_INIT_FILE=other_init_sql_file in mysql folder
-
-# sudo chown -R $(id -u):$(id -g) ./app/
+# verify you can get all observations http://localhost/get_issues.php
 ```
 
-
-*Test new creation*
+## Test
+### Unit test
 ```
-./debug/create_issue.sh
+# PHP unittest with mysql server
+make ENV=unittest stop clean init-db start unittest
 ```
 
-*phpmyadmin*
-Go to `http://localhost:8888`
+### Functional test
+```
+# make install-with-data
+./tests/e2e/get_issues.sh
+```
 
 ### Tools
 
 ```
+# List all available commands
+make
+
+# Start server with data
+make install-with-data
+
 # PHP unittest without mysql server
 make unittest
 
@@ -43,7 +49,4 @@ make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-db start show-db
 # Startserver with backuped bundle
 #make backup-bundle DBSERVER=192.168.0.1
 make SCOPE=montpellier BKDATE=20190412233147 stop clean restore-bundle start show-db
-
-# List all available commands
-make
-
+```

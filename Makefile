@@ -46,7 +46,7 @@ backup-db: ## Backup a mysql docker container
 
 restore-db: ## Restore a mysql docker container
 	#docker run --rm -ti -v $(pwd)/mysql/dump:/dump mysql sh -c 'mysql -h ${MYSQL_HOST} -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /dump/${DBFILE}'
-	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE} 
+	cp $(pwd)/backup/mysql/dump-${BKDATE}.sql mysql/${MYSQL_INIT_FILE}
 
 env: ## copy docker-compose -f docker-compose_${ENV}.yml .env environment
 	cp .env_${ENV} .env
@@ -111,4 +111,10 @@ install: env create-db start
 	cp install_app/install.php app/install.php
 	@echo "Listening on ${BIND}"
 	@echo "Please go on http://${BIND}/install.php"
-	@echo "${TO}" > version.txt 
+	@echo "${TO}" > version.txt
+
+install-with-data: env init-db start
+		cp install_app/install.php app/install.php
+		@echo "Listening on ${BIND}"
+		@echo "Please go on http://${BIND}/install.php"
+		@echo "${TO}" > version.txt

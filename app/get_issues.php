@@ -115,6 +115,20 @@ class GetIssues
     $this->offset = intval($value);
   }
 
+  public function getLimitQuery($count, $offset) : string
+  {
+    $limit = "";
+    if ($count > -1) {
+      $limit = 'LIMIT ' . $count;
+      if ($offset > -1) {
+        $final_offset = intval($offset);
+        $limit .= ' OFFSET ' . $final_offset;
+      }
+    }
+
+    return $limit;
+  }
+
   public function getQuery() : string
   {
     $where = "";
@@ -141,14 +155,7 @@ class GetIssues
       }
     }
 
-    $limit = "";
-    if ($this->count > -1) {
-      $limit = 'LIMIT ' . $this->count;
-      if ($this->offset > -1) {
-        $offset = intval($_GET['offset']);
-        $limit .= ' OFFSET ' . $offset;
-      }
-    }
+    $limit = $this->getLimitQuery($this->count, $this->offset);
 
     $query = "SELECT obs_token,
     obs_coordinates_lat,
@@ -159,12 +166,12 @@ class GetIssues
     obs_time,
     obs_status,
     obs_categorie,
-    obs_approved 
+    obs_approved
 FROM obs_list
-WHERE obs_complete=1 
+WHERE obs_complete=1
 AND (obs_approved=0 OR obs_approved=1)
-" . $where . " 
-ORDER BY obs_time DESC 
+" . $where . "
+ORDER BY obs_time DESC
 " . $limit;
 
     return $query;
@@ -302,11 +309,10 @@ if (!debug_backtrace()) {
     $export->setScope($_GET['scope']);
   }
 
-  if (isset($_GET['c'])) {
-    $export->setCategorie($_GET['c']);
+  if (isset($_GET['count'])) {
+    $export->setCount($_GET['count']);
   }
 
   # Export datas
   $export->outputToWebServer();
 }
-
