@@ -121,7 +121,8 @@ install: env create-db start
 	@echo "Please go on http://${BIND}/install.php"
 	@echo "${TO}" > version.txt
 
-upgrade-db: # Upgrade DB structure
+upgrade-db: create-db # Upgrade DB structure
+	test -e mysql/sql_migration.sql && rm -f mysql/sql_migration.sql
 	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD ${MYSQL_DATABASE} < /docker-entrypoint-initdb.d/sql_migration.sql'
 	@echo "Upgrade from ${FROM} to ${TO}"
 	@echo "${TO}" > version.txt
