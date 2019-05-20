@@ -60,8 +60,14 @@ env: ## copy docker-compose -f docker-compose_${ENV}.yml .env environment
 	cp .env_${ENV} .env
 
 show-db:  ## Show database content
-	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e "select obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token from obs_list;" ${MYSQL_DATABASE}'
+	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e \
+	"SELECT obs_id,obs_scope,obs_categorie,obs_address_string,obs_app_version,obs_approved,obs_token \
+	FROM obs_list;" ${MYSQL_DATABASE}'
 
+show-db-scope:
+	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD -e \
+	"SELECT scope_coordinate_lat_min, scope_coordinate_lat_max, scope_coordinate_lon_min, scope_coordinate_lon_max \
+	FROM obs_scopes;" ${MYSQL_DATABASE}'
 
 list-bundle: ## list a bundle backups
 	@-ls -alh backup/bundle | grep "bundle-" | sed 's/bundle-//' | sed 's/\.tgz//'

@@ -14,8 +14,8 @@ shift
 
 # Test create issue with empty Lat field
 test_createIssueMissingLat () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -24,18 +24,18 @@ test_createIssueMissingLat () {
 &categorie=1\
 &address=test_createIssueMissingLat\
 &comment=test_createIssueMissingLat\
-&scope=34_Montpellier\
+&scope=34_montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue with empty Lon field
 test_createIssueMissingLon () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -46,15 +46,15 @@ test_createIssueMissingLon () {
 &comment=test_createIssueMissingLon\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue with empty Categorie field
 test_createIssueMissingCategorie () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -65,15 +65,15 @@ test_createIssueMissingCategorie () {
 &comment=test_createIssueMissingCategorie\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue with empty Address field
 test_createIssueMissingAddress () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -84,15 +84,15 @@ test_createIssueMissingAddress () {
 &comment=test_createIssueMissingAddress\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue with empty Time field
 test_createIssueMissingTime () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -103,15 +103,15 @@ test_createIssueMissingTime () {
 &address=test_createIssueMissingTime\
 &comment=test_createIssueMissingTime\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":1' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue with empty Token field
 test_createIssueEmptyToken () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -121,18 +121,20 @@ test_createIssueEmptyToken () {
 &categorie=1\
 &address=test_createIssueEmptyToken\
 &comment=test_createIssueEmptyToken\
-&scope=34_Montpellier\
+&scope=34_montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
+    cat /tmp/curl.out
+
     cat /tmp/curl.out | egrep -o '"token":"[0-9A-F]{8}"' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue and verify returned token
 test_createIssueSetedToken () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -143,18 +145,18 @@ test_createIssueSetedToken () {
 &categorie=1\
 &address=test_createIssueSetedToken\
 &comment=test_createIssueSetedToken\
-&scope=34_Montpellier\
+&scope=34_montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | egrep -o '"token":"ABCDEF01"' > /dev/null
     assertEquals $? 0
 }
 
 # Test create issue and verify returned SecretID
 test_createIssueSecretID () {
-    LAT=43.6029503
-    LON=3.8822349
+    LAT=43.5
+    LON=4.0
     TIMESTAMP=$(date +"%s")
 
     rm -f /tmp/curl.out
@@ -164,10 +166,10 @@ test_createIssueSecretID () {
 &categorie=1\
 &address=test_createIssueSecretID
 &comment=test_createIssueSecretID
-&scope=34_Montpellier\
+&scope=34_montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | egrep -o '"secretid":"[0-9a-f]{22}"' > /dev/null
     assertEquals $? 0
 }
@@ -183,10 +185,10 @@ test_createGoodIssue () {
 &categorie=1\
 &address=test_createGoodIssue\
 &comment=test_createGoodIssue\
-&scope=34_Montpellier\
+&scope=34_montpellier\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-    
+
     cat /tmp/curl.out | grep '"status":0' > /dev/null
     assertEquals $? 0
 }
@@ -197,11 +199,18 @@ test_getIssues () {
     rm -f /tmp/curl.out
     curl -s --output /tmp/curl.out \
 "${VIGILO_SERVER}:${VIGILO_PORT}/get_issues.php"
-    
+
     cat /tmp/curl.out | egrep -o '"token": "5UNYMG1Y",' > /dev/null
     assertEquals $? 0
 }
 
+test_getIssuesCount () {
+  rm -f /tmp/curl.out
+  curl -s --output /tmp/curl.out \
+  "${VIGILO_SERVER}:${VIGILO_PORT}/get_issues.php?count=2"
+  count=`cat /tmp/curl.out | jq length`
+  assertEquals "get_issues.php?count=2 should return 2 items" "2" "${count}"
+}
 
 # test token is uniq
 test_uniqToken () {
