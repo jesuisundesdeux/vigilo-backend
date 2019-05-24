@@ -36,18 +36,21 @@ else {
 
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
-
-if(getrole($key, $acls) == "admin") {
-  $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
-  if(mysqli_num_rows($checktoken_query) == 1) {
+$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+if(mysqli_num_rows($checktoken_query) != 1) {
+  error_log("GET_PHOTO : Token : ".$token." and/or key not valid.");
+  $status = 1;
+} 
+else {
+  $checktoken_result = mysqli_fetch_array($checktoken_query);	
+  if(getrole($key, $acls) == "admin" || $checktoken_result['obs_approved'] == 1) {
     $photo = imagecreatefromjpeg('./images/' . $token . '.jpg'); // issue photo
     imagejpeg($photo); 
   }
-}
-else {
-    error_log("ADD_IMAGE : Token : ".$token." and/or key not valid.");
+  else {
+    error_log("GET_PHOTO : Image is not allowed");
     $status = 1;
-
+  }
 }
 
 if($status != 0) {
