@@ -18,11 +18,12 @@ make install-with-data
 make ENV=unittest stop clean init-db start unittest
 ```
 
-### Functional test
+### Functional test - shunit2
 ```
-# make install-with-data
-./tests/e2e/get_issues.sh
+# make install-with-data (required)
+make test-webserver
 ```
+Test library : https://github.com/kward/shunit2/
 
 ### Tools
 
