@@ -37,7 +37,7 @@ else {
 }
 
 # Get Web form datas
-$token = mysqli_real_escape_string($db, $_POST['token']);
+
 $coordinates_lat = mysqli_real_escape_string($db, $_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db, $_POST['coordinates_lon']);
 $comment = removeEmoji(mysqli_real_escape_string($db, $_POST['comment']));
@@ -59,8 +59,17 @@ if($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
    $coordinates_lon <= $result_scope['scope_coordinate_lon_max']) {
   
   # Check if token exist
+  #
+  if(isset($_POST['token']) AND !empty($_POST['token'])) {
+    $token = mysqli_real_escape_string($db, $_POST['token']);
+  }
+  else {
+    $token = tokenGenerator(4);
+  }
+
   $query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
-  
+
+  /* If token exists and the request is from an admin : We consider it as an update */
   if (mysqli_num_rows($query_token) == 1 && getrole($key, $acls) == "admin") {
     delete_map_cache($token);
     delete_token_cache($token);
