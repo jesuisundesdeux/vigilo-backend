@@ -30,6 +30,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
   echo 'Acces interdit';
+  error_log('ADMIN : PHP_AUTH_USER missing');
   exit;
 }
 
@@ -41,7 +42,8 @@ if(mysqli_num_rows($query_roles) != 1) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
   echo 'Acces interdit';
-  exit;
+  error_log('ADMIN : User "'.$http_login.'" does not exist');
+    exit;
 
 }
 $result_role = mysqli_fetch_array($query_roles);
@@ -50,6 +52,7 @@ if(hash('sha256',$http_password) != $result_role['role_password']) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
   echo 'Acces interdit';
+  error_log('ADMIN : Bad password');
   exit;
 }
 
