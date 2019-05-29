@@ -83,7 +83,7 @@ ___
 
 ###### Compatibilité
 
-Version backend >= 0.0.1
+*LEGACY*
 
 ######  Requête
 
