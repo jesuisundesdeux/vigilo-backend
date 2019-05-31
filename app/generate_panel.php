@@ -97,6 +97,9 @@ if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
   #$approved = 1;
   $AdminOrAuthor = True;
 }
+else {
+  $AdminOrAuthor = False;
+}
 
 # Check closest issues
 $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
