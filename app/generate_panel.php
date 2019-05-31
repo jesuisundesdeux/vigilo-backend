@@ -233,7 +233,7 @@ $green = imagecolorallocate($image,35, 122, 68);
 $photo_position_y = $photo_min_y;
 
 # Image is pixelated until approved by a moderator
-if (!$approved and $resize_width > 300) {
+if ($approved != 1 and $resize_width > 300) {
 
   $tmpImage = ImageCreateTrueColor($photo_max_w, $photo_max_h);
   $pixelated = ImageCreateTrueColor($photo_w, $photo_h);
@@ -349,7 +349,7 @@ if($statusobs == 1) {
 if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
   imagejpeg($image);
 }
-else if ($resize_width == $MAX_IMG_SIZE) {
+elseif ($resize_width == $MAX_IMG_SIZE) {
   # Use user original image
   imagejpeg($image, $img_filename);
   imagejpeg($image);
