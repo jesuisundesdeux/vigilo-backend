@@ -40,7 +40,11 @@ else {
 
 $coordinates_lat = mysqli_real_escape_string($db, $_POST['coordinates_lat']);
 $coordinates_lon = mysqli_real_escape_string($db, $_POST['coordinates_lon']);
+
+/* Handle comment content */
 $comment = removeEmoji(mysqli_real_escape_string($db, $_POST['comment']));
+$comment = substr($comment,0,50);
+
 $categorie = mysqli_real_escape_string($db, $_POST['categorie']);
 $address = mysqli_real_escape_string($db, $_POST['address']);
 $time = mysqli_real_escape_string($db, $_POST['time']);
