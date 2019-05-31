@@ -18,7 +18,7 @@ MYSQL_DATABASE :=$(shell cat .env_${ENV} | grep MYSQL_DATABASE | cut -d"=" -f2)
 MYSQL_INIT_FILE :=$(shell cat .env_${ENV} | grep MYSQL_INIT_FILE | cut -d"=" -f2)
 VOLUME_PATH :=$(shell cat .env_${ENV} | grep VOLUME_PATH | cut -d"=" -f2)
 BIND :=$(shell cat .env_${ENV} | grep BIND | cut -d"=" -f2)
-TO :=$(shell ls mysql/init/init-* | sort -V | tail -1 | sed -e "s/.*init-//" -e s"/\.sql//")
+TO :=$(shell ls mysql/init/init-*.sql | sort -V | tail -1 | sed -e "s/.*init-//" -e s"/\.sql//")
 
 ifneq ("$(wildcard version.txt)","")
 	FROM:=$(shell cat version.txt)

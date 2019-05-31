@@ -83,7 +83,7 @@ ___
 
 ###### Compatibilité
 
-Version backend >= 0.0.1
+*LEGACY*
 
 ######  Requête
 
@@ -328,7 +328,7 @@ Version backend >= 0.0.1
 | Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
 | Form | str | coordinates_lat' | X | Latitude de l'observation | >= 0.0.1 |
 | Form | str | coordinates_lon | X | Longitude de l'observation | >= 0.0.1 |
-| Form | str | comment | X | Remarque de l'observation | >= 0.0.1 |
+| Form | str | comment | X | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
 | Form | str | explanation | X | Explications observation | >= 0.0.1 |
 | Form | str | categorie | X | ID de catégorie | >= 0.0.1 |
 | Form | str | address | X | Adresse de l'observation | >= 0.0.1 |
