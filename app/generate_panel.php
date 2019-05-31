@@ -94,7 +94,8 @@ if (!isset($categorie_string)) {
 $time = $result['obs_time'];
 $approved = $result['obs_approved'];
 if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
-  $approved = 1;
+  #$approved = 1;
+  $AdminOrAuthor = True;
 }
 
 # Check closest issues
@@ -233,7 +234,7 @@ $green = imagecolorallocate($image,35, 122, 68);
 $photo_position_y = $photo_min_y;
 
 # Image is pixelated until approved by a moderator
-if (!$approved and $resize_width > 300) {
+if ($approved != 1 and !$AdminOrAuthor and $resize_width > 300) {
 
   $tmpImage = ImageCreateTrueColor($photo_max_w, $photo_max_h);
   $pixelated = ImageCreateTrueColor($photo_w, $photo_h);
@@ -346,7 +347,7 @@ if($statusobs == 1) {
 }
 
 # Generate full size image
-if ($secretid == $result['obs_secretid'] && $resize_width == $MAX_IMG_SIZE) {
+if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
   imagejpeg($image);
 }
 else if ($resize_width == $MAX_IMG_SIZE) {
