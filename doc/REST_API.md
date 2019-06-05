@@ -332,7 +332,7 @@ Version backend >= 0.0.1
 | Form | str | explanation | X | Explications observation | >= 0.0.1 |
 | Form | str | categorie | X | ID de catégorie | >= 0.0.1 |
 | Form | str | address | X | Adresse de l'observation | >= 0.0.1 |
-| Form | str | time | X |  Timestamp de l'observation en ms | >= 0.0.1 |
+| Form | str | time | X |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
 | Form | str | version | X | Version de l'application cliente | >= 0.0.1 |
 | Form | str | scope | X | Identifiant du scope | >= 0.0.1 |
 
@@ -416,7 +416,10 @@ Version backend >= 0.0.5
 | URL | str | key | Si secretid non fourni | Clé privé de l'utilisateur | >= 0.0.5 |
 | URL | str | token | X | Token de l'observation | >= 0.0.5 |
 | URL | str | secretid | Si key non fourni | Clé secrète de l'observation | >= 0.0.5 |
-| URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 |
+| URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 & <= 0.0.9 |
+| Form | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.10 |
+| Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.10 |
+| Form | int | time | | Timestamp format Unix | >= 0.0.10 |
 
 ###### Retour
 
