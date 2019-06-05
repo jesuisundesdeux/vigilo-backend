@@ -57,7 +57,16 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 /* Save image */
 $data = file_get_contents('php://input');
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-$filepath = 'images/'.$filename.'.jpg';
+
+if($_GET['status_update'] == 1) {
+  if(!is_dir('images/resolved')) {
+    mkdir('images/resolved');
+  }
+  $filepath = 'images/resolved/'.$filename.'.jpg';
+}
+else {
+  $filepath = 'images/'.$filename.'.jpg';
+}
 
 if (!(file_put_contents($filepath, $data))) {
   error_log('ADD_IMAGE : Error uploading image');
