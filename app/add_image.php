@@ -63,7 +63,7 @@ if($_GET['status_update'] == 1) {
     mkdir('images/resolved');
   }
   $filepath = 'images/resolved/'.$filename.'.jpg';
-  $update_hasphoto = 'AND obs_status_resolved_hasphoto=1';
+  $update_hasphoto = ', obs_status_resolved_hasphoto=1';
 }
 else {
   $filepath = 'images/'.$filename.'.jpg';
