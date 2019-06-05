@@ -48,7 +48,12 @@ $comment = substr($comment,0,50);
 $categorie = mysqli_real_escape_string($db, $_POST['categorie']);
 $address = mysqli_real_escape_string($db, $_POST['address']);
 $time = mysqli_real_escape_string($db, $_POST['time']);
-$time = floor($time / 1000);
+
+/* If time is sent in ms */
+if(strlen($time) == 14) {
+  $time = floor($time / 1000);
+}
+
 $explanation = (isset($_POST['explanation']) ? removeEmoji(mysqli_real_escape_string($db, $_POST['explanation'])) : '');
 $version = (isset($_POST['version']) ? mysqli_real_escape_string($db, $_POST['version']) : 0);
 $scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db, $_POST['scope']) : 0);
