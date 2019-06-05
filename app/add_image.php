@@ -63,9 +63,11 @@ if($_GET['status_update'] == 1) {
     mkdir('images/resolved');
   }
   $filepath = 'images/resolved/'.$filename.'.jpg';
+  $update_hasphoto = 'AND obs_status_resolved_hasphoto=1';
 }
 else {
   $filepath = 'images/'.$filename.'.jpg';
+  $update_hasphoto = ''; 
 }
 
 if (!(file_put_contents($filepath, $data))) {
@@ -81,7 +83,7 @@ else {
     $status = 1;
   }
   else {
-    mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
+    mysqli_query($db,"UPDATE obs_list SET obs_complete=1 ".$update_hasphoto."  WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
   }
 }
 
