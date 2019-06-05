@@ -35,7 +35,7 @@ class GetIssues
   );
 
   protected $format = 'json';
-  protected $formatheader = 'json';
+  protected $formatheader = 'application/json; charset=utf-8';
   protected $categorie = -1;
   protected $status = -1;
   protected $timefilter = -1;
