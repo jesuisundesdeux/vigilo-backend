@@ -50,7 +50,7 @@ $address = mysqli_real_escape_string($db, $_POST['address']);
 $time = mysqli_real_escape_string($db, $_POST['time']);
 
 /* If time is sent in ms */
-if(strlen($time) == 14) {
+if(strlen($time) == 13) {
   $time = floor($time / 1000);
 }
 
