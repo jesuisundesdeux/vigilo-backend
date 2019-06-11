@@ -219,8 +219,8 @@ ORDER BY obs_time DESC
         );
 
         if (isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
-          $lat = mysqli_real_escape_string($db, $_GET['lat']);
-          $lon = mysqli_real_escape_string($db, $_GET['lon']);
+          $lat = mysqli_real_escape_string($this->db, $_GET['lat']);
+          $lon = mysqli_real_escape_string($this->db, $_GET['lon']);
           $radius = intval($_GET['radius']);
           if (distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm') <= $radius) {
             $issue['distance'] = distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm');
