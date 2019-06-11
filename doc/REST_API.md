@@ -326,15 +326,15 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | | Clé privé de l'utilisateur | >= 0.0.1 |
 | Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lat' | X | Latitude de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lon | X | Longitude de l'observation | >= 0.0.1 |
-| Form | str | comment | X | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
-| Form | str | explanation | X | Explications observation | >= 0.0.1 |
-| Form | str | categorie | X | ID de catégorie | >= 0.0.1 |
-| Form | str | address | X | Adresse de l'observation | >= 0.0.1 |
-| Form | str | time | X |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
-| Form | str | version | X | Version de l'application cliente | >= 0.0.1 |
-| Form | str | scope | X | Identifiant du scope | >= 0.0.1 |
+| Form | str | coordinates_lat' | création | Latitude de l'observation | >= 0.0.1 |
+| Form | str | coordinates_lon | création | Longitude de l'observation | >= 0.0.1 |
+| Form | str | comment | non | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
+| Form | str | explanation | non | Explications observation | >= 0.0.1 |
+| Form | str | categorie | création | ID de catégorie | >= 0.0.1 |
+| Form | str | address | création | Adresse de l'observation | >= 0.0.1 |
+| Form | str | time | création |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
+| Form | str | version | création | Version de l'application cliente | >= 0.0.1 |
+| Form | str | scope | création | Identifiant du scope | >= 0.0.1 |
 
 ###### Retour
 
