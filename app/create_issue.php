@@ -176,7 +176,7 @@ if (mysqli_num_rows($query_cities) == 0) {
   $json['status'] = 1;
   $json['group'] = 0;
   $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
+  error_log('CREATE ISSUE: ' . $error_code);
   http_response_code(500);
   echo json_encode($json, JSON_PRETTY_PRINT);
   return;
