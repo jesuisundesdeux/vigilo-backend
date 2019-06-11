@@ -109,11 +109,7 @@ if (empty($coordinates_lat) or empty($coordinates_lon) or
 # TODO : test time if value is too high or too low
 
 /* If time is sent in ms */
-<<<<<<< HEAD
-if(strlen($time) == 13) {
-=======
-if (strlen($time) == 14) {
->>>>>>> 4d831bac49591be6f2f285b59085d73e1c47c50c
+if (strlen($time) == 13) {
   $time = floor($time / 1000);
 }
 
