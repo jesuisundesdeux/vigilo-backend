@@ -268,7 +268,8 @@ Version backend >= 0.0.1
 | Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
-| URL | str | secretid | X | Clé secrète de l'observation >= 0.0.1 |
+| URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
+| URL | bool | status_update |  | Spécifie si l'image est une résolution ou pas | >= 0.0.10 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG | >= 0.0.1 |
 
 
