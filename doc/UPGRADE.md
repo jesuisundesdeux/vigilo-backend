@@ -1,5 +1,10 @@
 ### Upgrade
 
+#### 0.0.9 to 0.0.10
+
+* Update source code
+* TODO : add  cities to obs_cities
+
 #### 0.0.8 to 0.0.9
 
 ##### All
@@ -25,4 +30,5 @@ wget https://raw.githubusercontent.com/jesuisundesdeux/vigilo-backend/master/ins
 
 * Launch mysql/init/init-0.0.8.sql
 * Update sources code
+
 
