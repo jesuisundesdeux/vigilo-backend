@@ -37,14 +37,6 @@ class GetIssueTest extends TestCase
     {
     }
 
-    public function testExportSetCategorieWithNotNumericValue()
-    {
-        $export = new GetIssues();
-
-        $this->expectExceptionMessage('is not numeric value');
-        $export->setCategorie("ABC");
-    }
-
     public function testExportSetStatusWithNotNumericValue()
     {
         $export = new GetIssues();
@@ -173,7 +165,7 @@ class GetIssueTest extends TestCase
 FROM obs_list
 WHERE obs_complete=1
 AND (obs_approved=0 OR obs_approved=1)
- AND obs_categorie = 2 AND obs_time > 1554454520 AND obs_token = '4XUXXEUX'
+ AND obs_categorie IN ('2') AND obs_time > 1554454520 AND obs_token = '4XUXXEUX'
 ORDER BY obs_time DESC
 LIMIT 3");
     }

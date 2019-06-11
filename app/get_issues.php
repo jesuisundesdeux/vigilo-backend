@@ -36,7 +36,7 @@ class GetIssues
 
   protected $format = 'json';
   protected $formatheader = 'application/json; charset=utf-8';
-  protected $categorie = -1;
+  protected $categorie = array();
   protected $status = -1;
   protected $timefilter = -1;
   protected $token = "";
@@ -64,11 +64,7 @@ class GetIssues
 
   public function setCategorie($value) : void
   {
-    if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
-    }
-
-    $this->categorie = intval($value);
+    $this->categorie = explode(',',$value);
   }
 
   public function setStatus($value) : void
@@ -146,8 +142,13 @@ class GetIssues
   {
     $where = "";
 
-    if ($this->categorie > -1) {
-      $where .= ' AND obs_categorie = ' . $this->categorie;
+    if (count($this->categorie) > 0) {
+      $categorie_search = " AND obs_categorie IN ("; 
+      foreach($this->categorie as $categorie_item) {
+        $categorie_search .= "'" . $categorie_item . "',";
+      }
+      $categorie_search = rtrim($categorie_search,',');
+      $where .= $categorie_search . ')';
     }
 
     if ($this->timefilter > -1) {
