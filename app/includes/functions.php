@@ -44,6 +44,23 @@ function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         return $meter;
 }
 
+function get_data_from_gps_coordinates($lat, $lon)
+{
+  $options = array(
+    'http'=>array(
+      'method'=>"GET",
+      'header'=>"User-Agent: Vigilo Backend Version/".BACKEND_VERSION." \r\n"
+    )
+  );
+  // MAX 1 request per second
+  // https://operations.osmfoundation.org/policies/nominatim/
+  $url='https://nominatim.openstreetmap.org/reverse?format=json&lat='.$lat.'&lon='.$lon;
+  $context = stream_context_create($options);
+  $resp_json = file_get_contents($url, false, $context);
+  $resp = json_decode($resp_json, true);
+  return $resp;
+}
+
 function delete_token_cache($token) {
     foreach(glob(__DIR__."/../caches/".$token."*") as $file) {
         unlink($file);
