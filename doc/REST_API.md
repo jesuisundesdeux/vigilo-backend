@@ -215,6 +215,7 @@ Version backend >= 0.0.1
 | URL | int | count |  | limite le nombre d'occurences | >= 0.0.1 |
 | URL | int | offset |  | démarrage le nombre d'occurence en décallé | >= 0.0.1 |
 | URL | str | format |  | format (json,csv,geojson) | >= 0.0.3 |
+| URL | int | approved |  | filtre selon approbation) | >= 0.0.10 |
 
 ###### Retour
 
