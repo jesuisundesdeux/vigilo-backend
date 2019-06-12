@@ -45,6 +45,7 @@ class GetIssues
   protected $scope = "";
   protected $count = -1;
   protected $offset = -1;
+  protected $approved = -1;
 
   function __construct()
   {
@@ -124,6 +125,15 @@ class GetIssues
     $this->offset = intval($value);
   }
 
+  public function setApproved($value) : void
+  {
+    if (!is_numeric($value)) {
+      throw new Exception("${value} is not numeric value");
+    }
+
+    $this->approved = intval($value);
+  }
+
   public function getLimitQuery($count, $offset) : string
   {
     $limit = "";
@@ -169,6 +179,12 @@ class GetIssues
       }
     }
 
+    if ($this->approved != -1) {
+	$where .= " AND obs_approved = '" . $this->approved . "'";
+    }
+    else {
+        $where .= " AND (obs_approved=0 OR obs_approved=1)";
+    }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
     $query = "SELECT obs_token,
@@ -183,7 +199,6 @@ class GetIssues
     obs_approved
 FROM obs_list
 WHERE obs_complete=1
-AND (obs_approved=0 OR obs_approved=1)
 " . $where . "
 ORDER BY obs_time DESC
 " . $limit;
@@ -346,6 +361,10 @@ if (!debug_backtrace()) {
 
   if (isset($_GET['count'])) {
     $export->setCount($_GET['count']);
+  }
+
+  if (isset($_GET['approved'])) {
+    $export->setApproved($_GET['approved']);
   }
 
   # Export datas
