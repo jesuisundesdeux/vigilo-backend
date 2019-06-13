@@ -24,6 +24,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
 
 $token = $_GET['token'];
 
@@ -61,11 +62,11 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 
 /* Set the observation to approved */
 $query = mysqli_query($db, "UPDATE obs_list set obs_approved=".$approved." WHERE obs_token='" . $token . "'");
+  
+/* Now remove the cache for this observation to remove blurring or add */
+ delete_token_cache($token);
 
 if($approved == 1) {
-
-  /* Now remove the cache for this observation to remove blurring */
-  delete_token_cache($token);
   
   $checktoken_result = mysqli_fetch_array($checktoken_query);
   $comment = $checktoken_result['obs_comment'];
