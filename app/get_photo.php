@@ -24,6 +24,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/png");
+header('Access-Control-Allow-Origin: *');
 
 $token = $_GET['token'];
 
