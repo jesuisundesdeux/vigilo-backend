@@ -1,11 +1,4 @@
-ALTER TABLE `obs_roles` ADD UNIQUE(`role_login`); 
---ALTER TABLE `obs_list` ADD `obs_status_resolved_time` BIGINT NOT NULL AFTER `obs_status`, ADD `obs_status_resolved_comment` VARCHAR(255) NOT NULL AFTER `obs_status_resolved_time`, ADD `obs_status_resolved_hasphoto` BOOLEAN NOT NULL AFTER `obs_status_resolved_comment`;
---ALTER TABLE `obs_list` CHANGE `obs_status_resolved_hasphoto` `obs_status_resolved_hasphoto` TINYINT(1) NOT NULL DEFAULT '0';
 ALTER TABLE `obs_list` ADD `obs_city` SMALLINT(4) NOT NULL AFTER `obs_scope`;
-
---ALTER TABLE `obs_list` CHANGE `obs_status_resolved_time` `obs_status_resolved_time` BIGINT(20) NULL DEFAULT NULL;
---ALTER TABLE `obs_list` CHANGE `obs_status_resolved_comment` `obs_status_resolved_comment` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL;
-
 CREATE TABLE `obs_status_update` (
 	  `status_update_id` int(11) NOT NULL,
 	  `status_update_obsid` int(11) NOT NULL,
