@@ -57,18 +57,7 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 /* Save image */
 $data = file_get_contents('php://input');
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-
-if($_GET['status_update'] == 1) {
-  if(!is_dir('images/resolved')) {
-    mkdir('images/resolved');
-  }
-  $filepath = 'images/resolved/'.$filename.'.jpg';
-  $update_hasphoto = ', obs_status_resolved_hasphoto=1';
-}
-else {
-  $filepath = 'images/'.$filename.'.jpg';
-  $update_hasphoto = ''; 
-}
+$filepath = 'images/'.$filename.'.jpg';
 
 if (!(file_put_contents($filepath, $data))) {
   error_log('ADD_IMAGE : Error uploading image');
@@ -83,7 +72,7 @@ else {
     $status = 1;
   }
   else {
-    mysqli_query($db,"UPDATE obs_list SET obs_complete=1 ".$update_hasphoto."  WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
+    mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
   }
 }
 
