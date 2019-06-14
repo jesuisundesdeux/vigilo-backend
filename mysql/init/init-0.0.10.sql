@@ -10,9 +10,9 @@ CREATE TABLE `obs_status_update` (
 	  `status_update_id` int(11) NOT NULL,
 	  `status_update_obsid` int(11) NOT NULL,
 	  `status_update_status` int(11) NOT NULL DEFAULT 0,
-	  `status_update_resolved_comment` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
-	  `status_update_resolved_time` bigint(20) NOT NULL DEFAULT current_timestamp(),
-	  `status_update_authorrole` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '0',
+	  `status_update_comment` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+	  `status_update_time` bigint(20) NOT NULL DEFAULT current_timestamp(),
+	  `status_update_roleid` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '0',
 	  `status_update_hasphoto` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
