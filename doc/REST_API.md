@@ -270,7 +270,6 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
 | URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
-| URL | bool | status_update |  | Spécifie si l'image est une résolution ou pas | >= 0.0.10 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG | >= 0.0.1 |
 
 
@@ -418,8 +417,7 @@ Version backend >= 0.0.5
 | URL | str | key | Si secretid non fourni | Clé privé de l'utilisateur | >= 0.0.5 |
 | URL | str | token | X | Token de l'observation | >= 0.0.5 |
 | URL | str | secretid | Si key non fourni | Clé secrète de l'observation | >= 0.0.5 |
-| URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 & <= 0.0.9 |
-| Form | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.10 |
+| URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 |
 | Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.10 |
 | Form | int | time | | Timestamp format Unix | >= 0.0.10 |
 
