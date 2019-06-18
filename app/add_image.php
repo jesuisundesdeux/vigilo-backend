@@ -71,6 +71,11 @@ else {
     error_log('ADD_IMAGE : File type not supported : '. $detectedType);
     $status = 1;
   }
+  elseif (!isGoodImage($filepath)) {
+    //unlink($filepath);
+    error_log('ADD_IMAGE : File is corrupted');
+    $status = 1;
+  }
   else {
     mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
   }
