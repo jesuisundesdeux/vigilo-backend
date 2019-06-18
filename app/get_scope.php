@@ -34,7 +34,7 @@ $error_prefix = 'GET_SCOPE';
 if (isset($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db, $_GET['scope']);
 } else {
-  jsonError($error_prefix, 'Scope is not defined', 'SCOPENOTDEFINED', 400);
+  jsonError($error_prefix, 'Scope is not defined', 'PARAMNOTDEFINED', 400);
   return;
 }
 
