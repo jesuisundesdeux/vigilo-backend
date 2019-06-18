@@ -178,3 +178,23 @@ function getCategorieName($catid) {
   }
   return $categorie_string;
 }
+
+// https://stackoverflow.com/questions/8995096/php-determine-visually-corrupted-images-yet-valid-downloaded-via-curl-with-gd
+function isGoodImage($fn) {
+  list($w,$h)=getimagesize($fn);
+  if($w<50 || $h<50) return 0;
+  $im=imagecreatefromstring(file_get_contents($fn));
+  $grey=0;
+
+  for($i=0;$i<5;++$i){
+    for($j=0;$j<5;++$j){
+      $x=$w-5+$i;
+      $y=$h-5+$j;
+      list($r,$g,$b)=array_values(imagecolorsforindex($im,imagecolorat($im,$x,$y)));
+      if($r==$g && $g==$b && $b==128)
+	++$grey;
+    }
+  }
+  return $grey<12;
+}
+
