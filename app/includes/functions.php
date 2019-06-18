@@ -160,11 +160,11 @@ function removeEmoji($text) {
     return $clean_text;
 }
 
-function jsonError($prefix, $error_msg)
+function jsonError($prefix, $error_msg, $internal_code="Unknown", $http_status_code=500)
 {
-  error_log($prefix.': '.$error_msg);
-  $json = array('status' => 500, 'error' => $error_msg);
-  http_response_code(500);
+  error_log($prefix.': '.$internal_code . ' - ' .$error_msg);
+  $json = array("error" => array('status' => $http_status_code, "code" => $internal_code, "message" => $error_msg));
+  http_response_code($http_status_code);
   echo json_encode($json, JSON_PRETTY_PRINT);
 }
 
