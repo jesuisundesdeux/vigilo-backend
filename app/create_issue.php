@@ -157,7 +157,7 @@ $road = "";
 if (isset($obs_address['town'])) { 
   $town = $obs_address['town'];
 }
-if ($obs_address['road']) {
+if (isset($obs_address['road'])) {
   $road = $obs_address['road'];
 }
 
