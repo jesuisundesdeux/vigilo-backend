@@ -22,10 +22,15 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
+/* Define headers */
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+/**/
 
+/* Error handling */
+$error_prefix = 'CREATE_ISSUE';
+/**/
 
 if (isset($_GET['key'])) {
   $key = $_GET['key'];
@@ -75,15 +80,7 @@ if (!isset($_POST['coordinates_lat']) ||
     !isset($_POST['address']) ||
     !isset($_POST['time']) ||
     !isset($_POST['scope'])) {
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Missing parameters";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "Missing parameters", "PARAMNOTDEFINED", 400);
 }
 
 $coordinates_lat = mysqli_real_escape_string($db, $_POST['coordinates_lat']);
@@ -94,16 +91,8 @@ $scope = (isset($_POST['scope']) ? mysqli_real_escape_string($db, $_POST['scope'
 $time = mysqli_real_escape_string($db, $_POST['time']);
 
 if (empty($coordinates_lat) or empty($coordinates_lon) or
-    empty($categorie) or empty($time) or empty($address)) {
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Empty field not supported";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  empty($categorie) or empty($time) or empty($address)) {
+  jsonError($error_prefix, "Empty field not supported", "PARAMEMPTY", 400);
 }
 
 # TODO : test time if value is too high or too low
@@ -139,15 +128,7 @@ $query_scope = mysqli_query($db, "SELECT * FROM obs_scopes WHERE scope_name='".$
 $result_scope = mysqli_fetch_array($query_scope);
 if (!$result_scope) {
   # No result found for this scope
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Unknown scope";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "Unknow scope", "UNKNOWSCOPE", 400);
 }
 
 # Check if observation is located inside rectangle area of the scope
@@ -156,38 +137,30 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
       $coordinates_lon >= $result_scope['scope_coordinate_lon_min'] &&
       $coordinates_lon <= $result_scope['scope_coordinate_lon_max'])) {
   # We are outside the area
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Coordinates out of range and not located in the scope '$scope'";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "Coordinates out of range and not located in the scope '$scope'", "COORDINATESNOTALLOWED", 403);
 }
 
 # Get list of cities within the scope
 $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."'");
 if (mysqli_num_rows($query_cities) == 0) {
   # No city found, that's a problem
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "No city found within the scope ".$result_scope['scope_id'];
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE: ' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 400);
 }
 
 # Check if observation is located in a city listed within the scope
 $nominatim_json = get_data_from_gps_coordinates($coordinates_lat, $coordinates_lon);
 $obs_address = $nominatim_json['address'];
 $postcode = $obs_address['postcode'];
-$town = $obs_address['town'];
-$road = $obs_address['road'];
+
+$town = "";
+$road = "";
+if (isset($obs_address['town'])) { 
+  $town = $obs_address['town'];
+}
+if (isset($obs_address['road'])) {
+  $road = $obs_address['road'];
+}
+
 
 $city_found = 0;
 $city_id = 0;
@@ -201,15 +174,7 @@ while($city = mysqli_fetch_array($query_cities)) {
 }
 
 if (!$city_found) {
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Coordinates are not located in the scope '$scope' - '$postcode : $town' is not supported";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE' . $error_code);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "Coordinates are not located in the scope '$scope' - '$postcode : $town' is not supported", "COORDINATESNOTINTOWN", 403, "WARNING");
 }
 
 if ($update) {
@@ -255,19 +220,11 @@ if ($update) {
 }
 
 if ($mysqlerror = mysqli_error($db)) {
-  # TODO : use jsonError and find a better and generic error code handling
-  $error_code = "Could not insert field";
-  $json['status'] = 1;
-  $json['group'] = 0;
-  $json['error_code'] = $error_code;
-  error_log('CREATE ISSUE : MySQL Error '.$mysqlerror);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
-  return;
+  jsonError($error_prefix, "Could not insert field", "MYSQLERROR", 500);
 }
 
 # Return Token value
-$json['status'] = 1;
-$json['group'] = 0;
+$json['group'] = 0; /// Legacy
+
 echo json_encode($json);
 ?>
