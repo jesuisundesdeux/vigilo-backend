@@ -151,8 +151,16 @@ if (mysqli_num_rows($query_cities) == 0) {
 $nominatim_json = get_data_from_gps_coordinates($coordinates_lat, $coordinates_lon);
 $obs_address = $nominatim_json['address'];
 $postcode = $obs_address['postcode'];
-$town = $obs_address['town'];
-$road = $obs_address['road'];
+
+$town = "";
+$road = "";
+if (isset($obs_address['town'])) { 
+  $town = $obs_address['town'];
+}
+if ($obs_address['road']) {
+  $road = $obs_address['road'];
+}
+
 
 $city_found = 0;
 $city_id = 0;
