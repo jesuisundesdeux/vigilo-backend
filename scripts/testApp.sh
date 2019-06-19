@@ -189,7 +189,7 @@ test_createGoodIssue () {
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out | grep '"status":0' > /dev/null
+    cat /tmp/curl.out | grep '"token":' > /dev/null
     assertEquals $? 0
 }
 
