@@ -16,12 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-
-
-
-/*************** TO REFACTORE ***************/
-/************* NEW DB STRCTURE ************/
-
 $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
@@ -30,7 +24,14 @@ require_once("${cwd}/includes/functions.php");
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 
-$token = $_GET['token'];
+$error_prefix = "UPDATE_STATUS";
+
+if(isset($_POST['token'])) {
+  $token = mysqli_real_escape_string($db,$_POST['token']);
+}
+else {
+  jsonError($error_prefix, "Token missing", "TOKENMISSING", 400);
+}
 
 if(isset($_GET['key'])) {
   $key = $_GET['key'];
@@ -39,43 +40,62 @@ else {
   $key = NULL;
 }
 
-if(isset($_GET['secretid'])) {
-  $secretid = mysqli_real_escape_string($db, $_GET['secretid']);
+$role = getrole($key, $acls);
+
+if (isset($_POST['statusobs']) && is_numeric($_POST['statusobs'])) {
+  $new_status = mysqli_real_escape_string($db, $_POST['statusobs']);
 }
 else {
-  $secretid= 0;
+  jsonError($error_prefix, "Status missing", "STATUSMISSING", 400);
 }
 
-if(isset($_GET['statusobs']) && is_numeric($_GET['statusobs'])) {
-  $statusobs = mysqli_real_escape_string($db, $_GET['statusobs']);
+if (!in_array($role,$status_list[$new_status]['roles']) && !in_array("all",$status_list[$new_status]['roles'])) {
+  jsonError($error_prefix, "Status not authorized", "NOTAUTHORIZED", 403); 
+}
+
+/* Check existence of token and secretid */
+$checktoken_query = mysqli_query($db,"SELECT obs_id,obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+if (mysqli_num_rows($checktoken_query) != 1) {
+  jsonError($error_prefix, "Token : ".$token." do not exist.", "TOKENNOTEXIST", 400);
+}
+$checktoken_result = mysqli_fetch_array($checktoken_query);
+$obsid = $checktoken_result['obs_id'];
+
+$status_query = mysqli_query($db,"SELECT status_update_status FROM obs_status_update WHERE status_update_obsid  = '".$obsid."' ORDER BY status_update_id DESC LIMIT 1");
+
+if ($status_result = mysqli_fetch_array($status_query)) {
+  $current_status = $status_result['status_update_status'];
 }
 else {
-  $statusobs= 0;
+  $current_status = 0;
 }
 
-$status = 0;
-$token = mysqli_real_escape_string($db, $token);
+if (!in_array($new_status,$status_list[$current_status]['nextstatus'])) {
+  jsonError($error_prefix, "New status not authorized", "FORBIDDENNEWSTATUS", 403);
+}
 
-if(getrole($key, $acls) == "admin") {
-  $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+$comment = "";
+$time = time();
+
+if (isset($_POST['comment'])) {
+  $comment = mysqli_real_escape_string($db, $_POST['comment']);
+  $comment = substr($comment, 0, 255);
+}
+
+if (isset($_POST['time'])) {
+  $time = mysqli_real_escape_string($db, $_POST['time']);
+}
+
+$role_query = mysqli_query($db,"SELECT role_id FROM obs_roles WHERE role_key = '".$key."'");
+
+if ($role_result = mysqli_fetch_array($role_query)) {
+  $role_id = $role_result['role_id'];
 }
 else {
-  $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' AND obs_secretid='".$secretid."' LIMIT 1");
+  $role_id = 0;
 }
 
-if(mysqli_num_rows($checktoken_query) == 1) {
-  mysqli_query($db,"UPDATE obs_list SET obs_status='".$statusobs."' WHERE obs_token='".$token."' LIMIT 1");
-  delete_token_cache($token);
-}
-else {
-    error_log("UPDATE_STATUS : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
-    $status = 1;
-
-}
-
-if($status != 0) {
-    http_response_code(500);
-}
-echo json_encode(array('status'=>$status));
+mysqli_query($db,"INSERT INTO obs_status_update (status_update_obsid,status_update_status,status_update_comment,status_update_time,status_update_roleid)
+			  VALUES('".$obsid."','".$new_status."','".$comment."','".$time."','".$role_id."')");
 
 ?>
