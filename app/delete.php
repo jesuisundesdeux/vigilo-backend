@@ -25,6 +25,8 @@ require_once("${cwd}/includes/functions.php");
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 
+$error_prefix = 'DELETE_OBS';
+
 $token = $_GET['token'];
 
 if(isset($_GET['key'])) {
@@ -57,14 +59,9 @@ if(mysqli_num_rows($checktoken_query) == 1) {
   delete_map_cache($token);
 }
 else {
-    error_log("DELETE_OBS : Token : ".$token." and/or secretid : ".$secretid." do not exist.");
-    $status = 1;
-
+    jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTPROVIDED", 400);
 }
 
-if($status != 0) {
-    http_response_code(500);
-}
-echo json_encode(array('status'=>$status));
+echo json_encode(array('status'=>0));
 
 ?>

@@ -26,6 +26,7 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
+$error_prefix = "APPROVE";
 $token = $_GET['token'];
 
 if (isset($_GET['key'])) {
@@ -40,10 +41,7 @@ $token = mysqli_real_escape_string($db, $token);
 
 /* Only admin can approve an observation */
 if (getrole($key, $acls) != "admin") {
-  error_log("APPROVE : Unauthorized access.");
-  http_response_code(401);
-  echo json_encode(array('status'=>1));
-  return;
+  jsonError($error_prefix, "Unauthorized access.","ACCESSDENIED",403);
 }
 
 $approved = 1;
@@ -54,10 +52,7 @@ if (isset($_GET['approved']) and is_numeric($_GET['approved'])) {
 /* Check existence of token database */
 $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if (mysqli_num_rows($checktoken_query) != 1) {
-  error_log("APPROVE : Token : ".$token." does not exist.");
-  http_response_code(500);
-  echo json_encode(array('status'=>1));
-  return;
+  jsonError($error_prefix, "Token : ".$token." does not exist.", "TOKENNOTEXISTS", 400);
 }
 
 /* Set the observation to approved */
@@ -101,16 +96,13 @@ if($approved == 1) {
       $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
       tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $twitter_ids);
     } else {
-      error_log("APPROVE : Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.");
+      jsonError($error_prefix,"Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.","OBSTOOOLD",200,"WARN");
     }
   }
   else {
-    error_log("APPROVE : Empty Twitter informations on scope");
+    jsonError($error_prefix,"Empty Twitter informations on scope","EMPTYTWITTERINFOS",200,"WARN");
   }
 }
-if ($status != 0) {
-    http_response_code(500);
-}
-echo json_encode(array('status'=>$status));
+echo json_encode(array('status'=>'0'));
 
 ?>

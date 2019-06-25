@@ -24,6 +24,9 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/jpeg");
+
+$error_prefix = 'GENERATE_PANEL';
+
 ini_set('memory_limit','256M');
 
 $MAX_IMG_SIZE = 1024; // For limit attack
@@ -39,9 +42,7 @@ else {
 
 /* Token is mandatory */
 if (!isset($_GET['token'])) {
-  error_log('GENERATE_IMAGE : Token not found');
-  http_response_code(500);
-  return;
+  jsonError($error_prefix, "Token : ".$token." not provided.", "TOKENNOTPROVIDED", 400);
 }
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
@@ -71,9 +72,7 @@ if (file_exists($img_filename) AND !getrole($key, $acls) == "admin") {
 $query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
 
 if (mysqli_num_rows($query) != 1) {
-  error_log('GENERATE_IMAGE : Token ' . $token . ' not found');
-  http_response_code(500);
-  return;
+  jsonError($error_prefix, "Token : ".$token." not found.", "TOKENNOTFOUND", 404);
 }
 
 $result = mysqli_fetch_array($query);
@@ -86,9 +85,7 @@ $statusobs = $result['obs_status'];
 $categorie_string = getCategorieName($categorie_id);
 
 if (!isset($categorie_string)) {
-    error_log('GENERATE_IMAGE : unknown categorie_id: ' . $categorie_id);
-    http_response_code(500);
-    return;
+    jsonError($error_prefix, "unknown categorie_id: ' . $categorie_id", "UNKNOWCATEGORIE", 500);
 }
 
 $time = $result['obs_time'];
