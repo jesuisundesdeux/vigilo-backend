@@ -21,15 +21,11 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
-/* Define headers */
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-/**/
 
-/* Error handling */
 $error_prefix = 'GET_SCOPE';
-/**/
 
 if (isset($_GET['scope'])) {
   $scope = mysqli_real_escape_string($db, $_GET['scope']);
