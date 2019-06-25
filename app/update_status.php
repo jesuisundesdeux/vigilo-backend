@@ -33,6 +33,7 @@ else {
   jsonError($error_prefix, "Token missing", "TOKENMISSING", 400);
 }
 
+
 if(isset($_GET['key'])) {
   $key = $_GET['key'];
 }
