@@ -30,9 +30,7 @@ $realm = 'Acces restreint';
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
-  echo 'Acces interdit';
-  error_log('ADMIN : PHP_AUTH_USER missing');
-  exit;
+  jsonError($error_prefix, 'PHP_AUTH_USER missing','PHPUSERMISSING',403);
 }
 
 $http_login = $_SERVER['PHP_AUTH_USER'];
