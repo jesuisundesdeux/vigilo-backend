@@ -29,11 +29,14 @@ else {
 global $config;
 
 define('BACKEND_VERSION','0.0.10');
-error_log(var_dump($config));
-$db = mysqli_connect($config['MYSQL_HOST'],
+
+if(!$db = mysqli_connect($config['MYSQL_HOST'],
                      $config['MYSQL_USER'],
                      $config['MYSQL_PASSWORD'],
-                     $config['MYSQL_DATABASE']);
+		     $config['MYSQL_DATABASE'])) {
+  error_log("[FATAL] Connection à la base impossible");
+  exit();
+} 
 
 $config_query = mysqli_query($db,"SELECT * FROM obs_config");
 while($config_result = mysqli_fetch_array($config_query)) {
