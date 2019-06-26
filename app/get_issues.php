@@ -231,7 +231,7 @@ ORDER BY obs_time DESC
           "comment" => $result['obs_comment'],
           "explanation" => $result['obs_explanation'],
           "time" => $result['obs_time'],
-          "status" => $result['obs_status'],
+          "status" => $obs_status,
           "group" => 0,
           "categorie" => $result['obs_categorie'],
           "approved" => $result['obs_approved']
