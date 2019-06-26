@@ -11,8 +11,8 @@ CREATE TABLE `obs_status_update` (
 
 
 ALTER TABLE `obs_status_update`
-  ADD KEY `status_update_id` (`status_update_id`);
-
+  ADD KEY `status_update_id` (`status_update_id`),
+  ADD PRIMARY KEY (`status_update_id`);
 
 ALTER TABLE `obs_status_update`
   MODIFY `status_update_id` int(11) NOT NULL AUTO_INCREMENT;
