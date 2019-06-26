@@ -140,7 +140,7 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
 $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."'");
 if (mysqli_num_rows($query_cities) == 0) {
   # No city found, that's a problem
-  jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 400);
+  jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 200, "WARNING");
 }
 
 # Check if observation is located in a city listed within the scope
@@ -170,7 +170,7 @@ while($city = mysqli_fetch_array($query_cities)) {
 }
 
 if (!$city_found) {
-  jsonError($error_prefix, "Coordinates are not located in the scope '$scope' - '$postcode : $town' is not supported", "COORDINATESNOTINTOWN", 403, "WARNING");
+  jsonError($error_prefix, "Coordinates are not located in the scope '$scope' - '$postcode : $town' is not supported", "COORDINATESNOTINTOWN", 200, "WARNING");
 }
 
 if ($update) {
