@@ -17,7 +17,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-require_once(dirname(__FILE__) . "/../config/config.php");
+if(file_exists(dirname(__FILE__) . "/../config/config.php")) {
+  require_once(dirname(__FILE__) . "/../config/config.php");
+}
+else {
+  echo "Fichier config/config.php manquant";
+  error_log("[FATAL] Fichier config/config.php manquant");
+  exit();
+}
 
 global $config;
 
