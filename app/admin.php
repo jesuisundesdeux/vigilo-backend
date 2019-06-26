@@ -24,14 +24,13 @@ $cwd = dirname(__FILE__);
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 
+$error_prefix = 'ADMIN';
 $realm = 'Acces restreint';
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
-  echo 'Acces interdit';
-  error_log('ADMIN : PHP_AUTH_USER missing');
-  exit;
+  jsonError($error_prefix, 'PHP_AUTH_USER missing','PHPUSERMISSING',403);
 }
 
 $http_login = $_SERVER['PHP_AUTH_USER'];
@@ -41,19 +40,14 @@ $query_roles = mysqli_query($db, "SELECT role_key,role_login,role_password FROM 
 if(mysqli_num_rows($query_roles) != 1) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
-  echo 'Acces interdit';
-  error_log('ADMIN : User "'.$http_login.'" does not exist');
-    exit;
-
+  jsonError($error_prefix, 'Accès interdit', 'ACCESSDENIED', 403);
 }
 $result_role = mysqli_fetch_array($query_roles);
 
 if(hash('sha256',$http_password) != $result_role['role_password']) {
   header('HTTP/1.1 401 Authorization Required');
   header('WWW-Authenticate: Basic realm="Access denied"');
-  echo 'Acces interdit';
-  error_log('ADMIN : Bad password');
-  exit;
+  jsonError($error_prefix, 'Bad password','BADPASSWORD', 403);
 }
 
 $role_key = $result_role['role_key'];

@@ -19,28 +19,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
+require_once("${cwd}/includes/functions.php");
+
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
-require_once("${cwd}/includes/functions.php");
+$error_prefix = 'ACL';
 
-$status = 0;
 $role = Null;
 
 if(isset($_GET['key'])) {
   $key=$_GET['key'];
   $role = getrole($key, $acls);
 } else{
-  error_log('Private key not provided');
-  $status = 1;
+  jsonError($error_prefix, "Private key not provided", "KEYNOTPROVIDED", 400);
 }
 
-
-if($status != 0) {
-  http_response_code(500);
-}
-
-echo json_encode(array('role'=>$role,'status'=>$status));
+echo json_encode(array('role'=>$role));
 

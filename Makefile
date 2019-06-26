@@ -43,10 +43,10 @@ shunit2:
 	rm v${SHUNIT}.tar.gz
 
 create-db: ## Init empty database
-	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
+	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
 
 init-db: ## Init database with unit tests datas
-	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt ; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
+	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
 
 backup-db: ## Backup a mysql docker container
 	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'

@@ -1,5 +1,6 @@
 <?php
-/**** LEGACY *****/
+/********** LEGACY, DO NOT USE ANYMORE **********/
+
 /*
 Copyright (C) 2019 Velocité Montpellier
 
