@@ -93,7 +93,7 @@ debug-db: env init-db
 
 unittest: env
 	docker-compose -f docker-compose.yml up -d
-	docker-compse ps
+	docker-compose ps
 	docker-compose -f docker-compose.yml exec web phpunit -c phpunit.xml
 
 
