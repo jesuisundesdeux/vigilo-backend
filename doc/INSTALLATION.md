@@ -98,6 +98,10 @@ $ make ENV=prod install
 
 ##### Mise en place sources
 
+Cloner le repo :
+
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b 0.0.10  --single-branch
+
 Importer le contenu de ```app/``` dans l'arborescence web.
 
 ##### Mise en place base de données
