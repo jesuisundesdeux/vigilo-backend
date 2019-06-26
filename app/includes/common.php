@@ -29,7 +29,7 @@ else {
 global $config;
 
 define('BACKEND_VERSION','0.0.10');
-
+error_log(var_dump($config));
 $db = mysqli_connect($config['MYSQL_HOST'],
                      $config['MYSQL_USER'],
                      $config['MYSQL_PASSWORD'],
