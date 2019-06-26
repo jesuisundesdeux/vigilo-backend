@@ -222,7 +222,7 @@ ORDER BY obs_time DESC
     if (mysqli_num_rows($rquery) > 0) {
       while ($result = mysqli_fetch_array($rquery)) {
 	$token = $result['obs_token'];
-        $obs_status = ($result['obs_status'] != NULL) ? $result['obs_status'] : 0;
+        $obs_status = ($result['obs_status'] != "null") ? $result['obs_status'] : 0;
         $issue = array(
           "token" => $result['obs_token'],
           "coordinates_lat" => $result['obs_coordinates_lat'],
