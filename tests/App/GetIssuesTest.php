@@ -159,10 +159,11 @@ class GetIssueTest extends TestCase
     obs_comment,
     obs_explanation,
     obs_time,
-    obs_status,
+    t_status.status_update_status AS obs_status,
     obs_categorie,
     obs_approved
 FROM obs_list
+LEFT JOIN ( SELECT status_update_obsid, status_update_status, MAX(status_update_time) FROM obs_status_update GROUP BY status_update_obsid) t_status ON t_status.status_update_obsid = obs_list.obs_id
 WHERE obs_complete=1
  AND obs_categorie IN ('2') AND obs_time > 1554454520 AND obs_token = '4XUXXEUX' AND (obs_approved=0 OR obs_approved=1)
 ORDER BY obs_time DESC
