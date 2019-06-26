@@ -96,7 +96,7 @@ if($approved == 1) {
       $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
       tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $twitter_ids);
     } else {
-      jsonError($error_prefix,"Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.","OBSTOOOLD",200,"WARN");
+      jsonError($error_prefix,"Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.","OBSTOOOLD",200,"NOTICE");
     }
   }
   else {
