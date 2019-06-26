@@ -9,7 +9,7 @@ wget https://raw.githubusercontent.com/jesuisundesdeux/vigilo-backend/master/ins
 * Upload install_app/upgrade.php in the app root
 * Execute /upgrade.php
 * Remove /upgrade.php from your app directory
-* Update source code
+* Update source code from the version branch (0.0.10)
 
 
 #### 0.0.8 to 0.0.9
