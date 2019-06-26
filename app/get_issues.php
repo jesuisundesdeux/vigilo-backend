@@ -187,7 +187,6 @@ class GetIssues
     }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
-    // plan join on status => select * from obs_list LEFT JOIN obs_status_update ON obs_status_update.status_update_obsid = obs_list.obs_id ORDER BY obs_status_update.status_update_obsid DESC \G
     $query = "SELECT obs_token,
     obs_coordinates_lat,
     obs_coordinates_lon,
@@ -222,7 +221,7 @@ ORDER BY obs_time DESC
     if (mysqli_num_rows($rquery) > 0) {
       while ($result = mysqli_fetch_array($rquery)) {
 	$token = $result['obs_token'];
-        $obs_status = ($result['obs_status'] != "null") ? $result['obs_status'] : 0;
+        $obs_status = ($result['obs_status'] != null) ? $result['obs_status'] : 0;
         $issue = array(
           "token" => $result['obs_token'],
           "coordinates_lat" => $result['obs_coordinates_lat'],
