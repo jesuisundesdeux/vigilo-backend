@@ -19,6 +19,7 @@ if ($query_result['config_value'] == "0.0.10") {
     $obsid = $result_obs['obs_id'];
     mysqli_query($db, "INSERT INTO obs_status_update (status_update_obsid,status_update_status,status_update_time) VALUES ('$obsid','1','".time()."')");
   }
+  echo "Mise à jour reussie";
 }
 else {
   echo "Base de données non mises à jour, version actuelle => " . $query_result['config_value'];
