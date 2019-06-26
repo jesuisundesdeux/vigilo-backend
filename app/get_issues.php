@@ -195,10 +195,11 @@ class GetIssues
     obs_comment,
     obs_explanation,
     obs_time,
-    obs_status,
+    t_status.status_update_status AS obs_status,
     obs_categorie,
     obs_approved
 FROM obs_list
+LEFT JOIN ( SELECT status_update_obsid, status_update_status, MAX(status_update_time) FROM obs_status_update GROUP BY status_update_obsid) t_status ON t_status.status_update_obsid = obs_list.obs_id
 WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
@@ -220,7 +221,8 @@ ORDER BY obs_time DESC
     $rquery = mysqli_query($this->db, $this->getQuery());
     if (mysqli_num_rows($rquery) > 0) {
       while ($result = mysqli_fetch_array($rquery)) {
-        $token = $result['obs_token'];
+	$token = $result['obs_token'];
+        $obs_status = ($result['obs_status'] != NULL) ? $result['obs_status'] : 0;
         $issue = array(
           "token" => $result['obs_token'],
           "coordinates_lat" => $result['obs_coordinates_lat'],
