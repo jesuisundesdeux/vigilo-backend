@@ -26,6 +26,7 @@ header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/png");
 header('Access-Control-Allow-Origin: *');
 
+$error_prefix = "GET_PHOTO";
 $token = $_GET['token'];
 
 if(isset($_GET['key'])) {
@@ -39,8 +40,7 @@ $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if(mysqli_num_rows($checktoken_query) != 1) {
-  error_log("GET_PHOTO : Token : ".$token." and/or key not valid.");
-  $status = 1;
+  jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
 } 
 else {
   $checktoken_result = mysqli_fetch_array($checktoken_query);	
@@ -49,14 +49,8 @@ else {
     imagejpeg($photo); 
   }
   else {
-    error_log("GET_PHOTO : Image is not allowed");
-    $status = 1;
+    jsonError($error_prefix, "Image display is not allowed", "NOTALLOWED", 403);
   }
 }
-
-if($status != 0) {
-    http_response_code(500);
-}
-echo json_encode(array('status'=>$status));
 
 ?>

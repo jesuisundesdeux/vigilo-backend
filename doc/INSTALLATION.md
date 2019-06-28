@@ -68,10 +68,10 @@ Une fois que votre compte est validé
 
 #### Serveur dédié
 
-Cloner le repo git complet.
+Cloner le repo git complet en adaptant la version (préciser derniere version)
 
 ```
-$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git 
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b 0.0.10  --single-branch
 ```
 
 Copier le .env_sample vers .env
@@ -97,6 +97,10 @@ $ make ENV=prod install
 #### Hebergement mutualisé
 
 ##### Mise en place sources
+
+Cloner le repo :
+
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b 0.0.10  --single-branch
 
 Importer le contenu de ```app/``` dans l'arborescence web.
 

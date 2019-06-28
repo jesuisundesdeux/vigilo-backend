@@ -12,18 +12,7 @@ $query_result = mysqli_fetch_array($query_version);
 echo "<p>Version actuelle code: " . BACKEND_VERSION . '</p>';
 echo "<p>Version de la base: " . $query_result['config_value'] . '</p>';
 
-/*if(BACKEND_VERSION != $query_result['config_value']) {
-  echo "La base n'est pas à jour, veuillez executer dans l'ordre les fichiers de mysql/init/ à partir de init-" . $query_result['config_value'] . ".sql (exlue) jusqu'à init-".BACKEND_VERSION.".sql (inclus)" ; 
-}
-else {*/
-
-if (!isset($_GET['from']) || !isset($_GET['to'])) {
-  exit(1);
-}
-
-$from = $_GET['from'];
-$to = $_GET['to'];
-if ($from == "0.0.8" && $to == "0.0.9") {
+if (BACKEND_VERSION == "0.0.8" && $query_result['config_value'] == "0.0.9") {
   mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_urlbase','".$config['URLBASE']."')");
   mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_http_proto','".$config['HTTP_PROTOCOL']."')");
   mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_name','".$config['VIGILO_NAME']."')");
@@ -43,5 +32,4 @@ if ($from == "0.0.8" && $to == "0.0.9") {
   mysqli_query($db, "UPDATE obs_scopes SET scope_twittercontent = '".$config['TWITTER_CONTENT']."'");
   echo "<ul><li>Le fichier config.php peut être nettoyé, supprimez tout son contenu sauf le bloc /* Database configuration */ (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE, MYSQL_CHARSET)</li><li>Supprimez le fichier upgrade.php du dossier app</li></ul>";
 }
-//}
 

@@ -44,6 +44,23 @@ function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k') {
         return $meter;
 }
 
+function get_data_from_gps_coordinates($lat, $lon)
+{
+  $options = array(
+    'http'=>array(
+      'method'=>"GET",
+      'header'=>"User-Agent: Vigilo Backend Version/".BACKEND_VERSION." \r\n"
+    )
+  );
+  // MAX 1 request per second
+  // https://operations.osmfoundation.org/policies/nominatim/
+  $url='https://nominatim.openstreetmap.org/reverse?format=json&lat='.$lat.'&lon='.$lon;
+  $context = stream_context_create($options);
+  $resp_json = file_get_contents($url, false, $context);
+  $resp = json_decode($resp_json, true);
+  return $resp;
+}
+
 function delete_token_cache($token) {
     foreach(glob(__DIR__."/../caches/".$token."*") as $file) {
         unlink($file);
@@ -143,12 +160,15 @@ function removeEmoji($text) {
     return $clean_text;
 }
 
-function jsonError($prefix, $error_msg)
+function jsonError($prefix, $error_msg, $internal_code="Unknown", $http_status_code=500, $severity="FATAL")
 {
-  error_log($prefix.': '.$error_msg);
-  $json = array('status' => 500, 'error' => $error_msg);
-  http_response_code(500);
-  echo json_encode($json, JSON_PRETTY_PRINT);
+  error_log('['. $severity . '] ' . $prefix.': '.$internal_code . ' - ' .$error_msg);
+  if($severity == "FATAL") {
+    $json = array("error" => array('status' => $http_status_code, "code" => $internal_code, "message" => $error_msg));
+    http_response_code($http_status_code);
+    echo json_encode($json, JSON_PRETTY_PRINT);
+    exit();
+  }
 }
 
 function getCategorieName($catid) {

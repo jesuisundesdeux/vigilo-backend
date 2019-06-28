@@ -74,7 +74,7 @@ JSON : Retourne les informations suivantes :
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 | str | role | Rôle correspondant à la clé (admin) | >= 0.0.1 |
 
 ___
@@ -270,7 +270,6 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
 | URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
-| URL | bool | status_update |  | Spécifie si l'image est une résolution ou pas | >= 0.0.10 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG | >= 0.0.1 |
 
 
@@ -280,7 +279,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 
 ___
 
@@ -308,7 +307,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 
 ___
 
@@ -328,15 +327,15 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | | Clé privé de l'utilisateur | >= 0.0.1 |
 | Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lat' | X | Latitude de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lon | X | Longitude de l'observation | >= 0.0.1 |
-| Form | str | comment | X | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
-| Form | str | explanation | X | Explications observation | >= 0.0.1 |
-| Form | str | categorie | X | ID de catégorie | >= 0.0.1 |
-| Form | str | address | X | Adresse de l'observation | >= 0.0.1 |
-| Form | str | time | X |  Timestamp de l'observation en ms | >= 0.0.1 |
-| Form | str | version | X | Version de l'application cliente | >= 0.0.1 |
-| Form | str | scope | X | Identifiant du scope | >= 0.0.1 |
+| Form | str | coordinates_lat' | création | Latitude de l'observation | >= 0.0.1 |
+| Form | str | coordinates_lon | création | Longitude de l'observation | >= 0.0.1 |
+| Form | str | comment | non | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
+| Form | str | explanation | non | Explications observation | >= 0.0.1 |
+| Form | str | categorie | création | ID de catégorie | >= 0.0.1 |
+| Form | str | address | création | Adresse de l'observation | >= 0.0.1 |
+| Form | str | time | création |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
+| Form | str | version | création | Version de l'application cliente | >= 0.0.1 |
+| Form | str | scope | création | Identifiant du scope | >= 0.0.1 |
 
 ###### Retour
 
@@ -344,7 +343,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 | str | token | Retourne le token généré | >= 0.0.1 |
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.1 |
 | int | group | LEGACY | LEGACY |
@@ -376,7 +375,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 
 ___
 
@@ -419,6 +418,8 @@ Version backend >= 0.0.5
 | URL | str | token | X | Token de l'observation | >= 0.0.5 |
 | URL | str | secretid | Si key non fourni | Clé secrète de l'observation | >= 0.0.5 |
 | URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 |
+| Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.10 |
+| Form | int | time | | Timestamp format Unix | >= 0.0.10 |
 
 ###### Retour
 
@@ -426,7 +427,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.5 |
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.5 / < 0.0.10 |
 
 ___
 
@@ -489,6 +490,6 @@ ___
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | 0 => OK / 1 => NOK | >= 0.0.1 |
+| bool | status | 0 => OK / 1 => NOK | >= 0.0.1 / < 0.0.10 |
 
 

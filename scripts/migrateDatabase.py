@@ -18,6 +18,7 @@ Options:
 
 import glob
 import os
+import natsort
 
 from docopt import docopt
 
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
     sqlmigration = ""
 
-    for initfilename in sorted(files):
+    for initfilename in natsort.natsorted(files):
       initversion = initfilename.replace(f'{searchpath}/init/',"")
       version = initversion.replace('init-','').replace('.sql','')
 
