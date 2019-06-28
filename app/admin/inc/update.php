@@ -1,4 +1,8 @@
 <?php
+if(!isset($page_name)) {
+	  exit('Not allowed');
+}
+
 
 $opts = [
     "http" => [

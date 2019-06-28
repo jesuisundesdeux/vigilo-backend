@@ -1,4 +1,8 @@
 <?php
+if(!isset($page_name)) {
+	  exit('Not allowed');
+}
+
 if(isset($_GET['action']) && !isset($_POST['scope_id'])) {
   if($_GET['action'] == 'add') {
 	  mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
@@ -80,11 +84,11 @@ while($result_scopes = mysqli_fetch_array($query_scopes)) {
         <tbody>';
   echo '<tr>
            <td>Identifiant</td>
-           <td><input type="text" class="form-control-plaintext" name="scope_name" value="'.$result_scopes['scope_name'].'" /></td>
+           <td><input type="text" class="form-control-plaintext" name="scope_name" value="'.$result_scopes['scope_name'].'" required></td>
          </tr>';
   echo '<tr>
            <td>Nom affiché</td>
-           <td><input type="text" class="form-control-plaintext" name="scope_display_name" value="'.$result_scopes['scope_display_name'].'" /></td>
+           <td><input type="text" class="form-control-plaintext" name="scope_display_name" value="'.$result_scopes['scope_display_name'].'" required /></td>
          </tr>';
   echo '<tr>
            <td>Departement</td>

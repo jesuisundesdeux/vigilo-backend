@@ -1,3 +1,25 @@
+<?php
+session_start();
+
+require_once('../includes/common.php');
+$badlogin = False;
+if(isset($_POST['login'])) {
+  $login = mysqli_real_escape_string($db,$_POST['login']);
+  $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND role_name='admin' LIMIT 1");
+  $login_result = mysqli_fetch_array($login_query);
+  if(hash('sha256',$_POST['password']) == $login_result['role_password']) {
+    $_SESSION['login'] = $login;
+    header('Location: index.php');
+  }
+  else {
+    $badlogin = True;
+  }
+}
+else {
+  session_destroy();
+}
+?>
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -68,13 +90,21 @@
   </head>
 
   <body class="text-center">
-    <form class="form-signin">
+    <form class="form-signin" method="POST">
       <img class="mb-4" src="vigilo.png" alt="" width="72" height="72">
       <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
-      <label for="inputEmail" class="sr-only">Email address</label>
-      <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+<?php 
+      if($badlogin) {
+        echo '<div class="alert alert-danger" role="alert">
+		  <strong>Oh zut!</strong> Login / mot de passe incorrect.
+		  </div>';
+      }
+
+?>
+      <label for="inputEmail" class="sr-only">Login</label>
+      <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
       <label for="inputPassword" class="sr-only">Password</label>
-      <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+      <input type="password" name='password' class="form-control" placeholder="Password" required>
       <div class="checkbox mb-3">
         <label>
           <input type="checkbox" value="remember-me"> Remember me

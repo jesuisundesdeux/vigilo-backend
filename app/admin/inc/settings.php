@@ -1,4 +1,8 @@
 <?php
+if(!isset($page_name)) {
+	  exit('Not allowed');
+}
+
 if(isset($_POST['config_param'])) {
     foreach($_POST as $key => $value) {
        if(preg_match('/config_param_(?:.*)$/',$key)) {

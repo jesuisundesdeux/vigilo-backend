@@ -1,4 +1,8 @@
 <?php
+if(!isset($page_name)) {
+	  exit('Not allowed');
+}
+
 if(isset($_GET['action']) && !isset($_POST['ta_id'])) {
   if($_GET['action'] == 'add') {
 	  mysqli_query($db,"INSERT INTO obs_twitteraccounts (ta_consumer,
@@ -57,10 +61,10 @@ while($result_ta = mysqli_fetch_array($query_ta)) {
  echo '<form action="" method="POST">';
   echo '<tr>
            <td>#'.$result_ta['ta_id'].' </td>
-           <td><input type="text" class="form-control-plaintext" name="ta_consumer" value="'.$result_ta['ta_consumer'].'" /></td>
-           <td><input type="text" class="form-control-plaintext" name="ta_consumersecret" value="'.$result_ta['ta_consumersecret'].'" /></td>
-           <td><input type="text" class="form-control-plaintext" name="ta_accesstoken" value="'.$result_ta['ta_accesstoken'].'" /></td>
-	   <td><input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="'.$result_ta['ta_accesstokensecret'].'" /></td>
+           <td><input type="text" class="form-control-plaintext" name="ta_consumer" value="'.$result_ta['ta_consumer'].'" required /></td>
+           <td><input type="text" class="form-control-plaintext" name="ta_consumersecret" value="'.$result_ta['ta_consumersecret'].'" required /></td>
+           <td><input type="text" class="form-control-plaintext" name="ta_accesstoken" value="'.$result_ta['ta_accesstoken'].'" required /></td>
+	   <td><input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="'.$result_ta['ta_accesstokensecret'].'" required /></td>
            <td><input type="hidden" name="ta_id" value="'.$result_ta['ta_id'].'" /><button class="btn btn-primary" type="submit">Valider édition</button></td>
            <td><a href="?page=twitter&action=delete&taid='.$result_ta['ta_id'].'" onclick="return confirm(\'Are you sure?\')">Supprimer</a></td>
 	 </tr>';

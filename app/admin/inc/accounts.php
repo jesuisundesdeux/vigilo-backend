@@ -1,4 +1,8 @@
 <?php
+if(!isset($page_name)) {
+  exit('Not allowed');
+}
+
 if(isset($_GET['action']) && !isset($_POST['role_id'])) {
   if($_GET['action'] == 'add') {
 	  mysqli_query($db,"INSERT INTO obs_roles (role_key,
@@ -38,7 +42,6 @@ if(isset($_POST['role_id'])) {
     $update = rtrim($update,',');
     $roleid = mysqli_real_escape_string($db,$_POST['role_id']);
     mysqli_query($db,"UPDATE obs_roles SET ". $update . " WHERE role_id='".$roleid."'") or die(mysqli_error($db));
-    echo $update;
     echo '<div class="alert alert-success" role="alert">
 	  Compte <strong>'.$roleid.'</strong> mis à jour
 	      </div>';
@@ -82,7 +85,7 @@ while($result_role = mysqli_fetch_array($query_role)) {
  echo '</select></td>'; 
  echo '<td><input type="text" class="form-control-plaintext" name="role_owner" value="'.$result_role['role_owner'].'" /></td>
 	<td><input type="text" class="form-control-plaintext" name="role_login" value="'.$result_role['role_login'].'" /></td>
-	<td><input type="text" class="form-control-plaintext" name="role_password" /></td>
+	<td><input type="password" class="form-control-plaintext" name="role_password" /></td>
        <td><input type="hidden" name="role_id" value="'.$result_role['role_id'].'" /><button class="btn btn-primary" type="submit">Valider édition</button></td>
        <td><a href="?page=accounts&action=delete&roleid='.$result_role['role_id'].'" onclick="return confirm(\'Are you sure?\')">Supprimer</a></td>
 	 </tr>';
