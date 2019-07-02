@@ -33,4 +33,13 @@ ALTER TABLE `obs_config`
 ALTER TABLE `obs_config`
   MODIFY `config_id` int(11) NOT NULL AUTO_INCREMENT;
 
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_urlbase','');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_http_proto','');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_name','Vigilo');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_language','fr-FR');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_mapquest_api','');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('twitter_expiry_time','24');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('mysql_charset','utf8');
+INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_timezone','Europe/Paris');
+
 INSERT INTO `obs_config` (`config_id`, `config_param`, `config_value`) VALUES (NULL, 'vigilo_db_version', '0.0.4');
