@@ -22,6 +22,7 @@ while($obs_result = mysqli_fetch_array($obs_query)) {
   $count_total++;
 } 
 
+
 if(file_exists('../install.php')) {
 ?>
 <div class="alert alert-danger" role="alert">
