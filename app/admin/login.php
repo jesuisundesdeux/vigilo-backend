@@ -3,13 +3,19 @@ session_start();
 
 require_once('../includes/common.php');
 $badlogin = False;
-if(isset($_POST['login'])) {
+if (isset($_POST['login'])) {
   $login = mysqli_real_escape_string($db,$_POST['login']);
   $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND role_name='admin' LIMIT 1");
   $login_result = mysqli_fetch_array($login_query);
-  if(hash('sha256',$_POST['password']) == $login_result['role_password']) {
+  if (hash('sha256',$_POST['password']) == $login_result['role_password']) {
     $_SESSION['login'] = $login;
+    if (isset($_POST['rememberme'])) {
+      setcookie("admin-key",$login_result['role_key'],time()+2678400);
+    }
     header('Location: index.php');
+  }
+  elseif ($_COOKIE['admin-key'] == $login_result['role_key']) {
+    $_SESSION['login'] = $login;
   }
   else {
     $badlogin = True;
@@ -107,7 +113,7 @@ else {
       <input type="password" name='password' class="form-control" placeholder="Password" required>
       <div class="checkbox mb-3">
         <label>
-          <input type="checkbox" value="remember-me"> Remember me
+          <input type="checkbox" name="rememberme" value="remember-me"> Remember me
         </label>
       </div>
       <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
