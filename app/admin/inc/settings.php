@@ -40,49 +40,49 @@ while ($result_config = mysqli_fetch_array($query_config)) {
       <tr>
         <td>URL base</td>
         <td>
-          <input type="text" class="form-control-plaintext" name="config_param_vigilo_urlbase" value="<?=$config['config_param_vigilo_urlbase'] ?>" />
+          <input type="text" class="form-control-plaintext" name="config_param_vigilo_urlbase" value="<?=$config['config_param_vigilo_urlbase'] ?>" required />
         </td>
   	  </tr>
      <tr>
        <td>Protocole d'accès</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_vigilo_http_proto" value="<?=$config['config_param_vigilo_http_proto'] ?>" />
+         <input type="text" class="form-control-plaintext" name="config_param_vigilo_http_proto" value="<?=$config['config_param_vigilo_http_proto'] ?>" required />
        </td>
      </tr>
      <tr>
        <td>Nom instance</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_vigilo_name" value="<?=$config['config_param_vigilo_name'] ?>" />
+         <input type="text" class="form-control-plaintext" name="config_param_vigilo_name" value="<?=$config['config_param_vigilo_name'] ?>" required />
        </td>
      </tr>
      <tr>
        <td>Langue</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_vigilo_language" value="<?=$config['config_param_vigilo_language'] ?>" />
+         <input type="text" class="form-control-plaintext" name="config_param_vigilo_language" value="<?=$config['config_param_vigilo_language'] ?>" required />
        </td>
      </tr>
      <tr>
        <td>Clé Mapquest</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_vigilo_mapquest_api" value="<?=$config['config_param_vigilo_mapquest_api'] ?>" />
+         <input type="text" class="form-control-plaintext" name="config_param_vigilo_mapquest_api" value="<?=$config['config_param_vigilo_mapquest_api'] ?>" required />
        </td>
      </tr>
      <tr>
        <td>Nombre d'heure max pour Tweeter observations</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_twitter_expiry_time" value="<?=$config['config_param_twitter_expiry_time'] ?>" />
+         <input type="text" class="form-control-plaintext" name="config_param_twitter_expiry_time" value="<?=$config['config_param_twitter_expiry_time'] ?>" required />
         </td>
       </tr>
       <tr>
         <td>Charset</td>
         <td>
-          <input type="text" class="form-control-plaintext" name="config_param_mysql_charset" value="<?=$config['config_param_mysql_charset'] ?>" />
+          <input type="text" class="form-control-plaintext" name="config_param_mysql_charset" value="<?=$config['config_param_mysql_charset'] ?>" required />
         </td>
       </tr>
       <tr>
         <td>Timezone</td>
         <td>
-          <input type="text" class="form-control-plaintext" name="config_param_vigilo_timezone" value="<?=$config['config_param_vigilo_timezone'] ?>" />
+          <input type="text" class="form-control-plaintext" name="config_param_vigilo_timezone" value="<?=$config['config_param_vigilo_timezone'] ?>" required />
         </td>
       </tr>
     </tbody>

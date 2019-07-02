@@ -4,114 +4,160 @@ require_once('config/config.php');
 function deleteInstallFile() {
   unlink('./install.php');
 }
+
+if(isset($_POST['password']) && !empty($_POST['password'])) {
+ if($_POST['password'] != $_POST['password2']) {
+   $diffpass = TRUE;
+ }
+ else {
+   $password=hash('sha256',$_POST['password']);
+   if(empty($_POST['key'])) {
+     $key = str_replace('.', '', uniqid('', true));
+   }
+   mysqli_query($db,"INSERT INTO obs_roles (role_key,
+                                            role_name,
+                                            role_owner,
+                                            role_login,
+                                            role_password)
+                             VALUES ('".$key."',
+                                      'admin',
+                                      '".$_POST['name']."',
+                                      '".$_POST['login']."',
+                                      '".$password."')");
+   header('Location: admin/index.php');
+ } 
+}
 ?>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-<html>
- <head>
-  <title>Initialisation instance</title>
- </head>
- <body>
+    <title>Vigilo - Creation compte admin</title>
 
+    <link rel="canonical" href="https://getbootstrap.com/docs/4.0/examples/sign-in/">
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      
+      body {
+        display: -ms-flexbox;
+        display: -webkit-box;
+        display: flex;
+        -ms-flex-align: center;
+        -ms-flex-pack: center;
+        -webkit-box-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        justify-content: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+      
+      .form-signin {
+        width: 100%;
+        max-width: 330px;
+        padding: 15px;
+        margin: 0 auto;
+      }
+      .form-signin .checkbox {
+        font-weight: 400;
+      }
+      .form-signin .form-control {
+        position: relative;
+        box-sizing: border-box;
+        height: auto;
+        padding: 10px;
+        font-size: 16px;
+      }
+      .form-signin .form-control:focus {
+        z-index: 2;
+      }
+      .form-signin input[type="email"] {
+        margin-bottom: -1px;
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+      .form-signin input[type="password"] {
+        margin-bottom: 10px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+      }
+    </style>
+
+  </head>
+
+  <body class="text-center">
 <?php
 if(!$db = mysqli_connect($config['MYSQL_HOST'],
                      $config['MYSQL_USER'],
                      $config['MYSQL_PASSWORD'],
                      $config['MYSQL_DATABASE'])) {
-  echo "Erreur de connexion à la base de données MySQL : <br />
-        - Si vous êtes sur docker, veuillez compléter le fichier .env <br />
-        - Si vous êtes en mode hebergé, veuillez compléter le fichier config/config.php";
+
+?>
+  <div class="alert alert-danger" role="alert">Erreur de connexion à la base de données MySQL : <br />
+  <ul>
+    <li>Si vous êtes sur docker, veuillez compléter le fichier .env </li>
+    <li>Si vous êtes en mode hebergé, veuillez compléter le fichier config/config.php</li>
+    </ul>
+  </div>";
+<?php
+
 }
 else {
-  if($query_installed = mysqli_query($db,"SELECT * FROM obs_config WHERE config_param='vigilo_urlbase'")) {
-    if(mysqli_num_rows($query_installed) != 0) {
-      echo "Instance déjà configurée / veuillez supprimer le fichier install.php";
-    } 
-    else { 
-      if(!empty($_POST)) {
-        /* Set config */		
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_urlbase','".$_POST['urlbase']."')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_http_proto','".$_POST['http_proto']."')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_name','".$_POST['instancename']."')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_language','fr-FR')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_mapquest_api','".$_POST['mapquest_api']."')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('twitter_expiry_time','24')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('mysql_charset','utf8')");
-        mysqli_query($db, "INSERT INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_timezone','Europe/Paris')");
-    
-        /* Set Twitter account */
-        mysqli_query($db, "INSERT INTO obs_twitteraccounts (`ta_consumer`,`ta_consumersecret`,`ta_accesstoken`,`ta_accesstokensecret`) VALUES ('".$_POST['twitter_consumer']."','".$_POST['twitter_consumersecret']."','".$_POST['twitter_accesstoken']."','".$_POST['twitter_accesstokensecret']."')") or die(mysqli_error($db));
-    
-    
-        /* Set scope */
-        mysqli_query($db, "INSERT INTO obs_scopes (`scope_name`,
-    	                                      `scope_display_name`,
-    					      `scope_department`,
-    					      `scope_coordinate_lat_min`,
-    					      `scope_coordinate_lat_max`,
-    					      `scope_coordinate_lon_min`,
-    					      `scope_coordinate_lon_max`,
-    					      `scope_map_center_string`,
-    					      `scope_map_zoom`,
-    					      `scope_contact_email`,
-    					      `scope_sharing_content_text`,
-    					      `scope_twitter`,
-    					      `scope_twitteraccountid`,
-    					      `scope_twittercontent`,
-    					      `scope_umap_url`)
-    				VALUES ('".$_POST['scope_name']."',
-                                            '".$_POST['scope_display_name']."',
-                                            '".$_POST['scope_departement']."',
-                                            '".$_POST['scope_lat_min']."',
-                                            '".$_POST['scope_lat_max']."',
-                                            '".$_POST['scope_lon_min']."',
-                                            '".$_POST['scope_lon_max']."',
-                                            '".$_POST['scope_mapcenter']."',
-                                            '".$_POST['scope_mapzoom']."',
-                                            '".$_POST['scope_contactemail']."',
-    					'".$_POST['scope_sharing_content_text']."',
-    					'".$_POST['twitter_accountname']."',
-    					'1',
-    					'".$_POST['twitter_twittercontent']."',
-                                            '".$_POST['scope_mapurl']."')") or die(mysqli_error($db));
-    
-        echo "Configuration mise en place / veuillez supprimer le fichier install.php";
-      }
-      else {
-    ?>
-      <form action="/install.php" method="POST">
-        <p>Domaine principal (exemple "api.vigilo.jesuisundesdeux.org") : <input type="text" name="urlbase" /></p>
-        <p>Protocole HTTP (exemple : "https") : <input type="text" name="http_proto" /></p>
-        <p>Nom de l'instance (exemple: JeSuisUnDesDeux / Vigilo): <input type="text" name="instancename" /></p>
-        <p>Clé API Mapquest : <input type="text" name="mapquest_api" /></p>
-        <p>Nom du compte Twitter affiché dans l'app : <input type="text" name="twitter_accountname" /></p>
-        <p>Identifiant Twitter "consumer" : <input type="text" name="twitter_consumer" /></p>
-        <p>Identifiant Twitter "consumersecret" : <input type="text" name="twitter_consumersecret" /></p>
-        <p>Identifiant Twitter "accesstoken" : <input type="text" name="twitter_accesstoken" /></p>
-        <p>Identifiant Twitter "accesstokensecret" : <input type="text" name="twitter_accesstokensecret" /></p>
-        <p>Texte partagé par le compte Twitter (variables : [COMMENT] / [TOKEN] / [COORDINATES_LON] / [COORDINATES_LAT]) : <input type="text" name="twitter_twittercontent" /></p>
-        <p>Identifiant du scope (exemple 34_montpellier): <input type="text" name="scope_name" /></p>
-        <p>Nom du scope (Montpellier): <input type="text" name="scope_display_name" /></p>
-        <p>Departement du scope (34): <input type="text" name="scope_departement" /></p>
-        <p>Latitude min (exemple : 43.202367): <input type="text" name="scope_lat_min" /></p>
-        <p>Latitude max (exemple : 43.402367): <input type="text" name="scope_lat_max" /></p>
-        <p>Longitude min (exemple : 5.082367): <input type="text" name="scope_lon_min" /></p>
-        <p>Longitude max (exemple : 5.202367): <input type="text" name="scope_lon_max" /></p>
-        <p>Coordonnées centre carte (exemple : 43.299037, 5.371397): <input type="text" name="scope_mapcenter" /></p>
-        <p>MAP Zoom (15): <input type="text" name="scope_mapzoom" /></p>
-        <p>Mail de contact: <input type="text" name="scope_contactemail" /></p>
-        <p>Texte par défaut dans les partages: <input type="text" name="scope_sharing_content_text" /></p>
-        <p>Lien carte: <input type="text" name="scope_mapurl" /></p>
-        <p>Valider : <input type="submit" value="Valider" /></p>
-      </form>
-    <?php
-      }
-    }
-  }
-  else {
-    "Erreur : Base non initialisée";
-  }
-}  
+  $query_installed = mysqli_query($db,"SELECT * FROM obs_roles");
+  if(mysqli_num_rows($query_installed) != 0) {
 ?>
- </body>
+<div class="alert alert-warning" role="alert">
+  <strong>Alerte!</strong> Compte admin déjà existant. Veuillez supprimer install.php
+</div>
+
+<?php
+  } 
+  else {
+?>
+
+    <form class="form-signup" method="POST">
+      <img class="mb-4" src="admin/vigilo.png" alt="" width="72" height="72">
+      <h1 class="h3 mb-3 font-weight-normal">Merci de remplir le formulaire</h1>
+
+<?php
+  if(isset($diffpass)) {
+?>
+<div class="alert alert-warning" role="alert">
+  <strong>Alerte!</strong> Mot de passe saisis différents
+</div>
+<?php } ?>
+      <label for="inputEmail" class="sr-only">Nom</label>
+      <input type="text" name='name' class="form-control" placeholder="Nom" required>
+      <label for="inputEmail" class="sr-only">Clé Vigilo</label>
+      <input type="text" name='key' class="form-control" placeholder="Clé Vigilo">
+
+      <label for="inputEmail" class="sr-only">Login</label>
+      <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
+      <label for="inputPassword" class="sr-only">Mot de passe</label>
+      <input type="password" name='password' class="form-control" placeholder="Mot de passe" required>
+      <label for="inputPassword" class="sr-only">Mot de passe (confirmation)</label>
+      <input type="password" name='password2' class="form-control" placeholder="Confirmation mot de passe" required>
+
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+      <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
+    </form>
+<?php 
+  } 
+}
+?>
+  </body>
 </html>
+
 
