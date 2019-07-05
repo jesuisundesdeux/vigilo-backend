@@ -38,6 +38,8 @@ if(!$db = mysqli_connect($config['MYSQL_HOST'],
   exit();
 } 
 
+mysqli_query($db, "SET sql_mode = ''");
+
 $config_query = mysqli_query($db,"SELECT * FROM obs_config");
 while($config_result = mysqli_fetch_array($config_query)) {
   switch($config_result['config_param']) {
