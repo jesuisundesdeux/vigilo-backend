@@ -6,9 +6,9 @@ if (!isset($page_name)) {
 if (isset($_GET['action']) && !isset($_POST['role_id'])) {
   if ($_GET['action'] == 'add') {
     mysqli_query($db,"INSERT INTO obs_roles (role_key,
-	                                          role_name,
-                            						    role_owner,
-                            						    role_login,
+                                            role_name,
+                                            role_owner,
+                                            role_login,
                                             role_password)
                              VALUES ('".str_replace('.', '', uniqid('', true))."',
                                       'guest',

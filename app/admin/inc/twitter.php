@@ -5,10 +5,10 @@ if (!isset($page_name)) {
 
 if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
   if ($_GET['action'] == 'add') {
-	  mysqli_query($db,"INSERT INTO obs_twitteraccounts (ta_consumer,
-		                                                   ta_consumersecret,
-                                        					     ta_accesstoken,
-                                        						   ta_accesstokensecret)
+    mysqli_query($db,"INSERT INTO obs_twitteraccounts (ta_consumer,
+                                                       ta_consumersecret,
+                                                       ta_accesstoken,
+                                                       ta_accesstokensecret)
                                                VALUES ('consumer',
                                                        'consumerkey',
                                                        'accesstoken',
@@ -50,7 +50,7 @@ $query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
 <div class="table-responsive">
   <table class="table table-striped table-sm">
     <thead>
-	    <tr>
+      <tr>
         <th># ID</th>
         <th>Consumer</th>
         <th>Consumer Secret</th>
@@ -76,7 +76,7 @@ while ($result_ta = mysqli_fetch_array($query_ta)) {
         <td>
           <input type="text" class="form-control-plaintext" name="ta_accesstoken" value="<?=$result_ta['ta_accesstoken'] ?>" required />
         </td>
-	      <td>
+        <td>
           <input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="<?=$result_ta['ta_accesstokensecret'] ?>" required />
         </td>
         <td>
