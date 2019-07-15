@@ -6,9 +6,9 @@ if (!isset($page_name)) {
 
 if (isset($_GET['action']) && !isset($_POST['city_id'])) {
   if ($_GET['action'] == 'add') {
-	  mysqli_query($db,"INSERT INTO obs_cities (city_scope,
+    mysqli_query($db,"INSERT INTO obs_cities (city_scope,
                                               city_name,
-                                        			city_postcode,
+                                              city_postcode,
                                               city_area,
                                               city_population,
                                               city_website)
@@ -55,7 +55,7 @@ $query_cities = mysqli_query($db, "SELECT * FROM obs_cities");
 <div class="table-responsive">
   <table class="table table-striped table-sm">
     <thead>
-	    <tr>
+      <tr>
         <th># ID</th>
         <th>Nom</th>
         <th>Scope</th>

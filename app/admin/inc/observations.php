@@ -8,7 +8,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   if ($_GET['action'] == 'delete') {
     mysqli_query($db,"DELETE FROM obs_list WHERE obs_id = '".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
-  } 
+  }
   elseif ($_GET['action'] == 'approve') {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
@@ -19,8 +19,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
   }
-  
-  
+
 }
 
 if (isset($_POST['obs_id'])) {
@@ -37,7 +36,7 @@ if (isset($_POST['obs_id'])) {
       if(preg_match('/obs_(?:.*)$/',$key)) {
         $key = mysqli_real_escape_string($db,$key);
         $value = mysqli_real_escape_string($db,$value);
-        $update .= $key . "='".utf8_encode($value)."',";
+        $update .= $key . "='".$value."',";
       }
     }
     $update = rtrim($update,',');
@@ -96,7 +95,7 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
 <div class="table-responsive">
   <table class="table table-striped table-sm">
     <thead>
-	    <tr>
+      <tr>
         <th>Token</th>
         <th>Photo</th>
         <th>Commentaire</th>
@@ -119,12 +118,12 @@ $heure = date('H:i',$result_obs['obs_time']);
           <img src="/generate_panel.php?s=150&token=<?=$result_obs['obs_token'] ?>" />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=utf8_decode($result_obs['obs_comment']) ?>" />
+          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=utf8_decode($result_obs['obs_address_string']) ?>" required />
+          <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required />
         </td>
-	      <td>
+        <td>
           <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required />
           <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
         </td>

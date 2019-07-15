@@ -5,31 +5,31 @@ if (!isset($page_name)) {
 
 if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
   if ($_GET['action'] == 'add') {
-	  mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
-        	                                    scope_department,
-				                              		    scope_display_name,
-                              						    scope_coordinate_lat_min,
+    mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
+                                              scope_display_name,
+                                              scope_department,
+                                              scope_coordinate_lat_min,
                                               scope_coordinate_lat_max,
                                               scope_coordinate_lon_min,
                                               scope_coordinate_lon_max,
                                               scope_map_center_string,
                                               scope_map_zoom,
-                              						    scope_contact_email,
-                              						    scope_sharing_content_text,
-                              						    scope_twitter,
+                                              scope_contact_email,
+                                              scope_sharing_content_text,
+                                              scope_twitter,
                                               scope_twitteraccountid,
                                               scope_twittercontent,
-                                              scope_umap_url) 
+                                              scope_umap_url)
                                      VALUES ('xx_scope',
-                                             '00',
                                              'Nouveau Scope',
+                                             '00',
                                              '0.00',
                                              '0.00',
                                              '0.00',
                                              '0.00',
                                              '0.00,0.00',
                                              '15',
-                                             'email@domaine.com', 
+                                             'email@domaine.com',
                                              '',
                                              '', 
                                              '0',
@@ -127,7 +127,7 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
       <tr>
         <td>Longitude maximale (DD)</td>
         <td>
-          <input type="text" class="form-control-plaintext" name="scope_coordinate_lon_max" value="<?php $result_scopes['scope_coordinate_lon_max'] ?>" />
+          <input type="text" class="form-control-plaintext" name="scope_coordinate_lon_max" value="<?=$result_scopes['scope_coordinate_lon_max'] ?>" />
         </td>
       </tr>
       <tr>
