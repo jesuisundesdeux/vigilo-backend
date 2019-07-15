@@ -99,11 +99,12 @@ else {
 }
 
 # Check closest issues
-$query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat,obs_coordinates_lon,obs_time,obs_token FROM obs_list");
+$query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat, obs_coordinates_lon, obs_time, obs_token FROM obs_list ORDER BY obs_time DESC");
 $additionalmarkers = '';
 $color_recent = 'db0000';
 $color_month = 'db7800';
 $color_old = 'a8a8a8';
+$count = 0;
 while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
   if (distance($coordinates_lat, $coordinates_lon, $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 200 && $result_issues_coordinates['obs_token'] != $token) {
     $osb_time = $result_issues_coordinates['obs_time'];
@@ -116,6 +117,15 @@ while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates
     }
 
     $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
+
+    # mapquestapi limits requests size to 10,240 bytes
+    # This limit seems to be reached above ~209 markers.
+    # That's why we set a limit and select only 180 last markers.
+    if ($count > 180) {
+      break;
+    } else {
+      $count++;
+    }
   }
 }
 
@@ -126,10 +136,26 @@ $url_zoom = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $config['MAPQU
 $map_download_path_zoom = './maps/' . $token . '_zoom.jpg';
 
 if (!file_exists($map_download_path_zoom)) {
-  $content_zoom = file_get_contents($url_zoom);
-  file_put_contents($map_download_path_zoom, $content_zoom);
-}
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url_zoom);
+  curl_setopt($ch, CURLOPT_HEADER, 0);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // catch output (do NOT print!)
+  $content_zoom = curl_exec($ch);
 
+  $http_error_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+
+  # Check the request went ok and Content-Type is a JPEG image
+  if ($http_error_code != 200 || $content_type != 'image/jpeg') {
+    // Use default place holder picture instead of crashing
+    $map_download_path_zoom = 'panel_components/map_error.jpeg';
+    error_log('Unexpected HTTP result HTTP_CODE = ' .$http_error_code . ' - Content-Type = ' .$content_type);
+  } else {
+    file_put_contents($map_download_path_zoom, $content_zoom);
+  }
+
+  curl_close($ch);
+}
  
 ##################################### COMPOSING IMAGE #########################"
 ## Init other images components :
