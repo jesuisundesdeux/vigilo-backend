@@ -107,7 +107,7 @@ while ($result_role = mysqli_fetch_array($query_role)) {
            <a href="?page=<?=$page_name ?>&action=delete&roleid=<?=$result_role['role_id'] ?>" onclick="return confirm('Merci de valider la suppression?')">Supprimer</a>
          </td>
        </tr>
-     <form>
+     </form>
 <?php
 }
 ?>
