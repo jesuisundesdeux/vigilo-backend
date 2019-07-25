@@ -123,7 +123,7 @@ while ($result_cities = mysqli_fetch_array($query_cities)) {
           <a href="?page=<?=$page_name ?>&action=delete&cityid=<?=$result_cities['city_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
         </td>
       </tr>
-      <form>
+      </form>
 <?php
 }
 ?>
