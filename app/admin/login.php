@@ -14,7 +14,7 @@ if (isset($_POST['login'])) {
     }
     header('Location: index.php');
   }
-  elseif ($_COOKIE['admin-key'] == $login_result['role_key']) {
+  elseif (isset($_COOKIE['admin-key']) && $_COOKIE['admin-key'] == $login_result['role_key']) {
     $_SESSION['login'] = $login;
   }
   else {
