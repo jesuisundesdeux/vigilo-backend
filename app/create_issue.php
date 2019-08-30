@@ -146,10 +146,14 @@ if (mysqli_num_rows($query_cities) == 0) {
 # Check if observation is located in a city listed within the scope
 $nominatim_json = get_data_from_gps_coordinates($coordinates_lat, $coordinates_lon);
 $obs_address = $nominatim_json['address'];
-$postcode = $obs_address['postcode'];
 
+$postcode = "";
 $town = "";
 $road = "";
+if (isset($obs_address['postcode']) {
+  $postcode = $obs_address['postcode'];
+}
+
 if (isset($obs_address['town'])) { 
   $town = $obs_address['town'];
 }
