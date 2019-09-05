@@ -365,7 +365,7 @@ Version backend >= 0.0.1
 | Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | Si secretid non fourni | | Clé privé de l'utilisateur | >= 0.0.1 |
-| Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
+| URL | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
 | URL | str | secretid | Si key non fourni | | Clé secrète de l'observation >= 0.0.1 |
 
 
