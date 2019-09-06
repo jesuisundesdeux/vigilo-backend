@@ -50,7 +50,14 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 }
 
 /* Save image */
-$data = file_get_contents('php://input');
+$req_headers = getallheaders();
+if($req_headers['Transfer-Encoding'] == "chunked") {     
+  $data = file_get_contents("php://stdin");
+} 
+else {
+  $data = file_get_contents('php://input');
+}
+
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
 $filepath = 'images/'.$filename.'.jpg';
 
