@@ -1,5 +1,8 @@
 <?php
-require_once('config/config.php');
+
+$cwd = dirname(__FILE__);
+
+require_once("${cwd}/includes/common.php");
 
 function deleteInstallFile() {
   unlink('./install.php');
@@ -19,7 +22,7 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
                                             role_owner,
                                             role_login,
                                             role_password)
-                             VALUES ('".$key."',
+                             VALUES ('',
                                       'admin',
                                       '".$_POST['name']."',
                                       '".$_POST['login']."',
@@ -135,23 +138,20 @@ else {
   if(isset($diffpass)) {
 ?>
 <div class="alert alert-warning" role="alert">
-  <strong>Alerte!</strong> Mot de passe saisis différents
+  <strong>Alerte!</strong> Mots de passe différents
 </div>
 <?php } ?>
-      <label for="inputEmail" class="sr-only">Nom</label>
-      <input type="text" name='name' class="form-control" placeholder="Nom" required>
-      <label for="inputEmail" class="sr-only">Clé Vigilo</label>
-      <input type="text" name='key' class="form-control" placeholder="Clé Vigilo">
-
-      <label for="inputEmail" class="sr-only">Login</label>
-      <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
+      <label for="inputEmail" class="sr-only">Nom et Prénom</label>
+      <input type="text" name='name' class="form-control" placeholder="Nom et Prénom" required>
+      <label for="inputEmail" class="sr-only">Identifiant</label>
+      <input type="text" name='login' class="form-control" placeholder="Identifiant" required autofocus>
       <label for="inputPassword" class="sr-only">Mot de passe</label>
       <input type="password" name='password' class="form-control" placeholder="Mot de passe" required>
       <label for="inputPassword" class="sr-only">Mot de passe (confirmation)</label>
       <input type="password" name='password2' class="form-control" placeholder="Confirmation mot de passe" required>
 
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-      <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Créer le compte</button>
+      <p class="mt-5 mb-3 text-muted">&copy; 2018-2019</p>
     </form>
 <?php 
   } 
