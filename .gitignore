@@ -9,7 +9,7 @@ app/datas.php
 app/caches
 app/install.php
 
-#app/config/config.php
+app/config/config.php
 
 # Backup
 backup/

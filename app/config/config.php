@@ -19,8 +19,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /* Database configuration */
 
-$config['MYSQL_HOST'] = getenv('MYSQL_HOST');
-$config['MYSQL_USER'] = getenv('MYSQL_USER');
-$config['MYSQL_PASSWORD'] = getenv('MYSQL_PASSWORD');
-$config['MYSQL_DATABASE'] = getenv('MYSQL_DATABASE');
+// $config['MYSQL_HOST'] = getenv('MYSQL_HOST');
+// $config['MYSQL_USER'] = getenv('MYSQL_USER');
+// $config['MYSQL_PASSWORD'] = getenv('MYSQL_PASSWORD');
+// $config['MYSQL_DATABASE'] = getenv('MYSQL_DATABASE');
 
+$config['MYSQL_HOST'] = "db45917-api-vigilo-parissaclay.sql-pro.online.net";
+$config['MYSQL_USER'] = "db110552";
+$config['MYSQL_PASSWORD'] = "ada5ec82689f6088b2b4d6518cf1f61b";
+$config['MYSQL_DATABASE'] = "db45917_api_vigilo_parissaclay";
