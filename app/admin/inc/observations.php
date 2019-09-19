@@ -15,7 +15,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     }
     else {
       $approveto = 1;
-    } 
+    }
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
   }
@@ -65,7 +65,7 @@ if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
 }
 else {
   $pagenb = 1;
-} 
+}
 
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
@@ -128,11 +128,14 @@ $heure = date('H:i',$result_obs['obs_time']);
           <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
         </td>
         <td>
+            <?php // Droits réservés aux admins
+            if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') { ?>
           <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
           <button class="btn btn-primary" type="submit">Valider édition</button><br />
           <a href="?page=<?=$page_name ?>&action=approve&approveto=1&obsid=<?=$result_obs['obs_id'] ?>">Approuver</a><br />
           <a href="?page=<?=$page_name ?>&action=approve&approveto=2&obsid=<?=$result_obs['obs_id'] ?>">Désapprouver</a><br />
           <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
+          <?php } ?>
         </td>
       </tr>
       </form>
@@ -185,7 +188,7 @@ else {
     </li>
   </ul>
 </nav>
-<?php 
+<?php
 }
 ?>
 <br />

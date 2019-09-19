@@ -1,6 +1,6 @@
 <?php
 
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
   exit('Not allowed');
 }
 
@@ -74,7 +74,7 @@ $scopelist = array();
 $query_scopes = mysqli_query($db, "SELECT * FROM obs_scopes");
 while ($result_scopes = mysqli_fetch_array($query_scopes)) {
   $scopeid = $result_scopes['scope_id'];
-  $scopelist[$scopeid] = $result_scopes['scope_name']; 
+  $scopelist[$scopeid] = $result_scopes['scope_name'];
 }
 
 while ($result_cities = mysqli_fetch_array($query_cities)) {

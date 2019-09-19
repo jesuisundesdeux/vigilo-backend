@@ -1,5 +1,5 @@
 <?php
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
   exit('Not allowed');
 }
 
@@ -33,12 +33,12 @@ if (isset($_POST['role_id'])) {
       $key = mysqli_real_escape_string($db,$key);
     	$value = mysqli_real_escape_string($db,$value);
   	  if ($key == 'role_password') {
-        if ($value != '') { 
+        if ($value != '') {
   	      $value = hash('sha256',$value);
         }
     	}
-  	  if (!($key == 'role_password' && $value == '')) { 
-        $update .= $key . "='".$value."',"; 
+  	  if (!($key == 'role_password' && $value == '')) {
+        $update .= $key . "='".$value."',";
   	  }
     }
   }
@@ -77,7 +77,7 @@ while ($result_role = mysqli_fetch_array($query_role)) {
            <td><input type="text" class="form-control-plaintext" name="role_key" value="<?=$result_role['role_key'] ?>" required /></td>
       	   <td>
              <select name="role_name" class=" custom-select">
-<?php  
+<?php
   foreach (array('guest','admin','citystaff') as $value) {
     if ($value == $result_role['role_name']) {
       $selected = "selected";

@@ -1,5 +1,5 @@
 <?php
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
 	  exit('Not allowed');
 }
 

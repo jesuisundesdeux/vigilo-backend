@@ -1,5 +1,5 @@
 <?php
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
 	  exit('Not allowed');
 }
 
@@ -31,7 +31,7 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                              '15',
                                              'email@domaine.com',
                                              '',
-                                             '', 
+                                             '',
                                              '0',
                                              '',
                                              '')");
@@ -63,7 +63,7 @@ if (isset($_POST['scope_id'])) {
 $twitterlist = array();
 $query_twitter = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
 while ($result_twitter = mysqli_fetch_array($query_twitter)) {
-  $twitterlist[] = $result_twitter['ta_id']; 
+  $twitterlist[] = $result_twitter['ta_id'];
 }
 $query_scopes = mysqli_query($db, "SELECT * FROM obs_scopes");
 
@@ -219,4 +219,4 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
 <br />
 <?php
 }
-?> 
+?>
