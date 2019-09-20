@@ -32,9 +32,10 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
           $comment = '';
           $time = time();
           // TO IMPROVE : the new status is given in the $_GET
-          $new_status = mysqli_real_escape_string($_GET['new_status']);
+          $new_status = mysqli_real_escape_string($db,$_GET['new_status']);
           mysqli_query($db, "INSERT INTO obs_status_update (status_update_obsid,status_update_status,status_update_comment,status_update_time,status_update_roleid)
                             VALUES ('".$obsid."','".$new_status."','".$comment."','".$time."','".$role_id."')");
+          mysqli_query($db, "UPDATE obs_list SET obs_status = '".$new_status."' WHERE obs_id = $obsid ");
       }
   }
 
@@ -71,14 +72,23 @@ if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
 else {
   $approved = 1;
 }
+if (isset($_GET['resolved']) && is_numeric($_GET['resolved'])) {
+    $resolved = mysqli_real_escape_string($db,$_GET['resolved']);
+}
+else {
+    $resolved = 0;
+}
 
 $tabapproved[0] = "";
 $tabapproved[1] = "";
 $tabapproved[2] = "";
-$tabapproved[3] = "";
-$tabapproved[4] = "";
-$tabapproved[5] = "";
 $tabapproved[$approved] = "active";
+
+$tabresolved[0] = "";
+$tabresolved[1] = "";
+$tabresolved[2] = "";
+$tabresolved[3] = "";
+$tabresolved[$resolved] = "active";
 
 
 if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
@@ -91,12 +101,12 @@ else {
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1");
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."'");
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
 
 
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
 
 ?>
 
@@ -111,16 +121,27 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
   <li class="nav-item">
     <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2">Désapprouvées</a>
   </li>
+</ul>
+<?php // Si l'onglet actif est "Observations approuvées"
+if ($tabapproved[1] == "active") { ?>
+<ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[3] ?>" href="?page=<?=$page_name ?>&approved=3">Prises en compte</a>
+    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0">Non prises en compte</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[4] ?>" href="?page=<?=$page_name ?>&approved=4">En cours de résolution</a>
+    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2">Prises en compte</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[5] ?>" href="?page=<?=$page_name ?>&approved=5">Résolues</a>
+    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3">En cours de résolution</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4">Indiquées résolues</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1">Résolues</a>
   </li>
 </ul>
+<?php } ?>
 <br />
 <div class="table-responsive">
   <table class="table table-striped table-sm">
@@ -158,18 +179,20 @@ $heure = date('H:i',$result_obs['obs_time']);
           <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
         </td>
         <td>
-            <?php // Droits réservés aux admins
+            <?php // Droits réservés aux admins : approuver/désapprouver/résoudre/supprimer une observation
             if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') { ?>
           <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
           <button class="btn btn-primary" type="submit">Valider édition</button><br />
           <a href="?page=<?=$page_name ?>&action=approve&approveto=1&obsid=<?=$result_obs['obs_id'] ?>">Approuver</a><br />
           <a href="?page=<?=$page_name ?>&action=approve&approveto=2&obsid=<?=$result_obs['obs_id'] ?>">Désapprouver</a><br />
-          <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&obsid=<?=$result_obs['obs_id'] ?>">Résoudre</a><br />
+          <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a><br />
           <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
-      <?php } elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') { ?>
+      <?php } // Pour les citystaff on n'affiche que la "prise en compte", "en cours de résolution" et "considérée résolue"
+      elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') { ?>
           <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
           <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&obsid=<?=$result_obs['obs_id'] ?>">Prendre en compte l'observation</a><br />
           <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&obsid=<?=$result_obs['obs_id'] ?>">Observation en cours de résolution</a><br />
+          <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a>
       <?php } ?>
         </td>
       </tr>
