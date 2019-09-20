@@ -150,7 +150,7 @@ $obs_address = $nominatim_json['address'];
 $postcode = "";
 $town = "";
 $road = "";
-if (isset($obs_address['postcode']) {
+if (isset($obs_address['postcode'])) {
   $postcode = $obs_address['postcode'];
 }
 
