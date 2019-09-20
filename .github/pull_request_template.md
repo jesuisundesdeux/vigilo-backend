@@ -1,7 +1,5 @@
 # Description
-- Feature 1
-- Feature 2
-- ...
+- Ajout de la gestion de droits (admin,citystaff) dans la partie admin
 
 ### If necessary, please
 * Update **documentation** or README
