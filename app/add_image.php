@@ -51,11 +51,11 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 
 /* Save image */
 $req_headers = getallheaders();
-if(isset($req_headers['Content-Length'])) {
-  $data = file_get_contents('php://input');
+if(isset($req_headers['Transfer-Encoding']) && $req_headers['Transfer-Encoding'] == "chunked") { 
+  $data = file_get_contents("php://stdin");
 }
 else {
-  $data = file_get_contents("php://stdin");
+  $data = file_get_contents('php://input');
 }
 
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
