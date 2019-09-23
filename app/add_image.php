@@ -51,7 +51,7 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 
 /* Save image */
 $req_headers = getallheaders();
-if($req_headers['Transfer-Encoding'] == "chunked") {     
+if(isset($req_headers['Transfer-Encoding']) && $req_headers['Transfer-Encoding'] == "chunked") {     
   $data = file_get_contents("php://stdin");
 } 
 else {
