@@ -1,5 +1,5 @@
 <?php
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
   exit('Not allowed');
 }
 
@@ -7,7 +7,7 @@ if (!isset($page_name)) {
 $opts = [
     "http" => [
         "method" => "GET",
-        "header" => "User-Agent: requests\r\n" 
+        "header" => "User-Agent: requests\r\n"
     ]
 ];
 $context = stream_context_create($opts);
@@ -18,8 +18,8 @@ $git_json = json_decode($data,true);
 $biggest= '0.0.1';
 foreach ($git_json as $key => $value) {
   if (preg_match('/([0-9*]).([0-9*]).([0-9*])/',$value['name'])) {
-    if (version_compare($value['name'],$biggest,">")) { 
-      $biggest = $value['name'];   
+    if (version_compare($value['name'],$biggest,">")) {
+      $biggest = $value['name'];
     }
   }
 }
@@ -27,7 +27,7 @@ foreach ($git_json as $key => $value) {
 $query_version = mysqli_query($db,"SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version' LIMIT 1");
 $result_version = mysqli_fetch_array($query_version);
 
-$code_version = BACKEND_VERSION ; 
+$code_version = BACKEND_VERSION ;
 $db_version = $result_version['config_value'];
 $last_version = $biggest ;
 
@@ -42,7 +42,7 @@ if ($code_version != $last_version) {
 <div class="alert alert-info" role="alert">
   <strong>Nouvelle version disponible !</strong> Une nouvelle version (<?=$last_version ?>) est disponible, merci de faire la mise à jour dès que possible.<br />
   <a href="https://github.com/jesuisundesdeux/vigilo-backend/tree/'.$last_version.'">Rendez-vous sur Git-hub</a>
-</div> 
+</div>
 <?php
 }
 ?>

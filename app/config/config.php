@@ -23,4 +23,3 @@ $config['MYSQL_HOST'] = getenv('MYSQL_HOST');
 $config['MYSQL_USER'] = getenv('MYSQL_USER');
 $config['MYSQL_PASSWORD'] = getenv('MYSQL_PASSWORD');
 $config['MYSQL_DATABASE'] = getenv('MYSQL_DATABASE');
-
