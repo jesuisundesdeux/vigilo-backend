@@ -305,7 +305,7 @@ ORDER BY obs_time DESC
             ),
             'properties' => array(
               'name' => $value['token'].' '.$value['comment'],
-              'description' => '{{https://api.vigilo-parissaclay.mdb-idf.org/images/'.$value['token'].'.jpg}} '.$value['explanation'],
+              'description' => '{{'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/images/'.$value['token'].'.jpg}} '.$value['explanation'],
               'token' => $value['token'],
               'address' => $value['address'],
               'comment' => $value['comment'],
