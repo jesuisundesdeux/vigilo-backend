@@ -4,13 +4,13 @@
 
 #### Connaissances 
 
-* OS Linux / Docker (si serveur dédié)
-* LAMP (si hebergement mutualisé)
+* OS Linux / PHP / MySQL / Docker (si serveur dédié)
+* PHP / MySQL (si hebergement mutualisé)
 
 #### Vigilo-Backend
 
 Vigilo-Backend necessite soit :
-* Un serveur dédié sur lequel est installé Docker
+* Un serveur dédié sur lequel est installé Docker avec un reverse proxy permettant d'accéder au service Vigilo et de Offloader le SSL.
 * Un hébergement PHP/MySQL
 
 Versions :
@@ -18,9 +18,16 @@ Versions :
 
 #### Services externes
 
+Avant d'installer Vigilo, il est necessaire d'obtenir les clé d'API des services externes utilisés.
+
 ##### MapQuest
 
-Obtenir une clé d'API MapQuest sur le module StaticMAP API => https://developer.mapquest.com/
+Mapquest est utilisé pour générer les images de carte dans le poster qui est généré.
+
+Pour obtenir une clé d'API MapQuest sur le module StaticMAP API => https://developer.mapquest.com/
+
+Créer un compte sur la plate-forme et générer une clé via le lien "Manage Key".
+Récupérer ensuite le "Consumer Key" qui sera à renseigner dans Vigilo.	
 
 ##### Twitter
 
@@ -66,12 +73,17 @@ Une fois que votre compte est validé
 - Créez un Access token dans « Access token & access token secret » et récupérez l'Access token (accesstoken) et l'Access token secret (accesstokensecret)
 - Renseignez enfin ces 4 clés dans votre configuration Vigilo.
 
-#### Serveur dédié
+#### Installation Vigilo
 
-Cloner le repo git complet en adaptant la version (préciser derniere version)
+##### Serveur dédié
+
+Cette partie documentaire explique uniquement la partie installation de Vigilo via docker. 
+A charge à l'administrateur d'installer le necessaire en amont pour permettre la mise en place d'un certificat SSL (LetsEncrypt).
+
+Cloner le repo git complet en adaptant la version en remplacant X.X.X par la dernière branche du git existante.
 
 ```
-$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b 0.0.10  --single-branch
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b X.X.X --single-branch
 ```
 
 Copier le .env_sample vers .env
@@ -79,10 +91,10 @@ Copier le .env_sample vers .env
 ``` $ cp .env_sample .env_prod```
 
 Adapter les valeurs dans ```.env_prod``` :
-* VOLUME_PATH : Repertoire persistent sur le serveur  où seront stockées les données de Vigilo 
+* VOLUME_PATH : Repertoire persistent sur le serveur où seront stockées les données de Vigilo 
 * MYSQL_ROOT_PASSWORD : Mot de passe root de la base de données 
 * MYSQL_PASSWORD : Mot de passe du compte vigilo de la base de données
-* BIND : Adresse d'écoute HOST:PORT
+* BIND : Adresse d'écoute HOST:PORT permettant d'accéder au conteneur à partir d'un reverse proxy sur l'hote ou à partir d'un autre container.
 
 Adapter si besoin ce fichier au contexte du serveur sur lequel il est hebergé.
 
@@ -91,84 +103,87 @@ Lancer le service :
 ``` 
 $ make ENV=prod install
 ```
-- Aller ensuite sur http://IP/install.php et remplir les champs.
+- Aller ensuite sur http://IP/install.php et remplir les champs permettant de créer un compte admin.
 - Supprimer ensuite le fichier app/install.php
 
-#### Hebergement mutualisé
+##### Hebergement mutualisé
 
-##### Mise en place sources
+Cette partie documentaire explique la mise en place du code Vigilo sur un hebergement mutualité PHP/MySQL
 
-Cloner le repo :
+###### Mise en place sources
 
-$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b 0.0.10  --single-branch
+Cloner le repo git complet en adaptant la version en remplacant X.X.X par la dernière branche du git existante.
+
+$ git clone https://github.com/jesuisundesdeux/vigilo-backend.git -b X.X.X --single-branch
 
 Importer le contenu de ```app/``` dans l'arborescence web.
 
-##### Mise en place base de données
+###### Mise en place base de données
 
 Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'ordre sur MySQL.
 
-### Configuration
+##### Configuration
 
-#### config/config.php
+##### config/config.php
+
+Copier le fichier config/config.php.tpl vers config/config.php
 
 Renseigner les différents valeurs à configurer concernant la base de données.
  
-#### Initialisation Vigilo
+##### Initialisation Vigilo
 
-* Copier le fichier install_app/install.php sur l'hebergement et y accéder.
-* Remplir tous les champs et valider.
+* Copier le fichier install_app/install.php sur l'hebergement et y accéder via https://adresse_du_serveur/install.php
+* Remplir les champs permettant de créer un compte admin
 * Supprimer install.php.
 
-##### Listing des villes
+#### Configuration de l'instance
 
-Chaque scope est constitué de une ou plusieurs villes. Ces villes sont listées
-et décrites dans la table obs_cities.
+Aller sur https://adresse_du_serveur/admin/
 
-Créer une entrée par ville du scope.
+##### Configuration
 
-```
-INSERT INTO `obs_cities`
-                (`city_id`,
-                `city_scope`,
-                `city_name`,
-                `city_postcode`,
-                `city_area`,
-                `city_population`,
-                `city_website`
-         ) VALUES
-                (ID_DE_LA_VILLE,
-                 ID_DU_SCOPE,
-                 NOM_DE_LA_VILLE,
-                 CODE_POSTAL,
-                 SUPERFICIE,
-                 POPULATION,
-                 WEBSITE
-         );
-```
+Remplir les différents champs :
 
-* ID_DE_LA_VILLE : valeur auto incrémentée
-* ID_DU_SCOPE : identifiant unique entier définissant le scope
-* NOM_DE_LA_VILLE : Nom entier de la ville
-* NOM_DE_LA_VILLE : Code postal de la ville
-* SUPERFICIE : Superficie de la ville en km2
-* POPULATION : Nombre d'habitants de la ville
-* WEBSITE : Site web de la ville
+* URL base	: adresse de vigilo (exmeple : vigilo.jesuisundesdeux.org)
+* Protocole d'accès	: http ou https
+* Nom de l'instance	
+* Langue : fr-Fr (pas utilisé à ce jour)
+* Clé Mapquest	: clé définie ci-dessus
+* Nombre d'heure max pour Tweeter observations	: Age maxiumum en heures des observations qui seront postées sur twitter automatiquement
+* Charset : utf8
+* Timezone : Fuseau horaire normalisé
 
-#### Champs de configuration Vigilo 
+##### Twitter
 
-WIP
+Remplir pour chaque ligne les informations du compte twitter correspondant
 
-* ID_DU_SCOPE : Numero du département + "_" + nom ville attaché (exemple : 34_montpellier)
-* NOM_SCOPE : Nom affiché du scope dans Vigilo (exemple : Montpellier)
-* DEPARTEMENT : Numéro du département du scope. Permet de trier / filtrer les instances de Vigilo dans les applications clientes.
-* COORDONNEE_LAT_MIN / COORDONNEE_LAT_MAX / COORDONNEE_LON_MIN / COORDONNEE_LON_MAX : Limites géographique en degré décimal de la zone
-* COORDONNEES_CENTRE_CARTE : Latitude + "," + Longitude du centre de la carte qui sera affichée
-* ZOOM : Zoom de la carte qui sera affiché (voir Zoom Google Map)
-* CONTACT_EMAIL : Adresse mail de contact de l'instance
-* TWEET_CONTENT : Contenu du tweet qui mis par défaut via le composant de partage de l'application
-* TWITTER : Compte Twitter associé à l'instance de Vigilo
-* MAP_URL : Adresse de la carte où sont affichées les observations
+##### Scopes
+
+Les scopes sont des zones géographiques indépendantes au sein d'une même instance.
+
+Il correspondent en règle générale à une Metropole, Agglomération voire un ville.
+
+En règle générale, un seul scope est necessaire.
+
+Ajouter un scope et remplir ses information comme suit :
+* Identifiant : XX_yyyyyyy où "xx" correspond au numero de departement ou code pays si non français (be, uk, ...) et "yyyyyyy" à un nom court (sans espace, ni accents, ni caractères spéciaux) correspondant au nom de la zone
+* Nom affiché	: Nom qui sera affiché correspondant à la zone
+* Departement : Numero du département ou 0 si non applicable
+* Latitude/Longitude minimale/maximale : Permet de limiter géographiquement la zone
+* Coordonées centre du scope	: Coordonnées du centre des cartes qui seront affichées dans l'application
+* Zoom cartes	: Zoom  des cartes qui seront affichées dans l'application
+* Email Contact	: Email de contact de l'association en charge du scope
+* Text de partage par défaut	: Texte de partage qui sera mis par défaut quand les utilisateur utiliseront la fonction partage de l'application
+* Compte Twitter affiché	: Compte twitter affiché correspondant au scope
+* Identifiant compte twitter	: Numero du compte twitter configuré précédement qui sera utilisé par le scope
+* Contenu des tweets autos : Contenu des tweets qui seront postés par le compte twitter lors de la validation des observations
+* URL carte externe	: Si besoin, URL d'une carte qui affiche les observations
+
+##### Villes
+
+Ensemble des villes qui font parties des scopes.
+
+Cette fonctionnalité n'est pas encore utilisée, mais est à remplir pour anticiper les futures évolutions.
 
 
 #### Modération
@@ -176,17 +191,18 @@ WIP
 ##### Via Vigilo Android
 
 * Ouvrir Vigilo
-* Créer une nouvelle observation
-* Choisir une photo
-* Cliquer sur la photo pour passer en mode edition
-* Appuyer 15 fois sur l'icone affichage des outils (tout en bas à droite)
-* Dès qu'un rectangle s'affiche en bas, annuler la création de l'observation et revenir sur la liste des observation
+* Panneau latérale (accessible via les trois barres en haut à gauche)
+* Générer une clé
 * Un message affichant "texte copié" s'affiche / votre clé est copié automatiquement
-* ajouter la clé dans la table obs_role avec pour role name "admin" et role_owner le nom du propriétaire du compte.
+* Ajouter la clé sur la ligne du compte dans admin/
 
-##### Via Web
+##### Via Vigilo Web
 
-* Ajouter le login / mot de passe dans une entrée dans la table obs_role (mot de passe en sha256)
+
+* Panneau latérale (accessible via les trois barres en haut à gauche)
+* "Presque modérateur"
+* Ajouter la clé sur la ligne du compte dans admin/
+
 
 
 
