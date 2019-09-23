@@ -50,21 +50,28 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 }
 
 /* Save image */
-$req_headers = getallheaders();
-if(isset($req_headers['Transfer-Encoding']) && $req_headers['Transfer-Encoding'] == "chunked") { 
-  $data = file_get_contents("php://stdin");
-}
-else {
-  $data = file_get_contents('php://input');
-}
+//$req_headers = getallheaders();
+
 
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
 $filepath = 'images/'.$filename.'.jpg';
+$image_written = False;
 
+$data = file_get_contents("php://stdin");
 if (!(file_put_contents($filepath, $data))) {
-  jsonError($error_prefix, "Error uploading image", "IMAGEUPLOADFAILED", 500);
+  $data = file_get_contents('php://input');
+  if (!(file_put_contents($filepath, $data))) {
+    jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
+  }
+  else {
+    $image_written = True;
+  }
 }
 else {
+  $image_written = True;
+}
+
+if($image_written) {
   $allowedTypes = array(IMAGETYPE_JPEG);
   $detectedType = exif_imagetype($filepath);
   if (!array($detectedType, $allowedTypes)) {
