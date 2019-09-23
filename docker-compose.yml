@@ -27,6 +27,7 @@ services:
        - ${VOLUME_PATH}/files/maps:/var/www/html/maps
        - ${VOLUME_PATH}/files/images:/var/www/html/images
        - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
+       - ./config/config.php.docker:/var/www/html/config/config.php
      environment:
        - MYSQL_HOST
        - MYSQL_USER
