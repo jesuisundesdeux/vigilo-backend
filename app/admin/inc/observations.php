@@ -88,6 +88,7 @@ $tabresolved[0] = "";
 $tabresolved[1] = "";
 $tabresolved[2] = "";
 $tabresolved[3] = "";
+$tabresolved[4] = "";
 $tabresolved[$resolved] = "active";
 
 
