@@ -153,7 +153,7 @@ class GetIssues
     $where = "";
 
     if (count($this->categorie) > 0) {
-      $categorie_search = " AND obs_categorie IN ("; 
+      $categorie_search = " AND obs_categorie IN (";
       foreach($this->categorie as $categorie_item) {
         $categorie_search .= "'" . $categorie_item . "',";
       }
@@ -246,12 +246,12 @@ ORDER BY obs_time DESC
 	  }
 	} elseif($this->token_filter_enabled) {
 	  if($token_result['obs_categorie'] == $result['obs_categorie'] OR !$this->token_filters['categorie']) {
-    	    if(((str_replace(' ','',$token_result['obs_address_string']) == str_replace(' ','',$result['obs_address_string'])) AND $this->token_filters['address']) OR 
+    	    if(((str_replace(' ','',$token_result['obs_address_string']) == str_replace(' ','',$result['obs_address_string'])) AND $this->token_filters['address']) OR
             (distance($token_result['obs_coordinates_lat'], $token_result['obs_coordinates_lon'], $result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $unit = 'm') < $this->token_filter_distance AND $this->token_filters['distance'])) {
                 $json[] = $issue;
 	      }
 	  }
-	} 
+	}
 	else {
           $json[] = $issue;
         }
@@ -299,11 +299,13 @@ ORDER BY obs_time DESC
             'geometry' => array(
               'type' => 'Point',
               'coordinates' => array(
-                $value['coordinates_lat'],
-                $value['coordinates_lon']
+                $value['coordinates_lon']+0,
+                $value['coordinates_lat']+0
               ),
             ),
             'properties' => array(
+              'name' => $value['token'].' '.$value['comment'],
+              'description' => '{{'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/images/'.$value['token'].'.jpg}} '.$value['explanation'],
               'token' => $value['token'],
               'address' => $value['address'],
               'comment' => $value['comment'],
