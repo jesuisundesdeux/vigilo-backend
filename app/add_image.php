@@ -50,9 +50,6 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 }
 
 /* Save image */
-//$req_headers = getallheaders();
-
-
 $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
 $filepath = 'images/'.$filename.'.jpg';
 $image_written = False;
