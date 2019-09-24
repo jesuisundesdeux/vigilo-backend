@@ -122,9 +122,9 @@ Importer le contenu de ```app/``` dans l'arborescence web.
 
 Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'ordre sur MySQL.
 
-##### Configuration
+###### Configuration
 
-##### config/config.php
+####### config/config.php
 
 Copier le fichier config/config.php.tpl vers config/config.php
 
