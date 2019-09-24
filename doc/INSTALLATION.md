@@ -124,7 +124,7 @@ Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'or
 
 ###### Configuration
 
-####### config/config.php
+* config/config.php
 
 Copier le fichier config/config.php.tpl vers config/config.php
 
