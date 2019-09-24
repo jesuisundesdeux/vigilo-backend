@@ -28,7 +28,7 @@ else {
 
 global $config;
 
-define('BACKEND_VERSION','0.0.12');
+define('BACKEND_VERSION','0.0.13');
 
 if(!$db = mysqli_connect($config['MYSQL_HOST'],
                      $config['MYSQL_USER'],

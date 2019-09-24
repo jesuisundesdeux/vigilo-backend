@@ -22,7 +22,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   elseif ($_GET['action'] == 'resolve' && isset($_GET['new_status'])) {
       if (is_numeric($_GET['new_status'])) {
           // We collect the role_id
-          $role_query = mysqli_query($db,"SELECT role_id FROM obs_roles WHERE role_key = '".$key."'");
+          $role_query = mysqli_query($db,"SELECT role_id FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
           if ($role_result = mysqli_fetch_array($role_query)) {
             $role_id = $role_result['role_id'];
           }
