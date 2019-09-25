@@ -1,7 +1,8 @@
 <?php
-if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
+if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
   exit('Not allowed');
 }
+
 
 if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
   if ($_GET['action'] == 'add') {

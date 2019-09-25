@@ -1,26 +1,42 @@
 <?php
-if (!isset($page_name)) {
+if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
   exit('Not allowed');
 }
 
+$actions_acl = array("delete" => array("access" => array('admin')),
+                     "resolve" => array("access" => array('admin','citystaff')),
+                     "approve" => array("access" => array('admin')),
+                     "cleancache" => array("access" => array('admin')),
+                     "edit" => array("access" => array('admin')));
+
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
-  if ($_GET['action'] == 'delete') {
+  $token = mysqli_real_escape_string($db,$_GET['token']);
+ 
+  if ($_GET['action'] == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
+
     mysqli_query($db,"DELETE FROM obs_list WHERE obs_id = '".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
+
   }
-  elseif ($_GET['action'] == 'approve') {
+  elseif ($_GET['action'] == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
     }
     else {
       $approveto = 1;
     }
+    delete_token_cache($token);
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
   }
-  elseif ($_GET['action'] == 'resolve' && isset($_GET['new_status'])) {
-      if (is_numeric($_GET['new_status'])) {
+  elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
+    delete_token_cache($token);
+    delete_map_cache($token);
+  }
+  elseif ($_GET['action'] == 'resolve' && isset($_GET['new_status']) && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
+      $new_status = $_GET['new_status'];
+      if (is_numeric($new_status) && in_array($_SESSION['role'],$status_list[$new_status]['roles'])) {
           // We collect the role_id
           $role_query = mysqli_query($db,"SELECT role_id FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
           if ($role_result = mysqli_fetch_array($role_query)) {
@@ -31,17 +47,25 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
           }
           $comment = '';
           $time = time();
-          // TO IMPROVE : the new status is given in the $_GET
-          $new_status = mysqli_real_escape_string($db,$_GET['new_status']);
           mysqli_query($db, "INSERT INTO obs_status_update (status_update_obsid,status_update_status,status_update_comment,status_update_time,status_update_roleid)
                             VALUES ('".$obsid."','".$new_status."','".$comment."','".$time."','".$role_id."')");
           mysqli_query($db, "UPDATE obs_list SET obs_status = '".$new_status."' WHERE obs_id = $obsid ");
+
+          if($new_status == 1 || $new_status == 0) {
+            delete_token_cache($token);
+          }
       }
+      else {
+        exit('Not allowed');
+      }
+  }
+  else {
+    exit('Not allowed');
   }
 
 }
 
-if (isset($_POST['obs_id'])) {
+if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   $update = "";
   $obstime = strptime($_POST['post_date'].' '.$_POST['post_heure'],'%d/%m/%Y %H:%M');
   if(!$obstime || strlen($_POST['post_date']) != 10 || strlen($_POST['post_heure']) != 5) {
@@ -112,19 +136,27 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
 ?>
 
 <h2>Liste</h2>
+
+<?php
+if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
+?>
 <ul class="nav nav-tabs">
   <li class="nav-item">
     <a class="nav-link <?=$tabapproved[1] ?>" href="?page=<?=$page_name ?>&approved=1">Approuvées</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0">Non approuvées</a>
+    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0">A qualifier</a>
   </li>
   <li class="nav-item">
     <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2">Désapprouvées</a>
   </li>
 </ul>
-<?php // Si l'onglet actif est "Observations approuvées"
-if ($tabapproved[1] == "active") { ?>
+<?php
+}
+
+// Si l'onglet actif est "Observations approuvées"
+if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { ?>
+<br />
 <ul class="nav nav-tabs">
   <li class="nav-item">
     <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0">Non prises en compte</a>
@@ -181,20 +213,38 @@ $heure = date('H:i',$result_obs['obs_time']);
         </td>
         <td>
             <?php // Droits réservés aux admins : approuver/désapprouver/résoudre/supprimer une observation
-            if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') { ?>
-          <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
-          <button class="btn btn-primary" type="submit">Valider édition</button><br />
-          <a href="?page=<?=$page_name ?>&action=approve&approveto=1&obsid=<?=$result_obs['obs_id'] ?>">Approuver</a><br />
-          <a href="?page=<?=$page_name ?>&action=approve&approveto=2&obsid=<?=$result_obs['obs_id'] ?>">Désapprouver</a><br />
-          <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a><br />
-          <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
-      <?php } // Pour les citystaff on n'affiche que la "prise en compte", "en cours de résolution" et "considérée résolue"
-      elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') { ?>
-          <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
-          <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&obsid=<?=$result_obs['obs_id'] ?>">Prendre en compte l'observation</a><br />
-          <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&obsid=<?=$result_obs['obs_id'] ?>">Observation en cours de résolution</a><br />
-          <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a>
-      <?php } ?>
+          if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) { ?>
+            <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
+            <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
+          <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Approuver</a><br />
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Désapprouver</a><br />
+          <?php } 
+          if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
+            <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a><br />
+          <?php } 
+          if (in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) { ?>
+            <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Effacer cache</a><br />
+          <?php }
+          if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { 
+            $currentstatus = $result_obs['obs_status'];
+            if (in_array($_SESSION['role'],$status_list[0]['roles']) && in_array(0,$status_list[$currentstatus]['nextstatus'])) { ?>
+              <a href="?page=<?=$page_name ?>&action=resolve&new_status=0&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation non résolue</a><br />
+            <?php }
+            if (in_array($_SESSION['role'],$status_list[1]['roles']) && in_array(1,$status_list[$currentstatus]['nextstatus'])) { ?>
+              <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a><br />
+            <?php } 
+            if (in_array($_SESSION['role'],$status_list[2]['roles']) && in_array(2,$status_list[$currentstatus]['nextstatus'])) { ?>
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Prendre en compte l'observation</a><br />
+            <?php }
+            if (in_array($_SESSION['role'],$status_list[3]['roles']) && in_array(3,$status_list[$currentstatus]['nextstatus'])) {  ?>
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation en cours de résolution</a><br />
+            <?php }
+            if (in_array($_SESSION['role'],$status_list[4]['roles']) && in_array(4,$status_list[$currentstatus]['nextstatus'])) {  ?>
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a>
+            <?php
+            }
+          } ?>
         </td>
       </tr>
       </form>

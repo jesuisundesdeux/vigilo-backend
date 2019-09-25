@@ -1,7 +1,8 @@
 <?php
-if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
-	  exit('Not allowed');
+if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
+  exit('Not allowed');
 }
+
 
 if (isset($_POST['config_param'])) {
   foreach ($_POST as $key => $value) {

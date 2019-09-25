@@ -6,6 +6,7 @@ if(!isset($_SESSION['login'])) {
 }
 
 require_once('../includes/common.php');
+require_once('../includes/functions.php');
 
 $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "access" => array('admin','citystaff')),
 	      "observations" => array("icon" => "list", "name" => "Observations", "access" => array('admin','citystaff')),
@@ -91,10 +92,15 @@ if($cities_nb == 0) {
             <ul class="nav flex-column">
             <?php
               foreach($menu as $key => $item) {
-                if($page_name == $key) { $active = "active"; }
-		        else { $active = ''; }
+                if($page_name == $key) { 
+                  $active = "active"; 
+                }
+	 	            else { 
+                  $active = ''; 
+                }
+
                 if (in_array($_SESSION['role'],$item['access'])) {
-	            echo '<li class="nav-item">';
+      	            echo '<li class="nav-item">';
                     echo '<a class="nav-link '.$active.'" href="?page='.$key.'">';
 	                    echo '<span data-feather="'.$item['icon'].'"></span>';
                         echo $item['name'] ;
@@ -112,7 +118,7 @@ if($cities_nb == 0) {
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-	  <h1 class="h2"><?= $menu[$page_name]['name'] ?></h1>
+        	  <h1 class="h2"><?= $menu[$page_name]['name'] ?></h1>
           </div>
 
 	  <?php include('inc/'.$page_name.'.php'); ?>
