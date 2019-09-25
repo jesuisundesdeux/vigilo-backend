@@ -91,7 +91,7 @@ $reply = $cb->statuses_update($params);
 
 function getrole($privatekey, $acls) {
   foreach($acls as $key => $value) {
-    if(in_array($privatekey,$value)) {
+    if(!empty($privatekey) && in_array($privatekey,$value)) {
       return $key;
     }
   }
