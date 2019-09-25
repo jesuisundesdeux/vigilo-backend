@@ -122,15 +122,15 @@ Importer le contenu de ```app/``` dans l'arborescence web.
 
 Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'ordre sur MySQL.
 
-##### Configuration
+###### Configuration
 
-##### config/config.php
+* config/config.php
 
 Copier le fichier config/config.php.tpl vers config/config.php
 
 Renseigner les différents valeurs à configurer concernant la base de données.
  
-##### Initialisation Vigilo
+###### Initialisation Vigilo
 
 * Copier le fichier install_app/install.php sur l'hebergement et y accéder via https://adresse_du_serveur/install.php
 * Remplir les champs permettant de créer un compte admin
