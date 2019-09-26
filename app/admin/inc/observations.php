@@ -129,21 +129,21 @@ $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
 $tokenlist = '';
 
-
+$searchtoken = "";
 if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "similar") {
-  $token = mysqli_real_escape_string($db,$_GET['filtertoken']);
+  $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
   $filter = array('distance' => 300,
                 'fdistance' => 1,
                 'fcategorie' => 1,
                 'faddress' => 1);
-  $similar = sameas($db,$token , $filter);
+  $similar = sameas($db,$searchtoken , $filter);
   $tokenlist = "AND obs_token IN ('".implode("','",$similar)."')";
-  $urlsuffix .= "&filtertype=similar&filtertoken=".$token;
+  $urlsuffix .= "&filtertype=similar&filtertoken=".$searchtoken;
 }
 elseif(isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "uniq") {
-  $token = mysqli_real_escape_string($db,$_GET['filtertoken']);
-  $tokenlist = "AND obs_token = '".$token."'";
-  $urlsuffix .= "&filtertype=uniq&filtertoken=".$token;
+  $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
+  $tokenlist = "AND obs_token = '".$searchtoken."'";
+  $urlsuffix .= "&filtertype=uniq&filtertoken=".$searchtoken;
 }
 
 $countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist);
@@ -158,7 +158,7 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
   <div class="form-group row">
     <label for="searchToken" class="col-sm-2 col-form-label">Token</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" name="filtertoken" id="searchToken">
+      <input type="text" class="form-control" name="filtertoken" id="searchToken" value="<?=$searchtoken ?>">
     </div>
   </div>
   <fieldset class="form-group">
