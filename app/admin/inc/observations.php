@@ -57,14 +57,10 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
           if($new_status == 1 || $new_status == 0) {
             delete_token_cache($token);
           }
-
       }
       else {
         exit('Not allowed');
       }
-  }
-  else {
-    exit('Not allowed');
   }
   else {
     exit('Not allowed');
