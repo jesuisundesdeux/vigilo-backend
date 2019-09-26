@@ -9,6 +9,8 @@ $actions_acl = array("delete" => array("access" => array('admin')),
                      "cleancache" => array("access" => array('admin')),
                      "edit" => array("access" => array('admin')));
 
+$urlsuffix="";
+
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
   $token = mysqli_real_escape_string($db,$_GET['token']);
@@ -125,16 +127,65 @@ else {
 
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
+$tokenlist = '';
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."'");
+
+if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "similar") {
+  $token = mysqli_real_escape_string($db,$_GET['filtertoken']);
+  $filter = array('distance' => 300,
+                'fdistance' => 1,
+                'fcategorie' => 1,
+                'faddress' => 1);
+  $similar = sameas($db,$token , $filter);
+  $tokenlist = "AND obs_token IN ('".implode("','",$similar)."')";
+  $urlsuffix .= "&filtertype=similar&filtertoken=".$token;
+}
+elseif(isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "uniq") {
+  $token = mysqli_real_escape_string($db,$_GET['filtertoken']);
+  $tokenlist = "AND obs_token = '".$token."'";
+  $urlsuffix .= "&filtertype=uniq&filtertoken=".$token;
+}
+
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
-
-
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
 
 ?>
-
+<h3>Recherche</h3>
+<form method="GET" action="">
+  <input type="hidden" name="page" value="<?=$page_name ?>" />
+  <div class="form-group row">
+    <label for="searchToken" class="col-sm-2 col-form-label">Token</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="filtertoken" id="searchToken">
+    </div>
+  </div>
+  <fieldset class="form-group">
+    <div class="row">
+      <legend class="col-form-label col-sm-2 pt-0">Type</legend>
+      <div class="col-sm-10">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios1" value="uniq" checked>
+          <label class="form-check-label" for="gridRadios1">
+            Unique
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios2" value="similar">
+          <label class="form-check-label" for="gridRadios2">
+            Similaires
+          </label>
+        </div>
+      </div>
+    </div>
+  </fieldset>
+  <div class="form-group row">
+    <div class="col-sm-10">
+      <button type="submit" class="btn btn-primary">Recherche</button>
+    </div>
+  </div>
+</form>
 <h2>Liste</h2>
 
 <?php
@@ -142,13 +193,13 @@ if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
 ?>
 <ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[1] ?>" href="?page=<?=$page_name ?>&approved=1">Approuvées</a>
+    <a class="nav-link <?=$tabapproved[1] ?>" href="?page=<?=$page_name ?>&approved=1<?=$urlsuffix ?>">Approuvées</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0">A qualifier</a>
+    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0<?=$urlsuffix ?>">A qualifier</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2">Désapprouvées</a>
+    <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2<?=$urlsuffix ?>">Désapprouvées</a>
   </li>
 </ul>
 <?php
@@ -159,19 +210,19 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
 <br />
 <ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0">Non prises en compte</a>
+    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0<?=$urlsuffix ?>">Non prises en compte</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2">Prises en compte</a>
+    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2<?=$urlsuffix ?>">Prises en compte</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3">En cours de résolution</a>
+    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3<?=$urlsuffix ?>">En cours de résolution</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4">Indiquées résolues</a>
+    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4<?=$urlsuffix ?>">Indiquées résolues</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1">Résolues</a>
+    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1<?=$urlsuffix ?>">Résolues</a>
   </li>
 </ul>
 <?php } ?>
@@ -195,11 +246,11 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 $date = date('d/m/Y',$result_obs['obs_time']);
 $heure = date('H:i',$result_obs['obs_time']);
 ?>
-      <form action="" method="POST">
+      <form action="?page=observations<?=$urlsuffix ?>" method="POST">
       <tr>
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
-          <img src="/generate_panel.php?s=150&token=<?=$result_obs['obs_token'] ?>" />
+          <img src="/generate_panel.php?s=300&token=<?=$result_obs['obs_token'] ?>" />
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
@@ -217,31 +268,31 @@ $heure = date('H:i',$result_obs['obs_time']);
             <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
           <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Approuver</a><br />
-            <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Désapprouver</a><br />
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Approuver</a><br />
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Désapprouver</a><br />
           <?php } 
           if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a><br />
+            <a href="?page=<?=$page_name ?>&action=delete&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a><br />
           <?php } 
           if (in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Effacer cache</a><br />
+            <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Effacer cache</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { 
             $currentstatus = $result_obs['obs_status'];
             if (in_array($_SESSION['role'],$status_list[0]['roles']) && in_array(0,$status_list[$currentstatus]['nextstatus'])) { ?>
-              <a href="?page=<?=$page_name ?>&action=resolve&new_status=0&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation non résolue</a><br />
+              <a href="?page=<?=$page_name ?>&action=resolve&new_status=0&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Observation non résolue</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[1]['roles']) && in_array(1,$status_list[$currentstatus]['nextstatus'])) { ?>
-              <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a><br />
+              <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Observation résolue</a><br />
             <?php } 
             if (in_array($_SESSION['role'],$status_list[2]['roles']) && in_array(2,$status_list[$currentstatus]['nextstatus'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Prendre en compte l'observation</a><br />
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Prendre en compte l'observation</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[3]['roles']) && in_array(3,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation en cours de résolution</a><br />
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Observation en cours de résolution</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[4]['roles']) && in_array(4,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?>">Observation résolue</a>
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Observation résolue</a>
             <?php
             }
           } ?>
@@ -270,7 +321,7 @@ if ($nbpages > 1) {
   }
 ?>
     <li class="page-item <?=$previous_disabled ?>">
-      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb-1 ?>" tabindex="-1">Previous</a>
+      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb-1 ?><?=$urlsuffix ?>" tabindex="-1">Previous</a>
     </li>
 
 <?php
@@ -282,7 +333,7 @@ for ($i=1;$i<=$nbpages;$i++) {
     $active = "";
   }
 ?>
-   <li class="page-item <?=$active ?>"><a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$i ?>"><?=$i ?></a></li>
+   <li class="page-item <?=$active ?>"><a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$i ?><?=$urlsuffix ?>"><?=$i ?></a></li>
 <?php
 }
 if($pagenb == $nbpages) {
@@ -293,7 +344,7 @@ else {
 }
 ?>
     <li class="page-item <?=$next_disabled ?>">
-      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb+1 ?>">Next</a>
+      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb+1 ?><?=$urlsuffix ?>">Next</a>
     </li>
   </ul>
 </nav>
