@@ -9,6 +9,7 @@ $actions_acl = array("delete" => array("access" => array('admin')),
                      "cleancache" => array("access" => array('admin')),
                      "edit" => array("access" => array('admin')));
 
+
 $urlsuffix="";
 
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
@@ -56,10 +57,14 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
           if($new_status == 1 || $new_status == 0) {
             delete_token_cache($token);
           }
+
       }
       else {
         exit('Not allowed');
       }
+  }
+  else {
+    exit('Not allowed');
   }
   else {
     exit('Not allowed');
@@ -268,6 +273,7 @@ $heure = date('H:i',$result_obs['obs_time']);
             <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
           <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
+
             <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Approuver</a><br />
             <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Désapprouver</a><br />
           <?php } 
