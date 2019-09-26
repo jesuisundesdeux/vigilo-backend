@@ -250,7 +250,7 @@ $heure = date('H:i',$result_obs['obs_time']);
       <tr>
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
-          <img src="/generate_panel.php?s=300&token=<?=$result_obs['obs_token'] ?>" />
+          <img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" />
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
