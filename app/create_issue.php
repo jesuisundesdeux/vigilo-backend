@@ -127,6 +127,15 @@ if (!$result_scope) {
   jsonError($error_prefix, "Unknow scope", "UNKNOWSCOPE", 400);
 }
 
+$city_id = 0;
+$city_name = '';
+if (isset($_POST['cityid']) && is_numeric($_POST['cityid']))  {
+  $city_id = $_POST['cityid'];
+}
+if (isset($_POST['cityname']) && !empty($_POST['cityname'])) {
+  $city_name = mysqli_real_escape_string($db, $_POST['cityname']);
+}
+
 # Check if observation is located inside rectangle area of the scope
 if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
       $coordinates_lat <= $result_scope['scope_coordinate_lat_max'] &&
@@ -137,50 +146,21 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
 }
 
 # Get list of cities within the scope
-$query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."'");
-if (mysqli_num_rows($query_cities) == 0) {
-  # No city found, that's a problem
-  jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 200, "WARNING");
-}
-
-# Check if observation is located in a city listed within the scope
-$nominatim_json = get_data_from_gps_coordinates($coordinates_lat, $coordinates_lon);
-$obs_address = $nominatim_json['address'];
-
-$postcode = "";
-$town = "";
-$road = "";
-if (isset($obs_address['postcode'])) {
-  $postcode = $obs_address['postcode'];
-}
-
-if (isset($obs_address['town'])) { 
-  $town = $obs_address['town'];
-}
-if (isset($obs_address['road'])) {
-  $road = $obs_address['road'];
-}
-
-
-$city_found = 0;
-$city_id = 0;
-while($city = mysqli_fetch_array($query_cities)) {
-  $post_code = $city['city_postcode'];
-  if ($city['city_postcode'] == $postcode) {
-    $city_found = 1;
-    $city_id = $city['city_id'];
-    break;
+if($city_id != 0) {
+  $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."' AND city_id='".$city_id."'");
+  if (mysqli_num_rows($query_cities) == 0) {
+    # No city found, that's a problem
+    jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 200, "WARNING");
+    $city_id = 0;
   }
 }
 
-if (!$city_found) {
-  jsonError($error_prefix, "Coordinates are not located in the scope '$scope' - '$postcode : $town' is not supported", "COORDINATESNOTINTOWN", 200, "WARNING");
-}
 
 if ($update) {
   mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
                                          obs_coordinates_lon="'.$coordinates_lon.'",
                                          obs_city="'.$city_id.'",
+                                         obs_cityname="'.$city_name.'",
                                          obs_comment="'.$comment.'",
                                          obs_explanation="'.$explanation.'",
                                          obs_address_string="'.$address.'",
@@ -192,6 +172,7 @@ if ($update) {
   mysqli_query($db, 'INSERT INTO obs_list (
                                   `obs_scope`,
                                   `obs_city`,
+                                  `obs_cityname`,
                                   `obs_coordinates_lat`,
                                   `obs_coordinates_lon`,
                                   `obs_address_string`,
@@ -206,6 +187,7 @@ if ($update) {
                            VALUES (
                                "'.$scope.'",
                                "'.$city_id.'",
+                               "'.$city_name.'",
                                "'.$coordinates_lat.'",
                                "'.$coordinates_lon.'",
                                "'.$address.'",
