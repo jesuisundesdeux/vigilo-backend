@@ -153,6 +153,8 @@ class GetIssueTest extends TestCase
         $result = $export->getQuery();
 
         $this->assertEquals($result, "SELECT obs_token,
+    obs_city,
+    obs_cityname,
     obs_coordinates_lat,
     obs_coordinates_lon,
     obs_address_string,
