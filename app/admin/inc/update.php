@@ -33,7 +33,7 @@ $last_version = $biggest ;
 
 if ($code_version != $db_version) {
 ?>
-<div class="alert alert-danger" role="alert"><strong>Alerte !</strong> La version du code ('.$code_version.') est différente de la version de la base ('.$db_version.')</div>';
+<div class="alert alert-danger" role="alert"><strong>Alerte !</strong> La version du code (<?=$code_version ?>) est différente de la version de la base (<?=$db_version ?>)</div>
 <?php
 }
 
@@ -41,7 +41,7 @@ if ($code_version != $last_version) {
 ?>
 <div class="alert alert-info" role="alert">
   <strong>Nouvelle version disponible !</strong> Une nouvelle version (<?=$last_version ?>) est disponible, merci de faire la mise à jour dès que possible.<br />
-  <a href="https://github.com/jesuisundesdeux/vigilo-backend/tree/'.$last_version.'">Rendez-vous sur Git-hub</a>
+  <a href="https://github.com/jesuisundesdeux/vigilo-backend/tree/<?=$last_version ?>">Rendez-vous sur Git-hub</a>
 </div>
 <?php
 }

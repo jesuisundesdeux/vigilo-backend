@@ -1,5 +1,5 @@
 # Description
-- Ajout de la gestion de droits (admin,citystaff) dans la partie admin
+- Ajout d'icones pour améliorer la lisibilité dans la page observations de la partie admin
 
 ### If necessary, please
 * Update **documentation** or README

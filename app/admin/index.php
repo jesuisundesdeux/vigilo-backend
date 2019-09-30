@@ -92,11 +92,11 @@ if($cities_nb == 0) {
             <ul class="nav flex-column">
             <?php
               foreach($menu as $key => $item) {
-                if($page_name == $key) { 
-                  $active = "active"; 
+                if($page_name == $key) {
+                  $active = "active";
                 }
-	 	            else { 
-                  $active = ''; 
+	 	            else {
+                  $active = '';
                 }
 
                 if (in_array($_SESSION['role'],$item['access'])) {
