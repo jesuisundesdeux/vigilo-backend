@@ -1,5 +1,5 @@
 <?php
-if (!isset($page_name) || (isset($_SESSION['role']) && $_SESSION['role'] != 'admin')) {
+if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
   exit('Not allowed');
 }
 
@@ -10,7 +10,7 @@ if (isset($_GET['action']) && !isset($_POST['role_id'])) {
                                             role_owner,
                                             role_login,
                                             role_password)
-                             VALUES ('".str_replace('.', '', uniqid('', true))."',
+                               VALUES ('',
                                       'guest',
                                       '',
                                       '',
@@ -74,7 +74,7 @@ while ($result_role = mysqli_fetch_array($query_role)) {
        <form action="" method="POST">
          <tr>
            <td>#<?=$result_role['role_id'] ?></td>
-           <td><input type="text" class="form-control-plaintext" name="role_key" value="<?=$result_role['role_key'] ?>" required /></td>
+           <td><input type="text" class="form-control-plaintext" name="role_key" value="<?=$result_role['role_key'] ?>"  /></td>
       	   <td>
              <select name="role_name" class=" custom-select">
 <?php

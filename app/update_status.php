@@ -18,6 +18,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 $cwd = dirname(__FILE__);
 
+/* WORK IN PROGRESS / SCRIPT DISABLED */
+exit();
+
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 

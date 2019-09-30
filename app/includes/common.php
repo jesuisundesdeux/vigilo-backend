@@ -28,7 +28,7 @@ else {
 
 global $config;
 
-define('BACKEND_VERSION','0.0.12');
+define('BACKEND_VERSION','0.0.13');
 
 if(!$db = mysqli_connect($config['MYSQL_HOST'],
                      $config['MYSQL_USER'],
@@ -83,28 +83,24 @@ while ($roles_result = mysqli_fetch_array($roles_query)) {
 
 # Observation status
 $status_list = array(
-	           0 => array(
+       0 => array(
 			     "name" => "Nouvelle observation",
 			     "roles" => array("admin"),
 			     "nextstatus" => array(1,2,3,4)),
-                   1 => array(
-                             "name" => "Observation résolue",
-                             "roles" => array("admin"),
-                             "nextstatus" => array()),
+       1 => array(
+           "name" => "Observation résolue",
+           "roles" => array("admin"),
+           "nextstatus" => array(0)),
 		   2 => array(
 			     "name" => "Observation prise en compte",
 			     "roles" => array("admin","citystaff"),
-			     "nextstatus" => array(1,3,4,5)),
+			     "nextstatus" => array(0,1,3,4)),
 		   3 => array(
 			     "name" => "Observation en cours de résolution",
 			     "roles" => array("admin","citystaff"),
-			     "nextstatus" => array(1,4,5)),
+			     "nextstatus" => array(0,1,4)),
 		   4 => array(
 			     "name" => "Observation indiquée comme résolue",
-			     "roles" => array("all"),
-			     "nextstatus" => array(1,5)),
-		   5 => array(
-			     "name" => "Résolution refusée",
-			     "roles" => array("admin"),
-			     "nextstatus" => array(1,3,4)));
+			     "roles" => array("citystaff"),
+			     "nextstatus" => array(0,1)));
 

@@ -336,6 +336,9 @@ Version backend >= 0.0.1
 | Form | str | time | création |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
 | Form | str | version | création | Version de l'application cliente | >= 0.0.1 |
 | Form | str | scope | création | Identifiant du scope | >= 0.0.1 |
+| Form | str | cityid | création | Identifiant de la ville | >= 0.0.13 |
+| Form | str | cityname | création | Nom de la ville | >= 0.0.13 |
+
 
 ###### Retour
 

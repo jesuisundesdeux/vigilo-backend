@@ -46,7 +46,7 @@ if (mysqli_num_rows($query) == 0) {
 $result = mysqli_fetch_array($query);
 
 $query_cities = mysqli_query($db, "SELECT * FROM obs_cities
-                                   WHERE city_scope='".$result['scope_id']."'");
+                                   WHERE city_scope='".$result['scope_id']."' ORDER BY city_name");
 $json_cities = array();
 
 while ($result_cities = mysqli_fetch_array($query_cities)) {
