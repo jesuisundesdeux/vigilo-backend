@@ -50,7 +50,7 @@ if (isset($_GET['approved']) and is_numeric($_GET['approved'])) {
 }
 
 /* Check existence of token database */
-$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon,obs_categorie,obs_city,obs_cityname,obs_address_string FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if (mysqli_num_rows($checktoken_query) != 1) {
   jsonError($error_prefix, "Token : ".$token." does not exist.", "TOKENNOTEXISTS", 400);
 }
@@ -69,6 +69,23 @@ if($approved == 1) {
   $coordinates_lat = $checktoken_result['obs_coordinates_lat'];
   $coordinates_lon = $checktoken_result['obs_coordinates_lon'];
   $scope = $checktoken_result['obs_scope'];
+  $categorie = getCategorieName($checktoken_result['obs_categorie']);
+  
+  $cityname = "";
+  if (!empty($checktoken_result['obs_city']) && $checktoken_result['obs_city'] != 0) {
+     $cityquery = mysqli_query($db,"SELECT city_name FROM obs_cities WHERE city_id='".$checktoken_result['obs_city']."' LIMIT 1");
+     $cityresult = mysqli_fetch_array($cityquery);
+     $cityname = $cityresult['city_name'];
+   }
+   elseif (!empty($checktoken_result['obs_cityname'])) {
+     $cityname = $checktoken_result['obs_cityname'];
+   }
+   elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$checktoken_result['obs_address_string'],$cityInadress)) {
+     if(count($cityInadress) == 2) {
+       $cityname = trim($cityInadress[1]);
+     }
+   }
+  
   
   $scope_query = mysqli_query($db,"SELECT obs_scopes.scope_twitteraccountid,
                                           obs_scopes.scope_twittercontent,
@@ -94,6 +111,9 @@ if($approved == 1) {
       $tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
       $tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
       $tweet_content = str_replace('[COORDINATES_LAT]',$coordinates_lat, $tweet_content);
+      $tweet_content = str_replace('[CATEGORY]',$categorie, $tweet_content);
+      $tweet_content = str_replace('[CITY]',$cityname, $tweet_content);
+
       tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$_SERVER['SERVER_NAME'].'/generate_panel.php?token='.$token, $twitter_ids);
     } else {
       jsonError($error_prefix,"Token : ".$token." older than ".$config['APPROVE_TWITTER_EXPTIME']."h. We won't tweet it.","OBSTOOOLD",200,"NOTICE");

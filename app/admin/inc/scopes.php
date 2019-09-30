@@ -199,6 +199,8 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
             <li><strong>[TOKEN] : </strong>Identifiant observation</li>
             <li><strong>[COORDINATES_LON] : </strong>Longitude</li>
             <li><strong>[COORDINATES_LAT] : </strong>Latitude</li>
+            <li><strong>[CATEGORY] : </strong>Categorie</li>
+            <li><strong>[CITY] : </strong>Nom de la ville</li>
           </ul>
         </td>
         <td>
