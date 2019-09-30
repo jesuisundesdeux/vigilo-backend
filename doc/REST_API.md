@@ -472,6 +472,7 @@ ___
 | int | group | Groupe de l'observation | LEGACY |
 | int | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | int | approved | Etat d'approbation de l'observation | >= 0.0.1 |
+| int | cityname | Nom de la ville (si existe, n'est pas affiché dans l'adresse) | >= 0.0.13 |
 
 ### Scope
 
