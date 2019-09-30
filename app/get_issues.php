@@ -188,6 +188,8 @@ class GetIssues
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
     $query = "SELECT obs_token,
+    obs_city,
+    obs_cityname,
     obs_coordinates_lat,
     obs_coordinates_lon,
     obs_address_string,
@@ -220,7 +222,7 @@ ORDER BY obs_time DESC
     $rquery = mysqli_query($this->db, $this->getQuery());
     if (mysqli_num_rows($rquery) > 0) {
       while ($result = mysqli_fetch_array($rquery)) {
-	$token = $result['obs_token'];
+      	$token = $result['obs_token'];
         $obs_status = ($result['obs_status'] != null) ? $result['obs_status'] : 0;
         $issue = array(
           "token" => $result['obs_token'],
@@ -235,6 +237,23 @@ ORDER BY obs_time DESC
           "categorie" => $result['obs_categorie'],
           "approved" => $result['obs_approved']
         );
+
+        if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
+          $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
+          $cityresult = mysqli_fetch_array($cityquery);
+          $issue['cityname'] = $cityresult['city_name'];
+          $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+        }
+        elseif (!empty($result['obs_cityname'])) {
+          $issue['cityname'] = $result['obs_cityname'];
+          $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+        }
+        elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$issue['address'],$cityInadress)) {
+          if(count($cityInadress) == 2) {
+            $issue['cityname'] = trim($cityInadress[1]);
+            $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+          }
+        }
 
         if (isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
           $lat = mysqli_real_escape_string($this->db, $_GET['lat']);
