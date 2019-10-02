@@ -279,7 +279,10 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 $date = date('d/m/Y',$result_obs['obs_time']);
 $heure = date('H:i',$result_obs['obs_time']);
 $highlight_city = "";
-if (isset($role_cityname) && stripos($result_obs['obs_address_string'], $role_cityname) !== false) {
+// We check if there's the cityname in the address string or city name or if the cityid match
+if (isset($role_cityname) && (stripos($result_obs['obs_address_string'], $role_cityname) !== false // In address string
+                            || (isset($result_obs['obs_cityname']) && stripos($result_obs['obs_cityname'], $role_cityname) !== false) // In city name (from 0.0.12)
+                            || $role_cityid == $result_obs['obs_city']) ) { // City ID
     $highlight_city = "table-info";
 }
 ?>
