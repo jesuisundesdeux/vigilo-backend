@@ -128,8 +128,20 @@ else {
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
 $tokenlist = '';
+$addresslist = '';
+
+// To check the good radio button
+$filterTypeUniqueChecked = "checked";
+$filterTypeSimilarChecked = "";
+if (isset($_GET['filtertype'])) {
+    if ($_GET['filtertype'] == "similar") {
+        $filterTypeUniqueChecked = "";
+        $filterTypeSimilarChecked = "checked";
+    }
+}
 
 $searchtoken = "";
+$searchaddress = "";
 if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "similar") {
   $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
   $filter = array('distance' => 300,
@@ -146,10 +158,16 @@ elseif(isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['fil
   $urlsuffix .= "&filtertype=uniq&filtertoken=".$searchtoken;
 }
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist);
+if(isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
+  $searchaddress = mysqli_real_escape_string($db,$_GET['filteraddress']);
+  $addresslist = "AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
+  $urlsuffix .= "&filtertype=uniq&filteraddress=".$searchaddress;
+}
+
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
 
 ?>
 <h3>Recherche</h3>
@@ -161,18 +179,24 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
       <input type="text" class="form-control" name="filtertoken" id="searchToken" value="<?=$searchtoken ?>">
     </div>
   </div>
+  <div class="form-group row">
+    <label for="searchAddress" class="col-sm-2 col-form-label">Ville ou adresse</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="filteraddress" id="searchAddress" value="<?=$searchaddress ?>">
+    </div>
+  </div>
   <fieldset class="form-group">
     <div class="row">
       <legend class="col-form-label col-sm-2 pt-0">Type</legend>
       <div class="col-sm-10">
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios1" value="uniq" checked>
+          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios1" value="uniq" <?=$filterTypeUniqueChecked ?>>
           <label class="form-check-label" for="gridRadios1">
             Unique
           </label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios2" value="similar">
+          <input class="form-check-input" type="radio" name="filtertype" id="gridRadios2" value="similar" <?=$filterTypeSimilarChecked ?>>
           <label class="form-check-label" for="gridRadios2">
             Similaires
           </label>
