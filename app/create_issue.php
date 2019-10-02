@@ -127,13 +127,30 @@ if (!$result_scope) {
   jsonError($error_prefix, "Unknow scope", "UNKNOWSCOPE", 400);
 }
 
-$city_id = 0;
-$city_name = '';
+
+$cityid = 0;
+$cityname = '';
+
 if (isset($_POST['cityid']) && is_numeric($_POST['cityid']))  {
-  $city_id = $_POST['cityid'];
+  $cityid = $_POST['cityid'];
 }
-if (isset($_POST['cityname']) && !empty($_POST['cityname'])) {
-  $city_name = mysqli_real_escape_string($db, $_POST['cityname']);
+elseif (isset($_POST['cityname']) && !empty($_POST['cityname'])) {
+  $cityname = mysqli_real_escape_string($db, $_POST['cityname']);
+}
+elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$address,$cityInadress)) {
+  if(count($cityInadress) == 2) {
+    $citynametmp = trim($cityInadress[1])
+  
+    $city_query = mysqli_query($db,"SELECT city_id FROM obs_cities WHERE city_name='".$citynametmp."' LIMIT 1");   
+    $city_result = mysqli_fetch_array($city_query);
+    if(isset($city_result['city_id']) && is_numeric($city_result['city_id'])) {
+      $cityid = $city_result['city_id'];
+    }
+    else {
+      $cityname = $citynametmp;
+    }
+  }
+  $address = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$address);
 }
 
 # Check if observation is located inside rectangle area of the scope
@@ -146,12 +163,12 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
 }
 
 # Get list of cities within the scope
-if($city_id != 0) {
-  $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."' AND city_id='".$city_id."'");
+if($cityid != 0) {
+  $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."' AND city_id='".$cityid."'");
   if (mysqli_num_rows($query_cities) == 0) {
     # No city found, that's a problem
     jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 200, "WARNING");
-    $city_id = 0;
+    $cityid = 0;
   }
 }
 
@@ -159,8 +176,8 @@ if($city_id != 0) {
 if ($update) {
   mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
                                          obs_coordinates_lon="'.$coordinates_lon.'",
-                                         obs_city="'.$city_id.'",
-                                         obs_cityname="'.$city_name.'",
+                                         obs_city="'.$cityid.'",
+                                         obs_cityname="'.$cityname.'",
                                          obs_comment="'.$comment.'",
                                          obs_explanation="'.$explanation.'",
                                          obs_address_string="'.$address.'",
@@ -186,8 +203,8 @@ if ($update) {
                                   `obs_secretid`)
                            VALUES (
                                "'.$scope.'",
-                               "'.$city_id.'",
-                               "'.$city_name.'",
+                               "'.$cityid.'",
+                               "'.$cityname.'",
                                "'.$coordinates_lat.'",
                                "'.$coordinates_lon.'",
                                "'.$address.'",
