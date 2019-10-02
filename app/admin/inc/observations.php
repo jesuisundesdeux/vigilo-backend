@@ -164,12 +164,13 @@ if(isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
   $urlsuffix .= "&filtertype=uniq&filteraddress=".$searchaddress;
 }
 if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
-    $city_query = mysqli_query($db, "SELECT * FROM `obs_cities` c WHERE c.city_id = (SELECT r.role_city FROM obs_roles r WHERE r.role_login = '".$_SESSION['login']."')");
-    $role_cityname = "";
-    $role_cityid = "";
-    if ($city_result = mysqli_fetch_array($city_query)) {
-        $role_cityname = $city_result['city_name'];
-        $role_cityid = $city_result['city_id'];
+    $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
+    while ($role_result = mysqli_fetch_array($role_query)) {
+        $role_cities = json_decode($role_result['role_city']);
+        foreach ((array) $role_cities as $city) {
+            $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = $city");
+            $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
+        }
     }
 }
 
@@ -279,10 +280,8 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 $date = date('d/m/Y',$result_obs['obs_time']);
 $heure = date('H:i',$result_obs['obs_time']);
 $highlight_city = "";
-// We check if there's the cityname in the address string or city name or if the cityid match
-if (isset($role_cityname) && (stripos($result_obs['obs_address_string'], $role_cityname) !== false // In address string
-                            || (isset($result_obs['obs_cityname']) && stripos($result_obs['obs_cityname'], $role_cityname) !== false) // In city name (from 0.0.12)
-                            || $role_cityid == $result_obs['obs_city']) ) { // City ID
+if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
+    || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) {
     $highlight_city = "table-info";
 }
 ?>
