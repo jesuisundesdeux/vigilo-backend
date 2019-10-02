@@ -1,5 +1,6 @@
 # Description
-- Ajout d'icones pour améliorer la lisibilité dans la page observations de la partie admin
+- Amélioration de la gestion des radio buttons "type" (similaire/unique) de la page "observations" (console admin)
+- Ajout d'un champ de recherche sur obs_address_string
 
 ### If necessary, please
 * Update **documentation** or README
