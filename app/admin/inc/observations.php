@@ -163,6 +163,15 @@ if(isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
   $addresslist = "AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
   $urlsuffix .= "&filtertype=uniq&filteraddress=".$searchaddress;
 }
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
+    $city_query = mysqli_query($db, "SELECT * FROM `obs_cities` c WHERE c.city_id = (SELECT r.role_city FROM obs_roles r WHERE r.role_login = '".$_SESSION['login']."')");
+    $role_cityname = "";
+    $role_cityid = "";
+    if ($city_result = mysqli_fetch_array($city_query)) {
+        $role_cityname = $city_result['city_name'];
+        $role_cityid = $city_result['city_id'];
+    }
+}
 
 $countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
@@ -269,9 +278,13 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
 while ($result_obs = mysqli_fetch_array($query_obs)) {
 $date = date('d/m/Y',$result_obs['obs_time']);
 $heure = date('H:i',$result_obs['obs_time']);
+$highlight_city = "";
+if (isset($role_cityname) && stripos($result_obs['obs_address_string'], $role_cityname) !== false) {
+    $highlight_city = "table-info";
+}
 ?>
       <form action="?page=observations<?=$urlsuffix ?>" method="POST">
-      <tr>
+      <tr class="<?=$highlight_city ?>">
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
           <img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" />
