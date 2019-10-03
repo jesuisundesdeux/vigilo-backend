@@ -27,3 +27,6 @@ shunit2*
 version.txt
 SyncSettings.ffs_gui
 *.swp
+
+# Generate umap
+scripts/umap/vigilo.umap

@@ -140,7 +140,6 @@ elseif (isset($_POST['cityname']) && !empty($_POST['cityname'])) {
 elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$address,$cityInadress)) {
   if(count($cityInadress) == 2) {
     $citynametmp = trim($cityInadress[1]);
-  
     $city_query = mysqli_query($db,"SELECT city_id FROM obs_cities WHERE city_name='".$citynametmp."' LIMIT 1");   
     $city_result = mysqli_fetch_array($city_query);
     if(isset($city_result['city_id']) && is_numeric($city_result['city_id'])) {

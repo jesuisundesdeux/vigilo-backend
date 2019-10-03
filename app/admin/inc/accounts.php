@@ -48,6 +48,13 @@ if (isset($_POST['role_id'])) {
 
   echo '<div class="alert alert-success" role="alert">Compte <strong>'.$roleid.'</strong> mis à jour</div>';
 }
+if (isset($_POST['role_city']) && isset($_POST['role_id'])) {
+    $rolecity = json_encode(explode(",",mysqli_real_escape_string($db, $_POST['role_city'])));
+    $roleid = mysqli_real_escape_string($db,$_POST['role_id']);
+    mysqli_query($db, "UPDATE obs_roles SET role_city = '".$rolecity."' WHERE role_id='".$roleid."'");
+}
+$query_cities = mysqli_query($db, "SELECT city_name, city_id FROM obs_cities");
+
 $query_role = mysqli_query($db, "SELECT * FROM obs_roles");
 ?>
 <h2>Liste</h2>
@@ -63,6 +70,7 @@ $query_role = mysqli_query($db, "SELECT * FROM obs_roles");
          <th>Nom utilisateur</th>
          <th>Login</th>
          <th>Mot de passe</th>
+         <th>Ville</th>
          <th> </th>
     	   <th> </th>
        </tr>
@@ -98,6 +106,21 @@ while ($result_role = mysqli_fetch_array($query_role)) {
          </td>
        	 <td>
            <input type="password" class="form-control-plaintext" name="role_password" />
+         </td>
+         <td>
+            <?php if ($result_role['role_name'] == 'citystaff') {
+                $role_cities = json_decode($result_role['role_city']); ?>
+                <small><span class="text-info">Séparées par ,</span></small>
+                <br/>
+                <?php
+                echo '<input type="text" class="form-control-plaintext" name="role_city" value="';
+                foreach ((array) $role_cities as $role_city) {
+                    echo $role_city.",";
+                }
+                echo '">';
+            } else {
+                echo '<small><span class="text-info">n\'est pas citystaff</span></small>';
+            } ?>
          </td>
          <td>
            <input type="hidden" name="role_id" value="<?=$result_role['role_id'] ?>" />

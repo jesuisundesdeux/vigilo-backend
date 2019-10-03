@@ -163,6 +163,16 @@ if(isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
   $addresslist = "AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
   $urlsuffix .= "&filtertype=uniq&filteraddress=".$searchaddress;
 }
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
+    $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
+    while ($role_result = mysqli_fetch_array($role_query)) {
+        $role_cities = json_decode($role_result['role_city']);
+        foreach ((array) $role_cities as $city) {
+            $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = $city");
+            $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
+        }
+    }
+}
 
 $countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
@@ -269,12 +279,17 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
 while ($result_obs = mysqli_fetch_array($query_obs)) {
 $date = date('d/m/Y',$result_obs['obs_time']);
 $heure = date('H:i',$result_obs['obs_time']);
+$highlight_city = "";
+if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
+    || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) {
+    $highlight_city = "table-info";
+}
 ?>
       <form action="?page=observations<?=$urlsuffix ?>" method="POST">
-      <tr>
+      <tr class="<?=$highlight_city ?>">
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
-          <img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" />
+          <a href="/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
