@@ -86,7 +86,7 @@ while ($result_role = mysqli_fetch_array($query_role)) {
       	   <td>
              <select name="role_name" class=" custom-select">
 <?php
-  foreach (array('guest','admin','citystaff') as $value) {
+  foreach (array('guest','admin','citystaff','moderator') as $value) {
     if ($value == $result_role['role_name']) {
       $selected = "selected";
     }

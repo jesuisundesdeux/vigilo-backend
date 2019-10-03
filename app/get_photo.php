@@ -44,7 +44,7 @@ if(mysqli_num_rows($checktoken_query) != 1) {
 } 
 else {
   $checktoken_result = mysqli_fetch_array($checktoken_query);	
-  if(getrole($key, $acls) == "admin" || $checktoken_result['obs_approved'] == 1) {
+  if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $checktoken_result['obs_approved'] == 1) {
     $photo = imagecreatefromjpeg('./images/' . $token . '.jpg'); // issue photo
     imagejpeg($photo); 
   }

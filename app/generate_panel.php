@@ -62,7 +62,7 @@ if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_
 }
 
 ## Use caches if available
-if (file_exists($img_filename) AND !getrole($key, $acls) == "admin") {
+if (file_exists($img_filename) AND !getrole($key, $acls) == "admin" AND !getrole($key, $acls) == "moderator") {
   $image = imagecreatefromjpeg($img_filename);
   imagejpeg($image);
   return;
@@ -101,8 +101,7 @@ if (!isset($categorie_string)) {
 
 $time = $result['obs_time'];
 $approved = $result['obs_approved'];
-if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin") {
-  #$approved = 1;
+if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
   $AdminOrAuthor = True;
 }
 else {

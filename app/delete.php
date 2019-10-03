@@ -45,7 +45,7 @@ else {
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 
-if(getrole($key, $acls) == "admin") {
+if(getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
   $checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 }
 else {
