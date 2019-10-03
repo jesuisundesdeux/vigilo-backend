@@ -1,8 +1,8 @@
 ### Installation
 
-### Pré-requis 
+### Pré-requis
 
-#### Connaissances 
+#### Connaissances
 
 * OS Linux / PHP / MySQL / Docker (si serveur dédié)
 * PHP / MySQL (si hebergement mutualisé)
@@ -27,7 +27,7 @@ Mapquest est utilisé pour générer les images de carte dans le poster qui est 
 Pour obtenir une clé d'API MapQuest sur le module StaticMAP API => https://developer.mapquest.com/
 
 Créer un compte sur la plate-forme et générer une clé via le lien "Manage Key".
-Récupérer ensuite le "Consumer Key" qui sera à renseigner dans Vigilo.	
+Récupérer ensuite le "Consumer Key" qui sera à renseigner dans Vigilo.
 
 ##### Twitter
 
@@ -43,11 +43,11 @@ Pour la suite, tout se passe en Anglais.
 - Sur la page « How will you use the Twitter API or Twitter data? », renseignez le texte suivant dans le champ « In your words »
 
 > Our application is called Vigilo and is a service allowing users to post observations from the street (badly parked cars, dangers on the road, infrastructure issues, etc.) through a mobile application.
-> 
+>
 > We want to make a Twitter account that will Tweet programmatically content from our Vigilo server.
 > When a user post a new observation on our application and when the observation is moderated, our server will automatically tweet the observation (picture + text).
-> 
-> Then Tweeter users can interact with those tweets and retweet them. Nobody will access Twitter data. It's a one-way broadcast from our application. 
+>
+> Then Tweeter users can interact with those tweets and retweet them. Nobody will access Twitter data. It's a one-way broadcast from our application.
 
 - Répondre No à toutes les questions « The specifics »
 - Cliquer sur « Looks good! »
@@ -77,7 +77,7 @@ Une fois que votre compte est validé
 
 ##### Serveur dédié
 
-Cette partie documentaire explique uniquement la partie installation de Vigilo via docker. 
+Cette partie documentaire explique uniquement la partie installation de Vigilo via docker.
 A charge à l'administrateur d'installer le necessaire en amont pour permettre la mise en place d'un certificat SSL (LetsEncrypt).
 
 Cloner le repo git complet en adaptant la version en remplacant X.X.X par la dernière branche du git existante.
@@ -91,8 +91,8 @@ Copier le .env_sample vers .env
 ``` $ cp .env_sample .env_prod```
 
 Adapter les valeurs dans ```.env_prod``` :
-* VOLUME_PATH : Repertoire persistent sur le serveur où seront stockées les données de Vigilo 
-* MYSQL_ROOT_PASSWORD : Mot de passe root de la base de données 
+* VOLUME_PATH : Repertoire persistent sur le serveur où seront stockées les données de Vigilo
+* MYSQL_ROOT_PASSWORD : Mot de passe root de la base de données
 * MYSQL_PASSWORD : Mot de passe du compte vigilo de la base de données
 * BIND : Adresse d'écoute HOST:PORT permettant d'accéder au conteneur à partir d'un reverse proxy sur l'hote ou à partir d'un autre container.
 
@@ -100,7 +100,7 @@ Adapter si besoin ce fichier au contexte du serveur sur lequel il est hebergé.
 
 Lancer le service :
 
-``` 
+```
 $ make ENV=prod install
 ```
 - Aller ensuite sur http://IP/install.php et remplir les champs permettant de créer un compte admin.
@@ -129,7 +129,7 @@ Executer l'ensemble des scripts MySQL présents dans ```mysql/init/``` dans l'or
 Copier le fichier config/config.php.tpl vers config/config.php
 
 Renseigner les différents valeurs à configurer concernant la base de données.
- 
+
 ###### Initialisation Vigilo
 
 * Copier le fichier install_app/install.php sur l'hebergement et y accéder via https://adresse_du_serveur/install.php
@@ -146,7 +146,7 @@ Remplir les différents champs :
 
 * URL base	: adresse de vigilo (exmeple : vigilo.jesuisundesdeux.org)
 * Protocole d'accès	: http ou https
-* Nom de l'instance	
+* Nom de l'instance
 * Langue : fr-Fr (pas utilisé à ce jour)
 * Clé Mapquest	: clé définie ci-dessus
 * Nombre d'heure max pour Tweeter observations	: Age maxiumum en heures des observations qui seront postées sur twitter automatiquement
@@ -177,7 +177,40 @@ Ajouter un scope et remplir ses information comme suit :
 * Compte Twitter affiché	: Compte twitter affiché correspondant au scope
 * Identifiant compte twitter	: Numero du compte twitter configuré précédement qui sera utilisé par le scope
 * Contenu des tweets autos : Contenu des tweets qui seront postés par le compte twitter lors de la validation des observations
-* URL carte externe	: Si besoin, URL d'une carte qui affiche les observations
+* URL carte externe	: Si besoin, URL d'une carte qui affiche les observations (voir section ci-dessous)
+
+##### Carte Umap
+
+**Générer la carte**
+
+```
+git clone git@github.com:jesuisundesdeux/vigilo-backend.git
+cd vigilo-backend/scripts/umap
+./generate_map.sh
+# Répondre aux questions
+```
+
+**Uploader la carte**
+
+Créer une carte depuis le site [Openstreetmap Umap](https://umap.openstreetmap.fr)
+
+Suivre les étapes suivantes
+
+![Preview](umap_edit.png)
+
+![Preview](umap_propertie.png)
+
+![Preview](umap_advanced.png)
+
+![Preview](umap_clear.png)
+
+![Preview](umap_save.png)
+
+![Preview](umap_import.png)
+
+![Preview](umap_download.png)
+
+![Preview](umap_save.png)
 
 ##### Villes
 
@@ -202,10 +235,3 @@ Cette fonctionnalité n'est pas encore utilisée, mais est à remplir pour antic
 * Panneau latérale (accessible via les trois barres en haut à gauche)
 * "Presque modérateur"
 * Ajouter la clé sur la ligne du compte dans admin/
-
-
-
-
-
-
-

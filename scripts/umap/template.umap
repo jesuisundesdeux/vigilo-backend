@@ -1,0 +1,215 @@
+{
+  "type": "umap",
+  "uri": "https://vigilo.city",
+  "properties": {
+    "easing": false,
+    "tilelayersControl": null,
+    "measureControl": null,
+    "embedControl": true,
+    "editinosmControl": null,
+    "fullscreenControl": true,
+    "locateControl": null,
+    "searchControl": true,
+    "datalayersControl": true,
+    "zoomControl": true,
+    "longCredit": "",
+    "labelInteractive": true,
+    "showLabel": true,
+    "slideshow": {},
+    "captionBar": false,
+    "smoothFactor": "1.5",
+    "tilelayer": {},
+    "licence": "",
+    "description": "**Vigilo** est une application d'observation citoyenne des déplacements actifs. Cette carte affiche les problèmes et signalements réalisés sur le territoire de [[<<CITY_URL>>|<<CITY_NAME>>]].\n\n**Enregistrement des observations**\n[[https://play.google.com/store/apps/details?id=com.velocite34.vigilo|Via l'application Android]]\n[[https://app.vigilo.city/|Via l'application Web]]\n\n**Comment utiliser vigilo ?**\n[[https://vigilo.city/fr/app/android/|Guide utilisateur Android]]\n\nToutes les observations sont publiées sur le compte Twitter dédié [[<<TWITTER_URL>>|<<TWITTER_ACCOUNT>>]]. Il est possible de les partager et d'y réagir sur les réseaux sociaux.\nElles sont également accessibles publiquement [[<<URL_VIGILO_API>>/get_issues.php|ici]]. \n\nL'association [[<<ASSO_URL>>|<<ASSO_NAME>>]] administre cette instance de Vigilo et permet aux usagers de tout le territoire de <<ASSO_NAME>> de remonter simplement et anonymement leurs remarques. Chaque observation est modérée de façon à ce qu'aucun visage ni plaque d'immatriculation n'apparaissent.\n\nL'application **Vigilo** est développée avec amour par [[http://www.jesuisundesdeux.org|nos amis cyclistes de Montpellier]] ([[https://twitter.com/hashtag/JeSuisUnDesDeux?src=hash|#JeSuisUnDesDeux]]).\n[[https://vigilo.city/fr/villes|Site web de Vigilo]]\n\n**Liste des signalements**",
+    "name": "Vigilo de <<ASSO_NAME>>",
+    "onLoadPanel": "caption",
+    "displayPopupFooter": false,
+    "miniMap": false,
+    "moreControl": false,
+    "scaleControl": true,
+    "scrollWheelZoom": true,
+    "zoom": 6
+  },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      8.525,
+      47.465
+    ]
+  },
+  "layers": [
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=100&format=csv",
+          "format": "csv"
+        },
+        "name": "9 - Autre",
+        "color": "YellowGreen",
+        "id": 1001791,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n***Autre***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/star-24-white.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=9&format=csv",
+          "format": "csv"
+        },
+        "name": "8 - Accident, chute, incident",
+        "color": "Bisque",
+        "id": 1001788,
+        "popupContentTemplate": "***Accident, chute, incident***\n{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/hospital-24-white.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=8&format=csv",
+          "format": "csv"
+        },
+        "name": "7 - Absence d'aménagement",
+        "color": "DarkOrchid",
+        "id": 1001787,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n***Absence d'aménagement***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/fire-station-24_1.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=7&format=csv",
+          "format": "csv"
+        },
+        "name": "6 - Incivilité récurrente sur la route",
+        "color": "Orchid",
+        "id": 1001786,
+        "popupContentTemplate": "***Incivilité récurrente sur la route***\n{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/police-24_1.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=6&format=csv",
+          "format": "csv"
+        },
+        "name": "5 - Signalisation, marquage",
+        "color": "Turquoise",
+        "id": 1001785,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n***Signalisation, marquage***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/embassy-24_1.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=5&format=csv",
+          "format": "csv"
+        },
+        "name": "4 - Absence d'arceaux de stationnement",
+        "color": "DodgerBlue",
+        "id": 1001783,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>/generate_panel.php?token={token}&s=400|400}}\n***Absence d'arceaux de stationnement***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/parking-24_1.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=4&format=csv",
+          "format": "csv"
+        },
+        "name": "3 - Défaut d'entretien",
+        "color": "Green",
+        "id": 1001782,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>//generate_panel.php?token={token}&s=400|400}}\n***Défaut d'entretien***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/star-24-white.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=3&format=csv",
+          "format": "csv"
+        },
+        "name": "2 - Aménagement mal conçu",
+        "color": "Orange",
+        "id": 1001779,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>//generate_panel.php?token={token}&s=400|400}}\n***Aménagement mal conçu***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "iconUrl": "/uploads/pictogram/skiing-24_1.png"
+      }
+    },
+    {
+      "type": "FeatureCollection",
+      "features": [],
+      "_umap_options": {
+        "displayOnLoad": true,
+        "browsable": true,
+        "remoteData": {
+          "url": "<<URL_VIGILO_API>>/get_issues.php?c=2&format=csv",
+          "format": "csv",
+          "dynamic": false,
+          "proxy": false
+        },
+        "name": "1 - Véhicule ou objet gênant",
+        "color": "Red",
+        "id": 1001763,
+        "type": "Default",
+        "cluster": {},
+        "heat": {},
+        "smoothFactor": "1.5",
+        "popupShape": "Default",
+        "popupTemplate": "Default",
+        "showLabel": null,
+        "popupContentTemplate": "{{<<URL_VIGILO_API>>//generate_panel.php?token={token}&s=400|400}}\n***Véhicule ou objet gênant***\n[[<<URL_VIGILO_API>>/generate_panel.php?token={token}|Grand format]]\n[[<<URL_VIGILO_API>>/mosaic.php?t={token}|Observations proches]]\nAdresse : {address}\nCommentaire : {comment}\nDétails : {explanation}",
+        "iconClass": "Drop",
+        "weight": "4",
+        "stroke": true,
+        "iconUrl": "/uploads/pictogram/police-24_1.png"
+      }
+    }
+  ]
+}
