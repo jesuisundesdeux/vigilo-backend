@@ -84,6 +84,17 @@ $categorie_id = $result['obs_categorie'];
 $statusobs = $result['obs_status'];
 $categorie_string = getCategorieName($categorie_id);
 
+
+if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
+  $cityquery = mysqli_query($db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
+  $cityresult = mysqli_fetch_array($cityquery);
+  $street_name .= ', '. $cityresult['city_name'];
+}
+elseif (!empty($result['obs_cityname'])) {
+  $street_name .= ', '. $result['obs_cityname'];
+}
+
+
 if (!isset($categorie_string)) {
     jsonError($error_prefix, "unknown categorie_id: ' . $categorie_id", "UNKNOWCATEGORIE", 500);
 }
