@@ -289,7 +289,7 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
       <tr class="<?=$highlight_city ?>">
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
-          <img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" />
+          <a href="/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
