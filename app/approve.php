@@ -39,8 +39,8 @@ else {
 $status = 0;
 $token = mysqli_real_escape_string($db, $token);
 
-/* Only admin can approve an observation */
-if (getrole($key, $acls) != "admin") {
+/* Only admin and moderators can approve an observation */
+if (getrole($key, $acls) != "admin" && getrole($key, $acls) != "moderator") {
   jsonError($error_prefix, "Unauthorized access.","ACCESSDENIED",403);
 }
 

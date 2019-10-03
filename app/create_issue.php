@@ -42,7 +42,7 @@ $update = 0;
 # Check if token exists
 if (isset($_POST['token']) AND !empty($_POST['token'])) {
   $token = mysqli_real_escape_string($db, $_POST['token']);
-  if (getrole($key, $acls) == "admin") {
+  if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
     # Do the query only if it's an admin
     $query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
     # If token exists and the request is from an admin : We consider it as an update
