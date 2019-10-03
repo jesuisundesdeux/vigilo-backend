@@ -16,7 +16,8 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   $token = mysqli_real_escape_string($db,$_GET['token']);
 
   if ($_GET['action'] == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
-
+    delete_token_cache($token);
+    delete_map_cache($token);
     mysqli_query($db,"DELETE FROM obs_list WHERE obs_id = '".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
 
