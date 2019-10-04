@@ -62,3 +62,12 @@ if ($code_version != $last_version) {
     </tbody>
   </table>
 </div>
+<?php
+
+
+// TODO chargé un script sql et le lancer à partir d'ici / si fichier ci dessous existe c'est pour migration/post operation
+if (file_exists('./inc/updates/'.$db_version.'.php')) {
+  echo "<h2>Mise à jour</h2>";
+  require_once('./inc/updates/'.$db_version.'.php');
+}
+
