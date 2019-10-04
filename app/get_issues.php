@@ -238,20 +238,22 @@ ORDER BY obs_time DESC
           "approved" => $result['obs_approved']
         );
 
-        if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
-          $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
-          $cityresult = mysqli_fetch_array($cityquery);
-          $issue['cityname'] = $cityresult['city_name'];
-          $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
-        }
-        elseif (!empty($result['obs_cityname'])) {
-          $issue['cityname'] = $result['obs_cityname'];
-          $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
-        }
-        elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$issue['address'],$cityInadress)) {
-          if(count($cityInadress) == 2) {
-            $issue['cityname'] = trim($cityInadress[1]);
+        if (isset($_GET['cityfield']) && $_GET['cityfield'] == "1") {
+          if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
+            $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
+            $cityresult = mysqli_fetch_array($cityquery);
+            $issue['cityname'] = $cityresult['city_name'];
             $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+          }
+          elseif (!empty($result['obs_cityname'])) {
+            $issue['cityname'] = $result['obs_cityname'];
+            $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+          }
+          elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$issue['address'],$cityInadress)) {
+            if(count($cityInadress) == 2) {
+              $issue['cityname'] = trim($cityInadress[1]);
+              $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+            }
           }
         }
 
