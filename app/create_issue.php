@@ -181,8 +181,7 @@ if ($update) {
                                          obs_explanation="'.$explanation.'",
                                          obs_address_string="'.$address.'",
                                          obs_categorie="'.$categorie.'",
-                                         obs_time="'.$time.'",
-                                         obs_app_version="'.$version.'"
+                                         obs_time="'.$time.'"
                     WHERE obs_token="'.$token.'" AND obs_secretid="'.$secretid.'"');
 } else {
   mysqli_query($db, 'INSERT INTO obs_list (
