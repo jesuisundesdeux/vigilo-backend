@@ -216,6 +216,7 @@ Version backend >= 0.0.1
 | URL | int | offset |  | démarrage le nombre d'occurence en décallé | >= 0.0.1 |
 | URL | str | format |  | format (json,csv,geojson) | >= 0.0.3 |
 | URL | int | approved |  | filtre selon approbation) | >= 0.0.10 |
+| URL | bool | cityfield | | Affiche la ville dans un champs dédié plutôt que dans l'adresse | >= 0.0.13 |
 
 ###### Retour
 
