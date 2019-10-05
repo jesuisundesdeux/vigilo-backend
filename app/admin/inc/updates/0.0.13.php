@@ -18,22 +18,31 @@ while($config_result = mysqli_fetch_array($config_query)) {
 <h3><?=$from ?> à <?=$to ?></h3>
 <?php
 if ($dbversion == "0.0.13" && $migration_flag == "1") {
-  $citycount_query = mysqli_query($db,"SELECT count(*) as nb FROM obs_cities");
-  $citycount_result = mysqli_fetch_array($citycount_query);
+  $citycount_query = mysqli_query($db,"SELECT * FROM obs_cities");
+  $citycount = mysqli_num_rows($citycount_query);
+  $citylist = array();
+  while($city_result = mysqli_fetch_array($citycount_query)) {
+    $citylist[] = $city_result['city_name'];
+  }
   ?>
   <div class="alert alert-warning" role="alert">
     Assurez vous d'avoir completé la liste des villes avant de faire la mise à jour<br />
-    <strong><?=$citycount_result['nb'] ?></strong> villes configurées
+    <strong><?=$citycount ?></strong> villes configurées
   </div>
   
   <?php
-  $obslist_query = mysqli_query($db, "SELECT obs_token,obs_address_string FROM obs_list");
+  $obslist_query = mysqli_query($db, "SELECT obs_token,obs_address_string FROM obs_list WHERE obs_cityname='' AND obs_city=0");
+  
   $tokenpb = array();
-  while($obslist_result = mysqli_fetch_array($obslist_query)) {
+  $citiesunknown = array();
+  while ($obslist_result = mysqli_fetch_array($obslist_query)) {
     $token = $obslist_result['obs_token'];
     preg_match('/^(?:[^,]*),([^,]*)$/',$obslist_result['obs_address_string'],$cityInadress);
-    if(count($cityInadress) != 2) {
+    if (count($cityInadress) != 2) {
       $tokenpb[] = $token . ' => '. $obslist_result['obs_address_string'];
+    }
+    elseif (!in_array($cityInadress[1],$citylist)) {
+      $citiesunknown[] = $cityInadress[1];
     }
   }
   
@@ -47,8 +56,22 @@ if ($dbversion == "0.0.13" && $migration_flag == "1") {
     } 
   ?>
   </div>
+
  
 <?php
+  }
+  if (count($citiesunknown)) {
+  ?>
+  <div class="alert alert-info" role="alert">
+  Certaines villes renseignées ne sont pas dans la liste configurée<br /><br />
+  <?php 
+    foreach($citiesunknown as $value) {
+      echo "$value<br />";
+    } 
+  ?>
+  </div>
+
+  <?php
   }
 }
 ?>
