@@ -41,7 +41,7 @@ if ($dbversion == "0.0.13" && $migration_flag == "1") {
     if (count($cityInadress) != 2) {
       $tokenpb[] = $token . ' => '. $obslist_result['obs_address_string'];
     }
-    elseif (!in_array(trim($cityInadress[1]),$citylist)) {
+    elseif (!in_array(strtolower(trim($cityInadress[1])),$citylist)) {
       $citiesunknown[] = $token . ' => ' .$cityInadress[1];
     }
   }
