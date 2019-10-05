@@ -64,10 +64,14 @@ if ($code_version != $last_version) {
 </div>
 <?php
 
+$migration_query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='migration_from_version' LIMIT 1");
+$migration_result = mysqli_fetch_array($migration_query);
+$migration_fromversion = $migration_result['config_value'];
 
 // TODO chargé un script sql et le lancer à partir d'ici / si fichier ci dessous existe c'est pour migration/post operation
-if (file_exists('./inc/updates/'.$code_version.'.php')) {
+if (file_exists('./inc/updates/'.$migration_fromversion.'.php')) {
   echo "<h2>Migration necessaire</h2>";
-  require_once('./inc/updates/'.$code_version.'.php');
+  require_once('./inc/updates/'.$migration_fromversion.'.php');
+
 }
 
