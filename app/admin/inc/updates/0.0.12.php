@@ -5,19 +5,13 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
 $from = "0.0.12";
 $to = "0.0.13";
 
-$config_query = mysqli_query($db, "SELECT config_param,config_value FROM obs_config");
-while($config_result = mysqli_fetch_array($config_query)) {
-  if($config_result['config_param'] == 'vigilo_db_version') {
-    $dbversion = $config_result['config_value'];
-  }
-  elseif($config_result['config_param'] == 'migration_flag') {
-    $migration_flag = $config_result['config_value'];
-  }
-}
+$config_query = mysqli_query($db, "SELECT config_param,config_value FROM obs_config WHERE config_param='vigilo_db_version'");
+$config_result = mysqli_fetch_array($config_query);
+$dbversion = $config_result['config_value'];
 ?>
 <h3><?=$from ?> à <?=$to ?></h3>
 <?php
-if ($dbversion == "0.0.13" && $migration_flag == "1") {
+if ($dbversion == "0.0.13") {
   $citycount_query = mysqli_query($db,"SELECT * FROM obs_cities");
   $citycount = mysqli_num_rows($citycount_query);
   $citylist = array();
