@@ -22,7 +22,7 @@ if ($dbversion == "0.0.13" && $migration_flag == "1") {
   $citycount = mysqli_num_rows($citycount_query);
   $citylist = array();
   while($city_result = mysqli_fetch_array($citycount_query)) {
-    $citylist[] = $city_result['city_name'];
+    $citylist[] = str_replace(' ','',str_replace('-','',strtolower(trim($city_result['city_name']))));
   }
   ?>
   <div class="alert alert-warning" role="alert">
@@ -41,8 +41,8 @@ if ($dbversion == "0.0.13" && $migration_flag == "1") {
     if (count($cityInadress) != 2) {
       $tokenpb[] = $token . ' => '. $obslist_result['obs_address_string'];
     }
-    elseif (!in_array($cityInadress[1],$citylist)) {
-      $citiesunknown[] = $cityInadress[1];
+    elseif (!in_array(str_replace(' ','',str_replace('-','',strtolower(trim($cityInadress[1])))),$citylist)) {
+      $citiesunknown[] = $token . ' => ' .$cityInadress[1];
     }
   }
   
