@@ -72,6 +72,5 @@ $migration_fromversion = $migration_result['config_value'];
 if (file_exists('./inc/updates/'.$migration_fromversion.'.php')) {
   echo "<h2>Migration necessaire</h2>";
   require_once('./inc/updates/'.$migration_fromversion.'.php');
-
 }
 
