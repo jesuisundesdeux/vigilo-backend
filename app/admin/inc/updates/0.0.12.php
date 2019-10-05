@@ -33,10 +33,10 @@ if ($dbversion == "0.0.13") {
     $token = $obslist_result['obs_token'];
     preg_match('/^(?:[^,]*),([^,]*)$/',$obslist_result['obs_address_string'],$cityInadress);
     if (count($cityInadress) != 2) {
-      $tokenpb[] = '<a href="?page=observations&filtertoken='.$token.'&filteraddress=&filtertype=uniq>'. $token . '</a> => '. $obslist_result['obs_address_string'];
+      $tokenpb[] = '<a href="?page=observations&filtertoken='.$token.'&filteraddress=&filtertype=uniq">'. $token . '</a> => '. $obslist_result['obs_address_string'];
     }
     elseif (!in_array(str_replace(' ','',str_replace('-','',strtolower(trim($cityInadress[1])))),$citylist)) {
-      $citiesunknown[] = '<a href="?page=observations&filtertoken='.$token.'&filteraddress=&filtertype=uniq>' . $token . '</a> => ' .$cityInadress[1];
+      $citiesunknown[] = '<a href="?page=observations&filtertoken='.$token.'&filteraddress=&filtertype=uniq">' . $token . '</a> => ' .$cityInadress[1];
     }
   }
   
