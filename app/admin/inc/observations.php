@@ -11,6 +11,7 @@ $actions_acl = array("delete" => array("access" => array('admin')),
 
 $urlsuffix="";
 
+/* Observations list */
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
   $token = mysqli_real_escape_string($db,$_GET['token']);
@@ -128,8 +129,68 @@ else {
 
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
-$tokenlist = '';
-$addresslist = '';
+
+/* Observations quality check */
+if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+  $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
+  
+  $city_query = mysqli_query($db,"SELECT * FROM obs_cities ORDER BY city_name");
+  $citylist = array();
+  $citylistname = array();
+  while($city_result = mysqli_fetch_array($city_query)) {
+    $cityid = $city_result['city_id'];
+    $citylist[$cityid] = str_replace(' ','',str_replace('-','',strtolower(trim($city_result['city_name']))));
+    $citylistname[$cityid] = $city_result['city_name'];
+  }
+  
+  $obswithoutcity_query = mysqli_query($db, "SELECT obs_token,obs_address_string,obs_cityname FROM obs_list WHERE obs_city=0 AND obs_complete=1");
+  while ($obswithoutcity_result = mysqli_fetch_array($obswithoutcity_query)) {
+    $token = $obswithoutcity_result['obs_token'];
+    preg_match('/^([^,]*),([^,]*)$/',$obswithoutcity_result['obs_address_string'],$cityInadress);
+
+    if (count($cityInadress) == 3 &&  empty($obswithoutcity_result['obs_cityname'])) {
+      $cityname = trim($cityInadress[2]);
+      $address = mysqli_real_escape_string($db,$cityInadress[1]);
+      $cityid = array_search(str_replace(' ','',str_replace('-','',strtolower($cityname))), $citylist);
+      $obswithoutcity['readytoimport'][] = $token;
+      if (isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1") {
+         if ($cityid) {
+           mysqli_query($db, "UPDATE obs_list SET obs_address_string='".$address."', obs_city='".$cityid."' WHERE obs_token='".$token."'"); 
+         }
+         else {
+           mysqli_query($db, "UPDATE obs_list SET obs_address_string='".$address."', obs_cityname='".$cityname."' WHERE obs_token='".$token."'"); 
+         }
+      }
+    }
+    elseif(!empty($obswithoutcity_result['obs_cityname'])) {
+      $cityname = $obswithoutcity_result['obs_cityname'];
+      $cityid = array_search(str_replace(' ','',str_replace('-','',strtolower($cityname))), $citylist);
+      if ($cityid) {
+        $obswithoutcity['readytoimport'][] = $token;
+	if (isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1") {
+	  mysqli_query($db, "UPDATE obs_list SET obs_cityname='', obs_city='".$cityid."' WHERE obs_token='".$token."'");
+        }
+      }
+      else {
+        $obswithoutcity['cityunknown'][] = $token;
+      }
+        
+    }
+    else {
+      $obswithoutcity['pbaddress'][] = $token;
+    }
+  }
+  if(count($obswithoutcity['pbaddress']) > 0 || count($obswithoutcity['cityunknown']) > 0 || count($obswithoutcity['readytoimport'])) {
+  ?>
+  <div class="alert alert-warning" role="alert">
+  <strong>Observations sans villes configurées : </strong><br />
+  <strong><?=count($obswithoutcity['pbaddress']) ?></strong> adresses qui ne sont pas au format "Rue, Ville" impossible à importer <a href="?page=observations&filterpbaddress=1">Afficher</a><br />
+  <strong><?=count($obswithoutcity['cityunknown']) ?></strong> villes non référencées <a href="?page=observations&filtercityunknown=1">Afficher</a><br />
+  <strong><?=count($obswithoutcity['readytoimport']) ?></strong> importations possibles ! <a href="?page=observations&importcityfromadress=1">Importer</a>
+  </div>
+  <?php
+  }
+}
 
 // To check the good radio button
 $filterTypeUniqueChecked = "checked";
@@ -143,6 +204,9 @@ if (isset($_GET['filtertype'])) {
 
 $searchtoken = "";
 $searchaddress = "";
+$searchcity = "";
+$querysearch = "";
+
 if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "similar") {
   $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
   $filter = array('distance' => 300,
@@ -150,20 +214,40 @@ if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filter
                 'fcategorie' => 1,
                 'faddress' => 1);
   $similar = sameas($db,$searchtoken , $filter);
-  $tokenlist = "AND obs_token IN ('".implode("','",$similar)."')";
+  $querysearch .= " AND obs_token IN ('".implode("','",$similar)."')";
   $urlsuffix .= "&filtertype=similar&filtertoken=".$searchtoken;
 }
-elseif(isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "uniq") {
+elseif (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "uniq") {
   $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
-  $tokenlist = "AND obs_token = '".$searchtoken."'";
+  $querysearch .= " AND obs_token = '".$searchtoken."'";
   $urlsuffix .= "&filtertype=uniq&filtertoken=".$searchtoken;
 }
 
-if(isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
+if (isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
   $searchaddress = mysqli_real_escape_string($db,$_GET['filteraddress']);
-  $addresslist = "AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
-  $urlsuffix .= "&filtertype=uniq&filteraddress=".$searchaddress;
+  $querysearch .= " AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
+  $urlsuffix .= "&filteraddress=".$searchaddress;
 }
+
+if (isset($_GET['searchcity']) && is_numeric($_GET['searchcity'])) {
+  if($_GET['searchcity'] != 0) {
+    $searchcity = $_GET['searchcity'];
+    $querysearch .= " AND obs_city='".$searchcity."'";
+    $urlsuffix .= "&searchcity=".$searchcity;
+  }
+}
+
+if (isset($_GET['filterpbaddress']) && $_GET['filterpbaddress'] == "1") {
+  $querysearch .= " AND obs_token IN ('".implode("','",$obswithoutcity['pbaddress'])."')";
+  $urlsuffix .= "&filterpbaddress=1";
+}
+elseif (isset($_GET['filtercityunknown']) && $_GET['filtercityunknown'] == "1") {
+  $querysearch .= " AND obs_token IN ('".implode("','",$obswithoutcity['cityunknown'])."')";
+  $urlsuffix .= "&filtercityunknown=1";
+}
+
+
+
 if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
     while ($role_result = mysqli_fetch_array($role_query)) {
@@ -175,10 +259,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     }
 }
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist);
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$tokenlist." ".$addresslist." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
 
 ?>
 <h3>Recherche</h3>
@@ -190,31 +274,47 @@ $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$ap
       <input type="text" class="form-control" name="filtertoken" id="searchToken" value="<?=$searchtoken ?>">
     </div>
   </div>
-  <div class="form-group row">
-    <label for="searchAddress" class="col-sm-2 col-form-label">Ville ou adresse</label>
-    <div class="col-sm-10">
-      <input type="text" class="form-control" name="filteraddress" id="searchAddress" value="<?=$searchaddress ?>">
-    </div>
-  </div>
   <fieldset class="form-group">
     <div class="row">
       <legend class="col-form-label col-sm-2 pt-0">Type</legend>
       <div class="col-sm-10">
         <div class="form-check">
           <input class="form-check-input" type="radio" name="filtertype" id="gridRadios1" value="uniq" <?=$filterTypeUniqueChecked ?>>
-          <label class="form-check-label" for="gridRadios1">
-            Unique
-          </label>
+          <label class="form-check-label" for="gridRadios1">Unique</label>
         </div>
-        <div class="form-check">
+         <div class="form-check">
           <input class="form-check-input" type="radio" name="filtertype" id="gridRadios2" value="similar" <?=$filterTypeSimilarChecked ?>>
-          <label class="form-check-label" for="gridRadios2">
-            Similaires
-          </label>
+          <label class="form-check-label" for="gridRadios2">Similaires</label>
         </div>
       </div>
     </div>
   </fieldset>
+  <div class="form-group row">
+    <label for="searchAddress" class="col-sm-2 col-form-label">Rue</label>
+    <div class="col-sm-10">
+      <input type="text" class="form-control" name="filteraddress" id="searchAddress" value="<?=$searchaddress ?>">
+    </div>
+  </div>
+  <div class="form-group row">
+    <label for="searchcity" class="col-sm-2 col-form-label">Ville</label>
+    <div class="col-sm-10">
+      <select class="form-control" name="searchcity" id="searchcity">
+      <?php
+      $citylistnametmp = $citylistname;
+      $citylistnametmp[0] = "---";
+
+      foreach ($citylistnametmp as $selectcityid => $selectcityname) {
+        if ($searchcity == $selectcityid) {
+          echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
+        }
+        else {
+          echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
+              }
+            }
+     ?>
+      </select>
+    </div>
+  </div>
   <div class="form-group row">
     <div class="col-sm-10">
       <button type="submit" class="btn btn-primary">Recherche</button>
@@ -266,13 +366,12 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
   <table class="table table-striped table-sm">
     <thead>
       <tr>
-        <th>Token</th>
-        <th>Photo</th>
+        <th width="100px">Token</th>
+        <th width="150px">Photo</th>
         <th>Commentaire</th>
-        <th>Adresse</th>
-        <th>Date / Heure</th>
-        <th> </th>
-        <th> </th>
+        <th width="300px">Localisation</th>
+        <th width="100px">Date / Heure</th>
+        <th width="300px"> </th>
       </tr>
     </thead>
     <tbody>
@@ -295,8 +394,35 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
         <td>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
         </td>
-        <td>
-          <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required />
+	<td>
+	  <div class="form-group">
+          <label for="obs_address_string"><strong>Rue</strong></label>
+	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required /><br />
+           <?php
+
+          if (!empty($result_obs['obs_cityname'])) { ?>
+            <label for="obs_cityname"><strong>Ville</strong></label>
+            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required /><br />
+          <?php
+	  }
+	  else { ?>
+          <label for="obs_city"><strong>Ville</strong></label>
+	  <select class="form-control" name="obs_city" id="obs_city">
+          <?php 
+	    $citylistnametmp = $citylistname;
+            $citylistnametmp[0] = "---";
+            foreach ($citylistnametmp as $selectcityid => $selectcityname) {
+              if ($result_obs['obs_city'] == $selectcityid) {
+                echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
+              }
+	      else {
+                echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
+              }
+            }
+	  }
+          ?>
+	  </select>
+          </div>
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required />

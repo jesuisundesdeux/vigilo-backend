@@ -112,7 +112,7 @@ while ($result_cities = mysqli_fetch_array($query_cities)) {
           <input type="text" class="form-control-plaintext" name="city_population" value="<?=$result_cities['city_population'] ?>" required />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="city_website" value="<?=$result_cities['city_website'] ?>" required />
+          <input type="text" class="form-control-plaintext" name="city_website" value="<?=$result_cities['city_website'] ?>" />
         </td>
 
         <td>
