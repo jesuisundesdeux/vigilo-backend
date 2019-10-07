@@ -98,6 +98,10 @@ function getrole($privatekey, $acls) {
   return False; 
 }
 
+function flatstring($string) {
+  return str_replace(' ','',str_replace('-','',strtolower(trim($string)))); 
+}
+
 function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 'fcategorie' => 0,'faddress' => 0)) {
   $query = mysqli_query($db,"SELECT * FROM obs_list");
   $groups = array();
@@ -108,23 +112,36 @@ function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 
     $coordinates_lat = $result['obs_coordinates_lat'];
     $coordinates_lon = $result['obs_coordinates_lon'];
     $address = $result['obs_address_string'];
+    $cityid = $result['obs_city'];
+    $citycondition = True;
+
     foreach($groups as $key => $value) {
+      if ($cityid != "0") {
+        if($cityid == $value['cityid']) {
+          $citycondition = True;
+        }
+        else {
+          $citycondition = False;
+        }
+      }
+
       if($value['categorie'] == $categorie OR $filter['fcategorie'] == 0) {
-        if((str_replace(' ','',$value['address_string']) == str_replace(' ','',$address) OR $filter['faddress'] == 0) OR
+        if(((flatstring($value['address_string']) == flatstring($address) && $citycondition) OR $filter['faddress'] == 0) OR
         (distance($value['coordinates_lat'], $value['coordinates_lon'], $coordinates_lat, $coordinates_lon, $unit = 'm') < $filter['distance'] OR $filter['fdistance'] == 0)) {
-  	      $groups[$key]['tokens'][] = $token;
-  	      $groups[$key]['count']++;
-  	      $in_group = 1;
-	      break;
+          $groups[$key]['tokens'][] = $token;
+          $groups[$key]['count']++;
+          $in_group = 1;
+        break;
         }
       }
    }
    if($in_group == 0) {
-     $groups[] = array("categorie" => $categorie, 'address_string' => $address, 'coordinates_lat' => $coordinates_lat, 'coordinates_lon' => $coordinates_lon, 'tokens' => array($token), 'count' => 1);
+     $groups[] = array("cityid" => $cityid, "categorie" => $categorie, 'address_string' => $address, 'coordinates_lat' => $coordinates_lat, 'coordinates_lon' => $coordinates_lon, 'tokens' => array($token), 'count' => 1);
    }
  }
  return $groups;
 }
+
 
 function sameas($db,$token,$filter=array()) {
   $groups = generategroups($db,$filter);
