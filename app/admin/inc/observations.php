@@ -400,27 +400,30 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
 	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required /><br />
            <?php
 
-          if (!empty($result_obs['obs_cityname'])) { ?>
+if (!empty($result_obs['obs_cityname'])) { ?>
             <label for="obs_cityname"><strong>Ville</strong></label>
             <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required /><br />
-          <?php
-	  }
-	  else { ?>
+<?php
+}
+else { ?>
           <label for="obs_city"><strong>Ville</strong></label>
-	  <select class="form-control" name="obs_city" id="obs_city">
-          <?php 
-	    $citylistnametmp = $citylistname;
-            $citylistnametmp[0] = "---";
-            foreach ($citylistnametmp as $selectcityid => $selectcityname) {
-              if ($result_obs['obs_city'] == $selectcityid) {
-                echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
-              }
-	      else {
-                echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
-              }
-            }
-	  }
-          ?>
+          <select class="form-control" name="obs_city" id="obs_city">
+<?php 
+#$citylistnametmp = $citylistname;
+  foreach ($citylistname as $selectcityid => $selectcityname) {
+    if ($result_obs['obs_city'] == $selectcityid) {
+      echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
+    }
+    else {
+      echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
+    }
+  }
+  if ($result_obs['obs_city'] == 0) {
+    echo '<option value="0" selected>---</option>';
+  }
+
+}
+?>
 	  </select>
           </div>
         </td>
