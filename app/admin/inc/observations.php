@@ -462,7 +462,7 @@ else { ?>
             <a href="?page=<?=$page_name ?>&action=delete&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="delete"></span> Supprimer</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Effacer cache</a><br />
+            <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="hard-drive"></span> Effacer cache</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
             $currentstatus = $result_obs['obs_status'];
