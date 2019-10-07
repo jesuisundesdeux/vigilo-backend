@@ -46,6 +46,7 @@ class GetIssues
   protected $count = -1;
   protected $offset = -1;
   protected $approved = -1;
+  protected $cityid = -1;
 
   function __construct()
   {
@@ -134,6 +135,15 @@ class GetIssues
     $this->approved = intval($value);
   }
 
+  public function setCityid($value) : void
+  {
+    if (!is_numeric($value)) {
+      throw new Exception("${value} is not numeric value");
+    }
+
+    $this->cityid = intval($value);
+  }
+
   public function getLimitQuery($count, $offset) : string
   {
     $limit = "";
@@ -184,6 +194,10 @@ class GetIssues
     }
     else {
         $where .= " AND (obs_approved=0 OR obs_approved=1)";
+    }
+
+    if ($this->cityid != 0 && $this->cityid != -1) {
+      $where .= " AND obs_city = '" . $this->cityid . "'";
     }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
@@ -274,7 +288,7 @@ ORDER BY obs_time DESC
 	  }
 	} elseif($this->token_filter_enabled) {
 	  if($token_result['obs_categorie'] == $result['obs_categorie'] OR !$this->token_filters['categorie']) {
-    	    if(((str_replace(' ','',$token_result['obs_address_string']) == str_replace(' ','',$result['obs_address_string'])) AND $this->token_filters['address']) OR
+    	    if(((flatstring($token_result['obs_address_string']) == flatstring($result['obs_address_string'])) AND $this->token_filters['address']) OR
             (distance($token_result['obs_coordinates_lat'], $token_result['obs_coordinates_lon'], $result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $unit = 'm') < $this->token_filter_distance AND $this->token_filters['distance'])) {
                 $json[] = $issue;
 	      }
@@ -399,6 +413,9 @@ if (!debug_backtrace()) {
     $export->setApproved($_GET['approved']);
   }
 
+  if (isset($_GET['cityid'])) {
+    $export->setCityid($_GET['cityid']);
+  }
   # Export datas
   $export->outputToWebServer();
 }

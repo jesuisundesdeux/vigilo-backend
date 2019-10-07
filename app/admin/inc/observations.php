@@ -139,7 +139,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   $citylistname = array();
   while($city_result = mysqli_fetch_array($city_query)) {
     $cityid = $city_result['city_id'];
-    $citylist[$cityid] = str_replace(' ','',str_replace('-','',strtolower(trim($city_result['city_name']))));
+    $citylist[$cityid] = flatstring($city_result['city_name']);
     $citylistname[$cityid] = $city_result['city_name'];
   }
   
@@ -151,7 +151,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
     if (count($cityInadress) == 3 &&  empty($obswithoutcity_result['obs_cityname'])) {
       $cityname = trim($cityInadress[2]);
       $address = mysqli_real_escape_string($db,$cityInadress[1]);
-      $cityid = array_search(str_replace(' ','',str_replace('-','',strtolower($cityname))), $citylist);
+      $cityid = array_search(flatstring($cityname), $citylist);
       $obswithoutcity['readytoimport'][] = $token;
       if (isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1") {
          if ($cityid) {
@@ -164,7 +164,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
     }
     elseif(!empty($obswithoutcity_result['obs_cityname'])) {
       $cityname = $obswithoutcity_result['obs_cityname'];
-      $cityid = array_search(str_replace(' ','',str_replace('-','',strtolower($cityname))), $citylist);
+      $cityid = array_search(flatstring($cityname), $citylist);
       if ($cityid) {
         $obswithoutcity['readytoimport'][] = $token;
 	if (isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1") {
