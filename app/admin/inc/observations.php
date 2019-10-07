@@ -3,6 +3,7 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
   exit('Not allowed');
 }
 
+/* Defines acls for this page used by roles */
 $actions_acl = array("delete" => array("access" => array('admin')),
                      "resolve" => array("access" => array('admin','citystaff')),
                      "approve" => array("access" => array('admin')),
@@ -16,6 +17,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
   $token = mysqli_real_escape_string($db,$_GET['token']);
 
+  // Delete button actions
   if ($_GET['action'] == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
     delete_token_cache($token);
     delete_map_cache($token);
@@ -23,6 +25,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
 
   }
+  // Approve buttons actions
   elseif ($_GET['action'] == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
@@ -34,10 +37,12 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
   }
+  // Clean cache actions
   elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
     delete_token_cache($token);
     delete_map_cache($token);
   }
+  // Resolve buttons actions
   elseif ($_GET['action'] == 'resolve' && isset($_GET['new_status']) && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
       $new_status = $_GET['new_status'];
       if (is_numeric($new_status) && in_array($_SESSION['role'],$status_list[$new_status]['roles'])) {
@@ -69,6 +74,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 
 }
 
+// Observation update actions
 if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   $update = "";
   $obstime = strptime($_POST['post_date'].' '.$_POST['post_heure'],'%d/%m/%Y %H:%M');
@@ -94,6 +100,7 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
   }
 }
 
+// Tab filter process
 if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
   $approved = $_GET['approved'];
 }
@@ -119,16 +126,6 @@ $tabresolved[3] = "";
 $tabresolved[4] = "";
 $tabresolved[$resolved] = "active";
 
-
-if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
-  $pagenb = $_GET['pagenb'];
-}
-else {
-  $pagenb = 1;
-}
-
-$maxobsperpage = 100;
-$offset = ($pagenb-1) * $maxobsperpage;
 
 /* Observations quality check */
 if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
@@ -192,6 +189,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   }
 }
 
+/* Find part */
 // To check the good radio button
 $filterTypeUniqueChecked = "checked";
 $filterTypeSimilarChecked = "";
@@ -246,8 +244,7 @@ elseif (isset($_GET['filtercityunknown']) && $_GET['filtercityunknown'] == "1") 
   $urlsuffix .= "&filtercityunknown=1";
 }
 
-
-
+/* Filter cities for the current role */
 if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
     while ($role_result = mysqli_fetch_array($role_query)) {
@@ -259,10 +256,31 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     }
 }
 
+/* Pagination */
+if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
+  $pagenb = $_GET['pagenb'];
+}
+else {
+  $pagenb = 1;
+}
+
+$maxobsperpage = 100;
+$offset = ($pagenb-1) * $maxobsperpage;
+
 $countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
 $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+
+$approvedcount = array(0=>0,1=>0,2=>0);
+$resolvecount = array(0=>0,1=>0,2=>0,3=>0,4=>0);
+$query_count_tabs = mysqli_query($db, "SELECT obs_approved,obs_status FROM obs_list WHERE obs_complete=1".$querysearch);
+while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
+  $approvedcount[$result_count_tabs['obs_approved']]++;
+  if($result_count_tabs['obs_approved'] == 1) {
+    $resolvecount[$result_count_tabs['obs_status']]++;
+  }
+}
 
 ?>
 <h3>Recherche</h3>
@@ -328,13 +346,13 @@ if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
 ?>
 <ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[1] ?>" href="?page=<?=$page_name ?>&approved=1<?=$urlsuffix ?>"><span data-feather="check"></span> Approuvées</a>
+    <a class="nav-link <?=$tabapproved[1] ?>" href="?page=<?=$page_name ?>&approved=1<?=$urlsuffix ?>"><span data-feather="check"></span> Approuvées <span class="badge badge-info"><?=$approvedcount[1] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0<?=$urlsuffix ?>"><span data-feather="clock"></span> A qualifier</a>
+    <a class="nav-link <?=$tabapproved[0] ?>" href="?page=<?=$page_name ?>&approved=0<?=$urlsuffix ?>"><span data-feather="clock"></span> A qualifier <span class="badge badge-info"><?=$approvedcount[0] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2<?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouvées</a>
+    <a class="nav-link <?=$tabapproved[2] ?>" href="?page=<?=$page_name ?>&approved=2<?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouvées <span class="badge badge-info"><?=$approvedcount[2] ?></span></a>
   </li>
 </ul>
 <?php
@@ -345,19 +363,19 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
 <br />
 <ul class="nav nav-tabs">
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0<?=$urlsuffix ?>">Non prises en compte</a>
+    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0<?=$urlsuffix ?>">Non prises en compte <span class="badge badge-info"><?=$resolvecount[0] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2<?=$urlsuffix ?>"><span data-feather="eye"></span> Prises en compte</a>
+    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2<?=$urlsuffix ?>"><span data-feather="eye"></span> Prises en compte <span class="badge badge-info"><?=$resolvecount[2] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3<?=$urlsuffix ?>"><span data-feather="clock"></span> En cours de résolution</a>
+    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3<?=$urlsuffix ?>"><span data-feather="clock"></span> En cours de résolution <span class="badge badge-info"><?=$resolvecount[3] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4<?=$urlsuffix ?>"><span data-feather="user-check"></span> Indiquées résolues</a>
+    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4<?=$urlsuffix ?>"><span data-feather="user-check"></span> Indiquées résolues <span class="badge badge-info"><?=$resolvecount[4] ?></span></a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1<?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolues</a>
+    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1<?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolues <span class="badge badge-info"><?=$resolvecount[1] ?></span></a>
   </li>
 </ul>
 <?php } ?>
