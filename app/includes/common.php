@@ -81,7 +81,6 @@ while ($roles_result = mysqli_fetch_array($roles_query)) {
   $role = $roles_result['role_name'];
   $acls[$role][] = $roles_result['role_key'];
 }
-
 # Observation status
 $status_list = array(
        0 => array(
