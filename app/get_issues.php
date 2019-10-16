@@ -47,11 +47,27 @@ class GetIssues
   protected $offset = -1;
   protected $approved = -1;
   protected $cityid = -1;
+  protected $authkey = -1;
+  protected $returnempty = False;
 
   function __construct()
   {
     global $db;
+    global $acls;
     $this->db = $db;
+    $this->acls = $acls;
+  }
+ 
+  public function showNonApproved() : bool
+  {
+    $query = mysqli_query($this->db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_shownonapproved' LIMIT 1");
+    $result = mysqli_fetch_array($query);
+    if (!isset($result['config_value']) OR $result['config_value'] == 0) {
+      return False;
+    }
+    else {
+      return True;
+    }
   }
 
   public function setFormat($value) : void
@@ -131,8 +147,20 @@ class GetIssues
     if (!is_numeric($value)) {
       throw new Exception("${value} is not numeric value");
     }
-
-    $this->approved = intval($value);
+  
+    if (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator")) {
+      $this->approved = intval($value);
+    }  
+    elseif (intval($value) == 0 && $this->showNonApproved()) {
+      $this->approved = 0;
+    }
+    elseif (intval($value) == 1) {
+      $this->approved = 1;
+    } 
+    else {
+      $this->returnempty = True; 
+    }
+   
   }
 
   public function setCityid($value) : void
@@ -142,6 +170,11 @@ class GetIssues
     }
 
     $this->cityid = intval($value);
+  }
+
+  public function setAuthKey($value) : void
+  {
+    $this->authkey = mysqli_real_escape_string($this->db, $value);
   }
 
   public function getLimitQuery($count, $offset) : string
@@ -190,10 +223,15 @@ class GetIssues
     }
 
     if ($this->approved != -1) {
-	$where .= " AND obs_approved = '" . $this->approved . "'";
+     	$where .= " AND obs_approved = '" . $this->approved . "'";
     }
     else {
+      if ($this->showNonApproved() || (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator"))) {
         $where .= " AND (obs_approved=0 OR obs_approved=1)";
+      }
+      else {
+        $where .= " AND obs_approved=1";
+      }
     }
 
     if ($this->cityid != 0 && $this->cityid != -1) {
@@ -219,7 +257,7 @@ WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
 " . $limit;
-
+    
     return $query;
   }
 
@@ -228,78 +266,80 @@ ORDER BY obs_time DESC
   {
     $json = array();
 
-    if($this->token_filter_enabled) {
-      $token_query = mysqli_query($this->db,"SELECT * FROM obs_list WHERE obs_token='".$this->token."' LIMIT 1");
-      $token_result = mysqli_fetch_array($token_query);
-    }
+    if(!$this->returnempty) {
+      if($this->token_filter_enabled) {
+        $token_query = mysqli_query($this->db,"SELECT * FROM obs_list WHERE obs_token='".$this->token."' LIMIT 1");
+        $token_result = mysqli_fetch_array($token_query);
+      }
 
-    $rquery = mysqli_query($this->db, $this->getQuery());
-    if (mysqli_num_rows($rquery) > 0) {
-      while ($result = mysqli_fetch_array($rquery)) {
-      	$token = $result['obs_token'];
-        $obs_status = ($result['obs_status'] != null) ? $result['obs_status'] : 0;
-        $issue = array(
-          "token" => $result['obs_token'],
-          "coordinates_lat" => $result['obs_coordinates_lat'],
-          "coordinates_lon" => $result['obs_coordinates_lon'],
-          "address" => $result['obs_address_string'],
-          "comment" => $result['obs_comment'],
-          "explanation" => $result['obs_explanation'],
-          "time" => $result['obs_time'],
-          "status" => $obs_status,
-          "group" => 0,
-          "categorie" => $result['obs_categorie'],
-          "approved" => $result['obs_approved']
-        );
+      $rquery = mysqli_query($this->db, $this->getQuery());
+      if (mysqli_num_rows($rquery) > 0) {
+        while ($result = mysqli_fetch_array($rquery)) {
+        	$token = $result['obs_token'];
+          $obs_status = ($result['obs_status'] != null) ? $result['obs_status'] : 0;
+          $issue = array(
+            "token" => $result['obs_token'],
+            "coordinates_lat" => $result['obs_coordinates_lat'],
+            "coordinates_lon" => $result['obs_coordinates_lon'],
+            "address" => $result['obs_address_string'],
+            "comment" => $result['obs_comment'],
+            "explanation" => $result['obs_explanation'],
+            "time" => $result['obs_time'],
+            "status" => $obs_status,
+            "group" => 0,
+            "categorie" => $result['obs_categorie'],
+            "approved" => $result['obs_approved']
+          );
 
-        if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
-          $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
-          $cityresult = mysqli_fetch_array($cityquery);
-          $issue['cityname'] = $cityresult['city_name'];
-          $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
-          if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
-            $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
-          }
-        }
-        elseif (!empty($result['obs_cityname'])) {
-	  $issue['cityname'] = $result['obs_cityname'];
-	  $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
-	  if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
-            $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
-	  }
-        }
-        elseif (preg_match('/^([^,]*),([^,]*)$/',$issue['address'],$cityInadress)) {
-          if(count($cityInadress) == 3) {
-            $issue['cityname'] = trim($cityInadress[2]);
-	    $issue['address'] = trim($cityInadress[1]);
-	    if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
+          if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
+            $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
+            $cityresult = mysqli_fetch_array($cityquery);
+            $issue['cityname'] = $cityresult['city_name'];
+            $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+            if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
               $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
-	    }
+            }
           }
-        }
+          elseif (!empty($result['obs_cityname'])) {
+        	  $issue['cityname'] = $result['obs_cityname'];
+        	  $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
+        	  if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
+              $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
+            }
+          }
+          elseif (preg_match('/^([^,]*),([^,]*)$/',$issue['address'],$cityInadress)) {
+            if(count($cityInadress) == 3) {
+              $issue['cityname'] = trim($cityInadress[2]);
+        	    $issue['address'] = trim($cityInadress[1]);
+        	    if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
+                $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
+        	    }
+            }
+          }
 
-        if (isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
-          $lat = mysqli_real_escape_string($this->db, $_GET['lat']);
-          $lon = mysqli_real_escape_string($this->db, $_GET['lon']);
-          $radius = intval($_GET['radius']);
-          if (distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm') <= $radius) {
-            $issue['distance'] = distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm');
-            $json[] = $issue;
-	  }
-	} elseif($this->token_filter_enabled) {
-	  if($token_result['obs_categorie'] == $result['obs_categorie'] OR !$this->token_filters['categorie']) {
-    	    if(((flatstring($token_result['obs_address_string']) == flatstring($result['obs_address_string'])) AND $this->token_filters['address']) OR
-            (distance($token_result['obs_coordinates_lat'], $token_result['obs_coordinates_lon'], $result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $unit = 'm') < $this->token_filter_distance AND $this->token_filters['distance'])) {
+          if (isset($_GET['lat']) && isset($_GET['lon']) && is_numeric($_GET['radius'])) {
+            $lat = mysqli_real_escape_string($this->db, $_GET['lat']);
+            $lon = mysqli_real_escape_string($this->db, $_GET['lon']);
+            $radius = intval($_GET['radius']);
+            if (distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm') <= $radius) {
+              $issue['distance'] = distance($result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $lat, $lon, $unit = 'm');
+              $json[] = $issue;
+	          }
+          } 
+          elseif($this->token_filter_enabled) {
+        	  if($token_result['obs_categorie'] == $result['obs_categorie'] OR !$this->token_filters['categorie']) {
+    	        if(((flatstring($token_result['obs_address_string']) == flatstring($result['obs_address_string'])) AND $this->token_filters['address']) OR
+              (distance($token_result['obs_coordinates_lat'], $token_result['obs_coordinates_lon'], $result['obs_coordinates_lat'], $result['obs_coordinates_lon'], $unit = 'm') < $this->token_filter_distance AND $this->token_filters['distance'])) {
                 $json[] = $issue;
-	      }
-	  }
-	}
-	else {
-          $json[] = $issue;
+	            }
+	          }
+        	}
+        	else {
+            $json[] = $issue;
+          }
         }
       }
     }
-
     return $json;
   }
 
@@ -373,6 +413,10 @@ ORDER BY obs_time DESC
 if (!debug_backtrace()) {
   $export = new GetIssues();
 
+  if (isset($_GET['key'])) {
+    $export->setAuthKey($_GET['key']);
+  }
+
   if (isset($_GET['format'])) {
     $export->setFormat($_GET['format']);
   }
@@ -416,6 +460,7 @@ if (!debug_backtrace()) {
   if (isset($_GET['cityid'])) {
     $export->setCityid($_GET['cityid']);
   }
+
   # Export datas
   $export->outputToWebServer();
 }

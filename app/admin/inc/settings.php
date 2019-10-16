@@ -9,10 +9,17 @@ if (isset($_POST['config_param'])) {
     if (preg_match('/config_param_(?:.*)$/',$key)) {
       $key = str_replace('config_param_','',mysqli_real_escape_string($db,$key));
       $value = mysqli_real_escape_string($db,$value);
+      
+      if ($key == "vigilo_shownonapproved" ) {
+        $value = 1;
+      }
 
       $update = "UPDATE obs_config SET config_value='".$value."' WHERE config_param='".$key."'";
       mysqli_query($db,$update);
     }
+  }
+  if (!array_key_exists('config_param_vigilo_shownonapproved',$_POST)) {
+    mysqli_query($db,"UPDATE obs_config SET config_value='0' WHERE config_param='vigilo_shownonapproved'");
   }
 
   echo '<div class="alert alert-success" role="alert">Configuration mise à jour</div>';
@@ -22,6 +29,10 @@ $query_config = mysqli_query($db, "SELECT * FROM obs_config");
 while ($result_config = mysqli_fetch_array($query_config)) {
   $param = $result_config['config_param'];
   $config['config_param_'.$param] = $result_config['config_value'];
+}
+$shownonapproved_ck = "";
+if ($config['config_param_vigilo_shownonapproved'] == 1) {
+  $shownonapproved_ck = "checked";
 }
 ?>
 
@@ -33,7 +44,7 @@ while ($result_config = mysqli_fetch_array($query_config)) {
   <table class="table table-striped table-sm">
     <thead>
       <tr>
-        <th>Paramètre</th>
+        <th width="400px">Paramètre</th>
         <th>Valeur</th>
       </tr>
     </thead>
@@ -45,7 +56,7 @@ while ($result_config = mysqli_fetch_array($query_config)) {
         </td>
   	  </tr>
      <tr>
-       <td>Protocole d'accès</td>
+       <td>Protocole (http ou https)</td>
        <td>
          <input type="text" class="form-control-plaintext" name="config_param_vigilo_http_proto" value="<?=$config['config_param_vigilo_http_proto'] ?>" required />
        </td>
@@ -54,6 +65,12 @@ while ($result_config = mysqli_fetch_array($query_config)) {
        <td>Nom instance</td>
        <td>
          <input type="text" class="form-control-plaintext" name="config_param_vigilo_name" value="<?=$config['config_param_vigilo_name'] ?>" required />
+       </td>
+     </tr>
+     <tr height="50px">
+       <td>Afficher observations non modérées</td>
+       <td>
+           <input type="checkbox" class="form-check-input" name="config_param_vigilo_shownonapproved" id="defaultCheck1" <?=$shownonapproved_ck ?>>
        </td>
      </tr>
      <tr>
