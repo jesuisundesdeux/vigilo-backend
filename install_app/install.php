@@ -132,7 +132,7 @@ else {
 
     <form class="form-signup" method="POST">
       <img class="mb-4" src="admin/vigilo.png" alt="" width="72" height="72">
-      <h1 class="h3 mb-3 font-weight-normal">Merci de remplir le formulaire</h1>
+      <h1 class="h3 mb-3 font-weight-normal">Merci de créer votre compte admin</h1>
 
 <?php
   if(isset($diffpass)) {
