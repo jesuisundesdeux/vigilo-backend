@@ -28,6 +28,8 @@ services:
        - ${VOLUME_PATH}/files/images:/var/www/html/images
        - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
        - ./config/config.php.docker:/var/www/html/config/config.php
+       - ./app/caches/.htaccess:/var/www/html/caches/.htaccess
+       - ./app/images/.htaccess:/var/www/html/images/.htaccess
      environment:
        - MYSQL_HOST
        - MYSQL_USER

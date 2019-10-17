@@ -6,7 +6,7 @@ app/images/*.jpg
 app/maps/*.jpg
 app/places/*.json
 app/datas.php
-app/caches
+app/caches/*.jpg
 app/install.php
 app/config/config.php
 
