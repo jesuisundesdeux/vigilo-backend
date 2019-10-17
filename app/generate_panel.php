@@ -31,7 +31,7 @@ ini_set('memory_limit','256M');
 
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
-$PERCENT_PIXELATED = 5;
+$PERCENT_PIXELATED = 10;
 
 if (isset($_GET['key'])) {
   $key = $_GET['key'];
