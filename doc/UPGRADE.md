@@ -4,7 +4,7 @@
 
 * Download from Github and launch mysql/init/init-0.0.13.sql in MySQL
 * Update source code from the version branch (0.0.13)
-* Go the page https://URL/admin/ and go to the "Updates" page and follow the instructions
+* Go the page https://URL/admin/ and go to the "Observations" pages and follow the instructions
 
 #### 0.0.11 to 0.0.12
 
