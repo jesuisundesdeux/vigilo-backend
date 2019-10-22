@@ -15,7 +15,7 @@ $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "acces
 	      "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
 	      "twitter" => array("icon" => "twitter", "name" => "Twitter", "access" => array('admin')),
 	      "settings" => array("icon" => "settings", "name" => "Configuration", "access" => array('admin')),
-	      "update" => array("icon" => "zap", "name" => "Mises à jours", "access" => array('admin')));
+	      "update" => array("icon" => "zap", "name" => "Mises à jour", "access" => array('admin')));
 
 if(!isset($_GET['page']) || !array_key_exists($_GET['page'],$menu)) {
 	$page_name = "dashboard";
