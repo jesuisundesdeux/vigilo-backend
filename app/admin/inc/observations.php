@@ -204,6 +204,7 @@ $searchtoken = "";
 $searchaddress = "";
 $searchcity = "";
 $querysearch = "";
+$searchcategorie = 0;
 
 if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "similar") {
   $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
@@ -242,6 +243,12 @@ if (isset($_GET['filterpbaddress']) && $_GET['filterpbaddress'] == "1") {
 elseif (isset($_GET['filtercityunknown']) && $_GET['filtercityunknown'] == "1") {
   $querysearch .= " AND obs_token IN ('".implode("','",$obswithoutcity['cityunknown'])."')";
   $urlsuffix .= "&filtercityunknown=1";
+}
+
+if (isset($_GET['searchcategory']) && $_GET['searchcategory'] != 0 && is_numeric($_GET['searchcategory'])) {
+  $querysearch .= " AND obs_categorie='".$_GET['searchcategory']."'";
+  $urlsuffix .= "&searchcategory=".$_GET['searchcategory'] ;
+  $searchcategory = $_GET['searchcategory'];
 }
 
 /* Filter cities for the current role */
@@ -334,6 +341,26 @@ while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
     </div>
   </div>
   <div class="form-group row">
+    <label for="searchcategory" class="col-sm-2 col-form-label">Categorie</label>
+    <div class="col-sm-10">
+      <select class="form-control" name="searchcategory" id="searchcategory">
+      <?php
+      $categorielist = getCategoriesList();
+      $categorielist[0] = array("catid" => 0, "catname" => "---");;
+      foreach ($categorielist as $categorie) {
+        if ($searchcategory == $categorie['catid']) {
+          echo '<option value="'.$categorie['catid'].'" selected>'.$categorie['catname'].'</option>';
+        }
+        else {
+          echo '<option value="'.$categorie['catid'].'">'.$categorie['catname'].'</option>';
+              }
+            }
+     ?>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group row">
     <div class="col-sm-10">
       <button type="submit" class="btn btn-primary">Recherche</button>
     </div>
@@ -386,7 +413,7 @@ if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['reso
       <tr>
         <th width="100px">Token</th>
         <th width="150px">Photo</th>
-        <th>Commentaire</th>
+        <th>Précisions</th>
         <th width="300px">Localisation</th>
         <th width="100px">Date / Heure</th>
         <th width="300px"> </th>
@@ -410,22 +437,37 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
           <a href="/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
         </td>
         <td>
+          <label for="obs_comment"><strong>Commentaire</strong></label>
           <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
+          <label for="obs_categorie"><strong>Catégorie</strong></label>
+          <select class="form-control" name="obs_categorie">
+<?php
+               foreach ($categorielist as $categorie) {
+                 if ($result_obs['obs_categorie'] == $categorie['catid']) {
+                   echo '<option value="'.$categorie['catid'].'" selected>'.$categorie['catname'].'</option>';
+                 }
+                 else {
+                   echo '<option value="'.$categorie['catid'].'">'.$categorie['catname'].'</option>';
+                 }
+               }
+     ?>
+              </select>
+
         </td>
 	<td>
 	  <div class="form-group">
           <label for="obs_address_string"><strong>Rue</strong></label>
-	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required /><br />
+	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required />
            <?php
 
 if (!empty($result_obs['obs_cityname'])) { ?>
             <label for="obs_cityname"><strong>Ville</strong></label>
-            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required /><br />
+            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required />
 <?php
 }
 else { ?>
           <label for="obs_city"><strong>Ville</strong></label>
-          <select class="form-control" name="obs_city" id="obs_city">
+          <select class="form-control" name="obs_city" id="obs_city"><br />
 <?php 
 #$citylistnametmp = $citylistname;
   foreach ($citylistname as $selectcityid => $selectcityname) {
@@ -441,8 +483,11 @@ else { ?>
   }
 
 }
+
 ?>
-	  </select>
+
+	  </select><br />
+          <a href="https://www.openstreetmap.org/?mlat=<?=$result_obs['obs_coordinates_lat'] ?>&mlon=<?=$result_obs['obs_coordinates_lon'] ?>#map=16/<?=$result_obs['obs_coordinates_lat'] ?>/<?=$result_obs['obs_coordinates_lon'] ?>&layers=N">Afficher sur une carte</a>
           </div>
         </td>
         <td>
