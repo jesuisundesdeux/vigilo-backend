@@ -131,25 +131,33 @@ if (!$result_scope) {
 $cityid = 0;
 $cityname = '';
 
-if (isset($_POST['cityid']) && is_numeric($_POST['cityid']))  {
+if (isset($_POST['cityid']) && is_numeric($_POST['cityid']) && $_POST['cityid'] != 0)  {
   $cityid = $_POST['cityid'];
+  $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id='".$cityid."'");
+  if (mysqli_num_rows($query_cities) == 0) {
+    jsonError($error_prefix, "No city found withe ID ".$cityid, "CITYNOTFOUND", 200, "WARNING");
+  }
+  $cityid = 0;
 }
-elseif (isset($_POST['cityname']) && !empty($_POST['cityname'])) {
+
+if (isset($_POST['cityname']) && !empty($_POST['cityname']) && $cityid == 0) {
   $cityname = mysqli_real_escape_string($db, $_POST['cityname']);
 }
-elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$address,$cityInadress)) {
+elseif (preg_match('/^(?:[^,]*),([^,]*)$/',$address,$cityInadress) && $cityid == 0) {
   if(count($cityInadress) == 2) {
-    $citynametmp = flatstring($cityInadress[1]);
-    $city_query = mysqli_query($db,"SELECT city_id FROM obs_cities WHERE REPLACE(REPLACE(LOWER(city_name),'-',''),' ','')='".$citynametmp."' LIMIT 1");   
-    $city_result = mysqli_fetch_array($city_query);
-    if(isset($city_result['city_id']) && is_numeric($city_result['city_id'])) {
-      $cityid = $city_result['city_id'];
-    }
-    else {
-      $cityname = $citynametmp;
-    }
+    $cityname = $cityInadress[1];
+    $address = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$address);
   }
-  $address = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$address);
+}
+
+if ($cityname != '') {
+  $citynametmp = flatstring($cityname);
+  $city_query = mysqli_query($db,"SELECT city_id FROM obs_cities WHERE REPLACE(REPLACE(LOWER(city_name),'-',''),' ','')='".$citynametmp."' LIMIT 1");   
+  $city_result = mysqli_fetch_array($city_query);
+  if(isset($city_result['city_id']) && is_numeric($city_result['city_id'])) {
+    $cityid = $city_result['city_id'];
+    $cityname = '';
+  }
 }
 
 # Check if observation is located inside rectangle area of the scope
@@ -160,17 +168,6 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] &&
   # We are outside the area
   jsonError($error_prefix, "Coordinates out of range and not located in the scope '$scope'", "COORDINATESNOTALLOWED", 403);
 }
-
-# Get list of cities within the scope
-if($cityid != 0) {
-  $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_scope='".$result_scope['scope_id']."' AND city_id='".$cityid."'");
-  if (mysqli_num_rows($query_cities) == 0) {
-    # No city found, that's a problem
-    jsonError($error_prefix, "No city found within the scope ".$result_scope['scope_id'], "CITYNOTFOUND", 200, "WARNING");
-    $cityid = 0;
-  }
-}
-
 
 if ($update) {
   mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="'.$coordinates_lat.'",
