@@ -74,6 +74,7 @@ $json = array(
         'tweet_content' => $result['scope_sharing_content_text'],
         'twitter' => $result['scope_twitter'],
         'map_url' => $result['scope_umap_url'],
+        'nominatim_urlbase' => $result['scope_nominatim_urlbase'],
         'backend_version' => BACKEND_VERSION,
         'cities' => $json_cities);
 
