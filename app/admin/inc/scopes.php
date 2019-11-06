@@ -20,7 +20,8 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                               scope_twitter,
                                               scope_twitteraccountid,
                                               scope_twittercontent,
-                                              scope_umap_url)
+                                              scope_umap_url,
+                                              scope_nominatim_urlbase)
                                      VALUES ('xx_scope',
                                              'Nouveau Scope',
                                              '00',
@@ -35,7 +36,8 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                              '',
                                              '0',
                                              '',
-                                             '')");
+                                             '',
+                                             'https://nominatim.openstreetmap.org')");
     echo '<div class="alert alert-success" role="alert">Scope ajouté, merci de remplir les champs correspondants</div>';
   }
   if(isset($_GET['scopeid']) && is_numeric($_GET['scopeid'])) {
@@ -213,6 +215,13 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
           <input type="text" class="form-control-plaintext" name="scope_umap_url" value="<?=$result_scopes['scope_umap_url'] ?>" />
         </td>
       </tr>
+      <tr>
+        <td>URLbase Nominatim (reverse geocoding)</td>
+        <td>
+          <input type="text" class="form-control-plaintext" name="scope_nominatim_urlbase" value="<?=$result_scopes['scope_nominatim_urlbase'] ?>" />
+        </td>
+      </tr>
+
     </tbody>
   </table>
 </div>
