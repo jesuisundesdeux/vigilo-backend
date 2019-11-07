@@ -492,6 +492,7 @@ ___
 | str | contact_email | Adresse mail de contact du scope  | >= 0.0.5 |
 | str | tweet_content | ontenu du tweet qui mis par défaut via le composant de partage de l'application | >= 0.0.5 |
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |
+| str | nominatim_urlbase | URL base du service nominatim | >= 0.0.14 |
 | str | backend_version | Version du backend| >= 0.0.5 |
 
 ### Statut
