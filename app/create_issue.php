@@ -135,9 +135,9 @@ if (isset($_POST['cityid']) && is_numeric($_POST['cityid']) && $_POST['cityid'] 
   $cityid = $_POST['cityid'];
   $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id='".$cityid."'");
   if (mysqli_num_rows($query_cities) == 0) {
+    $cityid = 0;
     jsonError($error_prefix, "No city found withe ID ".$cityid, "CITYNOTFOUND", 200, "WARNING");
   }
-  $cityid = 0;
 }
 
 if (isset($_POST['cityname']) && !empty($_POST['cityname']) && $cityid == 0) {
