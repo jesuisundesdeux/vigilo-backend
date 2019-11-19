@@ -1,4 +1,4 @@
-version: '2'
+version: '3.7'
 services:
   db:
     image: mariadb
@@ -35,4 +35,3 @@ services:
        - MYSQL_USER
        - MYSQL_PASSWORD
        - MYSQL_DATABASE
-

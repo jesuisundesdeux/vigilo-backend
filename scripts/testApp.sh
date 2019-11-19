@@ -28,7 +28,7 @@ test_createIssueMissingLat () {
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out | grep '"status":1' > /dev/null
+    cat /tmp/curl.out | grep '"status": 400' > /dev/null
     assertEquals $? 0
 }
 
@@ -46,8 +46,7 @@ test_createIssueMissingLon () {
 &comment=test_createIssueMissingLon\
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-
-    cat /tmp/curl.out | grep '"status":1' > /dev/null
+    cat /tmp/curl.out | grep '"status": 400' > /dev/null
     assertEquals $? 0
 }
 
@@ -66,7 +65,7 @@ test_createIssueMissingCategorie () {
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out | grep '"status":1' > /dev/null
+    cat /tmp/curl.out | grep '"status": 400' > /dev/null
     assertEquals $? 0
 }
 
@@ -85,7 +84,7 @@ test_createIssueMissingAddress () {
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out | grep '"status":1' > /dev/null
+    cat /tmp/curl.out | grep '"status": 400' > /dev/null
     assertEquals $? 0
 }
 
@@ -104,7 +103,7 @@ test_createIssueMissingTime () {
 &comment=test_createIssueMissingTime\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out | grep '"status":1' > /dev/null
+    cat /tmp/curl.out | grep '"status": 400' > /dev/null
     assertEquals $? 0
 }
 
@@ -125,31 +124,7 @@ test_createIssueEmptyToken () {
 &time=${TIMESTAMP}\
 " -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
 
-    cat /tmp/curl.out
-
     cat /tmp/curl.out | egrep -o '"token":"[0-9A-F]{8}"' > /dev/null
-    assertEquals $? 0
-}
-
-# Test create issue and verify returned token
-test_createIssueSetedToken () {
-    LAT=43.5
-    LON=4.0
-    TIMESTAMP=$(date +"%s")
-
-    rm -f /tmp/curl.out
-    curl -s --output /tmp/curl.out \
-    -d  "coordinates_lat=${LAT}\
-&coordinates_lon=${LON}\
-&token=ABCDEF01\
-&categorie=1\
-&address=test_createIssueSetedToken\
-&comment=test_createIssueSetedToken\
-&scope=34_montpellier\
-&time=${TIMESTAMP}\
-" -X POST "${VIGILO_SERVER}:${VIGILO_PORT}/create_issue.php"
-
-    cat /tmp/curl.out | egrep -o '"token":"ABCDEF01"' > /dev/null
     assertEquals $? 0
 }
 

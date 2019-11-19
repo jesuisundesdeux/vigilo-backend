@@ -10,4 +10,3 @@ ALTER TABLE obs_cities ALTER city_postcode SET DEFAULT 0;
 INSERT INTO obs_config (config_param,config_value) VALUES ('vigilo_shownonapproved',1);
 
 UPDATE `obs_config` SET `config_value` = '0.0.13' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
-

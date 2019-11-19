@@ -1,8 +1,6 @@
 ENV:=unittest
 UID=$(shell id -u)
 WWW_DATA_UID=33
-#FROM=0.0.2
-#TO=0.0.9
 SHUNIT=2.1.7
 SCOPE=montpellier
 NOW:=$(shell date +'%Y%m%d%H%M%S')
