@@ -56,8 +56,6 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
           }
           $comment = '';
           $time = time();
-          mysqli_query($db, "INSERT INTO obs_status_update (status_update_obsid,status_update_status,status_update_comment,status_update_time,status_update_roleid)
-                            VALUES ('".$obsid."','".$new_status."','".$comment."','".$time."','".$role_id."')");
           mysqli_query($db, "UPDATE obs_list SET obs_status = '".$new_status."' WHERE obs_id = $obsid ");
 
           if($new_status == 1 || $new_status == 0) {
@@ -367,7 +365,6 @@ while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
   </div>
 </form>
 <h2>Liste</h2>
-
 <?php
 if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
 ?>

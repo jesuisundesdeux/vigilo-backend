@@ -204,9 +204,13 @@ function jsonError($prefix, $error_msg, $internal_code="Unknown", $http_status_c
   }
 }
 
-function getCategorieName($catid) {
-  $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json"); 
+function getCategoriesList() {
+  $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json");
   $categories_list = json_decode($categories_json,JSON_OBJECT_AS_ARRAY);
+  return $categories_list;
+}
+function getCategorieName($catid) {
+  $categories_list = getCategoriesList();
   foreach ($categories_list as $value) {
     if ($value['catid'] == $catid) {
       $categorie_string = $value['catname'];
