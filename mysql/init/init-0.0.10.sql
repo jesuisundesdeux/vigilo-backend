@@ -204,6 +204,3 @@ ALTER TABLE `obs_status_update`
   MODIFY `status_update_id` int(11) NOT NULL AUTO_INCREMENT;
 
 UPDATE `obs_config` SET `config_value` = '0.0.10' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
-
-
-
