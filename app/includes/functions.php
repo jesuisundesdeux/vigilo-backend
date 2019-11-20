@@ -142,14 +142,30 @@ function generategroups($db,$filter = array('distance' => 500,'fdistance' => 0, 
  return $groups;
 }
 
-
 function sameas($db,$token,$filter=array()) {
-  $groups = generategroups($db,$filter);
-  foreach($groups as $value) {
-    if(in_array($token,$value['tokens'])) {
-      return $value['tokens'];
+  $tokenquery = mysqli_query($db,"SELECT obs_categorie,obs_address_string,obs_city,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+  $tokenresult = mysqli_fetch_array($tokenquery);
+
+  $similar = array();
+
+  $where = '';
+  if($filter['fcategorie'] == 1) {
+    $where .= "obs_categorie='".$tokenresult['obs_categorie']."' AND ";
+  }
+  if($filter['faddress'] == 1) {
+    $where .= "obs_city='".$tokenresult['obs_city']."' AND ";
+  }
+  $where .= "1";
+
+  $tokenfilterquery = mysqli_query($db, "SELECT obs_token,obs_categorie,obs_address_string,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE ".$where);
+
+  while($tokenfilterresult = mysqli_fetch_array($tokenfilterquery)) {
+    if((flatstring($tokenresult['obs_address_string']) == flatstring($tokenfilterresult['obs_address_string']) AND $filter['faddress']) OR
+       (distance($tokenresult['obs_coordinates_lat'], $tokenresult['obs_coordinates_lon'], $tokenfilterresult['obs_coordinates_lat'], $tokenfilterresult['obs_coordinates_lon'], $unit = 'm') < $filter['distance'] AND $filter['fdistance'])) {
+      $similar[] = $tokenfilterresult['obs_token'];
     }
   }
+  return $similar;
 }
 
 /* https://www.drupal.org/forum/support/post-installation/2013-07-16/removing-emoji-code */
@@ -188,14 +204,9 @@ function jsonError($prefix, $error_msg, $internal_code="Unknown", $http_status_c
   }
 }
 
-function getCategoriesList() {
-  $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json");
-  $categories_list = json_decode($categories_json,JSON_OBJECT_AS_ARRAY);
-  return $categories_list;
-}
-
 function getCategorieName($catid) {
-  $categories_list = getCategoriesList();
+  $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json"); 
+  $categories_list = json_decode($categories_json,JSON_OBJECT_AS_ARRAY);
   foreach ($categories_list as $value) {
     if ($value['catid'] == $catid) {
       $categorie_string = $value['catname'];
@@ -222,4 +233,3 @@ function isGoodImage($fn) {
   }
   return $grey<12;
 }
-
