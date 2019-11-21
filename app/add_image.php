@@ -99,7 +99,7 @@ if($image_written) {
   }
   else {
     if ($imagetype == "obs") {
-      $obsid = getIdByToken($db,$token);
+      $obsid = getObsIdByToken($db,$token);
       mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_id='".$obsid."'");
     }
     elseif ($imagetype == "resolution") {
