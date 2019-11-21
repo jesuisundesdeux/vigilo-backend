@@ -17,26 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* Deux tables à créer */
-/*
-obs_resolutions
-* resolution_id
-* resolution_token
-* resolution_secretid
-* resolution_app_version
-* resolution_comment
-* resolution_time
-
-
-obs_resolutions_tokens
-* restok_resolutionid
-* restok_observationid
-*/
-
 $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -58,18 +43,19 @@ $update = 0;
 # Check if token exists
 if (isset($_POST['rtoken']) AND !empty($_POST['rtoken'])) {
   $rtoken = mysqli_real_escape_string($db, $_POST['rtoken']);
-  if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
+#FIXME add updating
+/*  if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
     # Do the query only if it's an admin
     $query_rtoken = mysqli_query($db, "SELECT * FROM obs_resolutions WHERE resolution_token='".$rtoken."' LIMIT 1");
     # If token exists and the request is from an admin : We consider it as an update
     if (mysqli_num_rows($query_rtoken) == 1) {
-//      delete_map_cache($rtoken);
-//      delete_token_cache($rtoken);
-      $result_irtoken = mysqli_fetch_array($query_rtoken);
+      delete_map_cache($rtoken);
+      delete_token_cache($rtoken);
+      $result_rtoken = mysqli_fetch_array($query_rtoken);
       $secretid = $result_rtoken['resolution_secretid'];
       $update = 1;
     }
-  }
+  }*/
 }
 
 # In all other cases generate secret and token
@@ -81,14 +67,13 @@ if (!$update) {
   $rtoken = 'R_'.tokenGenerator(4);
 }
 
-$json = array('rtoken' => $rtoken, 'status' => 0, 'secretid' => $secretid);
+$json = array('rtoken' => $rtoken, 'secretid' => $secretid);
 
 # Handle mandatory fields
 # Even if an admin is updating the observation, is has to send again all
 # information anyway. Then, send an error if parameters are missing too.
 if (!isset($_POST['tokenlist']) ||
-    !isset($_POST['time']) ||
-    !isset($_POST['scope'])) {
+    !isset($_POST['time'])) {
   jsonError($error_prefix, "Missing parameters", "PARAMNOTDEFINED", 400);
 }
 
@@ -115,27 +100,26 @@ if (isset($_POST['version'])) {
 }
 
 if ($update) {
-  mysqli_query($db, 'UPDATE obs_resolutions SET resolution_comment="'.$comment.'",
-                                                resolution_time="'.$time.'"
-                     WHERE resolution_token="'.$rtoken.'"');
+  $fields = array('resolution_comment' => $comment,
+                  'resolution_time' => $time);
+  $resolution_id = getResIdByrToken($db,$rtoken);
+/* FIX ME ADD UPDATING
+  updateResolution($db,$fields,$resolution_id);
+*/
 } else {
-  mysqli_query($db, 'INSERT INTO obs_resolutions (
-                                  `resolution_rtoken`,
-                                  `resolution_secretid`,
-                                  `resolution_app_version`,
-                                  `resolution_comment`,
-                                  `resolution_time`);
-                           VALUES (
-                               "'.$rtoken.'",
-                               "'.$secretid.'",
-                               "'.$version.'",
-                               "'.$comment.'",
-                               "'.$time.'")');
-  $resolution_id = mysqli_insert_id($db);
-  foreach($tokenlist as $tokenuniq) {
-    $token_id = getIdByToken($db,$tokenuniq);
-    mysqli_query($db, "INSERT INTO obs_resolutions_tokens (`restok_resolutionid`,`restok_observationid`) VALUES ('".$resolution_id."','".$token_id."')"); 
+  $fields = array('resolution_rtoken' => $rtoken,
+                  'resolution_secretid' => $secretid,
+                  'resolution_app_version' => $version,
+                  'resolution_comment' => $comment,
+                  'resolution_time' => $time,
+                  'resolution_status' => 4);
+  
+  $obsidlist = array();
+  foreach($tokenlist as $token) {
+    $obsidlist[] = getObsIdByToken($db,$token);
   }
+
+  addResolution($db,$fields,$obsidlist); 
 }
 
 if ($mysqlerror = mysqli_error($db)) {

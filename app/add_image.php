@@ -21,6 +21,8 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/handle.php");
+
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -37,19 +39,38 @@ if (isset($_GET['token']) && isset($_GET['secretid'])) {
   $secretid = $_GET['secretid'];
   $token = mysqli_real_escape_string($db, $token);
   $secretid = mysqli_real_escape_string($db, $secretid);
+  $imagetype = "obs";
+  $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
+  $filepath = 'images/'.$filename.'.jpg';
+
+  if(!isTokenWithSecretId($db,$token,$secretid)) {
+    jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
+  }
+}
+elseif (isset($_GET['rtoken']) && isset($_GET['secretid'])) {
+  $rtoken = $_GET['rtoken'];
+  $secretid = $_GET['secretid'];
+  $token = mysqli_real_escape_string($db, $token);
+  $secretid = mysqli_real_escape_string($db, $secretid);
+  $imagetype = "resolution";
+  $filename = preg_replace('/[^A-Za-z0-9]/', '', $rtoken);
+  $filepath = 'images/resolutions/'.$filename.'.jpg';
+ 
+  if(!file_exists('images/resolutions/')) {
+    mkdir('images/resolutions/');
+  }
+  
+
+  if(!isrTokenWithSecretId($db,$rtoken,$secretid)) {
+    jsonError($error_prefix, "rToken : ".$token." and/or secretid : ".$secretid." do not exist.", "RTOKENNOTEXIST", 400);
+  }
+
+
 } else {
   jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
 }
 
-/* Check existence of token and secretid */
-$checktoken_query = mysqli_query($db,"SELECT obs_token FROM obs_list WHERE obs_token='".$token."' AND obs_secretid='".$secretid."' LIMIT 1");
-if (mysqli_num_rows($checktoken_query) != 1) {
-  jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
-}
-
 /* Save image */
-$filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-$filepath = 'images/'.$filename.'.jpg';
 $image_written = False;
 
 $data = file_get_contents("php://stdin");
@@ -74,21 +95,17 @@ if($image_written) {
     jsonError($error_prefix, 'File type not supported : '. $detectedType, "FILETYPENOTSUPPORTED", 400);
   }
   elseif (!isGoodImage($filepath)) {
-    //unlink($filepath);
     jsonError($error_prefix, 'File is corrupted', 'FILECORRUPTED', 500);
   }
-  elseif (!isGoodImage($filepath)) {
-    //unlink($filepath);
-    error_log('ADD_IMAGE : File is corrupted');
-    $status = 1;
-  }
-  elseif (!isGoodImage($filepath)) {
-    //unlink($filepath);
-    error_log('ADD_IMAGE : File is corrupted');
-    $status = 1;
-  }
   else {
-    mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_token='".$token."' AND obs_secretid='".$secretid."'");
+    if ($imagetype == "obs") {
+      $obsid = getIdByToken($db,$token);
+      mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_id='".$obsid."'");
+    }
+    elseif ($imagetype == "resolution") {
+      $resolutionid =  getResIdByToken($db,$rtoken);
+      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1 WHERE resolution_id='".$resolutionid."'");
+    }
   }
 }
 

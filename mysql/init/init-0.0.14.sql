@@ -11,7 +11,9 @@ CREATE TABLE `obs_resolutions` (
     `resolution_secretid` varchar(60) COLLATE utf8_bin NOT NULL,
     `resolution_app_version` int(11) NOT NULL,
     `resolution_comment` varchar(255) COLLATE utf8_bin NOT NULL,
-    `resolution_time` bigint(20) NOT NULL
+    `resolution_time` bigint(20) NOT NULL,
+    `resolution_status` smallint(6) NOT NULL,
+    `resolution_complete` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 ALTER TABLE `obs_resolutions`
