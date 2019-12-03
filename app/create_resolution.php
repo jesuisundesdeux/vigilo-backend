@@ -79,6 +79,7 @@ if (!isset($_POST['tokenlist']) ||
 
 $tokenlist = mysqli_real_escape_string($db, $_POST['tokenlist']);
 $tokenlist = explode(',',$tokenlist);
+$time = mysqli_real_escape_string($db, $_POST['time']);
 
 /* If time is sent in ms */
 if(strlen($time) == 13) {
@@ -107,7 +108,7 @@ if ($update) {
   updateResolution($db,$fields,$resolution_id);
 */
 } else {
-  $fields = array('resolution_rtoken' => $rtoken,
+  $fields = array('resolution_token' => $rtoken,
                   'resolution_secretid' => $secretid,
                   'resolution_app_version' => $version,
                   'resolution_comment' => $comment,

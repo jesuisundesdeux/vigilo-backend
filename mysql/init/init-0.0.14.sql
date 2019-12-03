@@ -6,22 +6,18 @@ ALTER TABLE obs_scopes ADD scope_nominatim_urlbase VARCHAR(255) DEFAULT "https:/
 DROP TABLE `obs_status_update`;
 
 CREATE TABLE `obs_resolutions` (
-    `resolution_id` int(11) NOT NULL,
+    `resolution_id` int(11) NOT NULL AUTO_INCREMENT,
     `resolution_token` varchar(30) COLLATE utf8_bin NOT NULL,
     `resolution_secretid` varchar(60) COLLATE utf8_bin NOT NULL,
     `resolution_app_version` int(11) NOT NULL,
     `resolution_comment` varchar(255) COLLATE utf8_bin NOT NULL,
     `resolution_time` bigint(20) NOT NULL,
     `resolution_status` smallint(6) NOT NULL,
-    `resolution_complete` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+    `resolution_complete` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`resolution_id`),
+  KEY `token` (`resolution_token`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-ALTER TABLE `obs_resolutions`
-  ADD KEY `resolution_id` (`resolution_id`),
-  ADD PRIMARY KEY (`status_update_id`);
-
-ALTER TABLE `obs_resolutions`
-  MODIFY `resolution_id` int(11) NOT NULL AUTO_INCREMENT;
 
 CREATE TABLE `obs_resolutions_tokens` (
     `restok_resolutionid` int(11) NOT NULL,

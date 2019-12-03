@@ -50,10 +50,10 @@ if (isset($_GET['token']) && isset($_GET['secretid'])) {
 elseif (isset($_GET['rtoken']) && isset($_GET['secretid'])) {
   $rtoken = $_GET['rtoken'];
   $secretid = $_GET['secretid'];
-  $token = mysqli_real_escape_string($db, $token);
+  $token = mysqli_real_escape_string($db, $rtoken);
   $secretid = mysqli_real_escape_string($db, $secretid);
   $imagetype = "resolution";
-  $filename = preg_replace('/[^A-Za-z0-9]/', '', $rtoken);
+  $filename = preg_replace('/[^A-Za-z0-9_]/', '', $rtoken);
   $filepath = 'images/resolutions/'.$filename.'.jpg';
  
   if(!file_exists('images/resolutions/')) {
@@ -103,7 +103,7 @@ if($image_written) {
       mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_id='".$obsid."'");
     }
     elseif ($imagetype == "resolution") {
-      $resolutionid =  getResIdByToken($db,$rtoken);
+      $resolutionid =  getResIdByrToken($db,$rtoken);
       mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1 WHERE resolution_id='".$resolutionid."'");
     }
   }
