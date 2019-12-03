@@ -67,7 +67,7 @@ function deleteObs($db,$obsid) {
 
 /* Resolutions Functions */
 function getResIdByrToken($db,$rtoken) {
-  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_rtoken='".$rtoken."' LIMIT 1");
+  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$rtoken."' LIMIT 1");
   if(mysqli_num_rows($checkrtoken_query) == 1) {
     $checkrtoken_result = mysqli_fetch_array($checkrtoken_query);
     return $checkrtoken_result['resolution_id'];
@@ -116,20 +116,14 @@ function delResolution($db,$resolutionid) {
 
 function addResolution($db,$fields,$obsidlist) {
   mysqli_query($db, 'INSERT INTO obs_resolutions (
-                                  `resolution_rtoken`,
+                                  `resolution_token`,
                                   `resolution_secretid`,
                                   `resolution_app_version`,
                                   `resolution_comment`,
                                   `resolution_time`,
-                                  `resolution_status`);
-                           VALUES (
-                               "'.$fields['resolution_rtoken'].'",
-                               "'.$fields['resolution_secretid'].'",
-                               "'.$fields['resolution_app_version'].'",
-                               "'.$fields['resolution_comment'].'",
-                               "'.$fields['resolution_time'].'",
-                               "'.$fields['resolution_status'].'")');
-
+                                  `resolution_status`)
+                           VALUES ("'.$fields['resolution_token'].'","'.$fields['resolution_secretid'].'","'.$fields['resolution_app_version'].'","'.$fields['resolution_comment'].'","'.$fields['resolution_time'].'","'.$fields['resolution_status'].'")');
+  error_log(mysqli_error($db));
   $resolution_id = mysqli_insert_id($db);
   
   foreach($obsidlist as $obs) {
@@ -139,7 +133,7 @@ function addResolution($db,$fields,$obsidlist) {
 
 
 function isrTokenWithSecretId($db,$rtoken,$secretid) {
-  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_rtoken='".$rtoken."' AND resolution_secretid='".$secretid."' LIMIT 1");
+  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$rtoken."' AND resolution_secretid='".$secretid."' LIMIT 1");
   if(mysqli_num_rows($checkrtoken_query) == 1) {
     return True;
   }
@@ -147,4 +141,3 @@ function isrTokenWithSecretId($db,$rtoken,$secretid) {
     return False;
   }
 }
-
