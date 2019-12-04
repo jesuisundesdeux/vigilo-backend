@@ -9,19 +9,20 @@ require_once('../includes/common.php');
 require_once('../includes/functions.php');
 
 $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "access" => array('admin','citystaff')),
-	      "observations" => array("icon" => "list", "name" => "Observations", "access" => array('admin','citystaff')),
-	      "cities" => array("icon" => "briefcase", "name" => "Villes", "access" => array('admin')),
-	      "accounts" => array("icon" => "users", "name" => "Comptes", "access" => array('admin')),
-	      "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
-	      "twitter" => array("icon" => "twitter", "name" => "Twitter", "access" => array('admin')),
-	      "settings" => array("icon" => "settings", "name" => "Configuration", "access" => array('admin')),
-	      "update" => array("icon" => "zap", "name" => "Mises à jour", "access" => array('admin')));
+        "observations" => array("icon" => "list", "name" => "Observations", "access" => array('admin','citystaff')),
+        "resolutions" => array("icon" => "user-check", "name" => "Resolutions", "access" => array('admin','citystaff')),
+        "cities" => array("icon" => "briefcase", "name" => "Villes", "access" => array('admin')),
+        "accounts" => array("icon" => "users", "name" => "Comptes", "access" => array('admin')),
+        "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
+        "twitter" => array("icon" => "twitter", "name" => "Twitter", "access" => array('admin')),
+        "settings" => array("icon" => "settings", "name" => "Configuration", "access" => array('admin')),
+        "update" => array("icon" => "zap", "name" => "Mises à jour", "access" => array('admin')));
 
 if(!isset($_GET['page']) || !array_key_exists($_GET['page'],$menu)) {
-	$page_name = "dashboard";
+  $page_name = "dashboard";
 }
 else {
-	$page_name = $_GET['page'];
+  $page_name = $_GET['page'];
 }
 
 /* Check config */
@@ -95,22 +96,22 @@ if($cities_nb == 0) {
                 if($page_name == $key) {
                   $active = "active";
                 }
-	 	            else {
+                else {
                   $active = '';
                 }
 
                 if (in_array($_SESSION['role'],$item['access'])) {
-      	            echo '<li class="nav-item">';
+                    echo '<li class="nav-item">';
                     echo '<a class="nav-link '.$active.'" href="?page='.$key.'">';
-	                    echo '<span data-feather="'.$item['icon'].'"></span>';
+                      echo '<span data-feather="'.$item['icon'].'"></span>';
                         echo $item['name'] ;
                         if(isset($item['confneeded'])) {
                             echo ' <span class="badge badge-pill badge-info">Configuration / étape '.$item['confneeded'].'</span>';
                         }
-	                    echo '</a>';
-	            echo '</li>';
+                      echo '</a>';
+              echo '</li>';
                 }
-	           } ?>
+             } ?>
             </ul>
 
           </div>
@@ -118,10 +119,10 @@ if($cities_nb == 0) {
 
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
           <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        	  <h1 class="h2"><?= $menu[$page_name]['name'] ?></h1>
+            <h1 class="h2"><?= $menu[$page_name]['name'] ?></h1>
           </div>
 
-	  <?php include('inc/'.$page_name.'.php'); ?>
+    <?php include('inc/'.$page_name.'.php'); ?>
         </main>
       </div>
     </div>

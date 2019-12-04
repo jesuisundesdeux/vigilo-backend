@@ -27,7 +27,22 @@ header("Content-type: image/png");
 header('Access-Control-Allow-Origin: *');
 
 $error_prefix = "GET_PHOTO";
-$token = $_GET['token'];
+
+if(isset($_GET['token'])) {
+  $token = mysqli_real_escape_string($db,$_GET['token']);
+  $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+  $filepath = './images/';
+  $checktoken_result = mysqli_fetch_array($checktoken_query);
+  if($checktoken_result['obs_approved'] == 1) {
+    $approved = 1;
+  }
+}
+elseif(isset($_GET['rtoken'])) {
+  $token = mysqli_real_escape_string($db,$_GET['rtoken']);
+  $checktoken_query = mysqli_query($db,"SELECT resolution_token FROM obs_resolutions WHERE resolution_token='".$token."' LIMIT 1");
+  $filepath = './images/resolutions/';
+  $approved = 1;
+}
 
 if(isset($_GET['key'])) {
   $key = $_GET['key'];
@@ -37,15 +52,12 @@ else {
 }
 
 $status = 0;
-$token = mysqli_real_escape_string($db, $token);
-$checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
 if(mysqli_num_rows($checktoken_query) != 1) {
   jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
 } 
 else {
-  $checktoken_result = mysqli_fetch_array($checktoken_query);	
-  if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $checktoken_result['obs_approved'] == 1) {
-    $photo = imagecreatefromjpeg('./images/' . $token . '.jpg'); // issue photo
+  if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
+    $photo = imagecreatefromjpeg($filepath . $token . '.jpg'); // issue photo
     imagejpeg($photo); 
   }
   else {
