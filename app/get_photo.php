@@ -21,22 +21,12 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
-require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
-header('Content-Type: application/json; charset=utf-8');
+header("Content-type: image/png");
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: *');
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-  exit;
-}
 
-ini_set('max_input_vars', '3000');
-$error_prefix = 'ADD_IMAGE';
-
-if (!isset($_GET['token']) || !isset($_GET['secretid'])) {
-  jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
-}
+$error_prefix = "GET_PHOTO";
 
 if (isset($_GET['type'])) {
   $type = $_GET['type'];
@@ -45,77 +35,45 @@ else {
   $type = "obs";
 }
 
-$token = $_GET['token'];
-$secretid = $_GET['secretid'];
-$token = mysqli_real_escape_string($db, $token);
-$secretid = mysqli_real_escape_string($db, $secretid);
+if(!isset($_GET['token'])) {
+ jsonError($error_prefix, "Missing token", "MISSINGARGUMENT", 400); 
+}
+
+$token = mysqli_real_escape_string($db,$_GET['token']);
 
 if ($type == "obs") {
-  $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-  $filepath = 'images/'.$filename.'.jpg';
+  if (!isTokenExists($db,$token)) {
+    jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
+  }
 
-  if(!isTokenWithSecretId($db,$token,$secretid)) {
-    jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
+  $filepath = './images/';
+  $checktoken_result = mysqli_fetch_array($checktoken_query);
+  if($checktoken_result['obs_approved'] == 1) {
+    $approved = 1;
   }
 }
-elseif ($type == "resolution") {
-  $filename = preg_replace('/[^A-Za-z0-9_]/', '', $token);
-  $filepath = 'images/resolutions/'.$filename.'.jpg';
- 
-  if(!file_exists('images/resolutions/')) {
-    mkdir('images/resolutions/');
-  }
-  
-
-  if(!isResolutionTokenWithSecretId($db,$token,$secretid)) {
-    jsonError($error_prefix, "ResolutionToken : ".$token." and/or secretid : ".$secretid." do not exist.", "RESOLTOKENNOTEXIST", 400);
+elseif($type == "resolution") {
+  if (!isResolutionTokenExists($db,$token)) {
+    jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
   }
 
-
-} else {
-  jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
+  $filepath = './images/resolutions/';
+  $approved = 1;
 }
 
-/* Save image */
-$image_written = False;
-
-$data = file_get_contents("php://stdin");
-if (!(file_put_contents($filepath, $data))) {
-  $data = file_get_contents('php://input');
-  if (!(file_put_contents($filepath, $data))) {
-    jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
-  }
-  else {
-    $image_written = True;
-  }
+if(isset($_GET['key'])) {
+  $key = $_GET['key'];
 }
 else {
-  $image_written = True;
+  $key = NULL;
 }
 
-if($image_written) {
-  $allowedTypes = array(IMAGETYPE_JPEG);
-  $detectedType = exif_imagetype($filepath);
-  if (!array($detectedType, $allowedTypes)) {
-    unlink($filepath);
-    jsonError($error_prefix, 'File type not supported : '. $detectedType, "FILETYPENOTSUPPORTED", 400);
-  }
-  elseif (!isGoodImage($filepath)) {
-    jsonError($error_prefix, 'File is corrupted', 'FILECORRUPTED', 500);
-  }
-  else {
-    if ($type == "obs") {
-      $obsid = getObsIdByToken($db,$token);
-      mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_id='".$obsid."'");
-    }
-    elseif ($type == "resolution") {
-      $resolutionid =  getResolutionIdByResolutionToken($db,$token);
-      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1 WHERE resolution_id='".$resolutionid."'");
-    }
-  }
+if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
+  $photo = imagecreatefromjpeg($filepath . $token . '.jpg'); // issue photo
+  imagejpeg($photo); 
 }
-
-echo json_encode(array('status'=>0));
-// status deprecated and replaced by http code (stays here for old apps)
+else {
+  jsonError($error_prefix, "Image display is not allowed", "NOTALLOWED", 403);
+}
 
 ?>
