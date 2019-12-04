@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/jpeg");
@@ -81,7 +82,8 @@ $coordinates_lon = $result['obs_coordinates_lon'];
 $street_name = $result['obs_address_string'];
 $comment = $result['obs_comment'];
 $categorie_id = $result['obs_categorie'];
-$statusobs = $result['obs_status'];
+$statusobs = $obs_status = getObsStatus($db,$result['obs_id']);
+
 $categorie_string = getCategorieName($categorie_id);
 
 

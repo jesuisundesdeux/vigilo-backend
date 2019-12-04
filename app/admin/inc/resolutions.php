@@ -40,9 +40,9 @@ if (isset($_GET['action']) && isset($_GET['resolutionid']) && is_numeric($_GET['
     $new_status = $_GET['new_status'];
     if (in_array($_SESSION['role'],$status_list[$new_status]['roles'])) {
 	    mysqli_query($db, "UPDATE obs_resolutions SET resolution_status = '".$new_status."' WHERE resolution_id = '".$resolutionid."'");
-        /*if($new_status == 1 || $new_status == 0) {
-          delete_token_cache($token);
-      }*/
+        if($new_status == 1 || $new_status == 0) {
+          flushImagesCacheResolution($db,$resolutionid);
+        }
     }
     else {
       exit('Not allowed');

@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Access-Control-Allow-Origin: *');
@@ -239,7 +240,8 @@ class GetIssues
     }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
-    $query = "SELECT obs_token,
+    $query = "SELECT obs_id,
+    obs_token,
     obs_city,
     obs_cityname,
     obs_coordinates_lat,
@@ -274,8 +276,9 @@ ORDER BY obs_time DESC
       $rquery = mysqli_query($this->db, $this->getQuery());
       if (mysqli_num_rows($rquery) > 0) {
         while ($result = mysqli_fetch_array($rquery)) {
-        	$token = $result['obs_token'];
-          $obs_status = ($result['obs_status'] != null) ? $result['obs_status'] : 0;
+          $token = $result['obs_token'];
+          $obs_status = getObsStatus($this->db,$result['obs_id']);
+						     
           $issue = array(
             "token" => $result['obs_token'],
             "coordinates_lat" => $result['obs_coordinates_lat'],

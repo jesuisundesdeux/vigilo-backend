@@ -150,3 +150,21 @@ function isResolutionTokenExists($db,$resolution_token) {
   }
 }
 
+function getObsStatus($db,$obsid) {
+  $resolution_status_query = mysqli_query($db,"SELECT resolution_status 
+                                                             FROM obs_resolutions 
+                                                             LEFT JOIN obs_resolutions_tokens 
+                                                             ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
+                                                             WHERE restok_observationid = '".$obsid."' LIMIT 1");
+  $resolution_status_result = mysqli_fetch_array($resolution_status_query);
+  $obs_status = ($resolution_status_result['resolution_status'] != null) ? $resolution_status_result['resolution_status'] : 0;
+  return $obs_status;
+
+}
+
+function flushImagesCacheResolution($db,$resolutionid) {
+  $obslist_query = mysqli_query($db, "SELECT obs_token FROM obs_resolutions_tokens LEFT JOIN obs_list ON obs_resolutions_tokens.restok_observationid = obs_list.obs_id WHERE resolution_id='".$resolutionid."'");
+  while($obslist_result = mysqli_fetch_array($obslist_query)) {
+    delete_token_cache($obslist_result['obs_token']); 
+  }
+}
