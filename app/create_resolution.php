@@ -41,8 +41,8 @@ else {
 $update = 0;
 
 # Check if token exists
-if (isset($_POST['rtoken']) AND !empty($_POST['rtoken'])) {
-  $rtoken = mysqli_real_escape_string($db, $_POST['rtoken']);
+if (isset($_POST['token']) AND !empty($_POST['token'])) {
+  $token = mysqli_real_escape_string($db, $_POST['token']);
 #FIXME add updating
 /*  if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
     # Do the query only if it's an admin
@@ -64,10 +64,10 @@ if (!$update) {
   $secretid = str_replace('.', '', uniqid('', true));
 
   # Generate a unique token
-  $rtoken = 'R_'.tokenGenerator(4);
+  $token = 'R_'.tokenGenerator(4);
 }
 
-$json = array('rtoken' => $rtoken, 'secretid' => $secretid);
+$json = array('token' => $token, 'secretid' => $secretid);
 
 # Handle mandatory fields
 # Even if an admin is updating the observation, is has to send again all
@@ -103,12 +103,12 @@ if (isset($_POST['version'])) {
 if ($update) {
   $fields = array('resolution_comment' => $comment,
                   'resolution_time' => $time);
-  $resolution_id = getResIdByrToken($db,$rtoken);
+  $resolution_id = getResolutionIdByResolutionToken($db,$token);
 /* FIX ME ADD UPDATING
   updateResolution($db,$fields,$resolution_id);
 */
 } else {
-  $fields = array('resolution_token' => $rtoken,
+  $fields = array('resolution_token' => $token,
                   'resolution_secretid' => $secretid,
                   'resolution_app_version' => $version,
                   'resolution_comment' => $comment,

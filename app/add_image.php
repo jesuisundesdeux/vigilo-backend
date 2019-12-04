@@ -34,12 +34,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 ini_set('max_input_vars', '3000');
 $error_prefix = 'ADD_IMAGE';
 
-if (isset($_GET['token']) && isset($_GET['secretid'])) {
-  $token = $_GET['token'];
-  $secretid = $_GET['secretid'];
-  $token = mysqli_real_escape_string($db, $token);
-  $secretid = mysqli_real_escape_string($db, $secretid);
-  $imagetype = "obs";
+if (!isset($_GET['token']) || !isset($_GET['secretid'])) {
+  jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
+}
+
+if (isset($_GET['type'])) {
+  $type = $_GET['type'];
+}
+else {
+  $type = "obs";
+}
+
+$token = $_GET['token'];
+$secretid = $_GET['secretid'];
+$token = mysqli_real_escape_string($db, $token);
+$secretid = mysqli_real_escape_string($db, $secretid);
+
+if ($type == "obs") {
   $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
   $filepath = 'images/'.$filename.'.jpg';
 
@@ -47,13 +58,8 @@ if (isset($_GET['token']) && isset($_GET['secretid'])) {
     jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
   }
 }
-elseif (isset($_GET['rtoken']) && isset($_GET['secretid'])) {
-  $rtoken = $_GET['rtoken'];
-  $secretid = $_GET['secretid'];
-  $token = mysqli_real_escape_string($db, $rtoken);
-  $secretid = mysqli_real_escape_string($db, $secretid);
-  $imagetype = "resolution";
-  $filename = preg_replace('/[^A-Za-z0-9_]/', '', $rtoken);
+elseif ($type == "resolution") {
+  $filename = preg_replace('/[^A-Za-z0-9_]/', '', $token);
   $filepath = 'images/resolutions/'.$filename.'.jpg';
  
   if(!file_exists('images/resolutions/')) {
@@ -61,8 +67,8 @@ elseif (isset($_GET['rtoken']) && isset($_GET['secretid'])) {
   }
   
 
-  if(!isrTokenWithSecretId($db,$rtoken,$secretid)) {
-    jsonError($error_prefix, "rToken : ".$token." and/or secretid : ".$secretid." do not exist.", "RTOKENNOTEXIST", 400);
+  if(!isResolutionTokenWithSecretId($db,$token,$secretid)) {
+    jsonError($error_prefix, "ResolutionToken : ".$token." and/or secretid : ".$secretid." do not exist.", "RESOLTOKENNOTEXIST", 400);
   }
 
 
@@ -98,13 +104,13 @@ if($image_written) {
     jsonError($error_prefix, 'File is corrupted', 'FILECORRUPTED', 500);
   }
   else {
-    if ($imagetype == "obs") {
+    if ($type == "obs") {
       $obsid = getObsIdByToken($db,$token);
       mysqli_query($db,"UPDATE obs_list SET obs_complete=1 WHERE obs_id='".$obsid."'");
     }
-    elseif ($imagetype == "resolution") {
-      $resolutionid =  getResIdByrToken($db,$rtoken);
-      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1 WHERE resolution_id='".$resolutionid."'");
+    elseif ($type == "resolution") {
+      $resolutionid =  getResolutionIdByResolutionToken($db,$token);
+      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1,resolution_withphoto=1 WHERE resolution_id='".$resolutionid."'");
     }
   }
 }

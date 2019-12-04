@@ -66,11 +66,11 @@ function deleteObs($db,$obsid) {
 }
 
 /* Resolutions Functions */
-function getResIdByrToken($db,$rtoken) {
-  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$rtoken."' LIMIT 1");
-  if(mysqli_num_rows($checkrtoken_query) == 1) {
-    $checkrtoken_result = mysqli_fetch_array($checkrtoken_query);
-    return $checkrtoken_result['resolution_id'];
+function getResolutionIdByResolutionToken($db,$resolution_token) {
+  $checkresolution_token_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$resolution_token."' LIMIT 1");
+  if(mysqli_num_rows($checkresolution_token_query) == 1) {
+    $checkresolution_token_result = mysqli_fetch_array($checkresolution_token_query);
+    return $checkresolution_token_result['resolution_id'];
   }
   else {
     return False;
@@ -131,13 +131,23 @@ function addResolution($db,$fields,$obsidlist) {
   }
 }
 
-
-function isrTokenWithSecretId($db,$rtoken,$secretid) {
-  $checkrtoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$rtoken."' AND resolution_secretid='".$secretid."' LIMIT 1");
-  if(mysqli_num_rows($checkrtoken_query) == 1) {
+function isResolutionTokenWithSecretId($db,$resolution_token,$secretid) {
+  $checkresolutiontoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$resolution_token."' AND resolution_secretid='".$secretid."' LIMIT 1");
+  if(mysqli_num_rows($checkresolutiontoken_query) == 1) {
     return True;
   }
   else {
     return False;
   }
 }
+
+function isResolutionTokenExists($db,$resolution_token) {
+  $checkresolutiontoken_query = mysqli_query($db,"SELECT resolution_id FROM obs_resolutions WHERE resolution_token='".$resolution_token."' LIMIT 1");
+  if(mysqli_num_rows($checkresolutiontoken_query) == 1) {
+    return True;
+  }
+  else {
+    return False;
+  }
+}
+

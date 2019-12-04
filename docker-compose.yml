@@ -22,6 +22,7 @@ services:
        - db
      volumes:
        - ./:/unittest
+       - ./config/config.php.docker:/unittest/app/config/config.php
        - ./app:/var/www/html
        - ${VOLUME_PATH}/files/caches:/var/www/html/caches
        - ${VOLUME_PATH}/files/maps:/var/www/html/maps

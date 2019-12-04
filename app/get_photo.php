@@ -28,18 +28,35 @@ header('Access-Control-Allow-Origin: *');
 
 $error_prefix = "GET_PHOTO";
 
-if(isset($_GET['token'])) {
-  $token = mysqli_real_escape_string($db,$_GET['token']);
-  $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
+if (isset($_GET['type'])) {
+  $type = $_GET['type'];
+}
+else {
+  $type = "obs";
+}
+
+if(!isset($_GET['token'])) {
+ jsonError($error_prefix, "Missing token", "MISSINGARGUMENT", 400); 
+}
+
+$token = mysqli_real_escape_string($db,$_GET['token']);
+
+if ($type == "obs") {
+  if (!isTokenExists($db,$token)) {
+    jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
+  }
+
   $filepath = './images/';
   $checktoken_result = mysqli_fetch_array($checktoken_query);
   if($checktoken_result['obs_approved'] == 1) {
     $approved = 1;
   }
 }
-elseif(isset($_GET['rtoken'])) {
-  $token = mysqli_real_escape_string($db,$_GET['rtoken']);
-  $checktoken_query = mysqli_query($db,"SELECT resolution_token FROM obs_resolutions WHERE resolution_token='".$token."' LIMIT 1");
+elseif($type == "resolution") {
+  if (!isResolutionTokenExists($db,$token)) {
+    jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
+  }
+
   $filepath = './images/resolutions/';
   $approved = 1;
 }
@@ -51,18 +68,12 @@ else {
   $key = NULL;
 }
 
-$status = 0;
-if(mysqli_num_rows($checktoken_query) != 1) {
-  jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
-} 
+if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
+  $photo = imagecreatefromjpeg($filepath . $token . '.jpg'); // issue photo
+  imagejpeg($photo); 
+}
 else {
-  if(getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
-    $photo = imagecreatefromjpeg($filepath . $token . '.jpg'); // issue photo
-    imagejpeg($photo); 
-  }
-  else {
-    jsonError($error_prefix, "Image display is not allowed", "NOTALLOWED", 403);
-  }
+  jsonError($error_prefix, "Image display is not allowed", "NOTALLOWED", 403);
 }
 
 ?>
