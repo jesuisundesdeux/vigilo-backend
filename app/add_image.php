@@ -110,7 +110,7 @@ if($image_written) {
     }
     elseif ($type == "resolution") {
       $resolutionid =  getResolutionIdByResolutionToken($db,$token);
-      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1 WHERE resolution_id='".$resolutionid."'");
+      mysqli_query($db,"UPDATE obs_resolutions SET resolution_complete=1,resolution_withphoto=1 WHERE resolution_id='".$resolutionid."'");
     }
   }
 }
