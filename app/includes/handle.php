@@ -98,17 +98,16 @@ function addObsToResolution($db,$obsid,$resolutionid) {
 }
 
 function delObsToResolution($db,$obsid,$resolutionid) {
-  mysqli_query($db,"DELETE FROM obs_resolutions_tokens restok_resolutionid='".$resolutionid."' AND restok_observationid='".$obsid."'");
-
+  mysqli_query($db,"DELETE FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."' AND restok_observationid='".$obsid."'");
   // Remove orphan resolutions
   $query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."'");
   if (mysqli_num_rows($query_obs) == 0) {
-    mysqli_query("DELETE FROM obs_resolutions WHERE resolution_id='".$resolutionid."'");
+    mysqli_query($db,"DELETE FROM obs_resolutions WHERE resolution_id='".$resolutionid."'");
   }
 }
 
 function delResolution($db,$resolutionid) {
-  $query_resolution = mysqli_query("SELECT * FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."'");
+  $query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."'");
   while($result_resolution = mysqli_fetch_array($query_resolution)) {
     delObsToResolution($db,$result_resolution['restok_observationid'],$resolutionid);
   }

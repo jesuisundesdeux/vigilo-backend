@@ -43,28 +43,16 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     delete_map_cache($token);
   }
   // Resolve buttons actions
-  elseif ($_GET['action'] == 'resolve' && isset($_GET['new_status']) && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
-      $new_status = $_GET['new_status'];
-      if (is_numeric($new_status) && in_array($_SESSION['role'],$status_list[$new_status]['roles'])) {
-          // We collect the role_id
-          $role_query = mysqli_query($db,"SELECT role_id FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
-          if ($role_result = mysqli_fetch_array($role_query)) {
-            $role_id = $role_result['role_id'];
-          }
-          else {
-            $role_id = 0;
-          }
-          $comment = '';
-          $time = time();
-          mysqli_query($db, "UPDATE obs_list SET obs_status = '".$new_status."' WHERE obs_id = $obsid ");
+  elseif ($_GET['action'] == 'resolve' && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
 
-          if($new_status == 1 || $new_status == 0) {
-            delete_token_cache($token);
-          }
-      }
-      else {
-        exit('Not allowed');
-      }
+    $fields = array( "resolution_token" => 'R_'.tokenGenerator(4),
+	           "resolution_secretid" => str_replace('.', '', uniqid('', true)),
+		   "resolution_app_version" => 'admin',
+		   "resolution_comment" => '',
+		   "resolution_time" => 0,
+		   "resolution_status" => 2);
+    $obsidlist = array($obsid);
+    addResolution($db,$fields,$obsidlist);
   }
   else {
     exit('Not allowed');
@@ -94,6 +82,10 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
     $obsid = mysqli_real_escape_string($db,$_POST['obs_id']);
     mysqli_query($db,"UPDATE obs_list SET ". $update . " WHERE obs_id='".$obsid."'");
 
+    if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
+      addObsToResolution($db,$_POST['obs_id'],$_POST['resolution_add']);
+    }
+
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> mise à jour</div>';
   }
 }
@@ -116,14 +108,6 @@ $tabapproved[0] = "";
 $tabapproved[1] = "";
 $tabapproved[2] = "";
 $tabapproved[$approved] = "active";
-
-$tabresolved[0] = "";
-$tabresolved[1] = "";
-$tabresolved[2] = "";
-$tabresolved[3] = "";
-$tabresolved[4] = "";
-$tabresolved[$resolved] = "active";
-
 
 /* Observations quality check */
 if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
@@ -272,21 +256,25 @@ else {
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch);
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1".$querysearch);
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 AND obs_status='".$resolved."' ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
 
 $approvedcount = array(0=>0,1=>0,2=>0);
 $resolvecount = array(0=>0,1=>0,2=>0,3=>0,4=>0);
-$query_count_tabs = mysqli_query($db, "SELECT obs_approved,obs_status FROM obs_list WHERE obs_complete=1".$querysearch);
+$query_count_tabs = mysqli_query($db, "SELECT obs_approved FROM obs_list WHERE obs_complete=1".$querysearch);
 while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
   $approvedcount[$result_count_tabs['obs_approved']]++;
-  if($result_count_tabs['obs_approved'] == 1) {
-    $resolvecount[$result_count_tabs['obs_status']]++;
-  }
 }
 
+$resolutionslist = array();
+$resolutions_query = mysqli_query($db,"SELECT resolution_token,resolution_id FROM obs_resolutions");
+while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
+  $resolution_id = $resolutions_result['resolution_id'];
+  $resolution_token = $resolutions_result['resolution_token'];
+  $resolutionslist[$resolution_id] = $resolution_token;
+}
 ?>
 <h3>Recherche</h3>
 <form method="GET" action="">
@@ -381,28 +369,7 @@ if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
 </ul>
 <?php
 }
-
-// Si l'onglet actif est "Observations approuvées"
-if ($tabapproved[1] == "active" && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { ?>
-<br />
-<ul class="nav nav-tabs">
-  <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[0] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=0<?=$urlsuffix ?>">Non prises en compte <span class="badge badge-info"><?=$resolvecount[0] ?></span></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[2] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=2<?=$urlsuffix ?>"><span data-feather="eye"></span> Prises en compte <span class="badge badge-info"><?=$resolvecount[2] ?></span></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[3] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=3<?=$urlsuffix ?>"><span data-feather="clock"></span> En cours de résolution <span class="badge badge-info"><?=$resolvecount[3] ?></span></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[4] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=4<?=$urlsuffix ?>"><span data-feather="user-check"></span> Indiquées résolues <span class="badge badge-info"><?=$resolvecount[4] ?></span></a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link <?=$tabresolved[1] ?>" href="?page=<?=$page_name ?>&approved=1&resolved=1<?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolues <span class="badge badge-info"><?=$resolvecount[1] ?></span></a>
-  </li>
-</ul>
-<?php } ?>
+?>
 <br />
 <div class="table-responsive">
   <table class="table table-striped table-sm">
@@ -426,6 +393,13 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
     || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) {
     $highlight_city = "table-info";
 }
+$obsinresolution_query = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_observationid='".$result_obs['obs_id']."' LIMIT 1");
+  if(mysqli_num_rows($obsinresolution_query) == 0) { 
+    $in_resolution = False;
+  }
+  else {
+    $in_resolution = True;
+  }
 ?>
       <form action="?page=observations<?=$urlsuffix ?>" method="POST">
       <tr class="<?=$highlight_city ?>">
@@ -448,12 +422,24 @@ if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
                  }
                }
      ?>
+	      </select>
+          <?php
+          if (!$in_resolution) { ?>
+          <br />
+          <label for="resolution_add"><strong>Lier à une resolution</strong></label>
+	  <select class="form-control" name="resolution_add">
+             <option value="0" selected>---</option>
+<?php
+               foreach ($resolutionslist as $resolutionid => $resolutiontoken) {
+                   echo '<option value="'.$resolutionid.'">'.$resolutiontoken.'</option>';
+               }
+     ?>
               </select>
-
+	<?php } ?>
         </td>
 	<td>
 	  <div class="form-group">
-          <label for="obs_address_string"><strong>Rue</strong></label>
+          <label for="obs_address_string"><strong>Rue</strong></label> (<a href="https://www.openstreetmap.org/?mlat=<?=$result_obs['obs_coordinates_lat'] ?>&mlon=<?=$result_obs['obs_coordinates_lon'] ?>#map=16/<?=$result_obs['obs_coordinates_lat'] ?>/<?=$result_obs['obs_coordinates_lon'] ?>&layers=N">Afficher sur une carte</a>)
 	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required />
            <?php
 
@@ -484,12 +470,12 @@ else { ?>
 ?>
 
 	  </select><br />
-          <a href="https://www.openstreetmap.org/?mlat=<?=$result_obs['obs_coordinates_lat'] ?>&mlon=<?=$result_obs['obs_coordinates_lon'] ?>#map=16/<?=$result_obs['obs_coordinates_lat'] ?>/<?=$result_obs['obs_coordinates_lon'] ?>&layers=N">Afficher sur une carte</a>
-          </div>
+	  </div>
         </td>
         <td>
           <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required />
-          <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
+	  <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
+          
         </td>
         <td>
             <?php // Droits réservés aux admins : approuver/désapprouver/résoudre/supprimer une observation
@@ -506,24 +492,11 @@ else { ?>
           if (in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) { ?>
             <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="hard-drive"></span> Effacer cache</a><br />
           <?php }
-          if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
-            $currentstatus = $result_obs['obs_status'];
-            if (in_array($_SESSION['role'],$status_list[0]['roles']) && in_array(0,$status_list[$currentstatus]['nextstatus'])) { ?>
-              <a href="?page=<?=$page_name ?>&action=resolve&new_status=0&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>">Observation non résolue</a><br />
-            <?php }
-            if (in_array($_SESSION['role'],$status_list[1]['roles']) && in_array(1,$status_list[$currentstatus]['nextstatus'])) { ?>
-              <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Observation résolue</a><br />
-            <?php }
-            if (in_array($_SESSION['role'],$status_list[2]['roles']) && in_array(2,$status_list[$currentstatus]['nextstatus'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Prendre en compte l'observation</a><br />
-            <?php }
-            if (in_array($_SESSION['role'],$status_list[3]['roles']) && in_array(3,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="clock"></span> Observation en cours de résolution</a><br />
-            <?php }
-            if (in_array($_SESSION['role'],$status_list[4]['roles']) && in_array(4,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Observation résolue</a>
-            <?php
-            }
+	  if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { 
+	    if(!$in_resolution) { ?>
+	    <a href="?page=<?=$page_name ?>&action=resolve&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Nouvelle resolution</a><br />
+
+<?php  }
           } ?>
         </td>
       </tr>

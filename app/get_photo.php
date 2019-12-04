@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/png");
