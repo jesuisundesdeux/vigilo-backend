@@ -7,7 +7,7 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
 $actions_acl = array("delete" => array("access" => array('admin')),
                      "resolve" => array("access" => array('admin','citystaff')),
                      "manageobs" => array("access" => array('admin')),
-                     "edit" => array("access" => array('admin')));
+                     "edit" => array("access" => array('admin','citystaff')));
 
 
 $urlsuffix="";
