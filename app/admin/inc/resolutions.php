@@ -57,7 +57,6 @@ else {
   $resolved = 2;
 }
 
-
 $tabresolved[1] = "";
 $tabresolved[2] = "";
 $tabresolved[3] = "";
@@ -101,7 +100,22 @@ while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
     </thead>
     <tbody>
 <?php
-$query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions WHERE resolution_status='".$resolved."'");
+/* Pagination */
+if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
+  $pagenb = $_GET['pagenb'];
+}
+else {
+  $pagenb = 1;
+}
+
+$maxobsperpage = 10;
+$offset = ($pagenb-1) * $maxobsperpage;
+
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_resolutions WHERE resolution_status='".$resolved."'");
+$nbrows = mysqli_fetch_array($countpage_query)[0];
+$nbpages = ceil($nbrows / $maxobsperpage);
+
+$query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions WHERE resolution_status='".$resolved."' LIMIT ".$offset .",".$maxobsperpage);
 
 while ($result_resolution = mysqli_fetch_array($query_resolution)) {
 $date = date('d/m/Y',$result_resolution['resolution_time']);
@@ -190,5 +204,50 @@ while($observations_result = mysqli_fetch_array($observations_query)) {
     </tbody>
   </table>
 </div>
+<p><strong><?=$nbrows ?></strong> resolutions</p>
 
-  <br />
+<nav aria-label="...">
+  <ul class="pagination">
+
+<?php
+if ($nbpages > 1) {
+  if ($pagenb == 1) {
+    $previous_disabled = "disabled";
+  }
+  else {
+    $previous_disabled = "";
+  }
+?>
+    <li class="page-item <?=$previous_disabled ?>">
+      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb-1 ?><?=$urlsuffix ?>" tabindex="-1">Previous</a>
+    </li>
+
+<?php
+for ($i=1;$i<=$nbpages;$i++) {
+  if ($pagenb == $i) {
+    $active = "active";
+  }
+  else {
+    $active = "";
+  }
+?>
+   <li class="page-item <?=$active ?>"><a class="page-link" href="?page=<?=$page_name?>&resolved=<?=$resolved ?>&pagenb=<?=$i ?><?=$urlsuffix ?>"><?=$i ?></a></li>
+<?php
+}
+if($pagenb == $nbpages) {
+  $next_disabled = "disabled";
+}
+else {
+  $next_disabled = "";
+}
+?>
+    <li class="page-item <?=$next_disabled ?>">
+      <a class="page-link" href="?page=<?=$page_name?>&resolved=<?=$resolved ?>&pagenb=<?=$pagenb+1 ?><?=$urlsuffix ?>">Next</a>
+    </li>
+  </ul>
+</nav>
+<?php
+}
+?>
+<br />
+

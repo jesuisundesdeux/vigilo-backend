@@ -12,21 +12,20 @@ $actions_acl = array("delete" => array("access" => array('admin')),
 
 $urlsuffix="";
 
-/* Observations list */
+/* Actions links */
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
+  $action = $_GET['action'];
+
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
   $token = mysqli_real_escape_string($db,$_GET['token']);
 
   // Delete button actions
-  if ($_GET['action'] == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
-    delete_token_cache($token);
-    delete_map_cache($token);
-    mysqli_query($db,"DELETE FROM obs_list WHERE obs_id = '".$obsid."'");
+  if ($action == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
+    deleteObs($db,$obsid);
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
 
   }
-  // Approve buttons actions
-  elseif ($_GET['action'] == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
+  elseif ($action == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
     }
@@ -37,14 +36,11 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
   }
-  // Clean cache actions
   elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
     delete_token_cache($token);
     delete_map_cache($token);
   }
-  // Resolve buttons actions
   elseif ($_GET['action'] == 'resolve' && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
-
     $fields = array( "resolution_token" => 'R_'.tokenGenerator(4),
 	           "resolution_secretid" => str_replace('.', '', uniqid('', true)),
 		   "resolution_app_version" => 'admin',
@@ -57,13 +53,14 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   else {
     exit('Not allowed');
   }
-
 }
 
-// Observation update actions
+// Forms handling
 if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+  $obsid = mysqli_real_escape_string($db,$_POST['obs_id']);
   $update = "";
   $obstime = strptime($_POST['post_date'].' '.$_POST['post_heure'],'%d/%m/%Y %H:%M');
+
   if(!$obstime || strlen($_POST['post_date']) != 10 || strlen($_POST['post_heure']) != 5) {
     echo '<div class="alert alert-danger" role="alert">Format de date incorrect</div>';
   }
@@ -71,6 +68,7 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
     $obstime = mktime($obstime['tm_hour'],$obstime['tm_min'],0,$obstime['tm_mon']+1,$obstime['tm_mday'],$obstime['tm_year']+1900);
 
     $update = "obs_time='".$obstime."',";
+
     foreach ($_POST as $key => $value) {
       if(preg_match('/obs_(?:.*)$/',$key)) {
         $key = mysqli_real_escape_string($db,$key);
@@ -78,8 +76,9 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
         $update .= $key . "='".$value."',";
       }
     }
+
     $update = rtrim($update,',');
-    $obsid = mysqli_real_escape_string($db,$_POST['obs_id']);
+
     mysqli_query($db,"UPDATE obs_list SET ". $update . " WHERE obs_id='".$obsid."'");
 
     if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
@@ -89,34 +88,15 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> mise à jour</div>';
   }
 }
-
-// Tab filter process
-if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
-  $approved = $_GET['approved'];
-}
-else {
-  $approved = 1;
-}
-if (isset($_GET['resolved']) && is_numeric($_GET['resolved'])) {
-    $resolved = mysqli_real_escape_string($db,$_GET['resolved']);
-}
-else {
-    $resolved = 0;
-}
-
-$tabapproved[0] = "";
-$tabapproved[1] = "";
-$tabapproved[2] = "";
-$tabapproved[$approved] = "active";
-
-/* Observations quality check */
+/* Observations cities check */
 if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
   
   $city_query = mysqli_query($db,"SELECT * FROM obs_cities ORDER BY city_name");
   $citylist = array();
   $citylistname = array();
-  while($city_result = mysqli_fetch_array($city_query)) {
+
+  while ($city_result = mysqli_fetch_array($city_query)) {
     $cityid = $city_result['city_id'];
     $citylist[$cityid] = flatstring($city_result['city_name']);
     $citylistname[$cityid] = $city_result['city_name'];
@@ -132,6 +112,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
       $address = mysqli_real_escape_string($db,$cityInadress[1]);
       $cityid = array_search(flatstring($cityname), $citylist);
       $obswithoutcity['readytoimport'][] = $token;
+
       if (isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1") {
          if ($cityid) {
            mysqli_query($db, "UPDATE obs_list SET obs_address_string='".$address."', obs_city='".$cityid."' WHERE obs_token='".$token."'"); 
@@ -141,7 +122,7 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
          }
       }
     }
-    elseif(!empty($obswithoutcity_result['obs_cityname'])) {
+    elseif (!empty($obswithoutcity_result['obs_cityname'])) {
       $cityname = $obswithoutcity_result['obs_cityname'];
       $cityid = array_search(flatstring($cityname), $citylist);
       if ($cityid) {
@@ -159,19 +140,20 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
       $obswithoutcity['pbaddress'][] = $token;
     }
   }
-  if(count($obswithoutcity['pbaddress']) > 0 || count($obswithoutcity['cityunknown']) > 0 || count($obswithoutcity['readytoimport'])) {
+
+  if (count($obswithoutcity['pbaddress']) > 0 || count($obswithoutcity['cityunknown']) > 0 || count($obswithoutcity['readytoimport'])) {
   ?>
   <div class="alert alert-warning" role="alert">
   <strong>Observations sans villes configurées : </strong><br />
   <strong><?=count($obswithoutcity['pbaddress']) ?></strong> adresses qui ne sont pas au format "Rue, Ville" impossible à importer <a href="?page=observations&filterpbaddress=1">Afficher</a><br />
   <strong><?=count($obswithoutcity['cityunknown']) ?></strong> villes non référencées <a href="?page=observations&filtercityunknown=1">Afficher</a><br />
-  <strong><?=count($obswithoutcity['readytoimport']) ?></strong> importations possibles ! <a href="?page=observations&importcityfromadress=1">Importer</a>
+  <strong><?=count($obswithoutcity['readytoimport']) ?></strong> importables en cityid ! <a href="?page=observations&importcityfromadress=1">Importer</a>
   </div>
   <?php
   }
 }
 
-/* Find part */
+/* Search part */
 // To check the good radio button
 $filterTypeUniqueChecked = "checked";
 $filterTypeSimilarChecked = "";
@@ -245,21 +227,23 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     }
 }
 
-/* Pagination */
-if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
-  $pagenb = $_GET['pagenb'];
-}
-else {
-  $pagenb = 1;
-}
+
 
 $maxobsperpage = 100;
 $offset = ($pagenb-1) * $maxobsperpage;
 
-$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1".$querysearch);
-$nbrows = mysqli_fetch_array($countpage_query)[0];
-$nbpages = ceil($nbrows / $maxobsperpage);
-$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+// Tab filter process
+if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
+  $approved = $_GET['approved'];
+}
+else {
+  $approved = 1;
+}
+
+$tabapproved[0] = "";
+$tabapproved[1] = "";
+$tabapproved[2] = "";
+$tabapproved[$approved] = "active";
 
 $approvedcount = array(0=>0,1=>0,2=>0);
 $resolvecount = array(0=>0,1=>0,2=>0,3=>0,4=>0);
@@ -268,6 +252,7 @@ while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
   $approvedcount[$result_count_tabs['obs_approved']]++;
 }
 
+/* Check the list of resolved obs */
 $resolutionslist = array();
 $resolutions_query = mysqli_query($db,"SELECT resolution_token,resolution_id FROM obs_resolutions");
 while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
@@ -385,15 +370,34 @@ if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     </thead>
     <tbody>
 <?php
-while ($result_obs = mysqli_fetch_array($query_obs)) {
-$date = date('d/m/Y',$result_obs['obs_time']);
-$heure = date('H:i',$result_obs['obs_time']);
-$highlight_city = "";
-if ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
-    || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) {
-    $highlight_city = "table-info";
+/* Pagination */
+if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
+  $pagenb = $_GET['pagenb'];
 }
-$obsinresolution_query = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_observationid='".$result_obs['obs_id']."' LIMIT 1");
+else {
+  $pagenb = 1;
+}
+
+$maxobsperpage = 100;
+$offset = ($pagenb-1) * $maxobsperpage;
+
+$countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1".$querysearch);
+$nbrows = mysqli_fetch_array($countpage_query)[0];
+$nbpages = ceil($nbrows / $maxobsperpage);
+
+/* Main query for the list of obs */
+$query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_approved='".$approved."' AND obs_complete=1 ".$querysearch." ORDER BY obs_time DESC LIMIT ".$offset .",".$maxobsperpage);
+while ($result_obs = mysqli_fetch_array($query_obs)) {
+
+  $date = date('d/m/Y',$result_obs['obs_time']);
+  $heure = date('H:i',$result_obs['obs_time']);
+  $highlight_city = "";
+  if ((isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
+      || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) {
+      $highlight_city = "table-info";
+  }
+
+  $obsinresolution_query = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_observationid='".$result_obs['obs_id']."' LIMIT 1");
   if(mysqli_num_rows($obsinresolution_query) == 0) { 
     $in_resolution = False;
   }
@@ -452,7 +456,6 @@ else { ?>
           <label for="obs_city"><strong>Ville</strong></label>
           <select class="form-control" name="obs_city" id="obs_city"><br />
 <?php 
-#$citylistnametmp = $citylistname;
   foreach ($citylistname as $selectcityid => $selectcityname) {
     if ($result_obs['obs_city'] == $selectcityid) {
       echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
