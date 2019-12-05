@@ -209,10 +209,6 @@ class GetIssues
       $where .= ' AND obs_time > ' . $this->timefilter;
     }
 
-    if ($this->status > -1) {
-      $where .= 'AND obs_status = ' . $this->status;
-    }
-
     if ($this->token != "" && !$this->token_filter_enabled) {
       $where .= " AND obs_token = '" . $this->token . "'";
     }
@@ -278,7 +274,9 @@ ORDER BY obs_time DESC
         while ($result = mysqli_fetch_array($rquery)) {
           $token = $result['obs_token'];
           $obs_status = getObsStatus($this->db,$result['obs_id']);
-						     
+	  if ($this->status > -1 && $this->status != $obs_status) {
+	    continue;
+          }		  
           $issue = array(
             "token" => $result['obs_token'],
             "coordinates_lat" => $result['obs_coordinates_lat'],
