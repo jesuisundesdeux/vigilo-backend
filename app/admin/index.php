@@ -7,6 +7,7 @@ if(!isset($_SESSION['login'])) {
 
 require_once('../includes/common.php');
 require_once('../includes/functions.php');
+require_once('../includes/handle.php');
 
 $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "list", "name" => "Observations", "access" => array('admin','citystaff')),
