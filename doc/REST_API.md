@@ -243,6 +243,7 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | X | Clé privé de l'utilisateur | >= 0.0.1 |
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
+| URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
 
 ###### Retour
 
@@ -274,6 +275,7 @@ Version backend >= 0.0.1
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
 | URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
+| URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG | >= 0.0.1 |
 
 
@@ -354,7 +356,38 @@ JSON : Retourne les informations d'identification de l'observation
 | str | token | Retourne le token généré | >= 0.0.1 |
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.1 |
 | int | group | LEGACY | LEGACY |
+___
 
+##### Créer résolution
+
+##### Compatibilité
+
+Version backend >= 0.0.14
+
+######  Requête
+
+    GET /create_resolution.php
+    
+###### Arguments
+
+| Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
+| ------------ | ---- | ----|------------ | ------------- | --------------|
+| URL | str | token |  | Token de l'observation | >= 0.0.14 |
+| URL | str | secretid | Si key non fourni | Clé secrète de l'observation | >= 0.0.14 |
+| Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.14 |
+| Form | int | time | X | Timestamp format Unix | >= 0.0.14 |
+| Form | str | tokenlist | X | Liste, séparée par une virgule des tokens de la résolution | >= 0.0.14 |
+| Form | str | version | | Version du client | >= 0.0.14 |
+
+###### Retour
+
+JSON : Retourne les informations d'identification de la résolution
+
+| Type | Nom | Description | Compatibilité |
+| ---- | ----|------------ | ------------- | 
+| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.14 |
+| str | token | Retourne le token généré | >= 0.0.1|
+| str | secretid | Retourne la clé secrete de l'observation | >= 0.0.14 |
 ___
 
 ##### Suppression observation
@@ -405,13 +438,14 @@ Version backend <= 0.0.5
 
 CSV : Retourne les informations d'identification de l'observation
 
-___
+
+
 
 ##### Changer status observation
 
 ###### Compatibilité
 
-Version backend >= 0.0.5
+*LEGACY*
 
 ######  Requête
 
@@ -472,7 +506,7 @@ ___
 | str | comment | Remarque de l'observation | >= 0.0.1 |
 | str | explanation | Explications de l'observation  | >= 0.0.1 |
 | int | time | Timestamp (en secondes) de l'observation | >= 0.0.1 |
-| int | status | Statut de l'observation (0 non résolue / 1 résolue) | >= 0.0.6 |
+| int | status | Statut de l'observation (voir "Status des observations") | >= 0.0.6 |
 | int | group | Groupe de l'observation | LEGACY |
 | int | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | int | approved | Etat d'approbation de l'observation | >= 0.0.1 |
@@ -495,10 +529,10 @@ ___
 | str | nominatim_urlbase | URL base du service nominatim | >= 0.0.14 |
 | str | backend_version | Version du backend| >= 0.0.5 |
 
-### Statut
+### Status des observations
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | 0 => OK / 1 => NOK | >= 0.0.1 / < 0.0.10 |
+| int | status | 0 => Nouvelle observation <br> 1 => Observation résolue <br> 2 => Prise en compte <br> 3 => En cours de résolution <br> 4 => Indiquée comme résolue | >= 0.0.10 |
 
 

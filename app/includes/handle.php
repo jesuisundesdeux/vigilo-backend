@@ -156,6 +156,7 @@ function isResolutionTokenExists($db,$resolution_token) {
   }
 }
 
+
 function getObsStatus($db,$obsid) {
   $resolution_status_query = mysqli_query($db,"SELECT resolution_status 
                                                              FROM obs_resolutions 
@@ -174,3 +175,4 @@ function flushImagesCacheResolution($db,$resolutionid) {
     delete_token_cache($obslist_result['obs_token']); 
   }
 }
+
