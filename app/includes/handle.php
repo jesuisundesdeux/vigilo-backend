@@ -169,7 +169,7 @@ function getObsStatus($db,$obsid) {
 }
 
 function flushImagesCacheResolution($db,$resolutionid) {
-  $obslist_query = mysqli_query($db, "SELECT obs_token FROM obs_resolutions_tokens LEFT JOIN obs_list ON obs_resolutions_tokens.restok_observationid = obs_list.obs_id WHERE resolution_id='".$resolutionid."'");
+  $obslist_query = mysqli_query($db, "SELECT obs_token FROM obs_resolutions_tokens LEFT JOIN obs_list ON obs_resolutions_tokens.restok_observationid = obs_list.obs_id WHERE restok_resolutionid='".$resolutionid."'");
   while($obslist_result = mysqli_fetch_array($obslist_query)) {
     delete_token_cache($obslist_result['obs_token']); 
   }

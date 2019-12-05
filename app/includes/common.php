@@ -94,13 +94,13 @@ $status_list = array(
 		   2 => array(
 			     "name" => "Observation prise en compte",
 			     "roles" => array("admin","citystaff"),
-			     "nextstatus" => array(0,1,3,4)),
+			     "nextstatus" => array(0,3,4)),
 		   3 => array(
 			     "name" => "Observation en cours de résolution",
 			     "roles" => array("admin","citystaff"),
-			     "nextstatus" => array(0,1,4)),
+			     "nextstatus" => array(0,4)),
 		   4 => array(
 			     "name" => "Observation indiquée comme résolue",
-			     "roles" => array("citystaff"),
+			     "roles" => array("admin","citystaff"),
 			     "nextstatus" => array(0,1)));
 

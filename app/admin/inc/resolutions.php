@@ -6,28 +6,62 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
 /* Defines acls for this page used by roles */
 $actions_acl = array("delete" => array("access" => array('admin')),
                      "resolve" => array("access" => array('admin','citystaff')),
-                     "approve" => array("access" => array('admin')),
-                     "cleancache" => array("access" => array('admin')),
+                     "manageobs" => array("access" => array('admin')),
                      "edit" => array("access" => array('admin')));
 
 
 $urlsuffix="";
 
 /* Forms handling */
-if (isset($_POST['obsadd'])) {
+if (isset($_POST['obsadd']) && in_array($_SESSION['role'],$actions_acl['manageobs']['access'])) {
   $tokentoadd = mysqli_real_escape_string($db,$_POST['obstoken']);
   $resolutionid = mysqli_real_escape_string($db,$_POST['resolutionid']);
   if(isTokenExists($db,$tokentoadd)) {
     addObsToResolution($db,getObsIdByToken($db,$tokentoadd),$resolutionid);
   }
 }
+if (isset($_POST['resolution_id']) && in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+  $resolutionid = mysqli_real_escape_string($db,$_POST['resolution_id']);
+  $update = "";
+
+  $resolutiontime = 0;
+  if(isset($_POST['post_date']) && isset($_POST['post_heure'])) {
+    $resolutiontime = strptime($_POST['post_date'].' '.$_POST['post_heure'],'%d/%m/%Y %H:%M');
+    $resolutiontime = mktime($resolutiontime['tm_hour'],$resolutiontime['tm_min'],0,$resolutiontime['tm_mon']+1,$resolutiontime['tm_mday'],$resolutiontime['tm_year']+1900);
+  }
+
+  if($resolutiontime != 0 && (strlen($_POST['post_date']) != 10 || strlen($_POST['post_heure']) != 5)) {
+    echo '<div class="alert alert-danger" role="alert">Format de date incorrect</div>';
+  }
+  else {
+    $update = "resolution_time='".$resolutiontime."',";
+
+    foreach ($_POST as $key => $value) {
+      if(preg_match('/resolution_(?:.*)$/',$key)) {
+        $key = mysqli_real_escape_string($db,$key);
+        $value = mysqli_real_escape_string($db,$value);
+        $update .= $key . "='".$value."',";
+      }
+    }
+
+    $update = rtrim($update,',');
+    mysqli_query($db,"UPDATE obs_resolutions SET ". $update . " WHERE resolution_id='".$resolutionid."'");
+    echo mysqli_error($db);
+
+    echo '<div class="alert alert-success" role="alert">Resolution <strong>'.$resolutionid.'</strong> mise à jour</div>';
+  }
+}
+if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
+  addObsToResolution($db,$_POST['obs_id'],$_POST['resolution_add']);
+}
+
 
 /* Actions links */
 if (isset($_GET['action']) && isset($_GET['resolutionid']) && is_numeric($_GET['resolutionid']) && !isset($_POST['resolutionid'])) {
   $action = $_GET['action'];
   $resolutionid = mysqli_real_escape_string($db,$_GET['resolutionid']);
 
-  if($action == "deleteobs" && is_numeric($_GET['resolutionid'])) {
+  if($action == "deleteobs" && is_numeric($_GET['resolutionid']) && in_array($_SESSION['role'],$actions_acl['manageobs']['access'])) {
     delObsToResolution($db,$_GET['obsid'],$_GET['resolutionid']); 
   }
   elseif ($action == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
@@ -39,16 +73,36 @@ if (isset($_GET['action']) && isset($_GET['resolutionid']) && is_numeric($_GET['
   elseif ($action == 'resolve' && is_numeric($_GET['new_status']) && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
     $new_status = $_GET['new_status'];
     if (in_array($_SESSION['role'],$status_list[$new_status]['roles'])) {
-	    mysqli_query($db, "UPDATE obs_resolutions SET resolution_status = '".$new_status."' WHERE resolution_id = '".$resolutionid."'");
+      $resolutiontime_query = mysqli_query($db,"SELECT resolution_time FROM obs_resolutions WHERE resolution_id='".$resolutionid."' LIMIT 1");
+      $resolutiontime_result = mysqli_fetch_array($resolutiontime_query);
+      if ($resolutiontime_result['resolution_time'] == 0 && $new_status ==1) {
+        echo '<div class="alert alert-danger" role="alert">La date doit être renseignée pour valider une resolution</div>';
+      }
+      else {
+        mysqli_query($db, "UPDATE obs_resolutions SET resolution_status = '".$new_status."' WHERE resolution_id = '".$resolutionid."'");
         if($new_status == 1 || $new_status == 0) {
           flushImagesCacheResolution($db,$resolutionid);
-        }
+	}
+      }
     }
     else {
       exit('Not allowed');
     }
   }
 }
+
+// Check duplicate observations in resolutions
+$obsduplicate_query = mysqli_query($db,"select restok_observationid,count(*) as nb from obs_resolutions_tokens group by restok_observationid");
+$duplicateids = array();
+while ($obsduplicate_result = mysqli_fetch_array($obsduplicate_query)) {
+  if ($obsduplicate_result['nb'] > 1) {
+    $duplicateids[] = $obsduplicate_result['restok_observationid'];
+  }
+}
+if (count($duplicateids) > 0) {
+  echo '<div class="alert alert-warning" role="alert"><strong>'.count($duplicateids).'</strong> observation(s) présente(s) dans plusieurs resolutions</div>';
+}	
+
 // Tab filter process
 if (isset($_GET['resolved']) && is_numeric($_GET['resolved'])) {
   $resolved = mysqli_real_escape_string($db,$_GET['resolved']);
@@ -135,14 +189,23 @@ else { ?>
 } ?>
         </td>
 	<td>
-          <form action="?page=resolutions<?=$urlsuffix ?>" method="POST">
+          <form action="?page=resolutions&resolved=<?=$resolved ?><?=$urlsuffix ?>" method="POST">
             <label for="obs_comment"><strong>Commentaire</strong></label>
-            <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_resolution['resolution_comment'] ?>" />
+	    <input type="text" class="form-control-plaintext" name="resolution_comment" value="<?=$result_resolution['resolution_comment'] ?>" />
+            <?php
+  if ($result_resolution['resolution_status'] == 4 || $result_resolution['resolution_status'] == 1) { ?>
             <label for="post_date"><strong>Date/heure</strong></label>
 	    <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required />
 	    <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
+ 
+<?php
+  }
+  if(in_array($_SESSION['role'],$actions_acl['edit']['access'])) { ?>
+            <input type="hidden" name="resolution_id" value="<?=$result_resolution['resolution_id'] ?>" />
             <button class="btn btn-primary" type="submit">Mettre à jour</button>
-
+<?php 
+  }
+?>
           </form>
   </td>
   <td>
@@ -155,42 +218,58 @@ else { ?>
 while($observations_result = mysqli_fetch_array($observations_query)) {
 ?>
 	<a href="index.php?page=observations&filtertoken=<?=$observations_result['obs_token'] ?>&filtertype=uniq">
-          <?=$observations_result['obs_token'] ?>
-        </a> 
-	<a href="?page=<?=$page_name ?>&action=deleteobs&resolutionid=<?=$result_resolution['resolution_id'] ?>&obsid=<?=$observations_result['obs_id'] ?>">
-          <span data-feather="trash-2"></span>
+<?php
+  if (in_array($observations_result['obs_id'],$duplicateids)) { ?>
+	  <strong><font color="red"><?=$observations_result['obs_token'] ?></font></strong>
+<?php
+  } 
+  else { ?>
+	  <?=$observations_result['obs_token'] ?>
+<?php } ?>
+
+	</a> 
+<?php 
+  if(in_array($_SESSION['role'],$actions_acl['manageobs']['access'])) { ?>
+	<a href="?page=<?=$page_name ?>&action=deleteobs&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?>&obsid=<?=$observations_result['obs_id'] ?>">
+	  <span data-feather="trash-2"></span>
+<?php
+  } 
+?>
 </a>
 <br />
 <?php
 }
+  if(in_array($_SESSION['role'],$actions_acl['manageobs']['access'])) { 
 ?>
-	<form action="?page=resolutions<?=$urlsuffix ?>" method="POST">
+	<form action="?page=resolutions&resolved=<?=$resolved ?><?=$urlsuffix ?>" method="POST">
           <input type="hidden" name="obsadd" value="1" />
 	  <input type="hidden" name="resolutionid" value="<?=$result_resolution['resolution_id'] ?>" />
           <input type="text" class="form-control-plaintext" name="obstoken" value=""/>
           <button class="btn btn-primary" type="submit">Ajouter obs</button>
         </form>
-
+<?php
+}
+?>
   </td>
   <td>
 	  <?php
            if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=delete&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="delete"></span> Supprimer</a><br />
+            <a href="?page=<?=$page_name ?>&action=delete&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="delete"></span> Supprimer</a><br />
 <?php
 	  }
           if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
             $currentstatus = $result_resolution['resolution_status'];
             if (in_array($_SESSION['role'],$status_list[1]['roles']) && in_array(1,$status_list[$currentstatus]['nextstatus'])) { ?>
-              <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolution validée</a><br />
+	      <a href="?page=<?=$page_name ?>&action=resolve&new_status=1&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolution validée</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[2]['roles']) && in_array(2,$status_list[$currentstatus]['nextstatus'])) { ?>
-	    <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Problème pris en compte</a><br />
+	    <a href="?page=<?=$page_name ?>&action=resolve&new_status=2&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Problème pris en compte</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[3]['roles']) && in_array(3,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="clock"></span> En cours de résolution</a><br />
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=3&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="clock"></span> En cours de résolution</a><br />
             <?php }
             if (in_array($_SESSION['role'],$status_list[4]['roles']) && in_array(4,$status_list[$currentstatus]['nextstatus'])) {  ?>
-            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolution à valider</a>
+            <a href="?page=<?=$page_name ?>&action=resolve&new_status=4&resolved=<?=$resolved ?>&resolutionid=<?=$result_resolution['resolution_id'] ?><?=$urlsuffix ?>"><span data-feather="check-square"></span> Résolution à valider</a>
             <?php
             }
           } ?>
@@ -219,7 +298,7 @@ if ($nbpages > 1) {
   }
 ?>
     <li class="page-item <?=$previous_disabled ?>">
-      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb-1 ?><?=$urlsuffix ?>" tabindex="-1">Previous</a>
+      <a class="page-link" href="?page=<?=$page_name?>&resolved=<?=$resolved ?>&pagenb=<?=$pagenb-1 ?><?=$urlsuffix ?>" tabindex="-1">Previous</a>
     </li>
 
 <?php
