@@ -495,10 +495,10 @@ ___
 | str | nominatim_urlbase | URL base du service nominatim | >= 0.0.14 |
 | str | backend_version | Version du backend| >= 0.0.5 |
 
-### Statut
+### Status des observations
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | 0 => OK / 1 => NOK | >= 0.0.1 / < 0.0.10 |
+| int | status | 0 => Nouvelle observation <br> 1 => Observation résolue <br> 2 => Prise en compte <br> 3 => En cours de résolution <br> 4 => Indiquée comme résolue | >= 0.0.10 |
 
 
