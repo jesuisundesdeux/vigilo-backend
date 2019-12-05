@@ -59,10 +59,16 @@ function isTokenWithSecretId($db,$token,$secretid) {
 }
 
 function deleteObs($db,$obsid) {
-  mysqli_query($db,"DELETE FROM obs_list WHERE obs_token='".$obsid."' LIMIT 1");
+
+  mysqli_query($db,"DELETE FROM obs_list WHERE obs_id='".$obsid."' LIMIT 1");
   unlink('images/'.$token.'.jpg');
   delete_token_cache($token);
   delete_map_cache($token);
+
+  $obsinresolution_query = mysqli_query($db,"SELECT restok_resolutionid FROM obs_resolutions_tokens WHERE restok_observationid='".$obsid."'");
+  while($obsinresolution_result = mysqli_fetch_array($obsinresolution_query)) {
+	  delObsToResolution($db,$obsid,$obsinresolution_result['restok_resolutionid']);
+  }
 }
 
 /* Resolutions Functions */
@@ -101,7 +107,7 @@ function delObsToResolution($db,$obsid,$resolutionid) {
   mysqli_query($db,"DELETE FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."' AND restok_observationid='".$obsid."'");
   // Remove orphan resolutions
   $query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions_tokens WHERE restok_resolutionid='".$resolutionid."'");
-  if (mysqli_num_rows($query_obs) == 0) {
+  if (mysqli_num_rows($query_resolution) == 0) {
     mysqli_query($db,"DELETE FROM obs_resolutions WHERE resolution_id='".$resolutionid."'");
   }
 }
