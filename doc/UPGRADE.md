@@ -1,5 +1,10 @@
 ### Upgrade
 
+#### 0.0.13 to 0.0.14
+
+* Download from Github and launch mysql/init/init-0.0.14.sql in MySQL
+* Update source code from the version branch (0.0.14) : git pull origin 0.0.14
+
 #### 0.0.12 to 0.0.13
 
 * Download from Github and launch mysql/init/init-0.0.13.sql in MySQL
