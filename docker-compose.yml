@@ -14,7 +14,7 @@ services:
     expose:
       - "3306"
   web:
-     image: badele/vigilo-backend
+     build: docker_images/web/
      working_dir: /unittest
      ports:
        - "${BIND}:80"
