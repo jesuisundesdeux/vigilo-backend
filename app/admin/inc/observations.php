@@ -317,7 +317,7 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
       <select class="form-control" name="searchcategory" id="searchcategory">
       <?php
       $categorielist = getCategoriesList();
-      $categorielist[0] = array("catid" => 0, "catname" => "---");;
+      $categorielist[] = array("catid" => 0, "catname" => "---");;
       foreach ($categorielist as $categorie) {
         if ($searchcategory == $categorie['catid']) {
           echo '<option value="'.$categorie['catid'].'" selected>'.$categorie['catname'].'</option>';
