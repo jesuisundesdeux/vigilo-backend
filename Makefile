@@ -41,6 +41,7 @@ shunit2:
 	rm v${SHUNIT}.tar.gz
 
 create-db: ## Init empty database
+
 	@echo > mysql/sql_migration.sql
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
 
