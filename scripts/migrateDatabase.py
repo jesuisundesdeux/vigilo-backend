@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 # 2019 - Bruno Adele <brunoadele@gmail.com> #JeSuisUnDesDeux team
-
+# 2019-2020 - Quentin HESS <quentin.hess@my-heb.eu> #JeSuisUnDesDeux team
 """
 Usage:
   get_mysql_init4version.py [-f=<from> | --from=<from>] [-t=<to> | --to=<to>] [--test]
@@ -48,6 +48,9 @@ if __name__ == '__main__':
     files = glob.glob(f'{searchpath}/init/init-*.sql')
 
     sqlmigration = ""
+
+    pre_sql_file = open(searchpath+"/pre_sql.sql", "r")
+    sqlmigration += pre_sql_file.read()
 
     for initfilename in natsort.natsorted(files):
       initversion = initfilename.replace(f'{searchpath}/init/',"")

@@ -1,5 +1,6 @@
 # Environment files
 .env
+.env_prod
 
 # PHP Application
 app/images/*.jpg

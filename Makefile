@@ -41,13 +41,14 @@ shunit2:
 	rm v${SHUNIT}.tar.gz
 
 create-db: ## Init empty database
+	test -e mysql/sql_migration.sql && > mysql/sql_migration.sql
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
 
 init-db: ## Init database with unit tests datas
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO} --test"
 
 backup-db: ## Backup a mysql docker container
-	docker run --rm -ti -v $(pwd)/backup/mysql:/dump mysql sh -c 'MYSQL_PWD=${MYSQL_ROOT_PASSWORD} mysqldump -h ${MYSQL_HOST} -u root --single-transaction --skip-lock-tables --column-statistics=0 --databases ${MYSQL_DATABASE} > /dump/dump-${NOW}.sql'
+	docker-compose -f docker-compose.yml exec db sh -c 'mysqldump -u root --password=$$MYSQL_ROOT_PASSWORD --single-transaction --skip-lock-tables --databases ${MYSQL_DATABASE} | gzip -c -9 > /dump/${MYSQL_DATABASE}-${NOW}.sql.gz'
 
 
 restore-db: ## Restore a mysql docker container
@@ -125,8 +126,7 @@ install: env create-db start
 	@echo "Please go on http://${BIND}/install.php"
 	@echo "${TO}" > version.txt
 
-upgrade-db: create-db # Upgrade DB structure
-	test -e mysql/sql_migration.sql && rm -f mysql/sql_migration.sql
+upgrade-db: backup-db create-db # Upgrade DB structure
 	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD ${MYSQL_DATABASE} < /docker-entrypoint-initdb.d/sql_migration.sql'
 	@echo "Upgrade from ${FROM} to ${TO}"
 	@echo "${TO}" > version.txt
