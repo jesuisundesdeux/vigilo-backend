@@ -41,7 +41,7 @@ shunit2:
 	rm v${SHUNIT}.tar.gz
 
 create-db: ## Init empty database
-	test -e mysql/sql_migration.sql && > mysql/sql_migration.sql
+	@echo > mysql/sql_migration.sql
 	docker run --rm -ti -v ${pwd}:/data/ python sh -c "pip install docopt natsort; python /data/scripts/migrateDatabase.py -f ${FROM} -t ${TO}"
 
 init-db: ## Init database with unit tests datas
@@ -130,7 +130,7 @@ upgrade-db: backup-db create-db # Upgrade DB structure
 	docker-compose -f docker-compose.yml exec db sh -c 'mysql -u root --password=$$MYSQL_ROOT_PASSWORD ${MYSQL_DATABASE} < /docker-entrypoint-initdb.d/sql_migration.sql'
 	@echo "Upgrade from ${FROM} to ${TO}"
 	@echo "${TO}" > version.txt
-	test -e mysql/sql_migration.sql && > mysql/sql_migration.sql
+	@echo > mysql/sql_migration.sql
 
 install-with-data: env init-db start
 		cp install_app/install.php app/install.php
