@@ -101,7 +101,7 @@ foreach ($content as $value) {
     continue;
   }
   
-  if ($obslink == 'app') {
+  if ($obslink == 'web') {
     $obsurl = 'https://app.vigilo.city/?token='.$value['token'].'&instance='.$instance_name;
   }
   else {
