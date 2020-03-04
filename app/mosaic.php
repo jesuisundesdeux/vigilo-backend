@@ -63,6 +63,17 @@ else {
   $token = 'all';
 }
 
+$obslink = 'image';
+if (isset($_GET['scope']) AND !empty($_GET['scope'])) {
+  $scope = $_GET['scope'];
+  if($instance_name = getInstanceNameFromFirebase($scope)) {
+    $obslink = 'web';
+  }  
+}
+else {
+  $scope = '';
+}
+
 $url = $config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/get_issues.php';
 
 $data = file_get_contents($url);
@@ -89,7 +100,15 @@ foreach ($content as $value) {
     /* Wrong token - Do not display */
     continue;
   }
-  echo '<div class="grid-item"><a target="_blank" href="/generate_panel.php?token='.$value['token'].'"><img width="100%" src="'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+  
+  if ($obslink == 'app') {
+    $obsurl = 'https://app.vigilo.city/?token='.$value['token'].'&instance='.$instance_name;
+  }
+  else {
+    $obsurl = '/generate_panel.php?token='.$value['token'];
+  }
+
+  echo '<div class="grid-item"><a target="_blank" href="'.$obsurl.'"><img width="100%" src="'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
 }
 ?>
 </div>
