@@ -222,6 +222,17 @@ function getCategorieName($catid) {
   return $categorie_string;
 }
 
+function getInstanceNameFromFirebase($scope) {
+  $citylist_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/citylist.json");
+  $citylist_list = json_decode($citylist_json,JSON_OBJECT_AS_ARRAY);
+  foreach ($citylist_list as $key => $value) {
+    if ($value['scope'] == $scope) {
+      return $key;
+    }
+  }
+  return False;
+}
+
 // https://stackoverflow.com/questions/8995096/php-determine-visually-corrupted-images-yet-valid-downloaded-via-curl-with-gd
 function isGoodImage($fn) {
   list($w,$h)=getimagesize($fn);
