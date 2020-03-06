@@ -8,7 +8,7 @@ Vigilo-backend est developpé en PHP avec base de données MySQL.
 
 ##### Environemenrt de developpement
 
-L'installaton de l'envirroenemnt de dev est semblable à celui de la production disponible selon la procédure disponible [INSTALLATION.md](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/INSTALLATION.md)
+L'installaton de l'envirronement de developpement est semblable à celui de la production installable avec la procédure [INSTALLATION.md](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/INSTALLATION.md)
 
 #### Fonctionnement
 
@@ -27,11 +27,11 @@ Le repo est organisé comme suit :
 
 ###### Docker
 
-L'appliaction est installable via Docker/Docker-compose grace aux fichiers suivants :
+L'application est installable soit comme une applkication PHP/MySQL classique soit avec via Docker/Docker-compose grace à l'arboresence suivante :
 
-* *backup* est un repertoire destinée aux backups lors des mises en productions
-* *config* est liée aux configurations utilisée pour le fonctionnement de vigilo-backend avec docker
-* *docker_images* : source des images docker utilisée dans docker-compose
+* *backup* est un repertoire destinée aux backups lors des mises en production
+* *config* configure l'application avec un fichier poussé via docker
+* *docker_images* : source des images docker personnalisées
 * .env* : fichiers de variables d'environement chargés par docker
 * docker-compose.yml
 
@@ -42,3 +42,12 @@ Une installation automatisée et des tests unitaires complète également le mod
 
 * *app* contient l'ensemble du code PHP. La version du code (liée à la version figée) est renseignée dans app/includes/common.php avec la variable BACKEND_VERSION
 * *mysql* contient les évolutions mysql necessaires pour les nouvelles versions
+
+#####
+
+Les bugs, reflexions ou features requests sont regroupés dans le tracker github accessible [ici](https://github.com/jesuisundesdeux/vigilo-backend/issues)
+
+Un slack est également disponible pour échanger de manière réactive (me contacter pour une invitation).
+
+Si vous êtes sur Montpellier et que vous souhaitez contribuer, n'hesitez pas à nous contacter, une présentation autour d'une bière est envisageable.
+Pour les autres villes, c'est aussi envisageable selon les contributeurs relais présents.
