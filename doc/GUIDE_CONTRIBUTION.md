@@ -32,7 +32,7 @@ L'appliaction est installable via Docker/Docker-compose grace aux fichiers suiva
 * *backup* est un repertoire destinée aux backups lors des mises en productions
 * *config* est liée aux configurations utilisée pour le fonctionnement de vigilo-backend avec docker
 * *docker_images* : source des images docker utilisée dans docker-compose
-* .env* : fichiers d'envirroenemnt chargés par docker
+* .env* : fichiers de variables d'environement chargés par docker
 * docker-compose.yml
 
 Une installation automatisée et des tests unitaires complète également le modèle sous docker avec Makefile et Travis
