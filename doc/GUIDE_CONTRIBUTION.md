@@ -50,4 +50,4 @@ Les bugs, reflexions ou features requests sont regroupés dans le tracker github
 Un slack est également disponible pour échanger de manière réactive (me contacter pour une invitation).
 
 Si vous êtes sur Montpellier et que vous souhaitez contribuer, n'hesitez pas à nous contacter, une présentation autour d'une bière est envisageable.
-Pour les autres villes, c'est aussi envisageable selon les contributeurs relais présents.
+Pour les autres villes, c'est aussi envisageable selon les contributeurs locaux présents.
