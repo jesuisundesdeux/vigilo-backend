@@ -56,4 +56,4 @@ Pour les autres villes, c'est aussi envisageable selon les contributeurs locaux 
 
 Le projet étant encore au stade de conception, il est actuellement codé en Quick&Dirty (mais pas trop quand même !).
 
-Lorsque les besoin de nouvelles fonctionnalités seront stabilisés, une refactorisation sera envisagée en POO from scratch ou alors via l'utilisation d'un framework existant.
+Lorsque les besoins de nouvelles fonctionnalités seront stabilisés, une refactorisation sera envisagée en POO from scratch ou alors via l'utilisation d'un framework existant.
