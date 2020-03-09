@@ -43,7 +43,7 @@ Une installation automatisée et des tests unitaires complète également le mod
 * *app* contient l'ensemble du code PHP. La version du code (liée à la version figée) est renseignée dans app/includes/common.php avec la variable BACKEND_VERSION
 * *mysql* contient les évolutions mysql necessaires pour les nouvelles versions
 
-#####
+##### Tracker
 
 Les bugs, reflexions ou features requests sont regroupés dans le tracker github accessible [ici](https://github.com/jesuisundesdeux/vigilo-backend/issues)
 
@@ -51,3 +51,9 @@ Un slack est également disponible pour échanger de manière réactive (me cont
 
 Si vous êtes sur Montpellier et que vous souhaitez contribuer, n'hesitez pas à nous contacter, une présentation autour d'une bière est envisageable.
 Pour les autres villes, c'est aussi envisageable selon les contributeurs locaux présents.
+
+##### Roadmap
+
+Le projet étant encore au stade de conception, il est actuellement codé en Quick&Dirty (mais pas trop quand même !).
+
+Lorsque les besoin de nouvelles fonctionnalités seront stabilisés, une refactorisation sera envisagée en POO from scratch ou alors via l'utilisation d'un framework existant.
