@@ -490,6 +490,8 @@ ___
 
 ### Catégories
 
+Les catégories sont disponibles sur toutes les instance sur l'adresse https://vigilo-bf7f2.firebaseio.com/categorieslist.json
+
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
 | int | catid | Identifiant unique de catégorie | >= 0.0.1 |
