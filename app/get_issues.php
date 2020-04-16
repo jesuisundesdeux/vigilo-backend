@@ -367,6 +367,7 @@ ORDER BY obs_time DESC
           foreach ($json as $data) {
             $line = '';
             foreach ($data as $value) {
+              $value = str_replace("\n"," ",$value);
               $line .= str_replace(',', '_', $value) . $sep;
             }
             echo rtrim($line, ',') . "\n";
