@@ -368,6 +368,7 @@ ORDER BY obs_time DESC
             $line = '';
             foreach ($data as $value) {
               $value = str_replace("\n"," ",$value);
+              $value = str_replace("\r"," ",$value);
               $line .= str_replace(',', '_', $value) . $sep;
             }
             echo rtrim($line, ',') . "\n";
