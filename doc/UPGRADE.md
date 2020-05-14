@@ -1,5 +1,5 @@
 ### Upgrade
-Before upgrading you should disable INNODB STRICT MODE by :
+Before upgrading you should disable INNODB STRICT MODE by launching in MySQL CLI:
 
 ```
 SET SESSION innodb_strict_mode=OFF;
