@@ -1,4 +1,9 @@
 ### Upgrade
+Before upgrading you should disable INNODB STRICT MODE by :
+
+```
+SET SESSION innodb_strict_mode=OFF;
+```
 
 #### 0.0.14 to 0.0.15
 
