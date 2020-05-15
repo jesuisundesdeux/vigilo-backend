@@ -169,7 +169,7 @@ $countpage_query = mysqli_query($db,"SELECT count(*) FROM obs_resolutions WHERE 
 $nbrows = mysqli_fetch_array($countpage_query)[0];
 $nbpages = ceil($nbrows / $maxobsperpage);
 
-$query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions WHERE resolution_status='".$resolved."' LIMIT ".$offset .",".$maxobsperpage);
+$query_resolution = mysqli_query($db,"SELECT * FROM obs_resolutions WHERE resolution_status='".$resolved."' ORDER BY resolution_time DESC  LIMIT ".$offset .",".$maxobsperpage);
 
 while ($result_resolution = mysqli_fetch_array($query_resolution)) {
 $date = date('d/m/Y',$result_resolution['resolution_time']);
