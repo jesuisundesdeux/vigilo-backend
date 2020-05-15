@@ -180,7 +180,7 @@ $heure = date('H:i',$result_resolution['resolution_time']);
 	<td>
 <?php 
 if ($result_resolution['resolution_withphoto'] == 1) { ?>
-	<a href="/get_photo.php?typoe=resolution&token=<?=$result_resolution['resolution_token'] ?>" target="_blank"><img width="200px" src="/get_photo.php?type=resolution&token=<?=$result_resolution['resolution_token'] ?>" /></a>
+	<a href="/get_photo.php?type=resolution&token=<?=$result_resolution['resolution_token'] ?>" target="_blank"><img width="200px" src="/get_photo.php?type=resolution&token=<?=$result_resolution['resolution_token'] ?>" /></a>
 <?php
 } 
 else { ?>
