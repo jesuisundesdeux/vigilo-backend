@@ -48,6 +48,7 @@ if ($type == "obs") {
   }
 
   $filepath = './images/';
+  $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
   $checktoken_result = mysqli_fetch_array($checktoken_query);
   if($checktoken_result['obs_approved'] == 1) {
     $approved = 1;
