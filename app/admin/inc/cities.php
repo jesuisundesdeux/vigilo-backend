@@ -42,7 +42,7 @@ if (isset($_POST['city_id'])) {
   $cityid = mysqli_real_escape_string($db,$_POST['city_id']);
   mysqli_query($db,"UPDATE obs_cities SET ". $update . " WHERE city_id='".$cityid."'");
 
-  echo '<div class="alert alert-success" role="alert">Ville <strong>'.$cityid.'</strong> miss à jour</div>';
+  echo '<div class="alert alert-success" role="alert">Ville <strong>'.$cityid.'</strong> mise à jour</div>';
 }
 
 $query_cities = mysqli_query($db, "SELECT * FROM obs_cities");
