@@ -23,4 +23,16 @@ require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
 require_once("${cwd}/includes/handle.php");
 
-require_once('panels/jesuisundesdeux/panel.php');
+
+$query = mysqli_query($db, "SELECT * FROM obs_config
+                            WHERE config_param='vigilo_panel'
+                            LIMIT 1");
+$result = mysqli_fetch_array($query);
+$panel_path = $result['config_value'];
+
+if(file_exists('panels/'.$panel_path.'/panel.php')) {
+  require_once('panels/'.$panel_path.'/panel.php');
+} else {
+  die('Panel not exists');
+}
+

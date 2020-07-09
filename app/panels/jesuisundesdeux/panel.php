@@ -19,10 +19,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/../../includes/common.php");
-require_once("${cwd}/../../includes/functions.php");
-require_once("${cwd}/../../includes/handle.php");
-
 $caches_path = "${cwd}/../../caches/";
 $images_path = "${cwd}../../images/";
 $maps_path = "${cwd}/../../maps/";
