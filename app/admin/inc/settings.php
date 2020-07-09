@@ -76,7 +76,7 @@ if ($config['config_param_vigilo_shownonapproved'] == 1) {
      <tr>
        <td>Panel</td>
        <td>
-         <select name="config_param_vigilo_panel">
+         <select class="form-control" name="config_param_vigilo_panel">
         <?php
         if ($handle = opendir('../panels')) {
           while (false !== ($entry = readdir($handle))) {
