@@ -16,19 +16,24 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+ini_set('memory_limit','256M');
 
 $cwd = dirname(__FILE__);
+$rootapp = "${cwd}/../..";
 
-$caches_path = "${cwd}/../../caches/";
-$images_path = "${cwd}../../images/";
-$maps_path = "${cwd}/../../maps/";
+$caches_path = "${rootapp}/caches/";
+$images_path = "${rootapp}/images/";
+$maps_path = "${rootapp}/maps/";
+
 
 header('BACKEND_VERSION: '.BACKEND_VERSION);
 header("Content-type: image/jpeg");
 
 $error_prefix = 'GENERATE_PANEL';
 
-ini_set('memory_limit','256M');
+$font_regular = "${cwd}/fonts/texgyreheros-regular.otf";
+$font_italic = "${cwd}/fonts/texgyreheros-italic.otf";
+$font_bold = "${cwd}/fonts/texgyreheros-bold.otf";
 
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
@@ -240,7 +245,6 @@ else {
 
   $photo_position_x = $background_w-$photo_new_size_w;
   $photo_min_y = 103;
-
   $map_x = -5;
   $map_y = 438;
   $comment_y_frombottom = 40;
@@ -254,12 +258,9 @@ else {
   $resolved_y = -15;
   $resolved_w = 300;
   $resolved_h = 150;
-
-
 }
 
 ## INIT IMAGE ##
-$fontfile = "${cwd}/panel_components/texgyreheros-regular.otf";
 $fontcolor = imagecolorallocate($image, 54, 66, 86);
 $fontcolorgrey = imagecolorallocate($image, 219, 219,219);
 $white = imagecolorallocate($image, 255, 255, 255);
@@ -313,7 +314,7 @@ imagefill($map_zoom_circle, 0, 0, $alpha);
 imagecopymerge($image, $map_zoom_circle, $map_x, $map_y, 0, 0, 360, 360, 100);
 
 ## ADD MAP COPYRIGHTS ##
-imagettftext($image, 7, 0, $copyright_x, $background_h-13, $white, $fontfile, "©2019 MAPQUEST ©OPENSTREETMAP ©MAPBOX");
+imagettftext($image, 7, 0, $copyright_x, $background_h-13, $white, $font_regular, "©2019 MAPQUEST ©OPENSTREETMAP ©MAPBOX");
 
 ## ADD CONTENT BLOCK ##
 $content_block = imagecreatefrompng($content_image);
@@ -325,25 +326,22 @@ imagecopy($image, $logo,0,0,0,0,imagesx($logo),imagesy($logo));
 
 ## ADD COMMENT
 $comment_color = imagecolorallocate($image, 255,219,80);
-$comment_font_file = "${cwd}/panel_components/texgyreheros-italic.otf";
 $comment_font_size = 25;
 
 if (!empty($comment)) {
   $comment = '"'.trim($comment) . '"';
-  $comment_box = imagettfbbox($comment_font_size, 0, $comment_font_file, $comment);
+  $comment_box = imagettfbbox($comment_font_size, 0, $font_italic, $comment);
   $comment_x = (($background_w - $comment_span_x) - ($comment_box[2] - $comment_box[0])) / 2;
-  imagettftext($image,$comment_font_size ,0,$comment_span_x + $comment_x,$background_h-$comment_y_frombottom,$comment_color,$comment_font_file,$comment);
+  imagettftext($image,$comment_font_size ,0,$comment_span_x + $comment_x,$background_h-$comment_y_frombottom,$comment_color,$font_italic,$comment);
 }
 
 ## ADD TOKEN
 $token_font_size = 25;
-$token_font_file = "${cwd}/panel_components/texgyreheros-regular.otf";
-imagettftext($image,$token_font_size,0,200,160,$black,$token_font_file,$token);
+imagettftext($image,$token_font_size,0,200,160,$black,$font_regular,$token);
 
 ## ADD CATEGORIE
 $categorie_font_size = 26;
 $categorie_max_char_per_line = 18;
-$categorie_font_file = "${cwd}/panel_components/texgyreheros-bold.otf";
 
 $categorie_string_formatted = wordwrap($categorie_string, $categorie_max_char_per_line, "===");
 $categories_nblines = substr_count($categorie_string_formatted,"===");
@@ -355,28 +353,26 @@ if($categories_nblines > 1) {
 
 $categories_lines = explode('===',$categorie_string_formatted);
 foreach($categories_lines as $categories_line) {
-  imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$categorie_font_file,$categories_line);
+  imagettftext($image,$categorie_font_size,0,29,$categorie_y,$black,$font_bold,$categories_line);
   $categorie_y += 35;
 }
 
 ## ADD ADDRESS
 $address_font_size = 18;
 $address_max_char_per_line = 25;
-$address_font_file = "${cwd}/panel_components/texgyreheros-bold.otf";
 $street_name = wordwrap($street_name,$address_max_char_per_line,"===");
 
 $address_lines = explode('===',$street_name);
 
 foreach($address_lines as $address_line) {
-  imagettftext($image,$address_font_size,0,29,$address_y,$black,$address_font_file,$address_line);
+  imagettftext($image,$address_font_size,0,29,$address_y,$black,$font_bold,$address_line);
   $address_y += 28;
 }
 
 ## ADD DATE
 $date = date('d/m/Y H:i', $time);
 $date_font_size = 15;
-$date_font_file = "${cwd}/panel_components/texgyreheros-regular.otf";
-imagettftext($image,$date_font_size,0,29,$date_y,$black,$date_font_file,$date);
+imagettftext($image,$date_font_size,0,29,$date_y,$black,$font_regular,$date);
 
 ## ADD RESOLVED
 if($statusobs == 1) {
