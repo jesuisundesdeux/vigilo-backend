@@ -251,3 +251,71 @@ function isGoodImage($fn) {
   }
   return $grey<12;
 }
+
+function GenerateMapQuestForToken($db,$token,$mapquest_apikey,$size_w=390,$size_h=390,$zoom=17,$map_file_path='DEFAULT',$color_recent='db0000',$color_month='db7800',$color_old='a8a8a8') {
+
+  if($map_file_path == 'DEFAULT') {
+    $map_download_path_zoom = 'maps/' . $token . '_zoom.jpg';
+  } else {
+    $map_download_path_zoom = $map_file_path;
+  }
+  # Check closest issues
+  $additionalmarkers = '';
+  $count = 0;
+
+  $query_token = mysqli_query($db, 'SELECT obs_coordinates_lat, obs_coordinates_lon FROM obs_list WHERE obs_token="'.$token.'" LIMIT 1');
+  $result_token = mysqli_fetch_array($query_token);
+
+  $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat, obs_coordinates_lon, obs_time, obs_token FROM obs_list ORDER BY obs_time DESC");
+  while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
+    if (distance($result_token['obs_coordinates_lat'], $result_token['obs_coordinates_lon'], $result_issues_coordinates['obs_coordinates_lat'], $result_issues_coordinates['obs_coordinates_lon'], 'm') < 200 && $result_issues_coordinates['obs_token'] != $token) {
+      $osb_time = $result_issues_coordinates['obs_time'];
+      if (time() - $osb_time < 3600 * 24 * 30) {
+        $color = $color_recent;
+      } elseif (time() - $osb_time < 3600 * 24 * 30 * 6) {
+        $color = $color_month;
+      } else {
+        $color = $color_old;
+      }
+
+      $additionalmarkers .= $result_issues_coordinates['obs_coordinates_lat'] . ',' . $result_issues_coordinates['obs_coordinates_lon'] . '|via-md-' . $color . '||';
+
+      # mapquestapi limits requests size to 10,240 bytes
+      # This limit seems to be reached above ~209 markers.
+      # That's why we set a limit and select only 180 last markers.
+      if ($count > 180) {
+        break;
+      } else {
+        $count++;
+      }
+    }
+  }
+
+  $size_zoom = $size_w.','.$size_h;
+  $url_zoom = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquest_apikey . '&center=' . $result_token['obs_coordinates_lat'] . ',' . $result_token['obs_coordinates_lon'] . '&size=' . $size_zoom . '&zoom=' . $zoom . '&locations=' . $additionalmarkers . $result_token['obs_coordinates_lat'] . ',' . $result_token['obs_coordinates_lon']  . '|marker-ff0000&type=hyb';
+
+  if (!file_exists($map_download_path_zoom)) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url_zoom);
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // catch output (do NOT print!)
+    $content_zoom = curl_exec($ch);
+  
+    $http_error_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+ 
+    # Check the request went ok and Content-Type is a JPEG image
+    if ($http_error_code != 200 || $content_type != 'image/jpeg') {
+      // Use default place holder picture instead of crashing
+      $map_download_path_zoom = "${cwd}/panel_components/map_error.jpeg";
+      error_log('Unexpected HTTP result HTTP_CODE = ' .$http_error_code . ' - Content-Type = ' .$content_type);
+      curl_close($ch);
+      return False;
+    } else {
+      file_put_contents($map_download_path_zoom, $content_zoom);
+      curl_close($ch);
+      return True;
+    }
+  }
+}
+

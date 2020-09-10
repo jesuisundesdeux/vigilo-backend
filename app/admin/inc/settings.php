@@ -54,7 +54,7 @@ if ($config['config_param_vigilo_shownonapproved'] == 1) {
         <td>
           <input type="text" class="form-control-plaintext" name="config_param_vigilo_urlbase" value="<?=$config['config_param_vigilo_urlbase'] ?>" required />
         </td>
-  	  </tr>
+     </tr>
      <tr>
        <td>Protocole (http ou https)</td>
        <td>
@@ -71,6 +71,27 @@ if ($config['config_param_vigilo_shownonapproved'] == 1) {
        <td>Afficher observations non modérées</td>
        <td>
            <input type="checkbox" class="form-check-input" name="config_param_vigilo_shownonapproved" id="defaultCheck1" <?=$shownonapproved_ck ?>>
+       </td>
+     </tr>
+     <tr>
+       <td>Panel</td>
+       <td>
+         <select class="form-control" name="config_param_vigilo_panel">
+        <?php
+        if ($handle = opendir('../panels')) {
+          while (false !== ($entry = readdir($handle))) {
+            $selected = '';
+            if ($entry != "." && $entry != "..") {
+              if($config['config_param_vigilo_panel'] == $entry) {
+                $selected = 'selected';
+              }
+              echo '<option name="'.$entry.'" '.$selected.'>'.$entry.'</option>';
+            }
+          }
+          closedir($handle);
+        }
+        ?>
+          </select>
        </td>
      </tr>
      <tr>
