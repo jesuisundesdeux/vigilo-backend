@@ -59,9 +59,10 @@ function isTokenWithSecretId($db,$token,$secretid) {
 }
 
 function deleteObs($db,$obsid) {
+  global $config['DATA_PATH'];
 
   mysqli_query($db,"DELETE FROM obs_list WHERE obs_id='".$obsid."' LIMIT 1");
-  unlink('images/'.$token.'.jpg');
+  unlink($config['DATA_PATH'] . 'images/'.$token.'.jpg');
   delete_token_cache($token);
   delete_map_cache($token);
 

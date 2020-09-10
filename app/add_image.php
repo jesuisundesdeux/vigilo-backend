@@ -52,7 +52,7 @@ $secretid = mysqli_real_escape_string($db, $secretid);
 
 if ($type == "obs") {
   $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-  $filepath = 'images/'.$filename.'.jpg';
+  $filepath = $config['DATA_PATH'] . 'images/'.$filename.'.jpg';
 
   if(!isTokenWithSecretId($db,$token,$secretid)) {
     jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
@@ -60,10 +60,10 @@ if ($type == "obs") {
 }
 elseif ($type == "resolution") {
   $filename = preg_replace('/[^A-Za-z0-9_]/', '', $token);
-  $filepath = 'images/resolutions/'.$filename.'.jpg';
+  $filepath = $config['DATA_PATH'] . 'images/resolutions/'.$filename.'.jpg';
  
-  if(!file_exists('images/resolutions/')) {
-    mkdir('images/resolutions/');
+  if(!file_exists($config['DATA_PATH'] . 'images/resolutions/')) {
+    mkdir($config['DATA_PATH'] . 'images/resolutions/');
   }
   
 
