@@ -31,7 +31,7 @@ global $config;
 
 define('BACKEND_VERSION','0.0.16');
 
-if (!isset($config['DATA_PATH']) {
+if (!isset($config['DATA_PATH'])) {
   $config['DATA_PATH'] = './';
 }
 
