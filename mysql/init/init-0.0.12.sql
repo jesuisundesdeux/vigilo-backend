@@ -64,6 +64,7 @@ CREATE TABLE `obs_scopes` (
   `scope_umap_url` varchar(255) COLLATE utf8_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ROW_FORMAT=COMPACT;
 
+ALTER TABLE obs_scopes ROW_FORMAT=DYNAMIC;
 
 ALTER TABLE `obs_scopes`
   ADD KEY `scope_id` (`scope_id`);
