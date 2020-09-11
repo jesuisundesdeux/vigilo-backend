@@ -62,14 +62,14 @@ function get_data_from_gps_coordinates($lat, $lon)
 }
 
 function delete_token_cache($token) {
-    global $config['DATA_PATH'];
+    global $config;
 
     foreach(glob(__DIR__."/".$config['DATA_PATH']."../caches/".$token."*") as $file) {
         unlink($file);
     }
 }
 function delete_map_cache($token) {
-    global $config['DATA_PATH'];
+    global $config;
 
     foreach(glob(__DIR__."/".$config['DATA_PATH']."../maps/".$token."*") as $file) {
         unlink($file);
@@ -258,7 +258,7 @@ function isGoodImage($fn) {
 
 function GenerateMapQuestForToken($db,$token,$mapquest_apikey,$size_w=390,$size_h=390,$zoom=17,$map_file_path='DEFAULT',$color_recent='db0000',$color_month='db7800',$color_old='a8a8a8') {
  
-  global $config['DATA_PATH'];
+  global $config;
 
   if($map_file_path == 'DEFAULT') {
     $map_download_path_zoom = $config['DATA_PATH'] . 'maps/' . $token . '_zoom.jpg';
