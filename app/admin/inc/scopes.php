@@ -3,51 +3,55 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
   exit('Not allowed');
 }
 
-
-if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
-  if ($_GET['action'] == 'add') {
-    mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
-                                              scope_display_name,
-                                              scope_department,
-                                              scope_coordinate_lat_min,
-                                              scope_coordinate_lat_max,
-                                              scope_coordinate_lon_min,
-                                              scope_coordinate_lon_max,
-                                              scope_map_center_string,
-                                              scope_map_zoom,
-                                              scope_contact_email,
-                                              scope_sharing_content_text,
-                                              scope_twitter,
-                                              scope_twitteraccountid,
-                                              scope_twittercontent,
-                                              scope_umap_url,
-                                              scope_nominatim_urlbase)
-                                     VALUES ('xx_scope',
-                                             'Nouveau Scope',
-                                             '00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00,0.00',
-                                             '15',
-                                             'email@domaine.com',
-                                             '',
-                                             '',
-                                             '0',
-                                             '',
-                                             '',
-                                             'https://nominatim.openstreetmap.org')");
-    echo '<div class="alert alert-success" role="alert">Scope ajouté, merci de remplir les champs correspondants</div>';
-  }
-  if(isset($_GET['scopeid']) && is_numeric($_GET['scopeid'])) {
-    if ($_GET['action'] == 'delete') {
-      $scopeid = mysqli_real_escape_string($db,$_GET['scopeid']);
-      mysqli_query($db,"DELETE FROM obs_scopes WHERE scope_id = '".$scopeid."'");
-      echo '<div class="alert alert-success" role="alert">Scope <strong>'.$scopeid.'</strong> supprimé</div>';
+if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
+  echo '<div class="alert alert-warning" role="alert">Cette option est désactivée en SaaS</div>';
+} else {
+  if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
+    if ($_GET['action'] == 'add') {
+      mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
+                                                scope_display_name,
+                                                scope_department,
+                                                scope_coordinate_lat_min,
+                                                scope_coordinate_lat_max,
+                                                scope_coordinate_lon_min,
+                                                scope_coordinate_lon_max,
+                                                scope_map_center_string,
+                                                scope_map_zoom,
+                                                scope_contact_email,
+                                                scope_sharing_content_text,
+                                                scope_twitter,
+                                                scope_twitteraccountid,
+                                                scope_twittercontent,
+                                                scope_umap_url,
+                                                scope_nominatim_urlbase)
+                                       VALUES ('xx_scope',
+                                               'Nouveau Scope',
+                                               '00',
+                                               '0.00',
+                                               '0.00',
+                                               '0.00',
+                                               '0.00',
+                                               '0.00,0.00',
+                                               '15',
+                                               'email@domaine.com',
+                                               '',
+                                               '',
+                                               '0',
+                                               '',
+                                               '',
+                                               'https://nominatim.openstreetmap.org')");
+      echo '<div class="alert alert-success" role="alert">Scope ajouté, merci de remplir les champs correspondants</div>';
+    }
+    if(isset($_GET['scopeid']) && is_numeric($_GET['scopeid'])) {
+      if ($_GET['action'] == 'delete') {
+        $scopeid = mysqli_real_escape_string($db,$_GET['scopeid']);
+        mysqli_query($db,"DELETE FROM obs_scopes WHERE scope_id = '".$scopeid."'");
+        echo '<div class="alert alert-success" role="alert">Scope <strong>'.$scopeid.'</strong> supprimé</div>';
+      }
     }
   }
 }
+
 if (isset($_POST['scope_id'])) {
   $update = "";
   foreach ($_POST as $key => $value) {
