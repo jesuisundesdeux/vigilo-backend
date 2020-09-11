@@ -345,6 +345,8 @@ ORDER BY obs_time DESC
 
   public function outputToWebServer() : void
   {
+    global $config;
+
     $json = $this->getIssues();
 
     header('Content-Type: ' . $this->formatheader);
@@ -389,7 +391,7 @@ ORDER BY obs_time DESC
             ),
             'properties' => array(
               'name' => $value['token'].' '.$value['comment'],
-              'description' => '{{'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/'.$config['DATA_PATH'].'images/'.$value['token'].'.jpg}} '.$value['explanation'],
+              'description' => '{{'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'}} '.$value['explanation'],
               'token' => $value['token'],
               'address' => $value['address'],
               'comment' => $value['comment'],
