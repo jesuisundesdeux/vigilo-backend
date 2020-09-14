@@ -79,18 +79,28 @@ elseif ($type == "resolution") {
 /* Save image */
 $image_written = False;
 
-$data = file_get_contents("php://stdin");
-if (!(file_put_contents($filepath, $data))) {
-  $data = file_get_contents('php://input');
+if($_GET['method'] == 'base64') {
+  $data = $_POST['imagebin64'];
+  error_log($data);
+  $image_content = base64_decode(str_replace(array('-', '_',' ','\n'), array('+', '/','+',' '), $data));
+  $fd_image = fopen($filepath, "wb");
+  $image_written = fwrite($fd_image, $image_content);
+  fclose($fd_image);
+
+} else {
+  $data = file_get_contents("php://stdin");
   if (!(file_put_contents($filepath, $data))) {
-    jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
+    $data = file_get_contents('php://input');
+    if (!(file_put_contents($filepath, $data))) {
+      jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
+    }
+    else {
+      $image_written = True;
+    }
   }
   else {
     $image_written = True;
   }
-}
-else {
-  $image_written = True;
 }
 
 if($image_written) {

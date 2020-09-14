@@ -32,7 +32,7 @@ global $config;
 define('BACKEND_VERSION','0.0.16');
 
 if (!isset($config['DATA_PATH'])) {
-  $config['DATA_PATH'] = './';
+  $config['DATA_PATH'] = '';
 }
 
 if (!$db = mysqli_connect($config['MYSQL_HOST'],
