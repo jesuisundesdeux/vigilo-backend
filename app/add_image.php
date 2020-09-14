@@ -81,7 +81,6 @@ $image_written = False;
 
 if($_GET['method'] == 'base64') {
   $data = $_POST['imagebin64'];
-  error_log($data);
   $image_content = base64_decode(str_replace(array('-', '_',' ','\n'), array('+', '/','+',' '), $data));
   $fd_image = fopen($filepath, "wb");
   $image_written = fwrite($fd_image, $image_content);
