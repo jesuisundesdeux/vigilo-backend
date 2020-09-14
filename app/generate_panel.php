@@ -18,13 +18,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 ini_set('memory_limit','256M');
 
-header('BACKEND_VERSION: '.BACKEND_VERSION);
-header("Content-type: image/jpeg");
 
 $error_prefix = 'GENERATE_PANEL';
 $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
+
+header('BACKEND_VERSION: '.BACKEND_VERSION);
+header("Content-type: image/jpeg");
+
 require_once("${cwd}/includes/functions.php");
 require_once("${cwd}/includes/handle.php");
 
