@@ -75,11 +75,9 @@ elseif ($type == "resolution") {
     mkdir($config['DATA_PATH'] . 'images/resolutions/');
   }
   
-
   if(!isResolutionTokenWithSecretId($db,$token,$secretid)) {
     jsonError($error_prefix, "ResolutionToken : ".$token." and/or secretid : ".$secretid." do not exist.", "RESOLTOKENNOTEXIST", 400);
   }
-
 
 } else {
   jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);

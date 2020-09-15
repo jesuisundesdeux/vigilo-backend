@@ -129,7 +129,6 @@ function addResolution($db,$fields,$obsidlist) {
                                   `resolution_time`,
                                   `resolution_status`)
                            VALUES ("'.$fields['resolution_token'].'","'.$fields['resolution_secretid'].'","'.$fields['resolution_app_version'].'","'.$fields['resolution_comment'].'","'.$fields['resolution_time'].'","'.$fields['resolution_status'].'")');
-  error_log(mysqli_error($db));
   $resolution_id = mysqli_insert_id($db);
   
   foreach($obsidlist as $obs) {
