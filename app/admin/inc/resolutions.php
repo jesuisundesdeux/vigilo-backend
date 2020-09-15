@@ -51,7 +51,7 @@ if (isset($_POST['resolution_id']) && in_array($_SESSION['role'],$actions_acl['e
     echo '<div class="alert alert-success" role="alert">Resolution <strong>'.$resolutionid.'</strong> mise à jour</div>';
   }
 }
-if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
+if(isset($_POST['resolution_add']) && $_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
   addObsToResolution($db,$_POST['obs_id'],$_POST['resolution_add']);
 }
 

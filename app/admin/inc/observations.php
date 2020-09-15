@@ -213,6 +213,8 @@ if (isset($_GET['searchcategory']) && $_GET['searchcategory'] != 0 && is_numeric
   $querysearch .= " AND obs_categorie='".$_GET['searchcategory']."'";
   $urlsuffix .= "&searchcategory=".$_GET['searchcategory'] ;
   $searchcategory = $_GET['searchcategory'];
+} else {
+  $searchcategory = 0;
 }
 
 /* Filter cities for the current role */
