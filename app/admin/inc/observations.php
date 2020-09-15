@@ -229,11 +229,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     }
 }
 
-
-
-$maxobsperpage = 100;
-$offset = ($pagenb-1) * $maxobsperpage;
-
 // Tab filter process
 if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
   $approved = $_GET['approved'];
