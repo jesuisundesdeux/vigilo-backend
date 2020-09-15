@@ -131,7 +131,7 @@ if ($approved != 1 and !$AdminOrAuthor and $resize_width > 300) {
 
   $photo_w = imagesx($photo);
   $photo_h = imagesy($photo);
-  if($photo_w > $photo_y) {
+  if($photo_w > $photo_h) {
     $pixelate_size = $photo_w / $RATIO_PIXELATED;
   } else {
     $pixelate_size = $photo_h / $RATIO_PIXELATED;
