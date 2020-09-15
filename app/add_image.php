@@ -47,8 +47,17 @@ else {
 
 $token = $_GET['token'];
 $secretid = $_GET['secretid'];
+
+if(isset($_GET['method']) && !empty($_GET['method'])) {
+  $method = $_GET['method'];
+}
+else {
+  $method = 'stdin';
+}
+
 $token = mysqli_real_escape_string($db, $token);
 $secretid = mysqli_real_escape_string($db, $secretid);
+
 
 if ($type == "obs") {
   $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
@@ -79,7 +88,7 @@ elseif ($type == "resolution") {
 /* Save image */
 $image_written = False;
 
-if($_GET['method'] == 'base64') {
+if($method == 'base64') {
   $data = $_POST['imagebin64'];
   $image_content = base64_decode(str_replace(array('-', '_',' ','\n'), array('+', '/','+',' '), $data));
   $fd_image = fopen($filepath, "wb");
