@@ -3,6 +3,9 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
   exit('Not allowed');
 }
 
+if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
+  echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
+} else {
 
 if (isset($_POST['config_param'])) {
   foreach ($_POST as $key => $value) {
@@ -133,3 +136,6 @@ if ($config['config_param_vigilo_shownonapproved'] == 1) {
 </form>
 
 <br />
+<?php
+}
+?>

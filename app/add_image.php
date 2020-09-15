@@ -52,7 +52,7 @@ $secretid = mysqli_real_escape_string($db, $secretid);
 
 if ($type == "obs") {
   $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
-  $filepath = 'images/'.$filename.'.jpg';
+  $filepath = $config['DATA_PATH'] . 'images/'.$filename.'.jpg';
 
   if(!isTokenWithSecretId($db,$token,$secretid)) {
     jsonError($error_prefix, "Token : ".$token." and/or secretid : ".$secretid." do not exist.", "TOKENNOTEXIST", 400);
@@ -60,10 +60,10 @@ if ($type == "obs") {
 }
 elseif ($type == "resolution") {
   $filename = preg_replace('/[^A-Za-z0-9_]/', '', $token);
-  $filepath = 'images/resolutions/'.$filename.'.jpg';
+  $filepath = $config['DATA_PATH'] . 'images/resolutions/'.$filename.'.jpg';
  
-  if(!file_exists('images/resolutions/')) {
-    mkdir('images/resolutions/');
+  if(!file_exists($config['DATA_PATH'] . 'images/resolutions/')) {
+    mkdir($config['DATA_PATH'] . 'images/resolutions/');
   }
   
 
@@ -79,18 +79,27 @@ elseif ($type == "resolution") {
 /* Save image */
 $image_written = False;
 
-$data = file_get_contents("php://stdin");
-if (!(file_put_contents($filepath, $data))) {
-  $data = file_get_contents('php://input');
+if($_GET['method'] == 'base64') {
+  $data = $_POST['imagebin64'];
+  $image_content = base64_decode(str_replace(array('-', '_',' ','\n'), array('+', '/','+',' '), $data));
+  $fd_image = fopen($filepath, "wb");
+  $image_written = fwrite($fd_image, $image_content);
+  fclose($fd_image);
+
+} else {
+  $data = file_get_contents("php://stdin");
   if (!(file_put_contents($filepath, $data))) {
-    jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
+    $data = file_get_contents('php://input');
+    if (!(file_put_contents($filepath, $data))) {
+      jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
+    }
+    else {
+      $image_written = True;
+    }
   }
   else {
     $image_written = True;
   }
-}
-else {
-  $image_written = True;
 }
 
 if($image_written) {

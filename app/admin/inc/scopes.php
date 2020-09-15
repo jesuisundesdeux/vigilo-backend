@@ -3,9 +3,8 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
   exit('Not allowed');
 }
 
-
 if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
-  if ($_GET['action'] == 'add') {
+  if ($_GET['action'] == 'add' && (!isset($config['SAAS_MODE']) || !$config['SAAS_MODE'])) {
     mysqli_query($db,"INSERT INTO obs_scopes (scope_name,
                                               scope_display_name,
                                               scope_department,
@@ -40,14 +39,16 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                              'https://nominatim.openstreetmap.org')");
     echo '<div class="alert alert-success" role="alert">Scope ajouté, merci de remplir les champs correspondants</div>';
   }
-  if(isset($_GET['scopeid']) && is_numeric($_GET['scopeid'])) {
-    if ($_GET['action'] == 'delete') {
-      $scopeid = mysqli_real_escape_string($db,$_GET['scopeid']);
-      mysqli_query($db,"DELETE FROM obs_scopes WHERE scope_id = '".$scopeid."'");
-      echo '<div class="alert alert-success" role="alert">Scope <strong>'.$scopeid.'</strong> supprimé</div>';
-    }
+  elseif($_GET['action'] == 'delete' && isset($_GET['scopeid']) && is_numeric($_GET['scopeid']) && (!isset($config['SAAS_MODE']) || !$config['SAAS_MODE'])) {
+    $scopeid = mysqli_real_escape_string($db,$_GET['scopeid']);
+    mysqli_query($db,"DELETE FROM obs_scopes WHERE scope_id = '".$scopeid."'");
+    echo '<div class="alert alert-success" role="alert">Scope <strong>'.$scopeid.'</strong> supprimé</div>';
+  }
+  elseif (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
+    echo '<div class="alert alert-warning" role="alert">Cette fonctionnalité n\'est pas accessible en SaaS</div>';
   }
 }
+
 if (isset($_POST['scope_id'])) {
   $update = "";
   foreach ($_POST as $key => $value) {
@@ -141,7 +142,7 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
       </tr>
       <tr>
         <td>Zoom cartes</td>
-	      <td>
+              <td>
           <select name="scope_map_zoom" class=" custom-select">
 <?php
   for ($i = 1; $i <= 20; $i++) {
@@ -176,8 +177,8 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
          </td>
        </tr>
        <tr>
-   	     <td>Identifiant compte twitter</td>
-     	   <td>
+             <td>Identifiant compte twitter</td>
+           <td>
            <select name="scope_twitteraccountid" class=" custom-select">
 <?php
   foreach ($twitterlist as $twitterid) {

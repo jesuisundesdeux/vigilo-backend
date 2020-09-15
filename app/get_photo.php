@@ -47,7 +47,7 @@ if ($type == "obs") {
     jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
   }
 
-  $filepath = './images/';
+  $filepath = $config['DATA_PATH'] . 'images/';
   $checktoken_query = mysqli_query($db,"SELECT obs_token,obs_approved FROM obs_list WHERE obs_token='".$token."' LIMIT 1");
   $checktoken_result = mysqli_fetch_array($checktoken_query);
   if($checktoken_result['obs_approved'] == 1) {
@@ -59,7 +59,7 @@ elseif($type == "resolution") {
     jsonError($error_prefix, "Token : ".$token." not found", "TOKENNOTFOUND", 404);
   }
 
-  $filepath = './images/resolutions/';
+  $filepath = $config['DATA_PATH'] . 'images/resolutions/';
   $approved = 1;
 }
 
