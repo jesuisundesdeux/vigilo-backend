@@ -48,7 +48,7 @@ $images_path = "${cwd}".'/'.$config['DATA_PATH']."images/";
 $maps_path = "${cwd}".'/'.$config['DATA_PATH']."maps/";
 $MAX_IMG_SIZE = 1024; // For limit attack
 $resize_width = $MAX_IMG_SIZE; // default width
-$PERCENT_PIXELATED = 10;
+$RATIO_PIXELATED = 100;
 
 if (isset($_GET['key'])) {
   $key = $_GET['key'];
@@ -129,20 +129,19 @@ $photo = imagecreatefromjpeg($images_path . $token . '.jpg'); // issue photo
 # Image is pixelated until approved by a moderator
 if ($approved != 1 and !$AdminOrAuthor and $resize_width > 300) {
 
-$tmpImage = ImageCreateTrueColor($photo_max_w, $photo_max_h);
-$pixelated = ImageCreateTrueColor($photo_w, $photo_h);
+  $photo_w = imagesx($photo);
+  $photo_h = imagesy($photo);
+  if($photo_w > $photo_y) {
+    $pixelate_size = $photo_w / $RATIO_PIXELATED;
+  } else {
+    $pixelate_size = $photo_h / $RATIO_PIXELATED;
+  }
+  # Then apply pixelating + gaussian filters
+  imagefilter($photo, IMG_FILTER_PIXELATE, $pixelate_size, True);
 
-# First resize the picture - $PERCENT_PIXELATED ratio will increase/decrease data loss
-imagecopyresized($tmpImage, $photo, 0, 0, 0, 0, round($photo_max_w / $PERCENT_PIXELATED), round($photo_max_h / $PERCENT_PIXELATED), $photo_w, $photo_h);
-imagecopyresized($pixelated, $tmpImage, 0, 0, 0, 0, $photo_w, $photo_h, round($photo_max_w / $PERCENT_PIXELATED), round($photo_max_h / $PERCENT_PIXELATED));
+  # Gaussian blur reduces pixel effect on small images
+  imagefilter($photo, IMG_FILTER_GAUSSIAN_BLUR);
 
-# Then apply pixelating + gaussian filters
-imagefilter($pixelated, IMG_FILTER_PIXELATE, 5);
-
-# Gaussian blur reduces pixel effect on small images
-imagefilter($pixelated, IMG_FILTER_GAUSSIAN_BLUR);
-
-$photo = $pixelated;
 }
 $map_file_path=$maps_path . $token . '_zoom.jpg';
 GenerateMapQuestForToken($db,$token,$config['MAPQUEST_API']);
@@ -170,5 +169,4 @@ else if ($resize_width == $MAX_IMG_SIZE) {
   imagejpeg($imageresized, $img_filename);
   imagejpeg($imageresized);
 }
-
 
