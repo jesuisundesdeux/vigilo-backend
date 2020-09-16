@@ -1,11 +1,11 @@
 <?php
 /*
-Copyright (C) 2019 Velocité Montpellier
+Copyright (C) 2020 Velocité Montpellier
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3 of the License, or
- any later version.
+any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,10 +25,14 @@ require_once("${cwd}/includes/functions.php");
 ?>
 <!-- https://codepen.io/desandro/full/RPKgEN -->
 <!DOCTYPE html>
-<?php echo '<html lang="'.$config['VIGILO_LANGUAGE'].'">'; ?>
+<?php
+echo '<html lang="' . $config['VIGILO_LANGUAGE'] . '">';
+?>
 <head>
-  <?php echo '<title>'.$config['VIGILO_NAME'].'</title>'; ?>
-  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <?php
+echo '<title>' . $config['VIGILO_NAME'] . '</title>';
+?>
+ <meta http-equiv="Content-type" content="text/html; charset=utf-8">
   <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
   <link rel="icon" type="image/png" href="/style/favicon.png">
 
@@ -50,65 +54,62 @@ require_once("${cwd}/includes/functions.php");
 <?php
 
 if (isset($_GET['c']) AND !empty($_GET['c'])) {
-  $cat = $_GET['c'] ;
-}
-else {
-  $cat = 'all';
+    $cat = $_GET['c'];
+} else {
+    $cat = 'all';
 }
 
 if (isset($_GET['t']) AND !empty($_GET['t'])) {
-  $token = $_GET['t'] ;
-}
-else {
-  $token = 'all';
+    $token = $_GET['t'];
+} else {
+    $token = 'all';
 }
 
 $obslink = 'image';
 if (isset($_GET['scope']) AND !empty($_GET['scope'])) {
-  $scope = $_GET['scope'];
-  if($instance_name = getInstanceNameFromFirebase($scope)) {
-    $obslink = 'web';
-  }  
-}
-else {
-  $scope = '';
+    $scope = $_GET['scope'];
+    if ($instance_name = getInstanceNameFromFirebase($scope)) {
+        $obslink = 'web';
+    }
+} else {
+    $scope = '';
 }
 
-$url = $config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/get_issues.php';
+$url = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/get_issues.php';
 
-$data = file_get_contents($url);
+$data    = file_get_contents($url);
 /*
  *  TODO
  *  We should use get_issues filters instead of filtering the whole list
  *  each time we call mosaic.php
  */
-$content = json_decode($data,true);
-$item= 0;
-$filter = array('distance' => 300,
-                'fdistance' => 1,
-                'fcategorie' => 1,
-                'faddress' => 1);
+$content = json_decode($data, true);
+$item    = 0;
+$filter  = array(
+    'distance' => 300,
+    'fdistance' => 1,
+    'fcategorie' => 1,
+    'faddress' => 1
+);
 $similar = sameas($db, $token, $filter);
 
 foreach ($content as $value) {
-  if ($cat != 'all' && $value['categorie'] != $cat) {
-    /* Wrong category - Do not display */
-    continue;
-  }
-  if ($token != 'all' &&
-      (!isset($similar) OR !in_array($value['token'], $similar))) {
-    /* Wrong token - Do not display */
-    continue;
-  }
-  
-  if ($obslink == 'web') {
-    $obsurl = 'https://app.vigilo.city/?token='.$value['token'].'&instance='.$instance_name;
-  }
-  else {
-    $obsurl = '/generate_panel.php?token='.$value['token'];
-  }
-
-  echo '<div class="grid-item"><a target="_blank" href="'.$obsurl.'"><img width="100%" src="'.$config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$value['token'].'&s=400" /></a></div>';
+    if ($cat != 'all' && $value['categorie'] != $cat) {
+        /* Wrong category - Do not display */
+        continue;
+    }
+    if ($token != 'all' && (!isset($similar) OR !in_array($value['token'], $similar))) {
+        /* Wrong token - Do not display */
+        continue;
+    }
+    
+    if ($obslink == 'web') {
+        $obsurl = 'https://app.vigilo.city/?token=' . $value['token'] . '&instance=' . $instance_name;
+    } else {
+        $obsurl = '/generate_panel.php?token=' . $value['token'];
+    }
+    
+    echo '<div class="grid-item"><a target="_blank" href="' . $obsurl . '"><img width="100%" src="' . $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/generate_panel.php?token=' . $value['token'] . '&s=400" /></a></div>';
 }
 ?>
 </div>
