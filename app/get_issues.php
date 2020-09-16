@@ -247,9 +247,11 @@ class GetIssues
     obs_explanation,
     obs_time,
     obs_status,
+    t_status.status_update_status AS obs_status,
     obs_categorie,
     obs_approved
 FROM obs_list
+LEFT JOIN ( SELECT status_update_obsid, status_update_status, MAX(status_update_time) FROM obs_status_update GROUP BY status_update_obsid) t_status ON t_status.status_update_obsid = obs_list.obs_id
 WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
