@@ -277,7 +277,7 @@ Version backend >= 0.0.1
 | URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
 | URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG si method=stdin | >= 0.0.1 |
-| URL | str | method | | Methode d'upload d'image (par defaut stdin pour upload en RAW / base64 pour upload en base46 dans le champs imagebin64) | >= 0.0.16 |
+| URL | str | method | | Methode d'upload d'image (par defaut stdin pour upload en RAW / base64 pour upload en base64 dans le champs imagebin64) | >= 0.0.16 |
 | POST | JPEG base64 |  imagebin64 | | Image encodée en base64 | = 0.0.16 |
 
 
