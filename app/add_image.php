@@ -119,10 +119,7 @@ if ($image_written) {
         IMAGETYPE_JPEG
     );
     $detectedType = exif_imagetype($filepath);
-    if (!array(
-        $detectedType,
-        $allowedTypes
-    )) {
+    if (!in_array($detectedType,$allowedTypes)) {
         unlink($filepath);
         jsonError($error_prefix, 'File type not supported : ' . $detectedType, "FILETYPENOTSUPPORTED", 400);
     } elseif (!isGoodImage($filepath)) {
