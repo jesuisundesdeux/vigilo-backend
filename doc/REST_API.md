@@ -276,7 +276,9 @@ Version backend >= 0.0.1
 | URL | str | token | X | Token de l'observation | >= 0.0.1 |
 | URL | str | secretid | X | Clé secrète de l'observation | >= 0.0.1 |
 | URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
-| RAW | image/jpeg | / | X | Flux de l'image en JPEG | >= 0.0.1 |
+| RAW | image/jpeg | / | X | Flux de l'image en JPEG si method=stdin | >= 0.0.1 |
+| URL | str | method | | Methode d'upload d'image (par defaut stdin pour upload en RAW / base64 pour upload en base46 dans le champs imagebin64) | >= 0.0.16 |
+| POST | JPEG base64 |  imagebin64 | | Image encodée en base64 | = 0.0.16 |
 
 
 ###### Retour
@@ -304,8 +306,8 @@ Version backend >= 0.0.1
 | Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | | Clé privé de l'utilisateur | >= 0.0.1 |
-| Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
-| Form | int | approved | | 0 => A approuver / 1 => Approuvé / 2 => Désapprouvé | >= 0.0.1 |
+| POST | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
+| POST | int | approved | | 0 => A approuver / 1 => Approuvé / 2 => Désapprouvé | >= 0.0.1 |
 
 ###### Retour
 
@@ -332,18 +334,18 @@ Version backend >= 0.0.1
 | Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | key | | Clé privé de l'utilisateur | >= 0.0.1 |
-| Form | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lat' | création | Latitude de l'observation | >= 0.0.1 |
-| Form | str | coordinates_lon | création | Longitude de l'observation | >= 0.0.1 |
-| Form | str | comment | non | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
-| Form | str | explanation | non | Explications observation | >= 0.0.1 |
-| Form | str | categorie | création | ID de catégorie | >= 0.0.1 |
-| Form | str | address | création | Adresse de l'observation | >= 0.0.1 |
-| Form | str | time | création |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
-| Form | str | version | création | Version de l'application cliente | >= 0.0.1 |
-| Form | str | scope | création | Identifiant du scope | >= 0.0.1 |
-| Form | str | cityid | création | Identifiant de la ville | >= 0.0.13 |
-| Form | str | cityname | création | Nom de la ville | >= 0.0.13 |
+| POST | str | token | Uniquement en cas de modif | Token de l'observation | >= 0.0.1 |
+| POST | str | coordinates_lat' | création | Latitude de l'observation | >= 0.0.1 |
+| POST | str | coordinates_lon | création | Longitude de l'observation | >= 0.0.1 |
+| POST | str | comment | non | Remarque de l'observation (max 50 caractères) | >= 0.0.1 |
+| POST | str | explanation | non | Explications observation | >= 0.0.1 |
+| POST | str | categorie | création | ID de catégorie | >= 0.0.1 |
+| POST | str | address | création | Adresse de l'observation | >= 0.0.1 |
+| POST | str | time | création |  Timestamp de l'observation au format Unix en ms | >= 0.0.1 |
+| POST | str | version | création | Version de l'application cliente | >= 0.0.1 |
+| POST | str | scope | création | Identifiant du scope | >= 0.0.1 |
+| POST | str | cityid | création | Identifiant de la ville | >= 0.0.13 |
+| POST | str | cityname | création | Nom de la ville | >= 0.0.13 |
 
 
 ###### Retour
@@ -374,10 +376,10 @@ Version backend >= 0.0.14
 | ------------ | ---- | ----|------------ | ------------- | --------------|
 | URL | str | token |  | Token de l'observation | >= 0.0.14 |
 | URL | str | secretid | | Clé secrète de l'observation | >= 0.0.14 |
-| Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.14 |
-| Form | int | time | X | Timestamp format Unix | >= 0.0.14 |
-| Form | str | tokenlist | X | Liste, séparée par une virgule des tokens de la résolution | >= 0.0.14 |
-| Form | str | version | | Version du client | >= 0.0.14 |
+| POST | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.14 |
+| POST | int | time | X | Timestamp format Unix | >= 0.0.14 |
+| POST | str | tokenlist | X | Liste, séparée par une virgule des tokens de la résolution | >= 0.0.14 |
+| POST | str | version | | Version du client | >= 0.0.14 |
 
 ###### Retour
 
@@ -459,8 +461,8 @@ CSV : Retourne les informations d'identification de l'observation
 | URL | str | token | X | Token de l'observation | >= 0.0.5 |
 | URL | str | secretid | Si key non fourni | Clé secrète de l'observation | >= 0.0.5 |
 | URL | int | statusobs | X | Status à appliquer (0: non résolu / 1 : résolu) | >= 0.0.5 |
-| Form | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.10 |
-| Form | int | time | | Timestamp format Unix | >= 0.0.10 |
+| POST | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.10 |
+| POST | int | time | | Timestamp format Unix | >= 0.0.10 |
 
 ###### Retour
 
