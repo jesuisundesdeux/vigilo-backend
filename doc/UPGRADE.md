@@ -11,7 +11,8 @@ SET SESSION innodb_strict_mode=OFF;
 ```git pull origin X.X.X```
 
 * Launch in MySQL the SQL scripts in mysql/init/ corresponding to the superior versions order by the version number.
-  Example :
+
+Example :
   If your current version is 0.0.12, launch init-0.0.13.sql then init-0.0.14.sql then init-0.0.15.sql then ...
 
 * Execute if needed the specific actions below 
