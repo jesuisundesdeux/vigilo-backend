@@ -424,7 +424,7 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
       <tr class="<?=$highlight_city ?>">
         <td><?=$result_obs['obs_token'] ?></td>
         <td>
-          <a href="/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
+          <a href=<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
         </td>
         <td>
           <label for="obs_comment"><strong>Commentaire</strong></label>
