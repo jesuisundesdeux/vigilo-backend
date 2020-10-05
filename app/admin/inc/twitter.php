@@ -1,12 +1,30 @@
 <?php
-if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
-  exit('Not allowed');
+/*
+Copyright (C) 2020 Velocité Montpellier
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'], $menu[$page_name]['access']))) {
+    exit('Not allowed');
 }
 
 
 if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
-  if ($_GET['action'] == 'add') {
-    mysqli_query($db,"INSERT INTO obs_twitteraccounts (ta_consumer,
+    if ($_GET['action'] == 'add') {
+        mysqli_query($db, "INSERT INTO obs_twitteraccounts (ta_consumer,
                                                        ta_consumersecret,
                                                        ta_accesstoken,
                                                        ta_accesstokensecret)
@@ -14,31 +32,31 @@ if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
                                                        'consumerkey',
                                                        'accesstoken',
                                                        'accesstokensecret')");
-    echo '<div class="alert alert-success" role="alert">Compte Twitter ajouté, merci de remplir les champs correspondants</div>';
-  }
-  if(isset($_GET['taid']) && is_numeric($_GET['taid'])) {
-    if ($_GET['action'] == 'delete') {
-      $taid = mysqli_real_escape_string($db,$_GET['taid']);
-      mysqli_query($db,"DELETE FROM obs_twitteraccounts WHERE ta_id = '".$taid."'");
-      echo '<div class="alert alert-success" role="alert">Compte twitter <strong>'.$taid.'</strong> supprimé</div>';
+        echo '<div class="alert alert-success" role="alert">Compte Twitter ajouté, merci de remplir les champs correspondants</div>';
     }
-  }
+    if (isset($_GET['taid']) && is_numeric($_GET['taid'])) {
+        if ($_GET['action'] == 'delete') {
+            $taid = mysqli_real_escape_string($db, $_GET['taid']);
+            mysqli_query($db, "DELETE FROM obs_twitteraccounts WHERE ta_id = '" . $taid . "'");
+            echo '<div class="alert alert-success" role="alert">Compte twitter <strong>' . $taid . '</strong> supprimé</div>';
+        }
+    }
 }
 
 if (isset($_POST['ta_id'])) {
-  $update = "";
-  foreach ($_POST as $key => $value) {
-    if(preg_match('/ta_(?:.*)$/',$key)) {
-      $key = mysqli_real_escape_string($db,$key);
-      $value = mysqli_real_escape_string($db,$value);
-      $update .= $key . "='".$value."',";
+    $update = "";
+    foreach ($_POST as $key => $value) {
+        if (preg_match('/ta_(?:.*)$/', $key)) {
+            $key   = mysqli_real_escape_string($db, $key);
+            $value = mysqli_real_escape_string($db, $value);
+            $update .= $key . "='" . $value . "',";
+        }
     }
-  }
-  $update = rtrim($update,',');
-  $taid = mysqli_real_escape_string($db,$_POST['ta_id']);
-  mysqli_query($db,"UPDATE obs_twitteraccounts SET ". $update . " WHERE ta_id='".$taid."'");
-
-  echo '<div class="alert alert-success" role="alert">Compte Twitter <strong>'.$taid.'</strong> mis à jour</div>';
+    $update = rtrim($update, ',');
+    $taid   = mysqli_real_escape_string($db, $_POST['ta_id']);
+    mysqli_query($db, "UPDATE obs_twitteraccounts SET " . $update . " WHERE ta_id='" . $taid . "'");
+    
+    echo '<div class="alert alert-success" role="alert">Compte Twitter <strong>' . $taid . '</strong> mis à jour</div>';
 }
 
 $query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
@@ -46,7 +64,7 @@ $query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
 ?>
 
 <h2>Liste</h2>
-<p><a href="?page=<?=$page_name ?>&action=add">Ajouter un compte Twitter</a></p>
+<p><a href="?page=<?= $page_name ?>&action=add">Ajouter un compte Twitter</a></p>
 
 <div class="table-responsive">
   <table class="table table-striped table-sm">
@@ -65,34 +83,34 @@ $query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
 <?php
 while ($result_ta = mysqli_fetch_array($query_ta)) {
 ?>
-      <form action="" method="POST">
+     <form action="" method="POST">
       <tr>
-        <td>#<?=$result_ta['ta_id'] ?></td>
+        <td>#<?= $result_ta['ta_id'] ?></td>
         <td>
-          <input type="text" class="form-control-plaintext" name="ta_consumer" value="<?=$result_ta['ta_consumer'] ?>" required />
+          <input type="text" class="form-control-plaintext" name="ta_consumer" value="<?= $result_ta['ta_consumer'] ?>" required />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="ta_consumersecret" value="<?=$result_ta['ta_consumersecret'] ?>" required />
+          <input type="text" class="form-control-plaintext" name="ta_consumersecret" value="<?= $result_ta['ta_consumersecret'] ?>" required />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="ta_accesstoken" value="<?=$result_ta['ta_accesstoken'] ?>" required />
+          <input type="text" class="form-control-plaintext" name="ta_accesstoken" value="<?= $result_ta['ta_accesstoken'] ?>" required />
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="<?=$result_ta['ta_accesstokensecret'] ?>" required />
+          <input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="<?= $result_ta['ta_accesstokensecret'] ?>" required />
         </td>
         <td>
-          <input type="hidden" name="ta_id" value="<?=$result_ta['ta_id'] ?>" />
+          <input type="hidden" name="ta_id" value="<?= $result_ta['ta_id'] ?>" />
           <button class="btn btn-primary" type="submit">Valider édition</button>
         </td>
         <td>
-          <a href="?page=<?=$page_name ?>&action=delete&taid=<?=$result_ta['ta_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
+          <a href="?page=<?= $page_name ?>&action=delete&taid=<?= $result_ta['ta_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
         </td>
       </tr>
       </form>
 <?php
 }
 ?>
-    </tbody>
+   </tbody>
   </table>
 </div>
 <br />

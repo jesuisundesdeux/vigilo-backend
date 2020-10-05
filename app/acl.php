@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (C) 2019 Velocité Montpellier
+Copyright (C) 2020 Velocité Montpellier
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,4 +38,3 @@ if(isset($_GET['key'])) {
 }
 
 echo json_encode(array('role'=>$role));
-
