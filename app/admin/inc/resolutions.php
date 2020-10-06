@@ -217,7 +217,7 @@ while ($result_resolution = mysqli_fetch_array($query_resolution)) {
 <?php
     if ($result_resolution['resolution_withphoto'] == 1) {
 ?>
-   <a href="/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" target="_blank"><img width="200px" src="/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" /></a>
+   <a href="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" target="_blank"><img width="200px" src="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" /></a>
 <?php
     } else {
 ?>
