@@ -87,6 +87,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 			$cityname = trim($cityInadress[1]);
 		}	
 	}
+	$citynamehashtag = str_replace( array("-"," ") , "" , $cityname ) ;
 
 	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
 		  obs_scopes.scope_twittercontent,
@@ -117,6 +118,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 			$tweet_content = str_replace('[COORDINATES_LAT]', $coordinates_lat, $tweet_content);
 			$tweet_content = str_replace('[CATEGORY]', $categorie, $tweet_content);
 			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
+			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
 
 			tweet($tweet_content, $config['HTTP_PROTOCOL'] . '://' . $_SERVER['SERVER_NAME'] . '/generate_panel.php?token=' . $token, $twitter_ids);
 
