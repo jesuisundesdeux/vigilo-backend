@@ -46,8 +46,8 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   elseif ($action == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
-      $twitt = false ;
-      if ( $approveto == 5 ) { // coorespond au choix de faire un twitt
+            $twitt = false ;
+      if ( $approveto == 5 ) {
       	$approveto = 1 ;
       	$twitt = true ;
       }
@@ -59,12 +59,12 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
     
-    // puis fait un twitt si l'option a été choisie
+        // puis fait un twitt
+    /*******************************************************************************************************************/
+    
     if ( $approveto == 1 && $twitt ) {
-    	// on insère la librairie qui permet de twitter
 	require_once('../lib/codebird-php/codebird.php');
 
-	// code identique à celui de la validation via l'API
 	$checktoken_query = mysqli_query($db, "SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon,obs_categorie,obs_city,obs_cityname,obs_address_string FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
 
 	$checktoken_result = mysqli_fetch_array($checktoken_query);
@@ -87,6 +87,8 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 			$cityname = trim($cityInadress[1]);
 		}	
 	}
+	
+	// ajout nico
 	$citynamehashtag = str_replace( array("-"," ") , "" , $cityname ) ;
 
 	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
@@ -120,7 +122,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
 			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
 
-			tweet($tweet_content, $config['HTTP_PROTOCOL'] . '://' . $_SERVER['SERVER_NAME'] . '/generate_panel.php?token=' . $token, $twitter_ids);
+			tweet($tweet_content, $config['HTTP_PROTOCOL'].'://'.$config['URLBASE'].'/generate_panel.php?token='.$token, $twitter_ids);
 
 			echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$obsid.'</strong> parti</div>';
 
@@ -131,6 +133,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 		echo '<div class="alert alert-warning" role="alert">'."Empty Twitter informations on scope".'</div>';
 	}
     }  // fin du tweet
+    
     
   }
   elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
@@ -580,10 +583,8 @@ else { ?>
             <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
           <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a>
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a> 
             & <a href="?page=<?=$page_name ?>&action=approve&approveto=5&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="twitter"></span> twt</a><br />
-            
-            <br />
             <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouver</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
@@ -654,3 +655,4 @@ else {
 }
 ?>
 <br />
+
