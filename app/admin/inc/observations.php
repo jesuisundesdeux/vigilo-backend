@@ -87,9 +87,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 			$cityname = trim($cityInadress[1]);
 		}	
 	}
-	
-	// ajout nico
-	$citynamehashtag = str_replace( array("-"," ") , "" , $cityname ) ;
+	$citynamehashtag = "#".str_replace( array("-"," ") , "" , $cityname ) ;
 
 	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
 		  obs_scopes.scope_twittercontent,

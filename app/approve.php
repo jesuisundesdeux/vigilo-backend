@@ -82,7 +82,7 @@ if ($approved == 1) {
             $cityname = trim($cityInadress[1]);
         }
     }
-    $citynamehashtag = str_replace( array("-"," ") , "" , $cityname ) ;
+    $citynamehashtag = "#".str_replace( array("-"," ") , "" , $cityname ) ;
     
     $scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
                                           obs_scopes.scope_twittercontent,
