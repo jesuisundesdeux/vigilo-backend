@@ -79,24 +79,157 @@ function delete_map_cache($token)
         unlink($file);
     }
 }
-function tweet($text, $image, $twitter_ids)
-{
+/**
+ * tweet
+ *
+ * Poste un tweet comprenant du texte et une image ; remplace tweet($text, $image, $twitter_ids)
+ *
+ * @param array $twitter_ids
+ *      ensemble des identifiants consumer, consumersecret, accesstoken, accesstokensecret
+ * @param string $text
+ *      texte du tweet
+ * @param string $image
+ *      adresse web d'une image sous forme http... 
+ * @return obj
+ *	objet au format codebird comprenant le code erreur/succès httpstatus de l'API twitter
+**/
+function tweet($twitter_ids, $text, $image = NULL ) {
+
     \Codebird\Codebird::setConsumerKey($twitter_ids['consumer'], $twitter_ids['consumersecret']);
     $cb = \Codebird\Codebird::getInstance();
     $cb->setToken($twitter_ids['accesstoken'], $twitter_ids['accesstokensecret']);
-    $reply   = $cb->media_upload(array(
-        'media' => $image
-    ));
-    $mediaID = $reply->media_id_string;
+    // $text = urlencode($text) ; // n'est pas nécessaire
+    if ( !empty($image) ) { 
+    	$reply   = $cb->media_upload(array(
+        	'media' => $image
+    	));
+    	$mediaID = $reply->media_id_string;
     
-    
-    $params = array(
-        'status' => $text,
-        'media_ids' => $mediaID
-    );
+        $params = array(
+		'status' => $text,
+		'media_ids' => $mediaID
+    	);
+    }
+    else {
+        $params = array(
+		'status' => $text
+    	);
+    }
     $reply  = $cb->statuses_update($params);
     
+    return $reply ;
 }
+
+
+/**
+ * tweetToken
+ *
+ * Poste un tweet au format personnalisé à partir d'un token
+ *
+ * @param string $token
+ *      identifiant du token à twitter
+ * @param ressource $db
+ *	objet valide qui représente la connexion au serveur MySQL
+ * @return array
+ *	[success] => true/false
+ *	[error] => message d'erreur
+ *	[response] => Objet au format codebird, retour de l'API twitter
+**/
+function tweetToken( $token , $db ) {
+
+	global $config;
+
+	// on pourrait faire un test sur format de token
+
+	if ( $db == false ) {
+		$return['success'] = false ;
+		$return['error'] = "Erreur MySQL." ;
+		return $return ;
+	}
+
+	// récupère les infos du token ds la base
+	$checktoken_query = mysqli_query($db, "SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon,obs_categorie,obs_city,obs_cityname,obs_address_string FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
+	$checktoken_result = mysqli_fetch_array($checktoken_query);
+	$comment           = $checktoken_result['obs_comment'];
+	$time              = $checktoken_result['obs_time'];
+	$coordinates_lat   = $checktoken_result['obs_coordinates_lat'];
+	$coordinates_lon   = $checktoken_result['obs_coordinates_lon'];
+	$scope             = $checktoken_result['obs_scope'];
+	$categorie         = getCategorieName($checktoken_result['obs_categorie']);
+	
+	$cityname = "";
+	if (!empty($checktoken_result['obs_city']) && $checktoken_result['obs_city'] != 0) {
+		$cityquery  = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id='" . $checktoken_result['obs_city'] . "' LIMIT 1");
+		$cityresult = mysqli_fetch_array($cityquery);
+		$cityname   = $cityresult['city_name'];
+	} elseif (!empty($checktoken_result['obs_cityname'])) {
+		$cityname = $checktoken_result['obs_cityname'];
+	} elseif (preg_match('/^(?:[^,]*),([^,]*)$/', $checktoken_result['obs_address_string'], $cityInadress)) {
+		if (count($cityInadress) == 2) {
+			$cityname = trim($cityInadress[1]);
+		}	
+	}
+	// crée le hashtag CITYHASHTAG
+	$citynamehashtag = "#".str_replace( array("-"," ") , "" , $cityname ) ;
+
+	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
+		  obs_scopes.scope_twittercontent,
+		  obs_twitteraccounts.ta_consumer,
+		  obs_twitteraccounts.ta_consumersecret,
+		  obs_twitteraccounts.ta_accesstoken,
+		  obs_twitteraccounts.ta_accesstokensecret  
+	   FROM obs_scopes, obs_twitteraccounts 
+	   WHERE obs_scopes.scope_twitteraccountid= obs_twitteraccounts.ta_id 
+	     AND obs_scopes.scope_name = '" . $scope . "'");
+	$scope_result = mysqli_fetch_array($scope_query);
+
+	if (!empty($scope_result['ta_consumer']) && !empty($scope_result['ta_consumersecret']) && !empty($scope_result['ta_accesstoken']) && !empty($scope_result['ta_accesstokensecret'])) {
+
+		$twitter_ids   = array(
+			"consumer" => $scope_result['ta_consumer'],
+			"consumersecret" => $scope_result['ta_consumersecret'],
+			"accesstoken" => $scope_result['ta_accesstoken'],
+			"accesstokensecret" => $scope_result['ta_accesstokensecret']
+		);
+		$tweet_content = $scope_result['scope_twittercontent'];
+
+		if ( empty($tweet_content) ) {
+			$tweet_content = "" ;
+		}
+
+		/* Don't tweet observations if they are more than N-hours old */
+		if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'] )) {
+			$tweet_content = str_replace('[COMMENT]', $comment, $tweet_content);
+			$tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
+			$tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
+			$tweet_content = str_replace('[COORDINATES_LAT]', $coordinates_lat, $tweet_content);
+			$tweet_content = str_replace('[CATEGORY]', $categorie, $tweet_content);
+			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
+			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
+
+			$return['response'] = tweet($twitter_ids, $tweet_content, $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token );
+			if ( $return['response']->httpstatus == 200 ) {
+				$return['success'] = true ;
+				$return['error'] = "" ;
+			}
+			else {
+				$return['success'] = false ;
+				$return['error'] = "Erreur ".$return['response']->httpstatus ;
+			}
+
+			//echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$obsid.'</strong> parti</div>';
+
+		} else {
+			$return['success'] = false ;
+			$return['error'] = "Token : " . $token . " older than " . $config['APPROVE_TWITTER_EXPTIME'] . "h. We won't tweet it." ;
+		}
+	} else {
+		$return['success'] = false ;
+		$return['error'] = "Empty Twitter informations on scope." ;
+	}
+    return $return ;
+}
+
 
 function getrole($privatekey, $acls)
 {

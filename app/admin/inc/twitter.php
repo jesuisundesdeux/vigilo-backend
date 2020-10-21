@@ -47,26 +47,33 @@ if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
 	      	$result_ta = mysqli_fetch_array($query_ta) ;
 	      	
 	      	if (!empty($result_ta['ta_consumer']) && !empty($result_ta['ta_consumersecret']) && !empty($result_ta['ta_accesstoken']) && !empty($result_ta['ta_accesstokensecret'])) {
-	      		// on charge la bibliothèque
+	      	
+	      		$twitter_ids   = array(
+				"consumer" => $result_ta['ta_consumer'],
+				"consumersecret" => $result_ta['ta_consumersecret'],
+				"accesstoken" => $result_ta['ta_accesstoken'],
+				"accesstokensecret" => $result_ta['ta_accesstokensecret']
+			);
+	      	
+	      		// on vérifie la bibliothèque
 	      		require_once('../lib/codebird-php/codebird.php');
-	      		\Codebird\Codebird::setConsumerKey( $result_ta['ta_consumer'] , $result_ta['ta_consumersecret'] );
-	      		$cb = \Codebird\Codebird::getInstance();
-	      		$cb->setToken($result_ta['ta_accesstoken'],$result_ta['ta_accesstokensecret']);
+	      		
 	      		// on attribue un identifiant au test - les tweets similaires sont refusés
-	      		$idTwt = rand(1000,9999) ;
-	      		$reply = $cb->statuses_update('status=' . urlencode('Ceci est un test automatique envoyé par le back-end vigilo ').$idTwt );
+	      		$twtId = rand(1000,9999) ;
+	      		$twtText = 'Ceci est un test automatique envoyé par le back-end vigilo '.$twtId ;
+			$twtRet = tweet($twitter_ids, $twtText) ;
+
 	      		// reply est un objet avec beaucoup d'informations, on récupère le httpstatus
-	      		if ( $reply->httpstatus == "200" ) {
-	      			echo '<div class="alert alert-success" role="alert">Vérifier le <a target="\blank" href="https://twitter.com/'.$reply->user->screen_name.'">twitt</a> du compte n° <strong>'.$taid.'</strong> (n° de vérification '.$idTwt.')</div>';
+	      		if ( $twtRet->httpstatus == "200" ) {
+	      			echo '<div class="alert alert-success" role="alert">Vérifier le <a target="\blank" href="https://twitter.com/'.$twtRet->user->screen_name.'">twitt</a> du compte n° <strong>'.$taid.'</strong> (n° de vérification '.$twtId.')</div>';
 	      		}
 	      		else {
-	      			echo '<div class="alert alert-warning" role="alert">Vérifier le code de l\'erreur n° <strong>'.$reply->httpstatus.'</strong></div>';
+	      			echo '<div class="alert alert-warning" role="alert">Vérifier le code de l\'erreur n° <strong>'.$twtRet->httpstatus.'</strong> (<a href="https://developer.twitter.com/ja/docs/basics/response-codes" target="_blank">liste des erreurs</a>)</div>';
 	      		}
 	      	}
 	      	else {
 	      		echo '<div class="alert alert-warning" role="alert">Les clés sont incomplètes pour le compte twitter n° <strong>'.$taid.'</strong></div>';
 	      	}
-      	
     	} // fin du elseif de test du twitt
     }
 }
