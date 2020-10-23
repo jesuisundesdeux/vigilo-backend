@@ -62,7 +62,7 @@ delete_token_cache($token);
 
 if ($approved == 1) {
 	// on twitte l'observation
-	$r = tweetToken( $token , $db ) ;
+	$r = tweetToken( $db , $token ) ;
 	if ( $r['success'] == true ) {
 		$i = 0 ; // do nothing
 	}

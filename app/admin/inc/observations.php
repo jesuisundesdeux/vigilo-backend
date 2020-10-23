@@ -46,33 +46,25 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   elseif ($action == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
-            $twitt = false ;
-      if ( $approveto == 5 ) {
-      	$approveto = 1 ;
-      	$twitt = true ;
-      }
     }
     else {
       $approveto = 1;
     }
+    $twitt = ( isset($_GET['twitt']) && is_numeric($_GET['twitt']) ) ? $_GET['twitt'] : 0 ;
+
     delete_token_cache($token);
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
     
     // puis fait un twitt
-    
-    if ( $approveto == 1 && $twitt ) {
-	require_once('../lib/codebird-php/codebird.php');
-
-	$r = tweetToken( $token , $db ) ;
-	
-	if ( $r['success'] == true ) {
-		echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
-	}
-	else {
-		echo '<div class="alert alert-warning" role="alert">'.$r['error'].'</div>';
-	}
-
+    if ( $approveto == 1 && $twitt == 1 ) {
+      $r = tweetToken( $db , $token ) ;
+      if ( $r['success'] == true ) {
+        echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
+      }
+      else {
+        echo '<div class="alert alert-warning" role="alert">'.$r['error'].'</div>';
+      }
     }
     
     
@@ -525,7 +517,7 @@ else { ?>
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
           <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
             <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a> 
-            & <a href="?page=<?=$page_name ?>&action=approve&approveto=5&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="twitter"></span> twt</a><br />
+            & <a href="?page=<?=$page_name ?>&action=approve&approveto=1&twitt=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="twitter"></span> twt</a><br />
             <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouver</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>

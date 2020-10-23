@@ -135,7 +135,7 @@ function tweet($twitter_ids, $text, $image = NULL ) {
  *	[error] => message d'erreur
  *	[response] => Objet au format codebird, retour de l'API twitter
 **/
-function tweetToken( $token , $db ) {
+function tweetToken( $db , $token ) {
 
 	global $config;
 
