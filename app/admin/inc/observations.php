@@ -50,9 +50,24 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     else {
       $approveto = 1;
     }
+    $twitt = ( isset($_GET['twitt']) && is_numeric($_GET['twitt']) ) ? $_GET['twitt'] : 0 ;
+
     delete_token_cache($token);
     mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
+    
+    // puis fait un twitt
+    if ( $approveto == 1 && $twitt == 1 ) {
+      $r = tweetToken( $db , $token ) ;
+      if ( $r['success'] == true ) {
+        echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
+      }
+      else {
+        echo '<div class="alert alert-warning" role="alert">'.$r['error'].'</div>';
+      }
+    }
+    
+    
   }
   elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
     delete_token_cache($token);
@@ -501,7 +516,8 @@ else { ?>
             <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
           <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
-            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a><br />
+            <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a> 
+            & <a href="?page=<?=$page_name ?>&action=approve&approveto=1&twitt=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="twitter"></span> twt</a><br />
             <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouver</a><br />
           <?php }
           if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
@@ -572,3 +588,4 @@ else {
 }
 ?>
 <br />
+

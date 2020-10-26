@@ -218,6 +218,8 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
             <li><strong>[COORDINATES_LAT] : </strong>Latitude</li>
             <li><strong>[CATEGORY] : </strong>Categorie</li>
             <li><strong>[CITY] : </strong>Nom de la ville</li>
+            <li><strong>[CITYHASHTAG] : </strong>Hashtag de la ville</li>
+            
           </ul>
         </td>
         <td>

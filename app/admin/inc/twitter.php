@@ -40,6 +40,41 @@ if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
             mysqli_query($db, "DELETE FROM obs_twitteraccounts WHERE ta_id = '" . $taid . "'");
             echo '<div class="alert alert-success" role="alert">Compte twitter <strong>' . $taid . '</strong> supprimé</div>';
         }
+        elseif ($_GET['action'] == 'test') {  // test l'envoi des tweets et poste le succès ou le code d'erreur
+
+	      	$taid = mysqli_real_escape_string($db,$_GET['taid']);
+	      	$query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts WHERE ta_id='".$taid."' LIMIT 1");
+	      	$result_ta = mysqli_fetch_array($query_ta) ;
+	      	
+	      	if (!empty($result_ta['ta_consumer']) && !empty($result_ta['ta_consumersecret']) && !empty($result_ta['ta_accesstoken']) && !empty($result_ta['ta_accesstokensecret'])) {
+	      	
+	      		$twitter_ids   = array(
+				"consumer" => $result_ta['ta_consumer'],
+				"consumersecret" => $result_ta['ta_consumersecret'],
+				"accesstoken" => $result_ta['ta_accesstoken'],
+				"accesstokensecret" => $result_ta['ta_accesstokensecret']
+			);
+	      	
+	      		// on vérifie la bibliothèque
+	      		require_once('../lib/codebird-php/codebird.php');
+	      		
+	      		// on attribue un identifiant au test - les tweets similaires sont refusés
+	      		$twtId = rand(1000,9999) ;
+	      		$twtText = 'Ceci est un test automatique envoyé par le back-end vigilo '.$twtId ;
+			$twtRet = tweet($twitter_ids, $twtText) ;
+
+	      		// reply est un objet avec beaucoup d'informations, on récupère le httpstatus
+	      		if ( $twtRet->httpstatus == "200" ) {
+	      			echo '<div class="alert alert-success" role="alert">Vérifier le <a target="\blank" href="https://twitter.com/'.$twtRet->user->screen_name.'">twitt</a> du compte n° <strong>'.$taid.'</strong> (n° de vérification '.$twtId.')</div>';
+	      		}
+	      		else {
+	      			echo '<div class="alert alert-warning" role="alert">Vérifier le code de l\'erreur n° <strong>'.$twtRet->httpstatus.'</strong> (<a href="https://developer.twitter.com/ja/docs/basics/response-codes" target="_blank">liste des erreurs</a>)</div>';
+	      		}
+	      	}
+	      	else {
+	      		echo '<div class="alert alert-warning" role="alert">Les clés sont incomplètes pour le compte twitter n° <strong>'.$taid.'</strong></div>';
+	      	}
+    	} // fin du elseif de test du twitt
     }
 }
 
@@ -103,7 +138,9 @@ while ($result_ta = mysqli_fetch_array($query_ta)) {
           <button class="btn btn-primary" type="submit">Valider édition</button>
         </td>
         <td>
-          <a href="?page=<?= $page_name ?>&action=delete&taid=<?= $result_ta['ta_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
+          <a href="?page=<?=$page_name ?>&action=test&taid=<?=$result_ta['ta_id'] ?>" onclick="return confirm('Valider le test ? Ceci enverra un twitt public sur votre compte...')"><span data-feather="twitter"></span> Tester</a>
+          <br/>
+          <a href="?page=<?=$page_name ?>&action=delete&taid=<?=$result_ta['ta_id'] ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="x"></span> Supprimer</a>
         </td>
       </tr>
       </form>
