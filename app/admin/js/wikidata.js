@@ -33,6 +33,7 @@ function getWikidata( frm ) {
             OPTIONAL {?ville wdt:P2046 ?Area.}
           SERVICE wikibase:label { bd:serviceParam wikibase:language "fr". }
         }
+        ORDER BY ?CP
         LIMIT 10
         `;
     const queryDispatcher = new SPARQLQueryDispatcher( endpointUrl );
@@ -72,6 +73,7 @@ function getWikidata( frm ) {
                                 frm.elements['city_population'].value = ret.results.bindings[k].Population.value ;
                             if(typeof ret.results.bindings[k].Sitewww != 'undefined')
                                 frm.elements['city_website'].value = ret.results.bindings[k].Sitewww.value ;
+                            return true ;
                         }
                     }
                 }
