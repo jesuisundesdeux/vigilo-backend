@@ -374,11 +374,11 @@ Version backend >= 0.0.14
 
 | Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
 | ------------ | ---- | ----|------------ | ------------- | --------------|
-| URL | str | token |  | Token de l'observation | >= 0.0.14 |
+| URL | str | token |  | Token de la résolution | >= 0.0.14 |
 | URL | str | secretid | | Clé secrète de l'observation | >= 0.0.14 |
 | POST | str | comment | | Commentaire de résolution (max 50 chars) | >= 0.0.14 |
 | POST | int | time | X | Timestamp format Unix | >= 0.0.14 |
-| POST | str | tokenlist | X | Liste, séparée par une virgule des tokens de la résolution | >= 0.0.14 |
+| POST | str | tokenlist | X | Liste, séparée par une virgule des tokens d'observations | >= 0.0.14 |
 | POST | str | version | | Version du client | >= 0.0.14 |
 
 ###### Retour
