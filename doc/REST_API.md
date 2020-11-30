@@ -368,7 +368,7 @@ Version backend >= 0.0.14
 
 ######  Requête
 
-    GET /create_resolution.php
+    POST /create_resolution.php
     
 ###### Arguments
 
