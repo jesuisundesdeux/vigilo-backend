@@ -24,6 +24,7 @@ require_once("${cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
 
 $error_prefix = 'DELETE_OBS';
 
