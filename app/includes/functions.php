@@ -59,8 +59,8 @@ function get_data_from_gps_coordinates($lat, $lon)
 function delete_token_cache($token)
 {
     global $config;
-    
-    foreach (glob(__DIR__ . "/" . $config['DATA_PATH'] . "../caches/" . $token . "*") as $file) {
+   
+    foreach (glob(__DIR__ . "/../" . $config['DATA_PATH'] . "/caches/" . $token . "*") as $file) {
         unlink($file);
     }
 }
@@ -68,7 +68,7 @@ function delete_map_cache($token)
 {
     global $config;
     
-    foreach (glob(__DIR__ . "/" . $config['DATA_PATH'] . "../maps/" . $token . "*") as $file) {
+    foreach (glob(__DIR__ . "/../" . $config['DATA_PATH'] . "/maps/" . $token . "*") as $file) {
         unlink($file);
     }
 }

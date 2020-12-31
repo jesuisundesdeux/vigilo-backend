@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 $cwd = dirname(__FILE__);
+$images_path     = "${cwd}" . '/' . $config['DATA_PATH'] . "images/";
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
@@ -52,7 +53,7 @@ if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
 
 if (mysqli_num_rows($checktoken_query) == 1) {
     mysqli_query($db, "DELETE FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
-    unlink($config['DATA_PATH'] . 'images/' . $token . '.jpg');
+    unlink($images_path . $token . '.jpg');
     delete_token_cache($token);
     delete_map_cache($token);
 } else {
