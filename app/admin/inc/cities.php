@@ -96,11 +96,14 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
 }
 
 while ($result_cities = mysqli_fetch_array($query_cities)) {
+    $idForm = "city".$result_cities['city_id']."form" ;
 ?>
 
-      <form action="" method="POST">
+      <form action="" method="POST" id="<?= $idForm ?>" name="<?= $idForm ?>" >
       <tr>
-        <td>#<?= $result_cities['city_id'] ?></td>
+        <td>
+          #<?= $result_cities['city_id'] ?>
+        </td>
         <td>
           <input type="text" class="form-control-plaintext" name="city_name" value="<?= $result_cities['city_name'] ?>" required />
         </td>
@@ -137,7 +140,9 @@ while ($result_cities = mysqli_fetch_array($query_cities)) {
           <button class="btn btn-primary" type="submit">Valider édition</button>
         </td>
         <td>
-          <a href="?page=<?= $page_name ?>&action=delete&cityid=<?= $result_cities['city_id'] ?>" onclick="return confirm('Merci de valider la suppression')">Supprimer</a>
+          <a href="?page=<?= $page_name ?>&action=delete&cityid=<?= $result_cities['city_id'] ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="delete"></span> Supprimer</a>
+          <br/>
+          <a href="#<?= $idForm ?>" onclick="getWikidata( document.forms['<?= $idForm ?>'] );" ><span data-feather="help-circle"></span> Wikidata</a>
         </td>
       </tr>
       </form>
@@ -148,3 +153,5 @@ while ($result_cities = mysqli_fetch_array($query_cities)) {
   </table>
 </div>
 <br />
+
+<script type="text/javascript" src="js/wikidata.js"></script>
