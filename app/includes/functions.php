@@ -367,6 +367,7 @@ function getCategoriesList()
 
 function getCategorieName($catid)
 {
+
     global $config;
 
     $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
