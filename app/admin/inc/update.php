@@ -31,9 +31,10 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
         "header" => "User-Agent: requests\r\n"
       ]
     ]; 
-    $context = stream_context_create($opts);
+//    $context = stream_context_create($opts);
     
-    $data     = file_get_contents("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches", false, $context);
+//    $data     = file_get_contents("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches", false, $context);
+    $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches");
     $git_json = json_decode($data, true);
     
     $biggest = '0.0.1';
