@@ -28,6 +28,15 @@ function getObsIdByToken($db, $token)
         return False;
     }
 }
+function getTokenByObsid($db, $obsid) {
+   $checktoken_query = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_id='" . $obsid . "' LIMIT 1");
+   if (mysqli_num_rows($checktoken_query) == 1) {
+     $checktoken_result = mysqli_fetch_array($checktoken_query);
+     return $checktoken_result['obs_token'];
+   } else {
+     return False;
+   }
+}
 
 function isTokenExists($db, $token)
 {
@@ -62,11 +71,17 @@ function isTokenWithSecretId($db, $token, $secretid)
 function deleteObs($db, $obsid)
 {
     global $config;
-    
+    $cwd = dirname(__FILE__);
+    $images_path     = "${cwd}" . '/../' . $config['DATA_PATH'] . "images/";
+    $token = getTokenByObsid($db,$obsid); 
+
     mysqli_query($db, "DELETE FROM obs_list WHERE obs_id='" . $obsid . "' LIMIT 1");
-    unlink($config['DATA_PATH'] . 'images/' . $token . '.jpg');
-    delete_token_cache($token);
-    delete_map_cache($token);
+    unlink($images_path . $token . '.jpg');
+
+    if($token) {
+      delete_token_cache($token);
+      delete_map_cache($token);
+    }
     
     $obsinresolution_query = mysqli_query($db, "SELECT restok_resolutionid FROM obs_resolutions_tokens WHERE restok_observationid='" . $obsid . "'");
     while ($obsinresolution_result = mysqli_fetch_array($obsinresolution_query)) {
@@ -184,3 +199,4 @@ function flushImagesCacheResolution($db, $resolutionid)
         delete_token_cache($obslist_result['obs_token']);
     }
 }
+
