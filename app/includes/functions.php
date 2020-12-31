@@ -485,7 +485,6 @@ function GenerateMapQuestForToken($db, $token, $mapquest_apikey, $size_w = 390, 
 
 
 function getWebContent($url) {
-
   $curl = curl_init($url);
   curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
