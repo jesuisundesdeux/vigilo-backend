@@ -71,6 +71,8 @@ while ($config_result = mysqli_fetch_array($config_query)) {
     }
 }
 
+$config['CATEGORIES_NATIONAL_URL'] = "https://vigilo-bf7f2.firebaseio.com/categorieslist.json";
+
 date_default_timezone_set($config['VIGILO_TIMEZONE']);
 mysqli_set_charset($db, $config['MYSQL_CHARSET']);
 

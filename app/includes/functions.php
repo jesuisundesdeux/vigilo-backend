@@ -48,17 +48,10 @@ function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k')
 
 function get_data_from_gps_coordinates($lat, $lon)
 {
-    $options   = array(
-        'http' => array(
-            'method' => "GET",
-            'header' => "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION . " \r\n"
-        )
-    );
     // MAX 1 request per second
     // https://operations.osmfoundation.org/policies/nominatim/
     $url       = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' . $lat . '&lon=' . $lon;
-    $context   = stream_context_create($options);
-    $resp_json = file_get_contents($url, false, $context);
+    $resp_json = getWebContent($url);
     $resp      = json_decode($resp_json, true);
     return $resp;
 }
@@ -66,8 +59,8 @@ function get_data_from_gps_coordinates($lat, $lon)
 function delete_token_cache($token)
 {
     global $config;
-    
-    foreach (glob(__DIR__ . "/" . $config['DATA_PATH'] . "../caches/" . $token . "*") as $file) {
+   
+    foreach (glob(__DIR__ . "/../" . $config['DATA_PATH'] . "/caches/" . $token . "*") as $file) {
         unlink($file);
     }
 }
@@ -75,7 +68,7 @@ function delete_map_cache($token)
 {
     global $config;
     
-    foreach (glob(__DIR__ . "/" . $config['DATA_PATH'] . "../maps/" . $token . "*") as $file) {
+    foreach (glob(__DIR__ . "/../" . $config['DATA_PATH'] . "/maps/" . $token . "*") as $file) {
         unlink($file);
     }
 }
@@ -364,17 +357,20 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
     }
 }
 
-
 function getCategoriesList()
 {
-    $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json");
+    global $config;
+    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
     $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
     return $categories_list;
 }
 
 function getCategorieName($catid)
 {
-    $categories_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/categorieslist.json");
+
+    global $config;
+
+    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
     $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
     foreach ($categories_list as $value) {
         if ($value['catid'] == $catid) {
@@ -384,9 +380,9 @@ function getCategorieName($catid)
     return $categorie_string;
 }
 
+
 function getInstanceNameFromFirebase($scope)
 {
-    $citylist_json = file_get_contents("https://vigilo-bf7f2.firebaseio.com/citylist.json");
     $citylist_list = json_decode($citylist_json, JSON_OBJECT_AS_ARRAY);
     foreach ($citylist_list as $key => $value) {
         if ($value['scope'] == $scope) {
@@ -486,3 +482,15 @@ function GenerateMapQuestForToken($db, $token, $mapquest_apikey, $size_w = 390, 
         }
     }
 }
+
+
+function getWebContent($url) {
+
+  $curl = curl_init($url);
+  curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
+   
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+  $data = curl_exec($curl);
+  return $data;
+}
+

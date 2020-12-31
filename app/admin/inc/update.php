@@ -24,16 +24,7 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
 if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
     echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
 } else {
-   
-    $opts = [
-      "http" => [
-        "method" => "GET",
-        "header" => "User-Agent: requests\r\n"
-      ]
-    ]; 
-    $context = stream_context_create($opts);
-    
-    $data     = file_get_contents("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches", false, $context);
+    $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches");
     $git_json = json_decode($data, true);
     
     $biggest = '0.0.1';
