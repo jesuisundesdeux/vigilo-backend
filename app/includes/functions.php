@@ -357,7 +357,6 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
     }
 }
 
-
 function getCategoriesList()
 {
     global $config;
@@ -369,6 +368,8 @@ function getCategoriesList()
 function getCategorieName($catid)
 {
     global $config;
+
+    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
     $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
     foreach ($categories_list as $value) {
         if ($value['catid'] == $catid) {
@@ -377,6 +378,7 @@ function getCategorieName($catid)
     }
     return $categorie_string;
 }
+
 
 function getInstanceNameFromFirebase($scope)
 {
