@@ -360,13 +360,10 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
 
 function getCategoriesList()
 {
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    return $categories_list;
-}
 
-function getCategorieName($catid)
-{
+    global $config;
+
+    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
     $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
     foreach ($categories_list as $value) {
         if ($value['catid'] == $catid) {
@@ -478,7 +475,9 @@ function GenerateMapQuestForToken($db, $token, $mapquest_apikey, $size_w = 390, 
     }
 }
 
-function getWebContent($url,$options) {
+
+function getWebContent($url) {
+
   $curl = curl_init($url);
   curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
    
