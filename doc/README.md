@@ -11,6 +11,7 @@ Vigilo-Backend necessite soit :
  * 3/ Configuration de l'instance
    * [Configuration générale](CONFIGURATION_GENERALE.md)
    * [Création d'un scope](CONFIGURATION_SCOPE.md)
+   * [Ajout des villes](CONFIGURATION_VILLES.md)
    * [Generateur d'image cartes MapQuest](CONFIGURATION_MAPQUEST.md)
    * [Compte Twitter](CONFIGURATION_TWITTER.md)
 #### Utilisation
