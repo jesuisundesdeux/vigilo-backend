@@ -1,5 +1,7 @@
 ### Configuration Twitter
 
+#### Création compte twitter
+
 - Créer un compte Twitter dédié à votre scope. Par soucis de cohérence avec toutes les autres instances, il est recommandé d'utiliser le modèle @VigiloVille. Exemples : [VigiloTroyes](https://twitter.com/VigiloTroyes), [VigiloMtp34](https://twitter.com/VigiloMtp34), [VigiloValleeSud](https://twitter.com/VigiloValleeSud), [VigiloMetz](https://twitter.com/VigiloMetz)
 
 Pour la suite, tout se passe en Anglais.
@@ -41,3 +43,7 @@ Une fois que votre compte est validé
 - Rendez-vous dans l'onglet « Keys and tokens » et récupérez l'API key (consumer) et l'API secret key (consumersecret)
 - Créez un Access token dans « Access token & access token secret » et récupérez l'Access token (accesstoken) et l'Access token secret (accesstokensecret)
 - Renseignez enfin ces 4 clés dans votre configuration Vigilo.
+
+### Ajout dans Vigilo
+
+Ajouter ensuite les informations récupérée dans la section Twitter dans l'administration
