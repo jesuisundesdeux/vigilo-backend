@@ -6,7 +6,7 @@ Vigilo-Backend necessite soit :
 
 #### Installation
  * [Installation sur Serveur Dédié avec Docker](INSTALLATION_DEDIE.md)
- * [Installation sur Serveur Mutualisé](INSTALLTION_MUTUALISE.md)
+ * [Installation sur Serveur Mutualisé](INSTALLATION_MUTUALISE.md)
 #### Configuration obligatoire
  * [Création d'un scope](CONFIGURATION_SCOPE.md)
  * [Generateur d'image cartes MapQuest](CONFIGURATION_MAPQUEST.md)
