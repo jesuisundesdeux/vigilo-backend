@@ -1,8 +1,8 @@
 ### Documentation Vigilo
-#### 1/ Installation
+#### Installation
  * [Installation sur Serveur Dédié avec Docker](INSTALLATION_DEDIE.md)
  * [Installation sur Serveur Mutualisé](INSTALLTION_MUTUALISE.md)
-#### 2/ Configuration obligatoire
+#### Configuration obligatoire
  * [Création d'un scope](CONFIGURATION_SCOPE.md)
  * [Generateur d'image cartes MapQuest](CONFIGURATION_MAPQUEST.md)
  * [Compte Twitter Twitter](CONFIGURATION_TWITTER.md)
