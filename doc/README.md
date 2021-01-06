@@ -12,7 +12,7 @@ Vigilo-Backend necessite soit :
    * [Configuration générale](CONFIGURATION_GENERALE.md)
    * [Création d'un scope](CONFIGURATION_SCOPE.md)
    * [Generateur d'image cartes MapQuest](CONFIGURATION_MAPQUEST.md)
-   * [Compte Twitter Twitter](CONFIGURATION_TWITTER.md)
+   * [Compte Twitter](CONFIGURATION_TWITTER.md)
 #### Utilisation
  * [Modération](MODERATION.md)
 #### Exploitation des données
