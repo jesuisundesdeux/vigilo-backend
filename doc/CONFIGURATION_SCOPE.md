@@ -18,4 +18,4 @@ Ajouter un scope et remplir ses information comme suit :
 * Compte Twitter affiché	: Compte twitter affiché correspondant au scope
 * Identifiant compte twitter	: Numero du compte twitter configuré précédement qui sera utilisé par le scope
 * Contenu des tweets autos : Contenu des tweets qui seront postés par le compte twitter lors de la validation des observations
-* URL carte externe	: Si besoin, URL d'une carte qui affiche les observations 
+* URL carte externe	: Si besoin, URL d'une carte qui affiche les observations (voir [Configuration UMAP](CONFIGURATION_UMAP.md))
