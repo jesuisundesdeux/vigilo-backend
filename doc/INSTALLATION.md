@@ -1,1 +1,1 @@
-Voir le [README](README.md)
+Voir documentation [ici](https://vigilo.city/fr/documentation/)
