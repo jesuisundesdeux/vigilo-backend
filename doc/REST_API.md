@@ -74,7 +74,6 @@ JSON : Retourne les informations suivantes :
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 | str | role | Rôle correspondant à la clé (admin) | >= 0.0.1 |
 
 ___
@@ -315,7 +314,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
+|  |  | |  |
 
 ___
 
@@ -354,7 +353,6 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
 | str | token | Retourne le token généré | >= 0.0.1 |
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.1 |
 | int | group | LEGACY | LEGACY |
@@ -386,7 +384,6 @@ JSON : Retourne les informations d'identification de la résolution
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.14 |
 | str | token | Retourne le token généré | >= 0.0.1|
 | str | secretid | Retourne la clé secrete de l'observation | >= 0.0.14 |
 ___
@@ -416,7 +413,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
+|  |  |  |  |
 
 ___
 
@@ -469,7 +466,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.5 / < 0.0.10 |
+|  |  |   |  |
 
 ___
 
