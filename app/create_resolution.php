@@ -69,10 +69,6 @@ $tokenlist = explode(',', $tokenlist);
 
 $time      = mysqli_real_escape_string($db, $_POST['time']);
 
-if (!count($tokenlist)) {
-
-}
-
 /* If time is sent in ms */
 if (strlen($time) == 13) {
     $time = floor($time / 1000);
