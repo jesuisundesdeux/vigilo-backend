@@ -109,7 +109,9 @@ if ($update) {
     
     $obsidlist = array();
     foreach ($tokenlist as $token) {
-        $obsidlist[] = getObsIdByToken($db, $token);
+        if (!empty($token)) {
+            $obsidlist[] = getObsIdByToken($db, $token);
+        }
     }
     
     if (!addResolution($db, $fields, $obsidlist)) {

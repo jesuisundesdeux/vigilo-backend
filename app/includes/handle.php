@@ -143,7 +143,7 @@ function delResolution($db, $resolutionid)
 
 function addResolution($db, $fields, $obsidlist)
 {
-    if (count($obsidlist) {
+    if (count($obsidlist)) {
         mysqli_query($db, 'INSERT INTO obs_resolutions (
                                   `resolution_token`,
                                   `resolution_secretid`,
