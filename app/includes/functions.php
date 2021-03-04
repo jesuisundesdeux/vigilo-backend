@@ -493,4 +493,3 @@ function getWebContent($url) {
   $data = curl_exec($curl);
   return $data;
 }
-
