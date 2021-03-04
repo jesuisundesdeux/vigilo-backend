@@ -35,29 +35,15 @@ if (isset($_GET['key'])) {
     $key = Null;
 }
 
-# First we need to know if it's an new issue or an update from an admin
-
 $update = 0;
 
 # Check if token exists
 if (isset($_POST['token']) AND !empty($_POST['token'])) {
     $token = mysqli_real_escape_string($db, $_POST['token']);
-    #FIXME add updating
-    /*  if (getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
-    # Do the query only if it's an admin
-    $query_rtoken = mysqli_query($db, "SELECT * FROM obs_resolutions WHERE resolution_token='".$rtoken."' LIMIT 1");
-    # If token exists and the request is from an admin : We consider it as an update
-    if (mysqli_num_rows($query_rtoken) == 1) {
-    delete_map_cache($rtoken);
-    delete_token_cache($rtoken);
-    $result_rtoken = mysqli_fetch_array($query_rtoken);
-    $secretid = $result_rtoken['resolution_secretid'];
-    $update = 1;
-    }
-    }*/
 }
 
 # In all other cases generate secret and token
+# FIXME : consider updates
 if (!$update) {
     # Generate a unique ID
     $secretid = str_replace('.', '', uniqid('', true));
@@ -80,7 +66,12 @@ if (!isset($_POST['tokenlist']) || !isset($_POST['time'])) {
 
 $tokenlist = mysqli_real_escape_string($db, $_POST['tokenlist']);
 $tokenlist = explode(',', $tokenlist);
+
 $time      = mysqli_real_escape_string($db, $_POST['time']);
+
+if (!count($tokenlist)) {
+
+}
 
 /* If time is sent in ms */
 if (strlen($time) == 13) {
@@ -107,7 +98,7 @@ if ($update) {
         'resolution_time' => $time
     );
     $resolution_id = getResolutionIdByResolutionToken($db, $token);
-    /* FIX ME ADD UPDATING
+    /* FIXME ADD UPDATE
     updateResolution($db,$fields,$resolution_id);
     */
 } else {
@@ -125,7 +116,9 @@ if ($update) {
         $obsidlist[] = getObsIdByToken($db, $token);
     }
     
-    addResolution($db, $fields, $obsidlist);
+    if (!addResolution($db, $fields, $obsidlist)) {
+      jsonError($error_prefix, "Could not create resolution", "FUNCTIONERROR", 500);
+    }
 }
 
 if ($mysqlerror = mysqli_error($db)) {

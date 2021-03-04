@@ -143,18 +143,25 @@ function delResolution($db, $resolutionid)
 
 function addResolution($db, $fields, $obsidlist)
 {
-    mysqli_query($db, 'INSERT INTO obs_resolutions (
+    if (count($obsidlist) {
+        mysqli_query($db, 'INSERT INTO obs_resolutions (
                                   `resolution_token`,
                                   `resolution_secretid`,
                                   `resolution_app_version`,
                                   `resolution_comment`,
                                   `resolution_time`,
                                   `resolution_status`)
-                           VALUES ("' . $fields['resolution_token'] . '","' . $fields['resolution_secretid'] . '","' . $fields['resolution_app_version'] . '","' . $fields['resolution_comment'] . '","' . $fields['resolution_time'] . '","' . $fields['resolution_status'] . '")');
+                             VALUES ("' . $fields['resolution_token'] . '","' . $fields['resolution_secretid'] . '","' . $fields['resolution_app_version'] . '","' . $fields['resolution_comment'] . '","' . $fields['resolution_time'] . '","' . $fields['resolution_status'] . '")');
     $resolution_id = mysqli_insert_id($db);
     
-    foreach ($obsidlist as $obs) {
-        addObsToResolution($db, $obs, $resolution_id);
+        foreach ($obsidlist as $obs) {
+            addObsToResolution($db, $obs, $resolution_id);
+        }
+
+        return True;
+    }
+    else {
+      return False;
     }
 }
 
