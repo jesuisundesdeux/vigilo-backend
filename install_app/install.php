@@ -21,12 +21,14 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
                                             role_name,
                                             role_owner,
                                             role_login,
-                                            role_password)
+                                            role_password,
+                                            role_city)
                              VALUES ('',
                                       'admin',
                                       '".$_POST['name']."',
                                       '".$_POST['login']."',
-                                      '".$password."')");
+                                      '".$password."',
+                                      '')");
    header('Location: admin/index.php');
  } 
 }
