@@ -1,23 +1,24 @@
-### Mise à jour
+## Mise à jour
 Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:
 
 ```
 SET SESSION innodb_strict_mode=OFF;
 ```
 
-#### Pour chaque mise à jour
+### Pour chaque mise à jour
 
-##### Mise à jour du code
+#### Mise à jour du code
 
-###### Versions < 0.0.17
+##### Versions < 0.0.17
 
 * Récupérer et choisir la dernière branche
+* 
 ```
 $ git fetch origin
 $ git checkout X.X.X
 ```
 
-###### Versions >= 0.0.17
+##### Versions >= 0.0.17
 
 Depuis la version 0.0.17, les versions ont été fixées via les tags plutôt que les branches
 
@@ -37,13 +38,13 @@ $ git checkout vX.X.X
 * Extraire le package et copier le contenu de app sur le serveur dédié (écraser les fichiers si besoin)
 
 
-##### Mettre à jour la base de données
+#### Mettre à jour la base de données
 
 * Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
   Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
 
 
-#### Actions spciéfiques
+### Actions spciéfiques
 
 Certaines mises à jour de version necessitent des actions supplémentaires 
 
