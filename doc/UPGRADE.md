@@ -1,52 +1,53 @@
-### Upgrade
-Before upgrading you should disable INNODB STRICT MODE by launching in MySQL CLI:
+### Mise à jour
+Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:
 
 ```
 SET SESSION innodb_strict_mode=OFF;
 ```
 
-#### For all upgrades
+#### Pour chaque mise à jour
 
-##### Update source code
+##### Mise à jour du code
 
-###### For versions < 0.0.17
+###### Versions < 0.0.17
 
-* Update source code from last version branch (replace X.X.X by the latest release)
+* Récupérer et choisir la dernière branche
 ```
 $ git fetch origin
 $ git checkout X.X.X
 ```
 
-###### For versions >= 0.0.17
+###### Versions >= 0.0.17
 
-Since 0.0.17 versions have been moved as tags and not branches anymore
+Depuis la version 0.0.17, les versions ont été fixées via les tags plutôt que les branches
 
-**If you have a Linux Shell :**
+**Pour un serveur dédié :**
 
-Update source code from last version branch (replace X.X.X by the latest release)
+Mettre à jour le repo et changer le tag :
 
 ```
 $ git fetch --all --tags --prune
 $ git checkout vX.X.X
 ```
 
-**If you don't have a Linux Shell :**
+**Pour un hebergement mutualisé :**
 
-Download file from https://github.com/jesuisundesdeux/vigilo-backend/tags with the latest version
+* Télécharger le package en provenance de https://github.com/jesuisundesdeux/vigilo-backend/tags avec la dernière version
+* Sauvegarder le contenu des repertoires maps, cache et images.
+* Extraire le package et copier le contenu de app sur le serveur dédié (écraser les fichiers si besoin)
 
 
-##### Update database
+##### Mettre à jour la base de données
 
-* Launch in MySQL the SQL scripts in mysql/init/ corresponding to the superior versions order by the version number.
+* Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
+  Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
 
-Example :
-  If your current version is 0.0.12, launch init-0.0.13.sql then init-0.0.14.sql then init-0.0.15.sql then ...
 
-* Execute if needed the specific actions below 
+#### Actions spciéfiques
 
-#### Specific actions
+Certaines mises à jour de version necessitent des actions supplémentaires 
 
-#### 0.0.11/0.0.12 to 0.0.13
+#### 0.0.11/0.0.12 vers 0.0.13
 
-* Go the page https://URL/admin/ and go to the "Observations" pages and follow the instructions
+* Aller sur l'admin https://URL/admin/ puis sur "Observations" et suivre les instructions
 
