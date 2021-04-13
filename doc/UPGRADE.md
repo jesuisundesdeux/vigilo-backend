@@ -19,7 +19,7 @@ $ git checkout X.X.X
 
 ###### For versions >= 0.0.17
 
-Since 0.0.17 version have been moved as tags and not branches anymore
+Since 0.0.17 versions have been moved as tags and not branches anymore
 
 * Update source code from last version branch (replace X.X.X by the latest release)
 
