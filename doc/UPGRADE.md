@@ -40,15 +40,16 @@ $ git checkout vX.X.X
 
 #### Mettre à jour la base de données
 
-* Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
-  Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
+Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
+
+Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
 
 
-### Actions spciéfiques
+### Actions spécifiques
 
 Certaines mises à jour de version necessitent des actions supplémentaires 
 
-#### 0.0.11/0.0.12 vers 0.0.13
+#### Mise à jour vers 0.0.13
 
 * Aller sur l'admin https://URL/admin/ puis sur "Observations" et suivre les instructions
 
