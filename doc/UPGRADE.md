@@ -22,8 +22,8 @@ $ git checkout X.X.X
 * Update source code from last version branch (replace X.X.X by the latest release)
 
 ```
-$ git fetch origin
-
+$ git fetch --all --tags --prune
+$ git checkout v0.0.17
 ```
 
 ##### Update database
