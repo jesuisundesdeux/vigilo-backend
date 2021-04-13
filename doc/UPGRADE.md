@@ -12,7 +12,7 @@ SET SESSION innodb_strict_mode=OFF;
 ##### Versions < 0.0.17
 
 * Récupérer et choisir la dernière branche
-* 
+
 ```
 $ git fetch origin
 $ git checkout X.X.X
