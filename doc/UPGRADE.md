@@ -21,12 +21,18 @@ $ git checkout X.X.X
 
 Since 0.0.17 versions have been moved as tags and not branches anymore
 
+####### If you have a Linux Shell :
 * Update source code from last version branch (replace X.X.X by the latest release)
 
 ```
 $ git fetch --all --tags --prune
 $ git checkout vX.X.X
 ```
+
+####### If you don't have a Linux Shell :
+
+Download file from https://github.com/jesuisundesdeux/vigilo-backend/tags with the latest version
+
 
 ##### Update database
 
