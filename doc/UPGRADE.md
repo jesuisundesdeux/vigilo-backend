@@ -19,11 +19,13 @@ $ git checkout X.X.X
 
 ###### For versions >= 0.0.17
 
+Since 0.0.17 version have been moved as tags and not branches anymore
+
 * Update source code from last version branch (replace X.X.X by the latest release)
 
 ```
 $ git fetch --all --tags --prune
-$ git checkout v0.0.17
+$ git checkout vX.X.X
 ```
 
 ##### Update database
