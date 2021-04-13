@@ -7,8 +7,26 @@ SET SESSION innodb_strict_mode=OFF;
 
 #### For all upgrades
 
+##### Update source code
+
+###### For versions < 0.0.17
+
 * Update source code from last version branch (replace X.X.X by the latest release)
-```git pull origin X.X.X```
+```
+$ git fetch origin
+$ git checkout X.X.X
+```
+
+###### For versions >= 0.0.17
+
+* Update source code from last version branch (replace X.X.X by the latest release)
+
+```
+$ git fetch origin
+
+```
+
+##### Update database
 
 * Launch in MySQL the SQL scripts in mysql/init/ corresponding to the superior versions order by the version number.
 
