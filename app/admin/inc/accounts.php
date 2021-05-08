@@ -138,9 +138,12 @@ while ($result_role = mysqli_fetch_array($query_role)) {
                 <br/>
                 <?php
         echo '<input type="text" class="form-control-plaintext" name="role_city" value="';
-        foreach ((array) $role_cities as $role_city) {
+        $array_role_cities = (array) $role_cities;
+        $last_role_city = array_pop($array_role_cities);
+        foreach ($array_role_cities as $role_city) {
             echo $role_city . ", ";
         }
+        echo $last_role_city;
         echo '">';
     } else {
         echo '<small><span class="text-info">n\'est pas citystaff</span></small>';
