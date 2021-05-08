@@ -67,7 +67,7 @@ if (isset($_POST['role_id'])) {
     echo '<div class="alert alert-success" role="alert">Compte <strong>' . $roleid . '</strong> mis à jour</div>';
 }
 if (isset($_POST['role_city']) && isset($_POST['role_id'])) {
-    $rolecity = json_encode(array_filter(explode(",", mysqli_real_escape_string($db, $_POST['role_city']))));
+    $rolecity = json_encode(array_filter(explode(",", trim(preg_replace('/\s*,\s*/',',',mysqli_real_escape_string($db, $_POST['role_city']))))));
     $roleid   = mysqli_real_escape_string($db, $_POST['role_id']);
     mysqli_query($db, "UPDATE obs_roles SET role_city = '" . $rolecity . "' WHERE role_id='" . $roleid . "'");
 }
@@ -139,7 +139,7 @@ while ($result_role = mysqli_fetch_array($query_role)) {
                 <?php
         echo '<input type="text" class="form-control-plaintext" name="role_city" value="';
         foreach ((array) $role_cities as $role_city) {
-            echo $role_city . ",";
+            echo $role_city . ", ";
         }
         echo '">';
     } else {
