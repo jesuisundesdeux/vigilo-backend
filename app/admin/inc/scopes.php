@@ -80,10 +80,11 @@ if (isset($_POST['scope_id'])) {
     echo '<div class="alert alert-success" role="alert">Scope <strong>' . $scopeid . '</strong> mis à jour</div>';
 }
 
-$twitterlist   = array();
+$twitterlist   = array(0 => "-- Pas de compte Twitter --");
 $query_twitter = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
 while ($result_twitter = mysqli_fetch_array($query_twitter)) {
-    $twitterlist[] = $result_twitter['ta_id'];
+    $twitter_id = $result_twitter['ta_id'];
+    $twitterlist[$twitter_id] = '#' . $twitter_id;
 }
 $query_scopes = mysqli_query($db, "SELECT * FROM obs_scopes");
 
@@ -196,14 +197,14 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
            <td>
            <select name="scope_twitteraccountid" class=" custom-select">
 <?php
-    foreach ($twitterlist as $twitterid) {
+    foreach ($twitterlist as $twitterid => $twittername) {
         if ($twitterid == $result_scopes['scope_twitteraccountid']) {
             $selected = "selected";
         } else {
             $selected = "";
         }
         
-        echo '<option ' . $selected . ' >' . $twitterid . '</option>';
+        echo '<option value='.$twitterid.' ' . $selected . '>' . $twittername . '</option>';
     }
 ?>
          </select>
