@@ -55,15 +55,7 @@ $scopes_query = mysqli_query($db,"SELECT count(*) FROM obs_scopes");
 $scopes_nb = mysqli_fetch_array($scopes_query)[0];
 
 if($scopes_nb == 0) {
-  $menu['scopes']['confneeded'] = 3;
-}
-
-/* Check Twitter Accounts */
-$ta_query = mysqli_query($db,"SELECT count(*) FROM obs_twitteraccounts");
-$ta_nb = mysqli_fetch_array($ta_query)[0];
-
-if($ta_nb == 0) {
-  $menu['twitter']['confneeded'] = 2;
+  $menu['scopes']['confneeded'] = 2;
 }
 
 /* Check Cities */
