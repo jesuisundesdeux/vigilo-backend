@@ -122,8 +122,9 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
   }
 }
 /* Observations cities check */
-if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
-  $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
+
+// Je déplace ce block avant le "if" pour que les citystaff puissent eux aussi voir le nom de la ville dans la liste des observations
+$obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
   
   $city_query = mysqli_query($db,"SELECT * FROM obs_cities ORDER BY city_name");
   $citylist = array();
@@ -134,6 +135,9 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
     $citylist[$cityid] = flatstring($city_result['city_name']);
     $citylistname[$cityid] = $city_result['city_name'];
   }
+
+
+if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   
   $obswithoutcity_query = mysqli_query($db, "SELECT obs_token,obs_address_string,obs_cityname FROM obs_list WHERE obs_city=0 AND obs_complete=1");
   while ($obswithoutcity_result = mysqli_fetch_array($obswithoutcity_query)) {
