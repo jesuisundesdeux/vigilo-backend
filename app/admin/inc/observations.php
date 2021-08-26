@@ -23,6 +23,7 @@ if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role
 
 /* Defines acls for this page used by roles */
 $actions_acl = array("delete" => array("access" => array('admin')),
+                     "resolve_all" => array("access" => array('admin')),
                      "resolve" => array("access" => array('admin','citystaff')),
                      "approve" => array("access" => array('admin')),
                      "cleancache" => array("access" => array('admin')),
@@ -531,11 +532,14 @@ else { ?>
             <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="hard-drive"></span> Effacer cache</a><br />
           <?php }
 	  if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { 
-	    if(!$in_resolution) { ?>
-	    <a href="?page=<?=$page_name ?>&action=resolve&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Nouvelle resolution</a><br />
-
-<?php  }
-          } ?>
+	    if(!$in_resolution) { 
+        //dégeulasse mais nécessaire
+        if (in_array($_SESSION['role'],$actions_acl['resolve_all']['access']) || (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
+      || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) { ?>
+      <a href="?page=<?=$page_name ?>&action=resolve&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Nouvelle resolution</a><br />
+<?php    }
+      }
+	  }?>
         </td>
       </tr>
       </form>
