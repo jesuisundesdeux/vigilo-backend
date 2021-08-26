@@ -31,12 +31,28 @@ $actions_acl = array("delete" => array("access" => array('admin')),
 
 $urlsuffix="";
 
+/* Filter cities for the current role */
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
+  $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
+  while ($role_result = mysqli_fetch_array($role_query)) {
+      $role_cities = json_decode($role_result['role_city']);
+      foreach ((array) $role_cities as $city) {
+          $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = $city");
+          $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
+      }
+  }
+}
+
+
 /* Actions links */
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $action = $_GET['action'];
 
   $obsid = mysqli_real_escape_string($db,$_GET['obsid']);
   $token = mysqli_real_escape_string($db,$_GET['token']);
+
+  $query_obs = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_id=".$obsid);
+  $result_obs = mysqli_fetch_array($query_obs);
 
   // Delete button actions
   if ($action == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
@@ -74,7 +90,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     delete_token_cache($token);
     delete_map_cache($token);
   }
-  elseif ($_GET['action'] == 'resolve' && in_array($_SESSION['role'],$actions_acl['resolve']['access'])) {
+  elseif ($_GET['action'] == 'resolve' && (in_array($_SESSION['role'],$actions_acl['resolve_all']['access']) || (in_array($_SESSION['role'],$actions_acl['resolve']['access']) && ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities)) || (isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames)))))) {
     $fields = array( "resolution_token" => 'R_'.tokenGenerator(4),
 	           "resolution_secretid" => str_replace('.', '', uniqid('', true)),
 		   "resolution_app_version" => 'admin',
@@ -255,17 +271,7 @@ if (isset($_GET['searchcategory']) && $_GET['searchcategory'] != 0 && is_numeric
   $searchcategory = 0;
 }
 
-/* Filter cities for the current role */
-if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
-    $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
-    while ($role_result = mysqli_fetch_array($role_query)) {
-        $role_cities = json_decode($role_result['role_city']);
-        foreach ((array) $role_cities as $city) {
-            $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = $city");
-            $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
-        }
-    }
-}
+
 
 // Tab filter process
 if (isset($_GET['approved']) && is_numeric($_GET['approved'])) {
