@@ -17,17 +17,53 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+
+
+function is_allowed($action, $obs = null){
+  $actions_acl = array("delete" => array("access" => array('admin')),
+                        "resolve" => array("access" => array('admin','citystaff')),
+                        "approve" => array("access" => array('admin')),
+                        "cleancache" => array("access" => array('admin')),
+                        "edit" => array("access" => array('admin')));
+
+  if (isset($_SESSION['role']) && isset($action)){
+    if (isset($actions_acl[$action]) && in_array($_SESSION['role'],$actions_acl[$action]['access']) ){
+
+      //Resolution special case
+      if ($action=="resolve"){
+        global $in_resolution;
+        if (!$in_resolution){
+          if ($_SESSION['role']=="citystaff" && $obs!=null){
+            global $role_cities;
+            global $role_citynames;
+            if ((isset($role_cities) && in_array($obs['obs_city'], $role_cities)) || (isset($role_citynames) && in_array($obs['obs_cityname'], $role_citynames))){
+              return true;
+            }
+          }
+          else{
+            return true;
+          }
+        }
+      }
+      //General case
+      else{
+        return true;
+      }
+      
+    }
+  }
+
+  return false;
+}
+
+
+
+
+
 if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'],$menu[$page_name]['access']))) {
   exit('Not allowed');
 }
 
-/* Defines acls for this page used by roles */
-$actions_acl = array("delete" => array("access" => array('admin')),
-                     "resolve_all" => array("access" => array('admin')),
-                     "resolve" => array("access" => array('admin','citystaff')),
-                     "approve" => array("access" => array('admin')),
-                     "cleancache" => array("access" => array('admin')),
-                     "edit" => array("access" => array('admin')));
 
 $urlsuffix="";
 
@@ -55,12 +91,12 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
   $result_obs = mysqli_fetch_array($query_obs);
 
   // Delete button actions
-  if ($action == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
+  if ($action == 'delete' && (is_allowed('delete'))) {
     deleteObs($db,$obsid);
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
 
   }
-  elseif ($action == 'approve' && in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
+  elseif ($action == 'approve' && (is_allowed('approve'))) {
     if(isset($_GET['approveto']) && is_numeric($_GET['approveto'])) {
       $approveto = $_GET['approveto'];
     }
@@ -86,11 +122,11 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     
     
   }
-  elseif ($_GET['action'] == 'cleancache' && in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) {
+  elseif ($_GET['action'] == 'cleancache' && (is_allowed('cleancache'))) {
     delete_token_cache($token);
     delete_map_cache($token);
   }
-  elseif ($_GET['action'] == 'resolve' && (in_array($_SESSION['role'],$actions_acl['resolve_all']['access']) || (in_array($_SESSION['role'],$actions_acl['resolve']['access']) && ( (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities)) || (isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames)))))) {
+  elseif ($_GET['action'] == 'resolve' && (is_allowed('resolve',$result_obs))) {
     $fields = array( "resolution_token" => 'R_'.tokenGenerator(4),
 	           "resolution_secretid" => str_replace('.', '', uniqid('', true)),
 		   "resolution_app_version" => 'admin',
@@ -106,7 +142,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 }
 
 // Forms handling
-if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+if (isset($_POST['obs_id']) && is_allowed('edit')) {
   $obsid = mysqli_real_escape_string($db,$_POST['obs_id']);
   $update = "";
   $obstime = strptime($_POST['post_date'].' '.$_POST['post_heure'],'%d/%m/%Y %H:%M');
@@ -154,7 +190,7 @@ $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readyto
   }
 
 
-if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+if (is_allowed('edit')) {
   
   $obswithoutcity_query = mysqli_query($db, "SELECT obs_token,obs_address_string,obs_cityname FROM obs_list WHERE obs_city=0 AND obs_complete=1");
   while ($obswithoutcity_result = mysqli_fetch_array($obswithoutcity_query)) {
@@ -380,7 +416,7 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
 </form>
 <h2>Liste</h2>
 <?php
-if(in_array($_SESSION['role'],$actions_acl['approve']['access'])) {
+if(is_allowed('approve')) {
 ?>
 <ul class="nav nav-tabs">
   <li class="nav-item">
@@ -523,29 +559,24 @@ else { ?>
         </td>
         <td>
             <?php // Droits réservés aux admins : approuver/désapprouver/résoudre/supprimer une observation
-          if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) { ?>
+          if (is_allowed('edit')) { ?>
             <input type="hidden" name="obs_id" value="<?=$result_obs['obs_id'] ?>" />
             <button class="btn btn-primary" type="submit">Valider édition</button><br /><?php } ?>
-          <?php  if (in_array($_SESSION['role'],$actions_acl['approve']['access'])) { ?>
+          <?php  if (is_allowed('approve')) { ?>
             <a href="?page=<?=$page_name ?>&action=approve&approveto=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="check"></span> Approuver</a> 
             & <a href="?page=<?=$page_name ?>&action=approve&approveto=1&twitt=1&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="twitter"></span> twt</a><br />
             <a href="?page=<?=$page_name ?>&action=approve&approveto=2&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="x"></span> Désapprouver</a><br />
           <?php }
-          if (in_array($_SESSION['role'],$actions_acl['delete']['access'])) { ?>
+          if (is_allowed('delete')) { ?>
             <a href="?page=<?=$page_name ?>&action=delete&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="delete"></span> Supprimer</a><br />
           <?php }
-          if (in_array($_SESSION['role'],$actions_acl['cleancache']['access'])) { ?>
+          if (is_allowed('cleancache')) { ?>
             <a href="?page=<?=$page_name ?>&action=cleancache&token=<?=$result_obs['obs_token'] ?>&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="hard-drive"></span> Effacer cache</a><br />
           <?php }
-	  if (in_array($_SESSION['role'],$actions_acl['resolve']['access'])) { 
-	    if(!$in_resolution) { 
-        //dégeulasse mais nécessaire
-        if (in_array($_SESSION['role'],$actions_acl['resolve_all']['access']) || (isset($role_cities) && in_array($result_obs['obs_city'], $role_cities) )
-      || ( isset($role_citynames) && in_array($result_obs['obs_cityname'], $role_citynames) ) ) { ?>
+	  if (is_allowed('resolve',$result_obs)) { ?>
       <a href="?page=<?=$page_name ?>&action=resolve&obsid=<?=$result_obs['obs_id'] ?><?=$urlsuffix ?>"><span data-feather="eye"></span> Nouvelle resolution</a><br />
-<?php    }
-      }
-	  }?>
+<?php
+    }?>
         </td>
       </tr>
       </form>
