@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 session_start();
 
-if(!isset($_SESSION['login'])) {
+if(!isset($_SESSION['login']) || !isset($_SESSION['role'])) {
   header('Location: login.php');
 }
 
