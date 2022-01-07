@@ -28,13 +28,8 @@ if (isset($_POST['login'])) {
   if (hash('sha256',$_POST['password']) == $login_result['role_password']) {
     $_SESSION['login'] = $login;
     $_SESSION['role'] = $login_result['role_name'];
-    if (isset($_POST['rememberme'])) {
-      setcookie("admin-key",$login_result['role_key'],time()+2678400);
-    }
+
     header('Location: index.php');
-  }
-  elseif (isset($_COOKIE['admin-key']) && $_COOKIE['admin-key'] == $login_result['role_key']) {
-    $_SESSION['login'] = $login;
   }
   else {
     $badlogin = True;
@@ -130,11 +125,6 @@ else {
       <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
       <label for="inputPassword" class="sr-only">Password</label>
       <input type="password" name='password' class="form-control" placeholder="Password" required>
-      <div class="checkbox mb-3">
-        <label>
-          <input type="checkbox" name="rememberme" value="remember-me"> Remember me
-        </label>
-      </div>
       <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
       <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
     </form>
