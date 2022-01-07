@@ -25,13 +25,20 @@ if (isset($_POST['login'])) {
   $login = mysqli_real_escape_string($db,$_POST['login']);
   $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND role_name='admin' OR role_name='citystaff' LIMIT 1");
   $login_result = mysqli_fetch_array($login_query);
-  if (hash('sha256',$_POST['password']) == $login_result['role_password']) {
+
+  if (password_verify($_POST['password'], $login_result['role_password'])) {
     $_SESSION['login'] = $login;
     $_SESSION['role'] = $login_result['role_name'];
 
     header('Location: index.php');
-  }
-  else {
+  } elseif (hash('sha256',$_POST['password']) == $login_result['role_password']) {
+    $newHash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+    $_SESSION['login'] = $login;
+    $_SESSION['role'] = $login_result['role_name'];
+
+    header('Location: index.php?page=accounts&ask_pwd_update=1');
+  } else {
     $badlogin = True;
   }
 }
