@@ -17,8 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'], $menu[$page_name]['access']))) {
+if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], $menu[$page_name]['access'])) {
     exit('Not allowed');
+}
+
+if (isset($_GET['ask_pwd_update'])) {
+    echo '<div class="alert alert-danger" role="alert">Pour des raisons de sécurité, merci de mettre à jour le mot de passe de votre compte</div>';
 }
 
 if (isset($_GET['action']) && !isset($_POST['role_id'])) {
@@ -52,7 +56,7 @@ if (isset($_POST['role_id'])) {
             $value = mysqli_real_escape_string($db, $value);
             if ($key == 'role_password') {
                 if ($value != '') {
-                    $value = hash('sha256', $value);
+                    $value = password_hash($value, PASSWORD_DEFAULT);
                 }
             }
             if (!($key == 'role_password' && $value == '')) {

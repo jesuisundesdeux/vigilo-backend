@@ -13,17 +13,15 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
    $diffpass = TRUE;
  }
  else {
-   $password=hash('sha256',$_POST['password']);
-   if(empty($_POST['key'])) {
-     $key = str_replace('.', '', uniqid('', true));
-   }
+   $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
    mysqli_query($db,"INSERT INTO obs_roles (role_key,
                                             role_name,
                                             role_owner,
                                             role_login,
                                             role_password,
                                             role_city)
-                             VALUES ('',
+                             VALUES ('".strtoupper(bin2hex(random_bytes(20)))."',
                                       'admin',
                                       '".$_POST['name']."',
                                       '".$_POST['login']."',

@@ -25,18 +25,20 @@ if (isset($_POST['login'])) {
   $login = mysqli_real_escape_string($db,$_POST['login']);
   $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND role_name='admin' OR role_name='citystaff' LIMIT 1");
   $login_result = mysqli_fetch_array($login_query);
-  if (hash('sha256',$_POST['password']) == $login_result['role_password']) {
+
+  if (password_verify($_POST['password'], $login_result['role_password'])) {
     $_SESSION['login'] = $login;
     $_SESSION['role'] = $login_result['role_name'];
-    if (isset($_POST['rememberme'])) {
-      setcookie("admin-key",$login_result['role_key'],time()+2678400);
-    }
+
     header('Location: index.php');
-  }
-  elseif (isset($_COOKIE['admin-key']) && $_COOKIE['admin-key'] == $login_result['role_key']) {
+  } elseif (hash('sha256',$_POST['password']) == $login_result['role_password']) {
+    $newHash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
     $_SESSION['login'] = $login;
-  }
-  else {
+    $_SESSION['role'] = $login_result['role_name'];
+
+    header('Location: index.php?page=accounts&ask_pwd_update=1');
+  } else {
     $badlogin = True;
   }
 }
@@ -130,11 +132,6 @@ else {
       <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
       <label for="inputPassword" class="sr-only">Password</label>
       <input type="password" name='password' class="form-control" placeholder="Password" required>
-      <div class="checkbox mb-3">
-        <label>
-          <input type="checkbox" name="rememberme" value="remember-me"> Remember me
-        </label>
-      </div>
       <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
       <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
     </form>

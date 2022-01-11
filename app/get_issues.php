@@ -83,7 +83,7 @@ class GetIssues
 
   public function setCategorie($value) : void
   {
-    $this->categorie = explode(',',$value);
+    $this->categorie = explode(',', mysqli_real_escape_string($this->db, $value));
   }
 
   public function setStatus($value) : void
@@ -106,7 +106,7 @@ class GetIssues
 
   public function setToken($value) : void
   {
-    $this->token = $value;
+    $this->token = mysqli_real_escape_string($this->db, $value);
   }
 
   public function setTokenFilers($filters,$fdistance=-1) {
