@@ -81,7 +81,9 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 		   "resolution_time" => 0,
 		   "resolution_status" => 2);
     $obsidlist = array($obsid);
-    addResolution($db,$fields,$obsidlist);
+    if(addResolution($db,$fields,$obsidlist)) {
+      echo '<div class="alert alert-success" role="alert">Resolution ajoutée, et modifiable <a href="?page=resolutions">ici</a></div>';
+    }
   }
   else {
     exit('Not allowed');
@@ -122,18 +124,19 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
   }
 }
 /* Observations cities check */
-if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
-  $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
-  
-  $city_query = mysqli_query($db,"SELECT * FROM obs_cities ORDER BY city_name");
-  $citylist = array();
-  $citylistname = array();
+$city_query = mysqli_query($db,"SELECT * FROM obs_cities ORDER BY city_name");
+$citylist = array();
+$citylistname = array();
 
-  while ($city_result = mysqli_fetch_array($city_query)) {
-    $cityid = $city_result['city_id'];
-    $citylist[$cityid] = flatstring($city_result['city_name']);
-    $citylistname[$cityid] = $city_result['city_name'];
-  }
+while ($city_result = mysqli_fetch_array($city_query)) {
+  $cityid = $city_result['city_id'];
+  $citylist[$cityid] = flatstring($city_result['city_name']);
+  $citylistname[$cityid] = $city_result['city_name'];
+}
+
+if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
+  $input_enabled = '';
+  $obswithoutcity = array("pbaddress" => array(),"cityunknown" => array(),"readytoimport" => array());
   
   $obswithoutcity_query = mysqli_query($db, "SELECT obs_token,obs_address_string,obs_cityname FROM obs_list WHERE obs_city=0 AND obs_complete=1");
   while ($obswithoutcity_result = mysqli_fetch_array($obswithoutcity_query)) {
@@ -185,7 +188,9 @@ if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) {
   <?php
   }
 }
-
+else {
+  $input_enabled = 'disabled';
+}
 /* Search part */
 // To check the good radio button
 $filterTypeUniqueChecked = "checked";
@@ -256,7 +261,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
     while ($role_result = mysqli_fetch_array($role_query)) {
         $role_cities = json_decode($role_result['role_city']);
         foreach ((array) $role_cities as $city) {
-            $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = $city");
+            $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_name = '$city'");
             $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
         }
     }
@@ -443,9 +448,11 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
         </td>
         <td>
           <label for="obs_comment"><strong>Commentaire</strong></label>
-          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" />
+          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" <?=$input_enabled ?> />
+<!--          #if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) { -->
+
           <label for="obs_categorie"><strong>Catégorie</strong></label>
-          <select class="form-control" name="obs_categorie">
+          <select class="form-control" name="obs_categorie"  <?=$input_enabled ?>>
 <?php
                foreach ($categorielist as $categorie) {
                  if ($result_obs['obs_categorie'] == $categorie['catid']) {
@@ -461,7 +468,7 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
           if (!$in_resolution) { ?>
           <br />
           <label for="resolution_add"><strong>Lier à une resolution</strong></label>
-	  <select class="form-control" name="resolution_add">
+	  <select class="form-control" name="resolution_add" <?=$input_enabled ?> >
              <option value="0" selected>---</option>
 <?php
                foreach ($resolutionslist as $resolutionid => $resolutiontoken) {
@@ -474,17 +481,17 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 	<td>
 	  <div class="form-group">
           <label for="obs_address_string"><strong>Rue</strong></label> (<a href="https://www.openstreetmap.org/?mlat=<?=$result_obs['obs_coordinates_lat'] ?>&mlon=<?=$result_obs['obs_coordinates_lon'] ?>#map=16/<?=$result_obs['obs_coordinates_lat'] ?>/<?=$result_obs['obs_coordinates_lon'] ?>&layers=N">Afficher sur une carte</a>)
-	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required />
+	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required <?=$input_enabled ?> />
            <?php
 
 if (!empty($result_obs['obs_cityname'])) { ?>
             <label for="obs_cityname"><strong>Ville</strong></label>
-            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required />
+            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required <?=$input_enabled ?> />
 <?php
 }
 else { ?>
           <label for="obs_city"><strong>Ville</strong></label>
-          <select class="form-control" name="obs_city" id="obs_city"><br />
+          <select class="form-control" name="obs_city" id="obs_city" <?=$input_enabled ?>><br />
 <?php 
   foreach ($citylistname as $selectcityid => $selectcityname) {
     if ($result_obs['obs_city'] == $selectcityid) {
@@ -506,8 +513,8 @@ else { ?>
 	  </div>
         </td>
         <td>
-          <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required />
-	  <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required />
+          <input type="text" class="form-control-plaintext" name="post_date" value="<?=$date ?>" required <?=$input_enabled ?> />
+	  <input type="text" class="form-control-plaintext" name="post_heure" value="<?=$heure ?>" required <?=$input_enabled ?> />
           
         </td>
         <td>
