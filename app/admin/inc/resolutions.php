@@ -36,7 +36,8 @@ $actions_acl = array(
     ),
     "manageobs" => array(
         "access" => array(
-            'admin'
+            'admin',
+            'citystaff'
         )
     ),
     "edit" => array(
