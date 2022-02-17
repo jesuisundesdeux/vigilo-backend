@@ -27,6 +27,7 @@ services:
        - MYSQL_USER
        - MYSQL_PASSWORD
        - MYSQL_DATABASE
+       - AUTOUPDATE
   backup:
     build: docker_backup/
     volumes:
@@ -40,5 +41,4 @@ services:
       - MYSQL_USER
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
-      - AUTOUPDATE
 
