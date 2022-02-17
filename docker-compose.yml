@@ -5,8 +5,6 @@ services:
     restart: always
     volumes:
       - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
-      - ./mysql/sql_migration.sql:/docker-entrypoint-initdb.d/sql_migration.sql:ro
-      - ./backup/mysql:/dump
     environment:
       - MYSQL_ROOT_PASSWORD
       - MYSQL_USER
@@ -15,25 +13,33 @@ services:
     expose:
       - "3306"
   web:
-     build: docker_images/web/
-     working_dir: /unittest
+     image: vigilobs/vigilo-backend:${VIGILO_TAG}
+     working_dir: /var/www/html
      ports:
        - "${BIND}:80"
      links:
        - db
      volumes:
-       - ./:/unittest
-       - ./config/config.php.docker:/unittest/app/config/config.php
-       - ./app:/var/www/html
        - ${VOLUME_PATH}/files/caches:/var/www/html/caches
        - ${VOLUME_PATH}/files/maps:/var/www/html/maps
        - ${VOLUME_PATH}/files/images:/var/www/html/images
        - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
-       - ./config/config.php.docker:/var/www/html/config/config.php
-       - ./app/caches/.htaccess:/var/www/html/caches/.htaccess
-       - ./app/images/.htaccess:/var/www/html/images/.htaccess
      environment:
        - MYSQL_HOST
        - MYSQL_USER
        - MYSQL_PASSWORD
        - MYSQL_DATABASE
+  backup:
+    build: docker_backup/
+    volumes:
+      - ${VOLUME_PATH}/backup:/backup
+      - ${VOLUME_PATH}/files/caches:/tosave/caches
+      - ${VOLUME_PATH}/files/maps:/tosave/maps
+      - ${VOLUME_PATH}/files/images:/tosave/images
+      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs
+    environment:
+      - MYSQL_HOST
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+

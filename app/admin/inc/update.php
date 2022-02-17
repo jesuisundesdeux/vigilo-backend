@@ -24,13 +24,14 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
     echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
 } else {
-    $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/branches");
+    $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/tags");
     $git_json = json_decode($data, true);
     
     $biggest = '0.0.1';
     foreach ($git_json as $key => $value) {
-        if (preg_match('/([0-9*]).([0-9*]).([0-9*])/', $value['name'])) {
-            if (version_compare($value['name'], $biggest, ">")) {
+        if (preg_match('/v([0-9]*).([0-9]*).([0-9]*)$/', $value['name'])) {
+            $version = str_replace('v','',$value['name']);
+            if (version_compare($version, $biggest, ">")) {
                 $biggest = $value['name'];
             }
         }

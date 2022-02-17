@@ -1,0 +1,22 @@
+#!/bin/sh
+
+
+BACKUPDIR=/backup/mysql
+
+DATE=`date '+%Y-%m-%d-%H%M'`
+
+mkdir -p ${BACKUPDIR}
+find ${BACKUPDIR} -mtime +${RETENTION} -type f -exec rm -f {} \;
+
+
+FILENAME="${BACKUPDIR}/${DATE}-${MYSQL_DATABASE}.sql"
+
+mysqldump -u ${MYSQL_USER} \
+        --password=${MYSQL_PASSWORD} \
+        --host=${MYSQL_HOST} \
+        --databases ${MYSQL_DATABASE} \
+        > ${FILENAME}
+
+gzip ${FILENAME}
+
+

@@ -1,0 +1,66 @@
+#!/bin/bash
+set -e
+
+function log()  {
+  echo $1 > /proc/1/fd/1
+}
+function logerr() {
+  echo $1 > /proc/1/fd/2
+}
+
+i=0
+
+log "Trying to connect to database ..."
+while ! mysql -e ';' -h $MYSQL_HOST -u$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE > /dev/null 2>&1
+do
+  i=$((i+1))
+  log "Trying to connect to database [${i}/10]"
+  if [ $i -eq 10 ]
+  then
+    logerr "Fail to connect to database, please verify that env variables are set and DB is reachable"
+    logerr "Exiting ..."
+    exit 1
+  fi
+  sleep 1
+done
+
+DBVER=$(mysql -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version'" -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE 2>/dev/null | tail -1 | tr -d '\n' || true)
+if [ -z $DBVER ]
+then
+  DBVER='0.0.0'
+  cp /tmp/install_app/install.php /var/www/html/install.php
+  chown 33:33 /var/www/html/install.php
+fi
+
+log "DB Version ${DBVER}, APP Version ${VIGILO_VERSION}"
+
+if [ "$DBVER" != "$VIGILO_VERSION" ]
+then
+  if $AUTOUPDATE || [ "$DBVER" == "0.0.0" ]
+  then
+    log "Upgrading DB ..."
+    cd /tmp/mysql
+    migrateDatabase.py --from $DBVER --to $VIGILO_VERSION --sql-path=/tmp/mysql
+    mysql  -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < /tmp/mysql/sql_migration.sql
+ 
+    DBNEWVER=$(mysql -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version'" -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE | tail -1 | tr -d '\n')
+     if [ "$DBNEWVER" == "$DBVER" ] || [ "$DBNEWVER" != "$VIGILO_VERSION" ]
+    then
+      logerr "DB upgrading problem, please debug manually ..."
+    else
+      log "DB upgraded successfully !"
+    fi
+  else
+    log 'Please update your database manually or set variable AUTOUPDATE to true'
+  fi
+fi
+    
+# first arg is `-f` or `--some-option`
+if [ "${1#-}" != "$1" ]; then
+        set -- apache2-foreground "$@"
+fi
+
+exec "$@"
+
+
+

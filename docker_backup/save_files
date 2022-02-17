@@ -1,0 +1,11 @@
+#!/bin/sh
+
+DATADIR=/tosave
+BACKUPDIR=/backup/files
+
+mkdir -p ${BACKUPDIR}
+find ${BACKUPDIR} -mtime +${RETENTION} -type f -exec rm -f {} \;
+
+DATE=`date '+%Y-%m-%d-%H%M'`
+
+tar zcvf ${BACKUPDIR}/files-${DATE}.tar.gz $DATADIR

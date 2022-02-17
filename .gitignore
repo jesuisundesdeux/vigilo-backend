@@ -18,7 +18,7 @@ backup/
 mysql/sql_migration.sql
 
 # Scripts
-scripts/config.sh
+debug/config.sh
 
 # Unit test
 shunit2*

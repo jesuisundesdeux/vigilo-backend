@@ -1,17 +1,18 @@
-#!/bin/python
+#!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
 # 2019 - Bruno Adele <brunoadele@gmail.com> #JeSuisUnDesDeux team
-# 2019-2020 - Quentin HESS <quentin.hess@my-heb.eu> #JeSuisUnDesDeux team
+# 2019-2022 - Quentin HESS <quentin.hess@my-heb.eu> #JeSuisUnDesDeux team
 """
 Usage:
-  get_mysql_init4version.py [-f=<from> | --from=<from>] [-t=<to> | --to=<to>] [--test]
-  get_mysql_init4version.py (-h | --help)
-  get_mysql_init4version.py --version
+  migrateDatabase.py [-f=<from> | --from=<from>] [-t=<to> | --to=<to>] [ --sql-path=<sql-path> ] [--test]
+  migrateDatabase.py (-h | --help)
+  migrateDatabase.py --version
 
 Options:
   -f=<nb> --from=<from>                     From version
   -t=<to> --to=<to>                         To version
+  --sql-path=<sql-path>                     SQL scripts Path
   --test                                    Populate datas for unit test
   -h --help                                 Aide
 """
@@ -37,14 +38,18 @@ def convertToIntVersion(version):
 
 if __name__ == '__main__':
 
-    opts = docopt(__doc__, version='get_mysql_init4version.py 0.1')
+    opts = docopt(__doc__, version='migrateDatabase.py 0.3')
     docopt(__doc__, argv=None, help=True, version=None, options_first=False)
 
     # Compute migration versions
     fromversion = convertToIntVersion(opts['--from'])
     toversion = convertToIntVersion(opts['--to'])
 
-    searchpath = os.path.abspath(os.path.join(os.path.dirname(__file__),'../mysql'))
+    if opts['--sql-path']:
+      searchpath = opts['--sql-path']
+    else:
+      searchpath = os.path.abspath(os.path.join(os.path.dirname(__file__),'../mysql'))
+
     files = glob.glob(f'{searchpath}/init/init-*.sql')
 
     sqlmigration = ""
@@ -57,12 +62,12 @@ if __name__ == '__main__':
       version = initversion.replace('init-','').replace('.sql','')
 
       numericalversion = convertToIntVersion(version)
+
       if (numericalversion>fromversion and numericalversion<=toversion) or (fromversion == 2 and numericalversion == 2):
         # Init SQL Database
         with open(initfilename, 'r') as initfile:
-          sqlmigration += f"\n\n--------------------\n"
-          sqlmigration += f"-- init {version}\n"
-          sqlmigration += f"--------------------\n\n\n"
+          sqlmigration += f"--------------------\n"
+          sqlmigration += f"-- MigrateDatabase {version}\n"
           sqlmigration += initfile.read() 
 
         # Populate datas for unit test

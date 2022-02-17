@@ -27,6 +27,7 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
                                       '".$_POST['login']."',
                                       '".$password."',
                                       '')");
+   deleteInstallFile();
    header('Location: admin/index.php');
  } 
 }
