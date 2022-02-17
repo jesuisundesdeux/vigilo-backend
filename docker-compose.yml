@@ -13,7 +13,7 @@ services:
     expose:
       - "3306"
   web:
-     image: vigilobs/vigilo-backend:${VIGILO_TAG}
+     image: vigilobs/vigilo-backend:0.0.18
      working_dir: /var/www/html
      ports:
        - "${BIND}:80"
