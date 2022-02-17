@@ -33,10 +33,10 @@ services:
     build: docker_backup/
     volumes:
       - ${VOLUME_PATH}/backup:/backup
-      - ${VOLUME_PATH}/files/caches:/tosave/caches
-      - ${VOLUME_PATH}/files/maps:/tosave/maps
-      - ${VOLUME_PATH}/files/images:/tosave/images
-      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs
+      - ${VOLUME_PATH}/files/caches:/tosave/caches:ro
+      - ${VOLUME_PATH}/files/maps:/tosave/maps:ro
+      - ${VOLUME_PATH}/files/images:/tosave/images:ro
+      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs:ro
     environment:
       - MYSQL_HOST
       - MYSQL_USER
