@@ -35,11 +35,15 @@ class GetIssues
     'geojson' => 'application/json; charset=utf-8'
   );
 
+  private $since_unit_list = array('day', 'week', 'month', 'year');
+
   protected $format = 'json';
   protected $formatheader = 'application/json; charset=utf-8';
   protected $categorie = array();
   protected $status = -1;
   protected $timefilter = -1;
+  protected $sincefilter = null;
+  protected $sinceUnitFilter = null;
   protected $token = "";
   protected $token_filters = array('distance' => 0, 'categorie' => 0, 'address' => 0);
   protected $token_filter_enabled = False;
@@ -102,6 +106,19 @@ class GetIssues
     }
 
     $this->timefilter = intval($value);
+  }
+
+  public function setSincefilter($since, $sinceUnit) : void
+  {
+    if (!is_numeric($since)) {
+      throw new Exception("${since} is not numeric value");
+    }
+    if (!in_array($sinceUnit, $this->since_unit_list)) {
+      throw new Exception("${sinceUnit} must have one of these values : " . implode(', ', $this->since_unit_list));
+    }
+
+    $this->sincefilter = intval($since);
+    $this->sinceUnitFilter = $sinceUnit;
   }
 
   public function setToken($value) : void
@@ -209,6 +226,11 @@ class GetIssues
       $where .= ' AND obs_time > ' . $this->timefilter;
     }
 
+    if (!is_null($this->sincefilter) && !is_null($this->sinceUnitFilter)) {
+      $datetime = '- ' . $this->sincefilter . ' ' . $this->sinceUnitFilter;
+      $where .= ' AND obs_time > ' . strtotime($datetime);
+    }
+
     if ($this->token != "" && !$this->token_filter_enabled) {
       $where .= " AND obs_token = '" . $this->token . "'";
     }
@@ -274,8 +296,8 @@ ORDER BY obs_time DESC
         while ($result = mysqli_fetch_array($rquery)) {
           $token = $result['obs_token'];
           $obs_status = getObsStatus($this->db,$result['obs_id']);
-	  if ($this->status > -1 && $this->status != $obs_status) {
-	    continue;
+          if ($this->status > -1 && $this->status != $obs_status) {
+            continue;
           }		  
           $issue = array(
             "token" => $result['obs_token'],
@@ -340,6 +362,7 @@ ORDER BY obs_time DESC
         }
       }
     }
+
     return $json;
   }
 
@@ -431,6 +454,10 @@ if (!debug_backtrace()) {
 
   if (isset($_GET['t'])) {
     $export->setTimefilter($_GET['t']);
+  }
+
+  if (isset($_GET['since']) && isset($_GET['since_unit'])) {
+    $export->setSincefilter($_GET['since'], $_GET['since_unit']);
   }
 
   if (isset($_GET['status'])) {
