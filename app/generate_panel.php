@@ -28,6 +28,7 @@ header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header("Content-type: image/jpeg");
 
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/images.php");
 require_once("${cwd}/includes/handle.php");
 
 
@@ -48,7 +49,6 @@ $images_path     = "${cwd}" . '/' . $config['DATA_PATH'] . "images/";
 $maps_path       = "${cwd}" . '/' . $config['DATA_PATH'] . "maps/";
 $MAX_IMG_SIZE    = 1024; // For limit attack
 $resize_width    = $MAX_IMG_SIZE; // default width
-$RATIO_PIXELATED = 100;
 
 if (isset($_GET['key'])) {
     $key = $_GET['key'];
@@ -69,7 +69,7 @@ if (isset($_GET['secretid'])) {
     $secretid = Null;
 }
 
-if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_IMG_SIZE) {
+if (isset($_GET["s"]) && is_numeric($_GET["s"]) && intval($_GET["s"]) <= $MAX_IMG_SIZE) {
     $resize_width = intval($_GET["s"]);
     $img_filename = $caches_path . $token . '_w' . $resize_width . '.jpg';
 } else {
@@ -77,7 +77,7 @@ if (isset($_GET["s"]) and is_numeric($_GET["s"]) and intval($_GET["s"]) <= $MAX_
 }
 
 ## Use caches if available
-if (file_exists($img_filename) AND !getrole($key, $acls) == "admin" AND !getrole($key, $acls) == "moderator") {
+if (file_exists($img_filename) && !getrole($key, $acls) == "admin" && !getrole($key, $acls) == "moderator") {
     $image = imagecreatefromjpeg($img_filename);
     imagejpeg($image);
     return;
@@ -115,37 +115,26 @@ $time = $result['obs_time'];
 $date = date('d/m/Y H:i', $time);
 
 $approved = $result['obs_approved'];
-if ($secretid == $result['obs_secretid'] OR getrole($key, $acls) == "admin" OR getrole($key, $acls) == "moderator") {
+if ($secretid == $result['obs_secretid'] || getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator") {
     $AdminOrAuthor = True;
 } else {
     $AdminOrAuthor = False;
 }
 
-$photo = imagecreatefromjpeg($images_path . $token . '.jpg'); // issue photo
+$filepath = $images_path . $token . '.jpg';
+
 # Image is pixelated until approved by a moderator
-if ($approved != 1 and !$AdminOrAuthor and $resize_width > 300) {
-    
-    $photo_w = imagesx($photo);
-    $photo_h = imagesy($photo);
-    if ($photo_w > $photo_h) {
-        $pixelate_size = $photo_w / $RATIO_PIXELATED;
-    } else {
-        $pixelate_size = $photo_h / $RATIO_PIXELATED;
-    }
-    # Then apply pixelating + gaussian filters
-    imagefilter($photo, IMG_FILTER_PIXELATE, $pixelate_size, True);
-    
-    # Gaussian blur reduces pixel effect on small images
-    imagefilter($photo, IMG_FILTER_GAUSSIAN_BLUR);
-    
+if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
+    $photo = pixalize($filepath);
+} else {
+    $photo = imagecreatefromjpeg($filepath); // issue photo
 }
+
 $map_file_path = $maps_path . $token . '_zoom.jpg';
 GenerateMapQuestForToken($db, $token, $config['MAPQUEST_API']);
 $map = imagecreatefromjpeg($map_file_path);
 
-$image        = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
-$background_w = imagesx($image);
-$background_h = imagesy($image);
+$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
 
 # Generate full size image
 if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
@@ -155,12 +144,7 @@ if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
     imagejpeg($image, $img_filename);
     imagejpeg($image);
 } else {
-    # Resize image
-    $panel_ratio   = $background_w / $background_h;
-    $resize_height = $resize_width / $panel_ratio;
-    $imageresized  = imagecreatetruecolor($resize_width, $resize_height);
-    
-    imagecopyresampled($imageresized, $image, 0, 0, 0, 0, $resize_width, $resize_height, $background_w, $background_h);
+    $imageresized = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
     imagejpeg($imageresized, $img_filename);
     imagejpeg($imageresized);
 }

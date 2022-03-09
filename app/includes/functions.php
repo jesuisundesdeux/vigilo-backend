@@ -25,7 +25,6 @@ function tokenGenerator($length)
     return strtoupper(bin2hex($bytes));
 }
 
-
 // https://numa-bord.com/miniblog/php-calcul-de-distance-entre-2-coordonnees-gps-latitude-longitude/
 function distance($lat1, $lng1, $lat2, $lng2, $unit = 'k')
 {
@@ -389,27 +388,6 @@ function getInstanceNameFromFirebase($scope)
         }
     }
     return False;
-}
-
-// https://stackoverflow.com/questions/8995096/php-determine-visually-corrupted-images-yet-valid-downloaded-via-curl-with-gd
-function isGoodImage($fn)
-{
-    list($w, $h) = getimagesize($fn);
-    if ($w < 50 || $h < 50)
-        return 0;
-    $im   = imagecreatefromstring(file_get_contents($fn));
-    $grey = 0;
-    
-    for ($i = 0; $i < 5; ++$i) {
-        for ($j = 0; $j < 5; ++$j) {
-            $x = $w - 5 + $i;
-            $y = $h - 5 + $j;
-            list($r, $g, $b) = array_values(imagecolorsforindex($im, imagecolorat($im, $x, $y)));
-            if ($r == $g && $g == $b && $b == 128)
-                ++$grey;
-        }
-    }
-    return $grey < 12;
 }
 
 function GenerateMapQuestForToken($db, $token, $mapquest_apikey, $size_w = 390, $size_h = 390, $zoom = 17, $map_file_path = 'DEFAULT', $color_recent = 'db0000', $color_month = 'db7800', $color_old = 'a8a8a8')
