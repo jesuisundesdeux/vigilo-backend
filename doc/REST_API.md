@@ -218,6 +218,8 @@ Version backend >= 0.0.1
 | URL | bool | cityfield | | Affiche la ville dans un champs dédié plutôt que dans l'adresse | >= 0.0.13 |
 | URL | int | cityid | | filtre selon id de la ville | >= 0.0.13 |
 | URL | str | key | | Clé d'admin pour donner accès à toutes les observations | >= 0.0.13 |
+| URL | int | since | | nombre d'unités pour le filtre relatif sur la date | >= 0.0.19 |
+| URL | str | since_unit | | unité pour le filtre relatif sur la date, valeur parmi : day, week, month, year  | >= 0.0.19 |
 
 
 ###### Retour
