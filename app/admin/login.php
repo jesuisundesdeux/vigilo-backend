@@ -23,7 +23,7 @@ require_once('../includes/common.php');
 $badlogin = False;
 if (isset($_POST['login'])) {
   $login = mysqli_real_escape_string($db,$_POST['login']);
-  $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND role_name='admin' OR role_name='citystaff' LIMIT 1");
+  $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND (role_name='admin' OR role_name='citystaff') LIMIT 1");
   $login_result = mysqli_fetch_array($login_query);
 
   if (password_verify($_POST['password'], $login_result['role_password'])) {
