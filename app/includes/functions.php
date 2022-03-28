@@ -357,28 +357,41 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
     }
 }
 
-function getCategoriesList()
-{
+function getCategoriesExternal() {
     global $config;
+
     $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
     $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
+    foreach($categories_list as $key => $value) {
+       $categories_list_reformatted[$value['catid']] = $value;
+    }
+    return $categories_list_reformatted;
+}
+function getCategoriesLocal() {
+    global $db;
+
+    $categorie_local = array();
+    $categories_query = mysqli_query($db, "SELECT * FROM obs_categories_local");
+    while($categories_result = mysqli_fetch_array($categories_query)) {
+      $catid = $categories_result['categorie_local_id'];
+      $categorie_local[$catid] = array('catcolor' => $categories_result['categorie_local_color'],
+                                 'catname' => $categories_result['categorie_local_name_fr'],
+                                 'catname_en_US' => $categories_result['categorie_local_name_en'],
+                                 'catid' => $catid);
+    }
+    return $categorie_local;
+}
+function getCategoriesList()
+{
+    $categories_list = getCategoriesExternal() + getCategoriesLocal();
     return $categories_list;
 }
 
 function getCategorieName($catid)
 {
-    global $config;
-
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    foreach ($categories_list as $value) {
-        if ($value['catid'] == $catid) {
-            $categorie_string = $value['catname'];
-        }
-    }
-    return $categorie_string;
+    $categorie_list =  getCategoriesList();
+    return $categorie_list[$catid]['catname'];
 }
-
 
 function getInstanceNameFromFirebase($scope)
 {

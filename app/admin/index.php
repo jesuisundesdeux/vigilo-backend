@@ -29,6 +29,7 @@ require_once('../includes/handle.php');
 $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "list", "name" => "Observations", "access" => array('admin','citystaff')),
         "resolutions" => array("icon" => "user-check", "name" => "Resolutions", "access" => array('admin','citystaff')),
+        "categories" => array("icon" => "columns", "name" => "Catégories", "access" => array('admin')),
         "cities" => array("icon" => "briefcase", "name" => "Villes", "access" => array('admin')),
         "accounts" => array("icon" => "users", "name" => "Comptes", "access" => array('admin')),
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
