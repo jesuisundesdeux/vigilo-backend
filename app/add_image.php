@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("${cwd}/includes/common.php");
 require_once("${cwd}/includes/functions.php");
+require_once("${cwd}/includes/images.php");
 require_once("${cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 ini_set('max_input_vars', '3000');
+$MAX_IMG_SIZE = 1024; // For limit attack
 $error_prefix = 'ADD_IMAGE';
 
 if (!isset($_GET['token']) || !isset($_GET['secretid'])) {
@@ -81,50 +83,21 @@ if ($type == "obs") {
 }
 
 /* Save image */
-$image_written = False;
-
-if ($method == 'base64') {
-    $data          = $_POST['imagebin64'];
-    $image_content = base64_decode(str_replace(array(
-        '-',
-        '_',
-        ' ',
-        '\n'
-    ), array(
-        '+',
-        '/',
-        '+',
-        ' '
-    ), $data));
-    $fd_image      = fopen($filepath, "wb");
-    $image_written = fwrite($fd_image, $image_content);
-    fclose($fd_image);
-    
-} else {
-    $data = file_get_contents("php://stdin");
-    if (!(file_put_contents($filepath, $data))) {
-        $data = file_get_contents('php://input');
-        if (!(file_put_contents($filepath, $data))) {
-            jsonError($error_prefix, "Error uploading image with input", "IMAGEUPLOADFAILED", 500);
-        } else {
-            $image_written = True;
-        }
-    } else {
-        $image_written = True;
-    }
-}
+$image_written = saveImageOnDisk($method, $filepath, $error_prefix);
 
 if ($image_written) {
-    $allowedTypes = array(
-        IMAGETYPE_JPEG
-    );
-    $detectedType = exif_imagetype($filepath);
-    if (!in_array($detectedType,$allowedTypes)) {
+    if (!hasAllowedType($filepath)) {
         unlink($filepath);
         jsonError($error_prefix, 'File type not supported : ' . $detectedType, "FILETYPENOTSUPPORTED", 400);
     } elseif (!isGoodImage($filepath)) {
         jsonError($error_prefix, 'File is corrupted', 'FILECORRUPTED', 500);
     } else {
+        $image = imagecreatefromjpeg($filepath);
+        $imageresized = resizeImage($image, $MAX_IMG_SIZE, $MAX_IMG_SIZE);
+        if ($imageresized !== false) {
+            imagejpeg($imageresized, $filepath);
+        }
+
         if ($type == "obs") {
             $obsid = getObsIdByToken($db, $token);
             mysqli_query($db, "UPDATE obs_list SET obs_complete=1 WHERE obs_id='" . $obsid . "'");
