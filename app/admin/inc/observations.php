@@ -265,6 +265,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
             $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
         }
     }
+    // filter obs by city when current user has citystaff role
+    $querysearch .= "AND obs_city IN ($city) ";
 }
 
 // Tab filter process
