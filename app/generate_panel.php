@@ -90,14 +90,14 @@ if (mysqli_num_rows($query) != 1) {
     jsonError($error_prefix, "Token : " . $token . " not found.", "TOKENNOTFOUND", 404);
 }
 
-$result           = mysqli_fetch_array($query);
-$coordinates_lat  = $result['obs_coordinates_lat'];
-$coordinates_lon  = $result['obs_coordinates_lon'];
-$street_name      = $result['obs_address_string'];
-$comment          = $result['obs_comment'];
-$categorie_id     = $result['obs_categorie'];
-$statusobs        = $obs_status = getObsStatus($db, $result['obs_id']);
-$categorie_string = getCategorieName($categorie_id);
+$result            = mysqli_fetch_array($query);
+$coordinates_lat   = $result['obs_coordinates_lat'];
+$coordinates_lon   = $result['obs_coordinates_lon'];
+$street_name       = $result['obs_address_string'];
+$comment           = $result['obs_comment'];
+$categorie_id      = $result['obs_categorie'];
+$resolution_status = getResolutionStatus($db, $result['obs_id']);
+$categorie_string  = getCategorieName($categorie_id);
 
 if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
     $cityquery  = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id='" . $result['obs_city'] . "' LIMIT 1");
@@ -134,7 +134,7 @@ $map_file_path = $maps_path . $token . '_zoom.jpg';
 GenerateMapQuestForToken($db, $token, $config['MAPQUEST_API']);
 $map = imagecreatefromjpeg($map_file_path);
 
-$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
+$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status);
 
 # Generate full size image
 if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {

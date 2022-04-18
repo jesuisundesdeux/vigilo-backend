@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs)
+function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status)
 {
     # Responsive Photo process
     $cwd = dirname(__FILE__);
@@ -201,7 +201,7 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     imagettftext($image, $date_font_size, 0, 29, $date_y, $black, $font_regular, $date);
     
     ## ADD RESOLVED
-    if ($statusobs == 1) {
+    if ($resolution_status == 1) {
         $resolved = imagecreatefrompng($resolved_image);
         imagecopyresized($image, $resolved, $resolved_x, $resolved_y, 0, 0, $resolved_w, $resolved_h, imagesx($resolved), imagesy($resolved));
     }

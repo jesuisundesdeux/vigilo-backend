@@ -303,8 +303,8 @@ ORDER BY obs_time DESC
       $rquery = mysqli_query($this->db, $this->getQuery());
       if (mysqli_num_rows($rquery) > 0) {
         while ($result = mysqli_fetch_array($rquery)) {
-          $obs_status = (int) $result['resolution_status'];
-          if ($this->status > -1 && $this->status != $obs_status) {
+          $resolution_status = (int) $result['resolution_status'];
+          if ($this->status > -1 && $this->status != $resolution_status) {
             continue;
           }		  
           $issue = array(
@@ -315,7 +315,7 @@ ORDER BY obs_time DESC
             "comment" => $result['obs_comment'],
             "explanation" => $result['obs_explanation'],
             "time" => $result['obs_time'],
-            "status" => $obs_status,
+            "status" => $resolution_status,
             "group" => 0,
             "categorie" => $result['obs_categorie'],
             "approved" => $result['obs_approved']

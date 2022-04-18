@@ -186,7 +186,7 @@ function isResolutionTokenExists($db, $resolution_token)
 }
 
 
-function getObsStatus($db, $obsid)
+function getResolutionStatus($db, $obsid)
 {
     $resolution_status_query  = mysqli_query($db, "SELECT resolution_status 
                                                              FROM obs_resolutions 
@@ -194,8 +194,8 @@ function getObsStatus($db, $obsid)
                                                              ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
                                                              WHERE restok_observationid = '" . $obsid . "' LIMIT 1");
     $resolution_status_result = mysqli_fetch_array($resolution_status_query);
-    $obs_status               = ($resolution_status_result['resolution_status'] != null) ? $resolution_status_result['resolution_status'] : 0;
-    return $obs_status;
+    $resolution_status        = ($resolution_status_result['resolution_status'] != null) ? $resolution_status_result['resolution_status'] : 0;
+    return $resolution_status;
     
 }
 
