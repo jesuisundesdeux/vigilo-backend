@@ -262,6 +262,7 @@ class GetIssues
     obs_token,
     obs_city,
     obs_cityname,
+    obs_cities.city_name,
     obs_coordinates_lat,
     obs_coordinates_lon,
     obs_address_string,
@@ -270,8 +271,16 @@ class GetIssues
     obs_time,
     obs_status,
     obs_categorie,
-    obs_approved
+    obs_approved,
+    COALESCE((
+      SELECT resolution_status
+      FROM obs_resolutions
+      LEFT JOIN obs_resolutions_tokens
+      ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid
+      WHERE restok_observationid = obs_id LIMIT 1
+    ), 0) resolution_status
 FROM obs_list
+LEFT JOIN obs_cities ON obs_list.obs_city = obs_cities.city_id
 WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
@@ -294,9 +303,8 @@ ORDER BY obs_time DESC
       $rquery = mysqli_query($this->db, $this->getQuery());
       if (mysqli_num_rows($rquery) > 0) {
         while ($result = mysqli_fetch_array($rquery)) {
-          $token = $result['obs_token'];
-          $obs_status = getObsStatus($this->db,$result['obs_id']);
-          if ($this->status > -1 && $this->status != $obs_status) {
+          $resolution_status = (int) $result['resolution_status'];
+          if ($this->status > -1 && $this->status != $resolution_status) {
             continue;
           }		  
           $issue = array(
@@ -307,16 +315,14 @@ ORDER BY obs_time DESC
             "comment" => $result['obs_comment'],
             "explanation" => $result['obs_explanation'],
             "time" => $result['obs_time'],
-            "status" => $obs_status,
+            "status" => $resolution_status,
             "group" => 0,
             "categorie" => $result['obs_categorie'],
             "approved" => $result['obs_approved']
           );
 
           if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
-            $cityquery = mysqli_query($this->db,"SELECT city_name FROM obs_cities WHERE city_id='".$result['obs_city']."' LIMIT 1");
-            $cityresult = mysqli_fetch_array($cityquery);
-            $issue['cityname'] = $cityresult['city_name'];
+            $issue['cityname'] = $result['city_name'];
             $issue['address'] = preg_replace('/^([^,]*),(?:[^,]*)$/','\1',$issue['address']);
             if (!isset($_GET['cityfield']) || $_GET['cityfield'] != "1") {
               $issue['address'] = $issue['address'] . ', '. $issue['cityname'];
