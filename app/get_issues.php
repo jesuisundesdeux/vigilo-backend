@@ -274,11 +274,10 @@ class GetIssues
     obs_approved,
     COALESCE(obs_resolutions.resolution_status,0) resolution_status
     FROM obs_list
-    LEFT JOIN obs_cities ON obs_list.obs_city = obs_cities.city_id
-    LEFT JOIN obs_resolutions_tokens 
-      INNER JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
-    ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid 
-WHERE obs_complete=1
+     LEFT JOIN obs_cities ON obs_list.obs_city = obs_cities.city_id 
+     LEFT JOIN obs_resolutions_tokens ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid 
+     LEFT JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
+    WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
 " . $limit;
