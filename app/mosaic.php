@@ -91,7 +91,7 @@ $filter  = array(
     'fcategorie' => 1,
     'faddress' => 1
 );
-$similar = sameas($db, $token, $filter);
+$similar = sameas($token, $filter);
 
 foreach ($content as $value) {
     if ($cat != 'all' && $value['categorie'] != $cat) {

@@ -55,8 +55,8 @@ $urlsuffix = "";
 if (isset($_POST['obsadd']) && in_array($_SESSION['role'], $actions_acl['manageobs']['access'])) {
     $tokentoadd   = mysqli_real_escape_string($db, $_POST['obstoken']);
     $resolutionid = mysqli_real_escape_string($db, $_POST['resolutionid']);
-    if (isTokenExists($db, $tokentoadd)) {
-        addObsToResolution($db, getObsIdByToken($db, $tokentoadd), $resolutionid);
+    if (isTokenExists($tokentoadd)) {
+        addObsToResolution(getObsIdByToken($tokentoadd), $resolutionid);
     }
 }
 if (isset($_POST['resolution_id']) && in_array($_SESSION['role'], $actions_acl['edit']['access'])) {
@@ -74,23 +74,24 @@ if (isset($_POST['resolution_id']) && in_array($_SESSION['role'], $actions_acl['
     } else {
         $update = "resolution_time='" . $resolutiontime . "',";
         
+        $resolution_updatefields = array(
+          'resolution_time'    => $resolutiontime
+        );
+
         foreach ($_POST as $key => $value) {
             if (preg_match('/resolution_(?:.*)$/', $key)) {
                 $key   = mysqli_real_escape_string($db, $key);
                 $value = mysqli_real_escape_string($db, $value);
-                $update .= $key . "='" . $value . "',";
+                $resolution_updatefields[$key] = $value;
             }
         }
         
-        $update = rtrim($update, ',');
-        mysqli_query($db, "UPDATE obs_resolutions SET " . $update . " WHERE resolution_id='" . $resolutionid . "'");
-        echo mysqli_error($db);
-        
+        updateResolution($resolution_updatefields, $resolutionid); 
         echo '<div class="alert alert-success" role="alert">Resolution <strong>' . $resolutionid . '</strong> mise à jour</div>';
     }
 }
 if (isset($_POST['resolution_add']) && $_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
-    addObsToResolution($db, $_POST['obs_id'], $_POST['resolution_add']);
+    addObsToResolution($_POST['obs_id'], $_POST['resolution_add']);
 }
 
 
@@ -100,38 +101,30 @@ if (isset($_GET['action']) && isset($_GET['resolutionid']) && is_numeric($_GET['
     $resolutionid = mysqli_real_escape_string($db, $_GET['resolutionid']);
     
     if ($action == "deleteobs" && is_numeric($_GET['resolutionid']) && in_array($_SESSION['role'], $actions_acl['manageobs']['access'])) {
-        delObsToResolution($db, $_GET['obsid'], $_GET['resolutionid']);
+        delObsToResolution($_GET['obsid'], $_GET['resolutionid']);
     } elseif ($action == 'delete' && in_array($_SESSION['role'], $actions_acl['delete']['access'])) {
-        delResolution($db, $resolutionid);
+        delResolution($resolutionid);
         echo '<div class="alert alert-success" role="alert">Resolution <strong>' . $resolutionid . '</strong> supprimée</div>';
         
     } elseif ($action == 'resolve' && is_numeric($_GET['new_status']) && in_array($_SESSION['role'], $actions_acl['resolve']['access'])) {
         $new_status = $_GET['new_status'];
         if (in_array($_SESSION['role'], $status_list[$new_status]['roles'])) {
-            $resolutiontime_query  = mysqli_query($db, "SELECT resolution_time FROM obs_resolutions WHERE resolution_id='" . $resolutionid . "' LIMIT 1");
-            $resolutiontime_result = mysqli_fetch_array($resolutiontime_query);
-            if ($resolutiontime_result['resolution_time'] == 0 && $new_status == 1) {
-                echo '<div class="alert alert-danger" role="alert">La date doit être renseignée pour valider une resolution</div>';
-            } else {
-                mysqli_query($db, "UPDATE obs_resolutions SET resolution_status = '" . $new_status . "' WHERE resolution_id = '" . $resolutionid . "'");
-                if ($new_status == 1 || $new_status == 0) {
-                    flushImagesCacheResolution($db, $resolutionid);
-                }
+            try {
+              if(updateResolution(array('resolution_status'=>$new_status), $resolutionid)) {
+                 echo '<div class="alert alert-success" role="alert">Resolution <strong>' . $resolutionid . '</strong> mise à jour</div>';
+              }
             }
+            catch (Exception $e) {
+              echo '<div class="alert alert-danger" role="alert">'.$e->getMessage().'</div>';
+            }
+
         } else {
             exit('Not allowed');
         }
     }
 }
 
-// Check duplicate observations in resolutions
-$obsduplicate_query = mysqli_query($db, "select restok_observationid,count(*) as nb from obs_resolutions_tokens group by restok_observationid");
-$duplicateids       = array();
-while ($obsduplicate_result = mysqli_fetch_array($obsduplicate_query)) {
-    if ($obsduplicate_result['nb'] > 1) {
-        $duplicateids[] = $obsduplicate_result['restok_observationid'];
-    }
-}
+$duplicateids = getDuplicateObsIdsInResolutions();
 if (count($duplicateids) > 0) {
     echo '<div class="alert alert-warning" role="alert"><strong>' . count($duplicateids) . '</strong> observation(s) présente(s) dans plusieurs resolutions</div>';
 }
@@ -251,38 +244,21 @@ while ($result_resolution = mysqli_fetch_array($query_resolution)) {
   </td>
   <td>
 <?php
-    $observations_query = mysqli_query($db, "SELECT obs_id,obs_token 
-                                                                FROM obs_resolutions_tokens 
-                                                                LEFT JOIN obs_list 
-                                                                ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid 
-                                                                WHERE restok_resolutionid='" . $result_resolution['resolution_id'] . "'");
-    while ($observations_result = mysqli_fetch_array($observations_query)) {
-?>
-   <a href="index.php?page=observations&filtertoken=<?= $observations_result['obs_token'] ?>&filtertype=uniq">
-<?php
-        if (in_array($observations_result['obs_id'], $duplicateids)) {
-?>
-     <strong><font color="red"><?= $observations_result['obs_token'] ?></font></strong>
-<?php
+    foreach(getResolutionObservations($result_resolution['resolution_id']) as $resolution_obsid) {
+        $obs_token = getTokenByObsid($resolution_obsid);
+        echo '<a href="index.php?page=observations&filtertoken=' . $obs_token .'&filtertype=uniq">';
+        if (in_array($resolution_obsid, $duplicateids)) { 
+            echo '<strong><font color="red">'.$obs_token.'</font></strong>';
         } else {
-?>
-     <?= $observations_result['obs_token'] ?>
-<?php
+            echo $obs_token;
         }
-?>
-
-    </a> 
-<?php
+        echo '</a>';
         if (in_array($_SESSION['role'], $actions_acl['manageobs']['access'])) {
-?>
-   <a href="?page=<?= $page_name ?>&action=deleteobs&resolved=<?= $resolved ?>&resolutionid=<?= $result_resolution['resolution_id'] ?>&obsid=<?= $observations_result['obs_id'] ?>">
-      <span data-feather="trash-2"></span>
-<?php
+            echo ' <a href="?page='.$page_name.'&action=deleteobs&resolved='.$resolved.'&resolutionid='.$result_resolution['resolution_id'].'&obsid='.$resolution_obsid.'">';
+            echo '<span data-feather="trash-2"></span>';
+            echo '</a>';
         }
-?>
-</a>
-<br />
-<?php
+        echo '<br />';
     }
     if (in_array($_SESSION['role'], $actions_acl['manageobs']['access'])) {
 ?>
