@@ -144,15 +144,12 @@ function updateResolution($fields, $resolutionid)
               throw new Exception('Une des observations existe dans plusieurs résolutions, impossible de valider la résolution');
             }
          }
-
-         if ($fields['resolution_status'] == 1 || $fields['resolution_status'] == 0) {
-             flushImagesCacheResolution($resolutionid);
-         }
     }
 
     if (!empty($query_update)) {
         $query_update = substr($query_update, 0, -1);
         mysqli_query($db,"UPDATE obs_resolutions SET " . $query_update . " WHERE resolution_id = '" . $resolutionid . "'");
+        flushImagesCacheResolution($resolutionid);
     }
     return True;
 }
