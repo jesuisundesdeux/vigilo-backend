@@ -14,8 +14,8 @@ log "Trying to connect to database ..."
 while ! mysql -e ';' -h $MYSQL_HOST -u$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE > /dev/null 2>&1
 do
   i=$((i+1))
-  log "Trying to connect to database [${i}/10]"
-  if [ $i -eq 10 ]
+  log "Trying to connect to database [${i}/30]"
+  if [ $i -eq 30 ]
   then
     logerr "Fail to connect to database, please verify that env variables are set and DB is reachable"
     logerr "Exiting ..."
