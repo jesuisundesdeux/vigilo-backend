@@ -63,7 +63,7 @@ if ($type == "obs") {
     $filename = preg_replace('/[^A-Za-z0-9]/', '', $token);
     $filepath = $config['DATA_PATH'] . 'images/' . $filename . '.jpg';
     
-    if (!isTokenWithSecretId($db, $token, $secretid)) {
+    if (!isTokenWithSecretId($token, $secretid)) {
         jsonError($error_prefix, "Token : " . $token . " and/or secretid : " . $secretid . " do not exist.", "TOKENNOTEXIST", 400);
     }
 } elseif ($type == "resolution") {
@@ -74,7 +74,7 @@ if ($type == "obs") {
         mkdir($config['DATA_PATH'] . 'images/resolutions/');
     }
     
-    if (!isResolutionTokenWithSecretId($db, $token, $secretid)) {
+    if (!isResolutionTokenWithSecretId($token, $secretid)) {
         jsonError($error_prefix, "ResolutionToken : " . $token . " and/or secretid : " . $secretid . " do not exist.", "RESOLTOKENNOTEXIST", 400);
     }
     
@@ -99,10 +99,10 @@ if ($image_written) {
         }
 
         if ($type == "obs") {
-            $obsid = getObsIdByToken($db, $token);
+            $obsid = getObsIdByToken($token);
             mysqli_query($db, "UPDATE obs_list SET obs_complete=1 WHERE obs_id='" . $obsid . "'");
         } elseif ($type == "resolution") {
-            $resolutionid = getResolutionIdByResolutionToken($db, $token);
+            $resolutionid = getResolutionIdByResolutionToken($token);
             mysqli_query($db, "UPDATE obs_resolutions SET resolution_complete=1,resolution_withphoto=1 WHERE resolution_id='" . $resolutionid . "'");
         }
     }

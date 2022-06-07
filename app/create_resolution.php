@@ -93,9 +93,9 @@ if ($update) {
         'resolution_comment' => $comment,
         'resolution_time' => $time
     );
-    $resolution_id = getResolutionIdByResolutionToken($db, $token);
+    $resolution_id = getResolutionIdByResolutionToken($token);
     /* FIXME ADD UPDATE
-    updateResolution($db,$fields,$resolution_id);
+    updateResolution($fields,$resolution_id);
     */
 } else {
     $fields = array(
@@ -110,11 +110,11 @@ if ($update) {
     $obsidlist = array();
     foreach ($tokenlist as $token) {
         if (!empty($token)) {
-            $obsidlist[] = getObsIdByToken($db, $token);
+            $obsidlist[] = getObsIdByToken($token);
         }
     }
     
-    if (!addResolution($db, $fields, $obsidlist)) {
+    if (!addResolution($fields, $obsidlist)) {
       jsonError($error_prefix, "Could not create resolution", "FUNCTIONERROR", 500);
     }
 }

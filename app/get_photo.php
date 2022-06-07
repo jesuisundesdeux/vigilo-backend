@@ -42,7 +42,7 @@ if (!isset($_GET['token'])) {
 $token = mysqli_real_escape_string($db, $_GET['token']);
 
 if ($type == "obs") {
-    if (!isTokenExists($db, $token)) {
+    if (!isTokenExists($token)) {
         jsonError($error_prefix, "Token : " . $token . " not found", "TOKENNOTFOUND", 404);
     }
     
@@ -53,7 +53,7 @@ if ($type == "obs") {
         $approved = 1;
     }
 } elseif ($type == "resolution") {
-    if (!isResolutionTokenExists($db, $token)) {
+    if (!isResolutionTokenExists($token)) {
         jsonError($error_prefix, "Token : " . $token . " not found", "TOKENNOTFOUND", 404);
     }
     

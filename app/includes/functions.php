@@ -120,15 +120,14 @@ function tweet($twitter_ids, $text, $image = NULL ) {
  *
  * @param string $token
  *      identifiant du token à twitter
- * @param ressource $db
- *	objet valide qui représente la connexion au serveur MySQL
  * @return array
  *	[success] => true/false
  *	[error] => message d'erreur
  *	[response] => Objet au format codebird, retour de l'API twitter
 **/
-function tweetToken( $db , $token ) {
+function tweetToken($token ) {
 
+	global $db;
 	global $config;
 
 	// on pourrait faire un test sur format de token
@@ -238,8 +237,9 @@ function flatstring($string)
     return str_replace(' ', '', str_replace('-', '', strtolower(trim($string))));
 }
 
-function generategroups($db, $filter = array('distance' => 500, 'fdistance' => 0, 'fcategorie' => 0, 'faddress' => 0))
+function generategroups($filter = array('distance' => 500, 'fdistance' => 0, 'fcategorie' => 0, 'faddress' => 0))
 {
+    global $db;
     $query  = mysqli_query($db, "SELECT * FROM obs_list");
     $groups = array();
     while ($result = mysqli_fetch_array($query)) {
@@ -287,8 +287,10 @@ function generategroups($db, $filter = array('distance' => 500, 'fdistance' => 0
     return $groups;
 }
 
-function sameas($db, $token, $filter = array())
+function sameas($token, $filter = array())
 {
+    global $db;
+
     $tokenquery  = mysqli_query($db, "SELECT obs_categorie,obs_address_string,obs_city,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
     $tokenresult = mysqli_fetch_array($tokenquery);
     
@@ -390,9 +392,10 @@ function getInstanceNameFromFirebase($scope)
     return False;
 }
 
-function GenerateMapQuestForToken($db, $token, $mapquest_apikey, $size_w = 390, $size_h = 390, $zoom = 17, $map_file_path = 'DEFAULT', $color_recent = 'db0000', $color_month = 'db7800', $color_old = 'a8a8a8')
+function GenerateMapQuestForToken($token, $mapquest_apikey, $size_w = 390, $size_h = 390, $zoom = 17, $map_file_path = 'DEFAULT', $color_recent = 'db0000', $color_month = 'db7800', $color_old = 'a8a8a8')
 {
     
+    global $db;
     global $config;
     
     if ($map_file_path == 'DEFAULT') {

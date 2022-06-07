@@ -39,7 +39,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 
   // Delete button actions
   if ($action == 'delete' && in_array($_SESSION['role'],$actions_acl['delete']['access'])) {
-    deleteObs($db,$obsid);
+    deleteObs($obsid);
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> supprimée</div>';
 
   }
@@ -58,7 +58,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     
     // puis fait un twitt
     if ( $approveto == 1 && $twitt == 1 ) {
-      $r = tweetToken( $db , $token ) ;
+      $r = tweetToken($token ) ;
       if ( $r['success'] == true ) {
         echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
       }
@@ -81,7 +81,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 		   "resolution_time" => 0,
 		   "resolution_status" => 2);
     $obsidlist = array($obsid);
-    if(addResolution($db,$fields,$obsidlist)) {
+    if(addResolution($fields,$obsidlist)) {
       echo '<div class="alert alert-success" role="alert">Resolution ajoutée, et modifiable <a href="?page=resolutions">ici</a></div>';
     }
   }
@@ -117,7 +117,7 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
     mysqli_query($db,"UPDATE obs_list SET ". $update . " WHERE obs_id='".$obsid."'");
 
     if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
-      addObsToResolution($db,$_POST['obs_id'],$_POST['resolution_add']);
+      addObsToResolution($_POST['obs_id'],$_POST['resolution_add']);
     }
 
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> mise à jour</div>';
@@ -214,7 +214,7 @@ if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filter
                 'fdistance' => 1,
                 'fcategorie' => 1,
                 'faddress' => 1);
-  $similar = sameas($db,$searchtoken , $filter);
+  $similar = sameas($searchtoken , $filter);
   $querysearch .= " AND obs_token IN ('".implode("','",$similar)."')";
   $urlsuffix .= "&filtertype=similar&filtertoken=".$searchtoken;
 }
