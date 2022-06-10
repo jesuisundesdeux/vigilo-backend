@@ -11,13 +11,15 @@ services:
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
   web:
-     image: vigilobs/vigilo-backend:0.0.18
+     image: vigilobs/vigilo-backend:0.0.19
      working_dir: /var/www/html
      ports:
        - "${BIND}:80"
      links:
        - db
      volumes:
+       - ./app:/var/www/html
+       - ./config/config.php.docker:/var/www/html/config/config.php
        - ${VOLUME_PATH}/files/caches:/var/www/html/caches
        - ${VOLUME_PATH}/files/maps:/var/www/html/maps
        - ${VOLUME_PATH}/files/images:/var/www/html/images
