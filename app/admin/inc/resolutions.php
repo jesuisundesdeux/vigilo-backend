@@ -171,7 +171,10 @@ $resolvecount     = array(
     3 => 0,
     4 => 0
 );
-$query_count_tabs = mysqli_query($db, "SELECT resolution_status FROM obs_resolutions");
+$query_count_tabs = mysqli_query($db, "SELECT resolution_status FROM obs_list 
+                                             INNER JOIN obs_resolutions_tokens ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid    
+                                             INNER JOIN obs_resolutions        ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid  
+                                             WHERE $filter_by_city 1");
 while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
     $resolvecount[$result_count_tabs['resolution_status']]++;
 }
