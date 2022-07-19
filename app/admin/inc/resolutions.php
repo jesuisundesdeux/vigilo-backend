@@ -48,6 +48,21 @@ $actions_acl = array(
     )
 );
 
+/* Filter cities for the current role */
+$filter_by_city = '';
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
+   $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
+   while ($role_result = mysqli_fetch_array($role_query)) {
+      $role_cities = json_decode($role_result['role_city']);
+      foreach ((array) $role_cities as $city) {
+         $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_name = '$city'");
+         $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
+      }
+   }
+   // filter obs by city when current user has citystaff role
+   $filter_by_city .= "obs_list.obs_city IN ($city) AND ";
+}
+
 
 $urlsuffix = "";
 
@@ -149,7 +164,10 @@ $resolvecount     = array(
     3 => 0,
     4 => 0
 );
-$query_count_tabs = mysqli_query($db, "SELECT resolution_status FROM obs_resolutions");
+$query_count_tabs = mysqli_query($db, "SELECT resolution_status FROM obs_list 
+                                             INNER JOIN obs_resolutions_tokens ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid    
+                                             INNER JOIN obs_resolutions        ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid  
+                                             WHERE $filter_by_city 1");
 while ($result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
     $resolvecount[$result_count_tabs['resolution_status']]++;
 }
@@ -195,11 +213,16 @@ if (isset($_GET['pagenb']) && is_numeric($_GET['pagenb'])) {
 $maxobsperpage = 10;
 $offset        = ($pagenb - 1) * $maxobsperpage;
 
-$countpage_query = mysqli_query($db, "SELECT count(*) FROM obs_resolutions WHERE resolution_status='" . $resolved . "'");
+$base_query = "FROM obs_list 
+               INNER JOIN obs_resolutions_tokens ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid    
+               INNER JOIN obs_resolutions        ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid  
+               WHERE $filter_by_city obs_resolutions.resolution_status='" . $resolved . "'";
+
+$countpage_query = mysqli_query($db, "SELECT count(*) $base_query");
 $nbrows          = mysqli_fetch_array($countpage_query)[0];
 $nbpages         = ceil($nbrows / $maxobsperpage);
 
-$query_resolution = mysqli_query($db, "SELECT * FROM obs_resolutions WHERE resolution_status='" . $resolved . "' ORDER BY resolution_time DESC  LIMIT " . $offset . "," . $maxobsperpage);
+$query_resolution = mysqli_query($db, "SELECT * $base_query ORDER BY resolution_time DESC  LIMIT " . $offset . "," . $maxobsperpage);
 
 while ($result_resolution = mysqli_fetch_array($query_resolution)) {
     $date  = date('d/m/Y', $result_resolution['resolution_time']);
