@@ -86,7 +86,8 @@ if ($type == "obs") {
 $image_written = saveImageOnDisk($method, $filepath, $error_prefix);
 
 if ($image_written) {
-    if (!hasAllowedType($filepath)) {
+    if (!hasAllowedType($filepath)) {        
+        // deepcode ignore PT: $filename is sanitized with preg_replace
         unlink($filepath);
         jsonError($error_prefix, 'File type not supported : ' . $detectedType, "FILETYPENOTSUPPORTED", 400);
     } elseif (!isGoodImage($filepath)) {

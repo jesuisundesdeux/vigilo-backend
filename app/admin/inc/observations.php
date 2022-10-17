@@ -53,7 +53,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     $twitt = ( isset($_GET['twitt']) && is_numeric($_GET['twitt']) ) ? $_GET['twitt'] : 0 ;
 
     delete_token_cache($token);
-    mysqli_query($db, "UPDATE obs_list SET obs_approved='".$approveto."' WHERE obs_id='".$obsid."'");
+    mysqli_query($db, "UPDATE obs_list SET obs_approved='".mysqli_escape_string($db, $approveto)."' WHERE obs_id='".mysqli_escape_string($db, $obsid)."'");
     echo '<div class="alert alert-success" role="alert">Observation <strong>'.$obsid.'</strong> approuvée/desapprouvée</div>';
     
     // puis fait un twitt
@@ -102,7 +102,7 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
   else {
     $obstime = mktime($obstime['tm_hour'],$obstime['tm_min'],0,$obstime['tm_mon']+1,$obstime['tm_mday'],$obstime['tm_year']+1900);
 
-    $update = "obs_time='".$obstime."',";
+    $update = "obs_time='".mysqli_real_escape_string($db, $obstime)."',";
 
     foreach ($_POST as $key => $value) {
       if(preg_match('/obs_(?:.*)$/',$key)) {
@@ -114,7 +114,7 @@ if (isset($_POST['obs_id']) && in_array($_SESSION['role'],$actions_acl['edit']['
 
     $update = rtrim($update,',');
 
-    mysqli_query($db,"UPDATE obs_list SET ". $update . " WHERE obs_id='".$obsid."'");
+    mysqli_query($db, "UPDATE obs_list SET ". $update . " WHERE obs_id='".$obsid."'");
 
     if($_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
       addObsToResolution($_POST['obs_id'],$_POST['resolution_add']);
@@ -589,7 +589,7 @@ else {
 }
 ?>
     <li class="page-item <?=$next_disabled ?>">
-      <a class="page-link" href="?page=<?=$page_name?>&approved=<?=$approved ?>&pagenb=<?=$pagenb+1 ?><?=$urlsuffix ?>">Next</a>
+       <a class="page-link" href="<?= htmlspecialchars("?page=" . rawurlencode($page_name) . "&approved=" . rawurlencode($approved) . "&pagenb=" . rawurlencode($pagenb + 1) . $urlsuffix) ?>">Next</a>
     </li>
   </ul>
 </nav>

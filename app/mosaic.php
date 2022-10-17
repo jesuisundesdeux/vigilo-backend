@@ -102,14 +102,16 @@ foreach ($content as $value) {
         /* Wrong token - Do not display */
         continue;
     }
-    
+
     if ($obslink == 'web') {
         $obsurl = 'https://app.vigilo.city/?token=' . $value['token'] . '&instance=' . $instance_name;
     } else {
         $obsurl = '/generate_panel.php?token=' . $value['token'];
     }
-    
-    echo '<div class="grid-item"><a target="_blank" href="' . $obsurl . '"><img width="100%" src="' . $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/generate_panel.php?token=' . $value['token'] . '&s=400" /></a></div>';
+
+    $src = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/generate_panel.php?token=' . $value['token'] . '&s=400';
+    echo '<div class="grid-item"><a target="_blank" href="' . htmlspecialchars($obsurl). '">
+      <img width="100%" src="'.htmlspecialchars($src).'" /></a></div>';
 }
 ?>
 </div>
