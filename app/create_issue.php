@@ -130,7 +130,7 @@ $cityname = '';
 
 if (isset($_POST['cityid']) && is_numeric($_POST['cityid']) && $_POST['cityid'] != 0) {
     $cityid       = $_POST['cityid'];
-    $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id='" . $cityid . "'");
+    $query_cities = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id='" . mysqli_real_escape_string($db, $cityid) . "'");
     if (mysqli_num_rows($query_cities) == 0) {
         $cityid = 0;
         jsonError($error_prefix, "No city found withe ID " . $cityid, "CITYNOTFOUND", 200, "WARNING");
@@ -163,16 +163,16 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] && $coordina
 }
 
 if ($update) {
-    mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="' . $coordinates_lat . '",
-                                         obs_coordinates_lon="' . $coordinates_lon . '",
-                                         obs_city="' . $cityid . '",
-                                         obs_cityname="' . $cityname . '",
-                                         obs_comment="' . $comment . '",
-                                         obs_explanation="' . $explanation . '",
-                                         obs_address_string="' . $address . '",
-                                         obs_categorie="' . $categorie . '",
-                                         obs_time="' . $time . '"
-                    WHERE obs_token="' . $token . '" AND obs_secretid="' . $secretid . '"');
+    mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="' . mysqli_real_escape_string($db, $coordinates_lat) . '",
+                                         obs_coordinates_lon="' . mysqli_real_escape_string($db, $coordinates_lon) . '",
+                                         obs_city="' . mysqli_real_escape_string($db, $cityid) . '",
+                                         obs_cityname="' . mysqli_real_escape_string($db, $cityname) . '",
+                                         obs_comment="' . mysqli_real_escape_string($db, $comment) . '",
+                                         obs_explanation="' . mysqli_real_escape_string($db, $explanation) . '",
+                                         obs_address_string="' . mysqli_real_escape_string($db, $address) . '",
+                                         obs_categorie="' . mysqli_real_escape_string($db, $categorie) . '",
+                                         obs_time="' . mysqli_real_escape_string($db, $time) . '"
+                    WHERE obs_token="' . mysqli_real_escape_string($db, $token) . '" AND obs_secretid="' . mysqli_real_escape_string($db, $secretid) . '"');
 } else {
     mysqli_query($db, 'INSERT INTO obs_list (
                                   `obs_scope`,
@@ -190,20 +190,20 @@ if ($update) {
                                   `obs_app_version`,
                                   `obs_secretid`)
                            VALUES (
-                               "' . $scope . '",
-                               "' . $cityid . '",
-                               "' . $cityname . '",
-                               "' . $coordinates_lat . '",
-                               "' . $coordinates_lon . '",
-                               "' . $address . '",
-                               "' . $comment . '",
-                               "' . $explanation . '",
-                               "' . $categorie . '",
-                               "' . $token . '",
-                               "' . $time . '",
+                               "' . mysqli_real_escape_string($db, $scope) . '",
+                               "' . mysqli_real_escape_string($db, $cityid) . '",
+                               "' . mysqli_real_escape_string($db, $cityname) . '",
+                               "' . mysqli_real_escape_string($db, $coordinates_lat) . '",
+                               "' . mysqli_real_escape_string($db, $coordinates_lon) . '",
+                               "' . mysqli_real_escape_string($db, $address) . '",
+                               "' . mysqli_real_escape_string($db, $comment) . '",
+                               "' . mysqli_real_escape_string($db, $explanation) . '",
+                               "' . mysqli_real_escape_string($db, $categorie) . '",
+                               "' . mysqli_real_escape_string($db, $token) . '",
+                               "' . mysqli_real_escape_string($db, $time) . '",
                                0,
-                               "' . $version . '",
-                               "' . $secretid . '")');
+                               "' . mysqli_real_escape_string($db, $version) . '",
+                               "' . mysqli_real_escape_string($db, $secretid) . '")');
 }
 
 if ($mysqlerror = mysqli_error($db)) {

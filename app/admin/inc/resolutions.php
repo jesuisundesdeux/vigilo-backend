@@ -371,7 +371,7 @@ if ($nbpages > 1) {
     }
 ?>
    <li class="page-item <?= $next_disabled ?>">
-      <a class="page-link" href="?page=<?= $page_name ?>&resolved=<?= $resolved ?>&pagenb=<?= $pagenb + 1 ?><?= $urlsuffix ?>">Next</a>
+       <a class="page-link" href="<?=htmlspecialchars("?page=".$page_name."&resolved=".$resolved."&pagenb=".($pagenb + 1).$urlsuffix)?>">Next</a>
     </li>
   </ul>
 </nav>

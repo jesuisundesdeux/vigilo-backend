@@ -23,9 +23,9 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
                                             role_city)
                              VALUES ('".strtoupper(bin2hex(random_bytes(20)))."',
                                       'admin',
-                                      '".$_POST['name']."',
-                                      '".$_POST['login']."',
-                                      '".$password."',
+                                      '". mysqli_real_escape_string($db, $_POST['name'])."',
+                                      '". mysqli_real_escape_string($db, $_POST['login'])."',
+                                      '". mysqli_real_escape_string($db, $password)."',
                                       '')");
    deleteInstallFile();
    header('Location: admin/index.php');
