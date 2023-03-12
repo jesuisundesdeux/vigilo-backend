@@ -131,10 +131,19 @@ if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
 }
 
 $map_file_path = $maps_path . $token . '_zoom.jpg';
-GenerateMapQuestForToken($token, $config['MAPQUEST_API']);
+$res = GenerateMapQuestForToken($token, $map_file_path, $config['MAPQUEST_API']);
+if (!$res) {
+    // Use default place holder picture instead of crashing
+    $map_file_path = "$cwd/panel_components/map_error.jpeg";
+}
+
 $map = imagecreatefromjpeg($map_file_path);
 
-$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status);
+if (!$map) {
+    jsonError($error_prefix, "Map for : " . $token . " can not be created.", "MAPNOTCREATED", 500);
+}
+
+$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
 
 # Generate full size image
 if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
