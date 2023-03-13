@@ -28,10 +28,10 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     
     # Portrait format
     if ($photo_ratio < 1) {
-        $backgroung_image = "${cwd}/panel_components/portrait/background.jpg";
-        $content_image    = "${cwd}/panel_components/portrait/content.png";
-        $logo_image       = "${cwd}/panel_components/portrait/logo.png";
-        $resolved_image   = "${cwd}/panel_components/portrait/resolved.png";
+        $backgroung_image = "$cwd/panel_components/portrait/background.jpg";
+        $content_image    = "$cwd/panel_components/portrait/content.png";
+        $logo_image       = "$cwd/panel_components/portrait/logo.png";
+        $resolved_image   = "$cwd/panel_components/portrait/resolved.png";
         
         # Load background image
         $image        = imagecreatefromjpeg($backgroung_image);
@@ -68,10 +68,10 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     }
     # Landscape format
     else {
-        $backgroung_image = "${cwd}/panel_components/landscape/background.jpg";
-        $content_image    = "${cwd}/panel_components/landscape/content.png";
-        $logo_image       = "${cwd}/panel_components/landscape/logo.png";
-        $resolved_image   = "${cwd}/panel_components/landscape/resolved.png";
+        $backgroung_image = "$cwd/panel_components/landscape/background.jpg";
+        $content_image    = "$cwd/panel_components/landscape/content.png";
+        $logo_image       = "$cwd/panel_components/landscape/logo.png";
+        $resolved_image   = "$cwd/panel_components/landscape/resolved.png";
         
         # Load background image
         $image        = imagecreatefromjpeg($backgroung_image);
@@ -106,9 +106,9 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     }
     
     ## INIT IMAGE ##
-    $font_regular = "${cwd}/fonts/texgyreheros-regular.otf";
-    $font_italic  = "${cwd}/fonts/texgyreheros-italic.otf";
-    $font_bold    = "${cwd}/fonts/texgyreheros-bold.otf";
+    $font_regular = "$cwd/fonts/texgyreheros-regular.otf";
+    $font_italic  = "$cwd/fonts/texgyreheros-italic.otf";
+    $font_bold    = "$cwd/fonts/texgyreheros-bold.otf";
     
     $fontcolor     = imagecolorallocate($image, 54, 66, 86);
     $fontcolorgrey = imagecolorallocate($image, 219, 219, 219);

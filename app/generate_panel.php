@@ -22,14 +22,14 @@ ini_set('memory_limit', '256M');
 $error_prefix = 'GENERATE_PANEL';
 $cwd          = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
+require_once("$cwd/includes/common.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header("Content-type: image/jpeg");
 
-require_once("${cwd}/includes/functions.php");
-require_once("${cwd}/includes/images.php");
-require_once("${cwd}/includes/handle.php");
+require_once("$cwd/includes/functions.php");
+require_once("$cwd/includes/images.php");
+require_once("$cwd/includes/handle.php");
 
 
 $query      = mysqli_query($db, "SELECT * FROM obs_config
@@ -44,9 +44,9 @@ if (file_exists('panels/' . $panel_path . '/panel.php')) {
     die('Panel not exists');
 }
 
-$caches_path     = "${cwd}" . '/' . $config['DATA_PATH'] . "caches/";
-$images_path     = "${cwd}" . '/' . $config['DATA_PATH'] . "images/";
-$maps_path       = "${cwd}" . '/' . $config['DATA_PATH'] . "maps/";
+$caches_path     = "$cwd" . '/' . $config['DATA_PATH'] . "caches/";
+$images_path     = "$cwd" . '/' . $config['DATA_PATH'] . "images/";
+$maps_path       = "$cwd" . '/' . $config['DATA_PATH'] . "maps/";
 $MAX_IMG_SIZE    = 1024; // For limit attack
 $resize_width    = $MAX_IMG_SIZE; // default width
 
@@ -131,10 +131,19 @@ if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
 }
 
 $map_file_path = $maps_path . $token . '_zoom.jpg';
-GenerateMapQuestForToken($token, $config['MAPQUEST_API']);
+$res = GenerateMapQuestForToken($token, $map_file_path, $config['MAPQUEST_API']);
+if (!$res) {
+    // Use default place holder picture instead of crashing
+    $map_file_path = "$cwd/panel_components/map_error.jpeg";
+}
+
 $map = imagecreatefromjpeg($map_file_path);
 
-$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status);
+if (!$map) {
+    jsonError($error_prefix, "Map for : " . $token . " can not be created.", "MAPNOTCREATED", 500);
+}
+
+$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
 
 # Generate full size image
 if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
