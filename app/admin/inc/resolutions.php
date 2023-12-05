@@ -48,21 +48,33 @@ $actions_acl = array(
     )
 );
 
-/* Filter cities for the current role */
+// Filter cities for the current role
 $filter_by_city = '';
-if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
-   $role_query = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '".$_SESSION['login']."'");
-   while ($role_result = mysqli_fetch_array($role_query)) {
-      $role_cities = json_decode($role_result['role_city']);
-      foreach ((array) $role_cities as $city) {
-         $city_query = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_name = '$city'");
-         $role_citynames[] = mysqli_fetch_array($city_query)['city_name'];
-      }
-   }
-   // filter obs by city when current user has citystaff role
-   $filter_by_city .= "obs_list.obs_city IN ($city) AND ";
-}
 
+if (isset($_SESSION['role']) && $_SESSION['role'] == 'citystaff') {
+    $role_cityIds = [];
+    $role_query = "SELECT role_city FROM obs_roles WHERE role_login = '{$_SESSION['login']}'";
+    $role_result = mysqli_query($db, $role_query);
+
+    while ($row = mysqli_fetch_array($role_result)) {
+        $role_cities = json_decode($row['role_city'], true);
+
+        foreach ($role_cities as $city) {
+            $city_query = "SELECT city_id FROM obs_cities WHERE city_name = '$city'";
+            $city_result = mysqli_query($db, $city_query);
+            $city_id = mysqli_fetch_array($city_result)['city_id'];
+
+            if ($city_id) {
+                $role_cityIds[] = $city_id;
+            }
+        }
+    }
+
+    // Filter obs by city when the current user has the citystaff role
+    if (!empty($role_cityIds)) {
+        $filter_by_city .= "obs_list.obs_city IN ('" . implode("','", $role_cityIds) . "') AND ";
+    }
+}
 
 $urlsuffix = "";
 
