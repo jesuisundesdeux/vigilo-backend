@@ -130,7 +130,7 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
      <tr>
        <td>Nombre d'heure max pour Tweeter observations</td>
        <td>
-         <input type="text" class="form-control-plaintext" name="config_param_twitter_expiry_time" value="<?= $config['config_param_twitter_expiry_time'] ?>" required />
+         <input type="text" class="form-control-plaintext" name="config_param_social_media_expiry_time" value="<?= $config['config_param_social_media_expiry_time'] ?>" required />
         </td>
       </tr>
       <tr>

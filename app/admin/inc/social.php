@@ -24,7 +24,7 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 
 if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
     if ($_GET['action'] == 'add') {
-        mysqli_query($db, "INSERT INTO obs_twitteraccounts (ta_consumer,
+        mysqli_query($db, "INSERT INTO obs_social_media_accounts (ta_consumer,
                                                        ta_consumersecret,
                                                        ta_accesstoken,
                                                        ta_accesstokensecret)
@@ -32,39 +32,47 @@ if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
                                                        'consumerkey',
                                                        'accesstoken',
                                                        'accesstokensecret')");
-        echo '<div class="alert alert-success" role="alert">Compte Twitter ajouté, merci de remplir les champs correspondants</div>';
+        echo '<div class="alert alert-success" role="alert">Compte ajouté, merci de remplir les champs correspondants</div>';
     }
     if (isset($_GET['taid']) && is_numeric($_GET['taid'])) {
         if ($_GET['action'] == 'delete') {
             $taid = mysqli_real_escape_string($db, $_GET['taid']);
-            mysqli_query($db, "DELETE FROM obs_twitteraccounts WHERE ta_id = '" . $taid . "'");
-            echo '<div class="alert alert-success" role="alert">Compte twitter <strong>' . $taid . '</strong> supprimé</div>';
+            mysqli_query($db, "DELETE FROM obs_social_media_accounts WHERE ta_id = '" . $taid . "'");
+            echo '<div class="alert alert-success" role="alert">Compte <strong>' . $taid . '</strong> supprimé</div>';
         }
         elseif ($_GET['action'] == 'test') {  // test l'envoi des tweets et poste le succès ou le code d'erreur
 
 	      	$taid = mysqli_real_escape_string($db,$_GET['taid']);
-	      	$query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts WHERE ta_id='".$taid."' LIMIT 1");
+	      	$query_ta = mysqli_query($db, "SELECT * FROM obs_social_media_accounts WHERE ta_id='".$taid."' LIMIT 1");
 	      	$result_ta = mysqli_fetch_array($query_ta) ;
 	      	
 	      	if (!empty($result_ta['ta_consumer']) && !empty($result_ta['ta_consumersecret']) && !empty($result_ta['ta_accesstoken']) && !empty($result_ta['ta_accesstokensecret'])) {
 	      	
-	      		$twitter_ids   = array(
+	      		$social_ids   = array(
 				"consumer" => $result_ta['ta_consumer'],
 				"consumersecret" => $result_ta['ta_consumersecret'],
 				"accesstoken" => $result_ta['ta_accesstoken'],
-				"accesstokensecret" => $result_ta['ta_accesstokensecret']
+				"accesstokensecret" => $result_ta['ta_accesstokensecret'],
+        "api_url" => $result_ta['ta_api_url'],
+        "type" => $result_ta['ta_type']
 			);
-	      	
-	      		// on vérifie la bibliothèque
-	      		require_once('../lib/codebird-php/codebird.php');
-	      		
 	      		// on attribue un identifiant au test - les tweets similaires sont refusés
 	      		$twtId = rand(1000,9999) ;
 	      		$twtText = 'Ceci est un test automatique envoyé par le back-end vigilo '.$twtId ;
-			$twtRet = tweet($twitter_ids, $twtText) ;
+            $twtImage = 'vigilo.png';
+            $twtImageCaption = 'Ceci est une image de test envoyée par le back-end vigilo ' ;
+
+            if ($social_ids['type'] == 'twitter') {
+              // on vérifie la bibliothèque
+              require_once('../lib/codebird-php/codebird.php');
+              $twtRet = tweet($social_ids, $twtText, $twtImage) ;
+            } else {
+              $twtRet = post_mastodon($social_ids, $twtText, $twtImage, $twtImageCaption) ;
+            }
 
 	      		// reply est un objet avec beaucoup d'informations, on récupère le httpstatus
 	      		if ( $twtRet->httpstatus == "200" ) {
+          // TODO: when using mastodon, send to the mastodon account, not to twitter
 	      			echo '<div class="alert alert-success" role="alert">Vérifier le <a target="\blank" href="https://twitter.com/'.$twtRet->user->screen_name.'">twitt</a> du compte n° <strong>'.$taid.'</strong> (n° de vérification '.$twtId.')</div>';
 	      		}
 	      		else {
@@ -72,7 +80,7 @@ if (isset($_GET['action']) && !isset($_POST['ta_id'])) {
 	      		}
 	      	}
 	      	else {
-	      		echo '<div class="alert alert-warning" role="alert">Les clés sont incomplètes pour le compte twitter n° <strong>'.$taid.'</strong></div>';
+	      		echo '<div class="alert alert-warning" role="alert">Les clés sont incomplètes pour le compte n° <strong>'.$taid.'</strong></div>';
 	      	}
     	} // fin du elseif de test du twitt
     }
@@ -89,27 +97,29 @@ if (isset($_POST['ta_id'])) {
     }
     $update = rtrim($update, ',');
     $taid   = mysqli_real_escape_string($db, $_POST['ta_id']);
-    mysqli_query($db, "UPDATE obs_twitteraccounts SET " . $update . " WHERE ta_id='" . $taid . "'");
+    mysqli_query($db, "UPDATE obs_social_media_accounts SET " . $update . " WHERE ta_id='" . $taid . "'");
     
-    echo '<div class="alert alert-success" role="alert">Compte Twitter <strong>' . $taid . '</strong> mis à jour</div>';
+    echo '<div class="alert alert-success" role="alert">Compte <strong>' . $taid . '</strong> mis à jour</div>';
 }
 
-$query_ta = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
+$query_ta = mysqli_query($db, "SELECT * FROM obs_social_media_accounts");
 
 ?>
 
 <h2>Liste</h2>
-<p><a href="?page=<?= $page_name ?>&action=add">Ajouter un compte Twitter</a></p>
+<p><a href="?page=<?= $page_name ?>&action=add">Ajouter un compte</a></p>
 
 <div class="table-responsive">
   <table class="table table-striped table-sm">
     <thead>
       <tr>
         <th># ID</th>
+        <th>Type</th>
         <th>Consumer</th>
         <th>Consumer Secret</th>
         <th>Access Token</th>
         <th>Access Token Secret</th>
+        <th>API URL</th>
         <th> </th>
         <th> </th>
       </tr>
@@ -121,6 +131,16 @@ while ($result_ta = mysqli_fetch_array($query_ta)) {
      <form action="" method="POST">
       <tr>
         <td>#<?= $result_ta['ta_id'] ?></td>
+        <td>
+          <select class="form-control" name="ta_type">
+            <option value="twitter" <?php if ($result_ta['ta_type'] == 'twitter') {
+    echo 'selected';
+} ?>>Twitter</option>
+            <option value="mastodon" <?php if ($result_ta['ta_type'] == 'mastodon') {
+    echo 'selected';
+} ?>>Mastodon</option>
+          </select>
+        </td>
         <td>
           <input type="text" class="form-control-plaintext" name="ta_consumer" value="<?= $result_ta['ta_consumer'] ?>" required />
         </td>
@@ -134,10 +154,13 @@ while ($result_ta = mysqli_fetch_array($query_ta)) {
           <input type="text" class="form-control-plaintext" name="ta_accesstokensecret" value="<?= $result_ta['ta_accesstokensecret'] ?>" required />
         </td>
         <td>
+          <input type="text" class="form-control-plaintext" name="ta_api_url" value="<?= $result_ta['ta_api_url'] ?>" required />
+        <td>
           <input type="hidden" name="ta_id" value="<?= $result_ta['ta_id'] ?>" />
           <button class="btn btn-primary" type="submit">Valider édition</button>
         </td>
         <td>
+          <!-- TODO: check whether feather has a mastodon icon -->
           <a href="?page=<?=$page_name ?>&action=test&taid=<?=$result_ta['ta_id'] ?>" onclick="return confirm('Valider le test ? Ceci enverra un twitt public sur votre compte...')"><span data-feather="twitter"></span> Tester</a>
           <br/>
           <a href="?page=<?=$page_name ?>&action=delete&taid=<?=$result_ta['ta_id'] ?>" onclick="return confirm('Merci de valider la suppression')"><span data-feather="x"></span> Supprimer</a>

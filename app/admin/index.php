@@ -32,7 +32,7 @@ $menu = array("dashboard" => array("icon" => "home", "name" => "Accueil", "acces
         "cities" => array("icon" => "briefcase", "name" => "Villes", "access" => array('admin')),
         "accounts" => array("icon" => "users", "name" => "Comptes", "access" => array('admin')),
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
-        "twitter" => array("icon" => "twitter", "name" => "Twitter", "access" => array('admin')),
+        "social" => array("icon" => "twitter", "name" => "Réseaux", "access" => array('admin')),
         "settings" => array("icon" => "settings", "name" => "Configuration", "access" => array('admin')),
         "update" => array("icon" => "zap", "name" => "Mises à jour", "access" => array('admin')));
 

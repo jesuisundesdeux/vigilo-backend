@@ -83,6 +83,9 @@ if ($type == "obs") {
 }
 
 /* Save image */
+echo "Saving image\n";
+echo "Method : " . $method . "\n";
+echo "Filepath : " . $filepath . "\n";
 $image_written = saveImageOnDisk($method, $filepath, $error_prefix);
 
 if ($image_written) {
@@ -107,8 +110,9 @@ if ($image_written) {
             mysqli_query($db, "UPDATE obs_resolutions SET resolution_complete=1,resolution_withphoto=1 WHERE resolution_id='" . $resolutionid . "'");
         }
     }
+} else {
+    jsonError($error_prefix, "Image not saved", "IMAGENOTSAVED", 500);
 }
-
 echo json_encode(array(
     'status' => 0
 ));

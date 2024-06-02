@@ -167,6 +167,7 @@ class GetIssues
     }
   
     if (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator")) {
+      // echo "WE ARE ADMIN OR MODERATOR";
       $this->approved = intval($value);
     }  
     elseif (intval($value) == 0 && $this->showNonApproved()) {
@@ -281,6 +282,8 @@ class GetIssues
 " . $where . "
 ORDER BY obs_time DESC
 " . $limit;
+
+    // echo '<h3>QUERY</h3><pre>'. $query . '</pre>';
     
     return $query;
   }
@@ -437,7 +440,6 @@ ORDER BY obs_time DESC
     }
   }
 }
-
 
 if (!debug_backtrace()) {
   $export = new GetIssues();

@@ -10,26 +10,28 @@ services:
       - MYSQL_USER
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
-  web:
-     image: vigilobs/vigilo-backend:0.0.19
-     working_dir: /var/www/html
-     ports:
-       - "${BIND}:80"
-     links:
-       - db
-     volumes:
-       - ./app:/var/www/html
-       - ./config/config.php.docker:/var/www/html/config/config.php
-       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
-       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
-       - ${VOLUME_PATH}/files/images:/var/www/html/images
-       - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
-     environment:
-       - MYSQL_HOST
-       - MYSQL_USER
-       - MYSQL_PASSWORD
-       - MYSQL_DATABASE
-       - AUTOUPDATE
+  backend:
+    image: vigilobs/vigilo-backend:0.0.20
+    working_dir: /var/www/html
+    ports:
+      - "${BIND}:80"
+    links:
+      - db
+    volumes:
+      - ./app:/var/www/html:rw
+      - ./config/config.php.docker:/var/www/html/config/config.php
+      - ${VOLUME_PATH}/files/caches:/var/www/html/caches:rw
+      - ${VOLUME_PATH}/files/maps:/var/www/html/maps:rw
+      - ${VOLUME_PATH}/files/images:/var/www/html/images:rw
+      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2:rw
+    environment:
+      - MYSQL_HOST
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+      - AUTOUPDATE
+      - PHP_ERROR_REPORTING="E_ALL"
+      - PHP_DISPLAY_ERRORS="On"
   backup:
     build: docker_backup/
     volumes:
@@ -43,4 +45,15 @@ services:
       - MYSQL_USER
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
-
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "${BIND_PHPMYADMIN}:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+    links:
+      - db

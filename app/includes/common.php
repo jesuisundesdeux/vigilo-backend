@@ -59,8 +59,8 @@ while ($config_result = mysqli_fetch_array($config_query)) {
         case 'vigilo_mapquest_api':
             $config['MAPQUEST_API'] = $config_result['config_value'];
             break;
-        case 'twitter_expiry_time':
-            $config['APPROVE_TWITTER_EXPTIME'] = $config_result['config_value'];
+        case 'social_media_expiry_time':
+            $config['APPROVE_SOCIAL_MEDIA_EXPTIME'] = $config_result['config_value'];
             break;
         case 'mysql_charset':
             $config['MYSQL_CHARSET'] = $config_result['config_value'];
