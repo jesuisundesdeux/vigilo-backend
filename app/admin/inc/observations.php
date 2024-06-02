@@ -60,6 +60,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     if ( $approveto == 1 && $twitt == 1 ) {
       $r = tweetToken($token ) ;
       if ( $r['success'] == true ) {
+        // TODO: make sure this shows the right network
         echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
       }
       else {

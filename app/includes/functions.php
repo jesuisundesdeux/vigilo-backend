@@ -126,30 +126,22 @@ function tweet($social_ids, $text, $image = NULL ) {
  *   the path to the image to post, or URL
  */
 function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
-    echo(print_r($image, TRUE)); 
     $instance = $social_ids['api_url'];
     $token = $social_ids['accesstoken'];
     $params = array(
         'status' => $text,
     );
-    echo "<p>". print_r($instance, TRUE) . "</p>";
-    echo "<p>". print_r($token, TRUE) . "</p>";
-    echo "<p>". print_r($params, TRUE) . "</p>";
-    echo "<p>". print_r($image, TRUE) . "</p>";
     if (!empty($image)) {
         // need to make a call to the media upload api first, to get the media id
         $ch = curl_init($instance . '/api/v2/media');
-        echo "<p>". print_r($ch, TRUE) . "</p>";
 
         // the "file" parameter holds "The file to be attached, encoded using
         // multipart form data. The file must have a MIME type."
         // so we need to get the MIME type of the image
         $mime = mime_content_type($image);
-        echo(print_r($mime, TRUE));
         $media_params = array(
             'file' => new CURLFile($image, $mime, basename($image)),
         );
-        echo(print_r($media_params, TRUE));
         // if a caption is given, pass it as "description"
         if (!empty($caption)) {
             $media_params['description'] = $caption;
@@ -162,36 +154,20 @@ function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
         ));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_VERBOSE, true);
-        echo "<p>";
-        echo($ch);
-        echo "</p>";
         $response = curl_exec($ch);
         $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         // if the media upload was successful, we get the media id
-        echo $http_status;
-        echo '<br>';
-        echo $response;
-        echo '<br>';
         if ($http_status == 200) {
             $media_id = json_decode($response)->id;
-            echo "<p>" . print_r($media_id, TRUE) . "</p>";
             $params['media_ids'] = array($media_id);
-            echo "<p>" . print_r($params, TRUE) . "</p>";
         } else {
-            echo "<p>Media upload failed</p>";
-            echo "<pre>" . prettyPrint($response) . "</pre>";
             return (object) array(
                 'httpstatus' => $http_status,
                 'response' => $response,
             );
         }
-    } else {
-        echo "<p>No image</p>";
     }
-    // wait for a second, to avoid rate limiting
-    // sleep(1);
-    echo '<h3>params</h3><pre>' . prettyPrint(json_encode($params)) . '</pre>';
     $status_curl = curl_init($instance . '/api/v1/statuses');
     curl_setopt_array($status_curl, array(
         CURLOPT_POST => 1,
@@ -206,72 +182,10 @@ function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
     $response = curl_exec($status_curl);
     $http_status = curl_getinfo($status_curl, CURLINFO_HTTP_CODE);
     curl_close($status_curl);
-    echo '<h3>Response</h3>';
-    echo '<p>HTTP status: ' . $http_status . '</p>';
-    echo '<pre>'. prettyPrint($response) . '</pre>';
-    echo '<br>';
     return (object) array(
         'httpstatus' => $http_status,
         'response' => $response,
     );
-}
-
-
-function prettyPrint( $json )
-{
-    $result = '';
-    $level = 0;
-    $in_quotes = false;
-    $in_escape = false;
-    $ends_line_level = NULL;
-    $json_length = strlen( $json );
-
-    for( $i = 0; $i < $json_length; $i++ ) {
-        $char = $json[$i];
-        $new_line_level = NULL;
-        $post = "";
-        if( $ends_line_level !== NULL ) {
-            $new_line_level = $ends_line_level;
-            $ends_line_level = NULL;
-        }
-        if ( $in_escape ) {
-            $in_escape = false;
-        } else if( $char === '"' ) {
-            $in_quotes = !$in_quotes;
-        } else if( ! $in_quotes ) {
-            switch( $char ) {
-                case '}': case ']':
-                    $level--;
-                    $ends_line_level = NULL;
-                    $new_line_level = $level;
-                    break;
-
-                case '{': case '[':
-                    $level++;
-                case ',':
-                    $ends_line_level = $level;
-                    break;
-
-                case ':':
-                    $post = " ";
-                    break;
-
-                case " ": case "\t": case "\n": case "\r":
-                    $char = "";
-                    $ends_line_level = $new_line_level;
-                    $new_line_level = NULL;
-                    break;
-            }
-        } else if ( $char === '\\' ) {
-            $in_escape = true;
-        }
-        if( $new_line_level !== NULL ) {
-            $result .= "\n".str_repeat( "\t", $new_line_level );
-        }
-        $result .= $char.$post;
-    }
-
-    return $result;
 }
 
 /**
@@ -335,17 +249,8 @@ function tweetToken($token ) {
 	   FROM obs_scopes, obs_social_media_accounts 
 	   WHERE obs_scopes.scope_socialmediaaccountid= obs_social_media_accounts.ta_id 
 	     AND obs_scopes.scope_name = '" . $scope . "'";
-    echo 'scope_query :';
-    echo "<pre>";
-    echo(print_r($query_text, TRUE));
-    echo "</pre>";
 	$scope_query  = mysqli_query($db, $query_text);
 	$scope_result = mysqli_fetch_array($scope_query);
-
-    echo 'scope_result :';
-    echo "<pre>";
-    echo(print_r($scope_result, TRUE));
-    echo "</pre>";
 
 	if ($scope_result['ta_type'] == 'twitter' && (empty($scope_result['ta_consumer']) || empty($scope_result['ta_consumersecret']) || empty($scope_result['ta_accesstoken']) || empty($scope_result['ta_accesstokensecret']))) {
 		$return['success'] = false ;
@@ -367,10 +272,6 @@ function tweetToken($token ) {
             "type" => $scope_result['ta_type'],
             "api_url" => $scope_result['ta_api_url']
 		);
-        echo 'social_ids :';
-        echo "<pre>";
-        echo(print_r($social_ids, TRUE));
-        echo "</pre>";
 		$tweet_content = $scope_result['scope_socialcontent'];
 		if ( empty($tweet_content) ) {
 			$tweet_content = "" ;
@@ -386,17 +287,8 @@ function tweetToken($token ) {
 			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
 			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
 
-            echo 'tweet_content :';
-            echo "<pre>";
-            echo(print_r($tweet_content, TRUE));
-            echo "</pre>";
-
-
             // post to twitter or mastodon
             $image_url = $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token;
-            echo 'image_url :'. $image_url;
-            echo '<br/>';
-            echo 'social_ids :'. print_r($social_ids, TRUE);
             if ($social_ids['type'] == 'twitter') {
                 // on vérifie la bibliothèque
                 $return['response'] = tweet($social_ids, $tweet_content, $image_url);
@@ -415,7 +307,7 @@ function tweetToken($token ) {
 				$return['error'] = "Erreur ".$return['response']->httpstatus ;
 			}
 
-			//echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$obsid.'</strong> parti</div>';
+			echo '<div class="alert alert-success" role="alert">Puet pour <strong>'.$obsid.'</strong> parti</div>';
 
 		} else {
 			$return['success'] = false ;
@@ -706,19 +598,15 @@ function generate_and_save_panel($token, $requested_size, $secretid, $key, $erro
     global $acls;
 	global $db;
 	global $config;
-    error_log("CONFIG: ");
-    error_log(print_r($config, TRUE));
 
     $query      = mysqli_query($db, "SELECT * FROM obs_config
                                 WHERE config_param='vigilo_panel'
                                 LIMIT 1");
     $result     = mysqli_fetch_array($query);
     $panel_path = $result['config_value'];
-    error_log("Panel path: " . $panel_path);
 
     $parentDir = dirname(__DIR__);
     $panel_file = $parentDir . '/panels/' . $panel_path . '/panel.php';
-    error_log("Panel file: " . $panel_file);
     if (file_exists($panel_file)) {
         require_once($panel_file);
     } else {
@@ -733,12 +621,9 @@ function generate_and_save_panel($token, $requested_size, $secretid, $key, $erro
 
     if ($requested_size != Null && $requested_size <= $MAX_IMG_SIZE) {
         $resize_width = $requested_size;
-        # log resize width
-        error_log("Resize width: " . $resize_width);
         $img_filename = $caches_path . $token . '_w' . $resize_width . '.jpg';
     } else {
         $resize_width    = $MAX_IMG_SIZE; // default width
-        error_log("Full size image");
         $img_filename = $caches_path . $token . '_full.jpg';
     }
 
