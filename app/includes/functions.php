@@ -492,3 +492,121 @@ function getWebContent($url) {
   $data = curl_exec($curl);
   return $data;
 }
+
+
+function generate_and_save_panel($token, $requested_size, $secretid, $key, $error_prefix, $aclsimage_folder) {
+
+    require_once("images.php");
+    require_once("handle.php");
+    require_once("common.php");
+
+    global $acls;
+	global $db;
+	global $config;
+    error_log("CONFIG: ");
+    error_log(print_r($config, TRUE));
+
+    $query      = mysqli_query($db, "SELECT * FROM obs_config
+                                WHERE config_param='vigilo_panel'
+                                LIMIT 1");
+    $result     = mysqli_fetch_array($query);
+    $panel_path = $result['config_value'];
+    error_log("Panel path: " . $panel_path);
+
+    $parentDir = dirname(__DIR__);
+    $panel_file = $parentDir . '/panels/' . $panel_path . '/panel.php';
+    error_log("Panel file: " . $panel_file);
+    if (file_exists($panel_file)) {
+        require_once($panel_file);
+    } else {
+        die('Panel not exists');
+    }
+
+    $project_root    = dirname(__DIR__);
+    $caches_path     = "$project_root" . '/' . $config['DATA_PATH'] . "caches/";
+    $images_path     = "$project_root" . '/' . $config['DATA_PATH'] . "images/";
+    $maps_path       = "$project_root" . '/' . $config['DATA_PATH'] . "maps/";
+    $MAX_IMG_SIZE    = 1024; // For limit attack
+
+    if ($requested_size != Null && $requested_size <= $MAX_IMG_SIZE) {
+        $resize_width = $requested_size;
+        # log resize width
+        error_log("Resize width: " . $resize_width);
+        $img_filename = $caches_path . $token . '_w' . $resize_width . '.jpg';
+    } else {
+        $resize_width    = $MAX_IMG_SIZE; // default width
+        error_log("Full size image");
+        $img_filename = $caches_path . $token . '_full.jpg';
+    }
+
+    ## Use caches if available
+    if (file_exists($img_filename) && !getrole($key, $acls) == "admin" && !getrole($key, $acls) == "moderator") {
+        $image = imagecreatefromjpeg($img_filename);
+        imagejpeg($image);
+        return;
+    }
+
+    # Get issue information
+    $query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
+
+    if (mysqli_num_rows($query) != 1) {
+        jsonError($error_prefix, "Token : " . $token . " not found.", "TOKENNOTFOUND", 404);
+    }
+
+    $result            = mysqli_fetch_array($query);
+    $coordinates_lat   = $result['obs_coordinates_lat'];
+    $coordinates_lon   = $result['obs_coordinates_lon'];
+    $street_name       = $result['obs_address_string'];
+    $comment           = $result['obs_comment'];
+    $categorie_id      = $result['obs_categorie'];
+    $resolution_status = getResolutionStatus($result['obs_id']);
+    $categorie_string  = getCategorieName($categorie_id);
+
+    if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
+        $cityquery  = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id='" . $result['obs_city'] . "' LIMIT 1");
+        $cityresult = mysqli_fetch_array($cityquery);
+        $street_name .= ', ' . $cityresult['city_name'];
+    } elseif (!empty($result['obs_cityname'])) {
+        $street_name .= ', ' . $result['obs_cityname'];
+    }
+
+    if (!isset($categorie_string)) {
+        jsonError($error_prefix, "unknown categorie_id: ' . $categorie_id", "UNKNOWCATEGORIE", 500);
+    }
+
+    $time = $result['obs_time'];
+    $date = date('d/m/Y H:i', $time);
+
+    $approved = $result['obs_approved'];
+    if ($secretid == $result['obs_secretid'] || getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator") {
+        $AdminOrAuthor = True;
+    } else {
+        $AdminOrAuthor = False;
+    }
+
+    $filepath = $images_path . $token . '.jpg';
+
+    # Image is pixelated until approved by a moderator
+    if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
+        $photo = pixalize($filepath);
+    } else {
+        $photo = imagecreatefromjpeg($filepath); // issue photo
+    }
+
+    $map_file_path = $maps_path . $token . '_zoom.jpg';
+    $res = GenerateMapQuestForToken($token, $map_file_path, $config['MAPQUEST_API']);
+    if (!$res) {
+        // Use default place holder picture instead of crashing
+        $map_file_path = "$project_root/panel_components/map_error.jpeg";
+    }
+
+    $map = imagecreatefromjpeg($map_file_path);
+
+    if (!$map) {
+        jsonError($error_prefix, "Map for : " . $token . " can not be created.", "MAPNOTCREATED", 500);
+    }
+
+    $image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
+
+    return $image;
+}
