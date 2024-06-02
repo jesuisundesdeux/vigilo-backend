@@ -75,6 +75,7 @@ function delete_map_cache($token)
  * tweet
  *
  * Poste un tweet comprenant du texte et une image ; remplace tweet($text, $image, $twitter_ids)
+ * TODO: adjust to mastodon
  *
  * @param array $twitter_ids
  *      ensemble des identifiants consumer, consumersecret, accesstoken, accesstokensecret
@@ -85,11 +86,11 @@ function delete_map_cache($token)
  * @return obj
  *	objet au format codebird comprenant le code erreur/succès httpstatus de l'API twitter
 **/
-function tweet($twitter_ids, $text, $image = NULL ) {
+function tweet($social_ids, $text, $image = NULL ) {
 
-    \Codebird\Codebird::setConsumerKey($twitter_ids['consumer'], $twitter_ids['consumersecret']);
+    \Codebird\Codebird::setConsumerKey($social_ids['consumer'], $social_ids['consumersecret']);
     $cb = \Codebird\Codebird::getInstance();
-    $cb->setToken($twitter_ids['accesstoken'], $twitter_ids['accesstokensecret']);
+    $cb->setToken($social_ids['accesstoken'], $social_ids['accesstokensecret']);
     // $text = urlencode($text) ; // n'est pas nécessaire
     if ( !empty($image) ) { 
     	$reply   = $cb->media_upload(array(
@@ -112,6 +113,186 @@ function tweet($twitter_ids, $text, $image = NULL ) {
     return $reply ;
 }
 
+/**
+ * post_mastodon
+ * 
+ * Posts the given image and text to the given Mastodon instance.
+ * Does so using only REST calls, no third-party libraries.
+ * @param array $social_ids
+ *     array containing the Mastodon instance URL and the access token
+ * @param string $text
+ *    the text to post
+ * @param string $image
+ *   the path to the image to post, or URL
+ */
+function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
+    echo(print_r($image, TRUE)); 
+    $instance = $social_ids['api_url'];
+    $token = $social_ids['accesstoken'];
+    $params = array(
+        'status' => $text,
+    );
+    echo "<p>". print_r($instance, TRUE) . "</p>";
+    echo "<p>". print_r($token, TRUE) . "</p>";
+    echo "<p>". print_r($params, TRUE) . "</p>";
+    echo "<p>". print_r($image, TRUE) . "</p>";
+    if (!empty($image)) {
+        // need to make a call to the media upload api first, to get the media id
+        $ch = curl_init($instance . '/api/v2/media');
+        echo "<p>". print_r($ch, TRUE) . "</p>";
+
+        $image_is_url = filter_var($image, FILTER_VALIDATE_URL);
+        if ($image_is_url) {
+            // download the image
+            error_log('image is a URL');
+            $image_data = file_get_contents($image);
+            $tmpfname = tempnam("/tmp/vigilo", "VIGILO");
+            // register_shutdown_function(function() use ($tempFile) {
+            //     if (file_exists($tempFile)) {
+            //         unlink($tempFile);
+            //     }
+            // });
+            file_put_contents($tmpfname, $image_data);
+            $image = $tmpfname;
+            error_log('image downloaded to '.$tmpfname);
+        }
+
+        // the "file" parameter holds "The file to be attached, encoded using
+        // multipart form data. The file must have a MIME type."
+        // so we need to get the MIME type of the image
+        $mime = mime_content_type($image);
+        echo(print_r($mime, TRUE));
+        $media_params = array(
+            'file' => new CURLFile($image, $mime, basename($image)),
+        );
+        echo(print_r($media_params, TRUE));
+        // if a caption is given, pass it as "description"
+        if (!empty($caption)) {
+            $media_params['description'] = $caption;
+        }
+        // make the request
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $media_params);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $token,
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        echo "<p>";
+        echo($ch);
+        echo "</p>";
+        $response = curl_exec($ch);
+        // clean up
+        // if ($image_is_url) {
+        //     unlink($tmpfname);
+        // }
+        $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        // if the media upload was successful, we get the media id
+        echo $http_status;
+        echo '<br>';
+        echo $response;
+        echo '<br>';
+        if ($http_status == 200) {
+            $media_id = json_decode($response)->id;
+            echo "<p>" . print_r($media_id, TRUE) . "</p>";
+            $params['media_ids'] = array($media_id);
+            echo "<p>" . print_r($params, TRUE) . "</p>";
+        } else {
+            echo "<p>Media upload failed</p>";
+            echo "<pre>" . prettyPrint($response) . "</pre>";
+            return (object) array(
+                'httpstatus' => $http_status,
+                'response' => $response,
+            );
+        }
+    } else {
+        echo "<p>No image</p>";
+    }
+    // wait for a second, to avoid rate limiting
+    // sleep(1);
+    echo '<h3>params</h3><pre>' . prettyPrint(json_encode($params)) . '</pre>';
+    $status_curl = curl_init($instance . '/api/v1/statuses');
+    curl_setopt_array($status_curl, array(
+        CURLOPT_POST => 1,
+        CURLOPT_POSTFIELDS => json_encode($params),
+        CURLOPT_HTTPHEADER => array(
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json',
+        ),
+        CURLOPT_RETURNTRANSFER => true,
+    ));
+    curl_setopt($status_curl, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($status_curl);
+    $http_status = curl_getinfo($status_curl, CURLINFO_HTTP_CODE);
+    curl_close($status_curl);
+    echo '<h3>Response</h3>';
+    echo '<p>HTTP status: ' . $http_status . '</p>';
+    echo '<pre>'. prettyPrint($response) . '</pre>';
+    echo '<br>';
+    return (object) array(
+        'httpstatus' => $http_status,
+        'response' => $response,
+    );
+}
+
+
+function prettyPrint( $json )
+{
+    $result = '';
+    $level = 0;
+    $in_quotes = false;
+    $in_escape = false;
+    $ends_line_level = NULL;
+    $json_length = strlen( $json );
+
+    for( $i = 0; $i < $json_length; $i++ ) {
+        $char = $json[$i];
+        $new_line_level = NULL;
+        $post = "";
+        if( $ends_line_level !== NULL ) {
+            $new_line_level = $ends_line_level;
+            $ends_line_level = NULL;
+        }
+        if ( $in_escape ) {
+            $in_escape = false;
+        } else if( $char === '"' ) {
+            $in_quotes = !$in_quotes;
+        } else if( ! $in_quotes ) {
+            switch( $char ) {
+                case '}': case ']':
+                    $level--;
+                    $ends_line_level = NULL;
+                    $new_line_level = $level;
+                    break;
+
+                case '{': case '[':
+                    $level++;
+                case ',':
+                    $ends_line_level = $level;
+                    break;
+
+                case ':':
+                    $post = " ";
+                    break;
+
+                case " ": case "\t": case "\n": case "\r":
+                    $char = "";
+                    $ends_line_level = $new_line_level;
+                    $new_line_level = NULL;
+                    break;
+            }
+        } else if ( $char === '\\' ) {
+            $in_escape = true;
+        }
+        if( $new_line_level !== NULL ) {
+            $result .= "\n".str_repeat( "\t", $new_line_level );
+        }
+        $result .= $char.$post;
+    }
+
+    return $result;
+}
 
 /**
  * tweetToken
@@ -163,33 +344,60 @@ function tweetToken($token ) {
 	// crée le hashtag CITYHASHTAG
 	$citynamehashtag = "#".str_replace( array("-"," ") , "" , $cityname ) ;
 
-	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
-		  obs_scopes.scope_twittercontent,
-		  obs_twitteraccounts.ta_consumer,
-		  obs_twitteraccounts.ta_consumersecret,
-		  obs_twitteraccounts.ta_accesstoken,
-		  obs_twitteraccounts.ta_accesstokensecret  
-	   FROM obs_scopes, obs_twitteraccounts 
-	   WHERE obs_scopes.scope_twitteraccountid= obs_twitteraccounts.ta_id 
-	     AND obs_scopes.scope_name = '" . $scope . "'");
+    $query_text = "SELECT obs_scopes.scope_socialmediaaccountid,
+		  obs_scopes.scope_socialcontent,
+		  obs_social_media_accounts.ta_consumer,
+		  obs_social_media_accounts.ta_consumersecret,
+		  obs_social_media_accounts.ta_accesstoken,
+		  obs_social_media_accounts.ta_accesstokensecret,
+		  obs_social_media_accounts.ta_type,
+          obs_social_media_accounts.ta_api_url
+	   FROM obs_scopes, obs_social_media_accounts 
+	   WHERE obs_scopes.scope_socialmediaaccountid= obs_social_media_accounts.ta_id 
+	     AND obs_scopes.scope_name = '" . $scope . "'";
+    echo 'scope_query :';
+    echo "<pre>";
+    echo(print_r($query_text, TRUE));
+    echo "</pre>";
+	$scope_query  = mysqli_query($db, $query_text);
 	$scope_result = mysqli_fetch_array($scope_query);
 
-	if (!empty($scope_result['ta_consumer']) && !empty($scope_result['ta_consumersecret']) && !empty($scope_result['ta_accesstoken']) && !empty($scope_result['ta_accesstokensecret'])) {
+    echo 'scope_result :';
+    echo "<pre>";
+    echo(print_r($scope_result, TRUE));
+    echo "</pre>";
 
-		$twitter_ids   = array(
+	if ($scope_result['ta_type'] == 'twitter' && (empty($scope_result['ta_consumer']) || empty($scope_result['ta_consumersecret']) || empty($scope_result['ta_accesstoken']) || empty($scope_result['ta_accesstokensecret']))) {
+		$return['success'] = false ;
+		$return['error'] = "Empty twitter secrets on scope." ;
+        return $return;
+    }
+
+    if ($scope_result['ta_type'] == 'mastodon' && (empty($scope_result['ta_accesstoken']) || empty($scope_result['ta_api_url']))) {
+        $return['success'] = false ;
+        $return['error'] = "Empty mastodon secrets on scope." ;
+        return $return;
+    }
+
+		$social_ids   = array(
 			"consumer" => $scope_result['ta_consumer'],
 			"consumersecret" => $scope_result['ta_consumersecret'],
 			"accesstoken" => $scope_result['ta_accesstoken'],
-			"accesstokensecret" => $scope_result['ta_accesstokensecret']
+			"accesstokensecret" => $scope_result['ta_accesstokensecret'],
+            "type" => $scope_result['ta_type'],
+            "api_url" => $scope_result['ta_api_url']
 		);
-		$tweet_content = $scope_result['scope_twittercontent'];
-
+        echo 'social_ids :';
+        echo "<pre>";
+        echo(print_r($social_ids, TRUE));
+        echo "</pre>";
+		$tweet_content = $scope_result['scope_socialcontent'];
 		if ( empty($tweet_content) ) {
 			$tweet_content = "" ;
 		}
 
 		/* Don't tweet observations if they are more than N-hours old */
-		if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'] )) {
+		if ($time > (time() - 3600 * $config['APPROVE_SOCIAL_MEDIA_EXPTIME'] )) {
 			$tweet_content = str_replace('[COMMENT]', $comment, $tweet_content);
 			$tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
 			$tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
@@ -198,7 +406,38 @@ function tweetToken($token ) {
 			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
 			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
 
-			$return['response'] = tweet($twitter_ids, $tweet_content, $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token );
+            echo 'tweet_content :';
+            echo "<pre>";
+            echo(print_r($tweet_content, TRUE));
+            echo "</pre>";
+
+
+            // post to twitter or mastodon
+            $image_url = $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token;
+            echo 'image_url :'. $image_url;
+            echo '<br/>';
+            echo 'social_ids :'. print_r($social_ids, TRUE);
+            if ($social_ids['type'] == 'twitter') {
+                // on vérifie la bibliothèque
+                $return['response'] = tweet($social_ids, $tweet_content, $image_url);
+            } else {
+                // mastodon needs the images as a local file.
+                // make sure the image is generated, by calling generate_panel.php
+                // we'll just use an HTTP request for this. we don't need the response.
+                $image_url = $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token.'&size=full';
+                // error_log('image_url: ' . $image_url);
+                // $ch = curl_init($image_url);
+                // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                // curl_exec($ch);
+                // $cwd = dirname(__FILE__);
+                // // the image should be relative to our *parent* folder
+                // // but we can't simply use .. since that won't work in the web context
+                // // so we'll splitG the  
+                // $caches_path = 
+                // $img_filename = $caches_path . $token . '_full.jpg';
+                // error_log('img_filename: ' . $img_filename);
+                $return['response'] = post_mastodon($social_ids, $tweet_content, $image_url);
+            }
 			if ( $return['response']->httpstatus == 200 ) {
 				$return['success'] = true ;
 				$return['error'] = "" ;
@@ -212,12 +451,8 @@ function tweetToken($token ) {
 
 		} else {
 			$return['success'] = false ;
-			$return['error'] = "Token : " . $token . " older than " . $config['APPROVE_TWITTER_EXPTIME'] . "h. We won't tweet it." ;
+			$return['error'] = "Token : " . $token . " older than " . $config['APPROVE_SOCIAL_MEDIA_EXPTIME'] . "h. We won't tweet it." ;
 		}
-	} else {
-		$return['success'] = false ;
-		$return['error'] = "Empty Twitter informations on scope." ;
-	}
     return $return ;
 }
 

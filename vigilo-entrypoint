@@ -10,6 +10,13 @@ function logerr() {
 
 i=0
 
+log "Making sure we can write to images, caches, and maps directories ..."
+chown -R www-data:www-data /var/www/html/images /var/www/html/caches /var/www/html/maps
+chmod -R 777 /var/www/html/images /var/www/html/caches /var/www/html/maps
+
+mkdir /tmp/vigilo
+chown -R www-data:www-data /tmp/vigilo
+
 log "Trying to connect to database ..."
 while ! mysql -e ';' -h $MYSQL_HOST -u$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE > /dev/null 2>&1
 do

@@ -34,9 +34,9 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                               scope_map_zoom,
                                               scope_contact_email,
                                               scope_sharing_content_text,
-                                              scope_twitter,
-                                              scope_twitteraccountid,
-                                              scope_twittercontent,
+                                              scope_socialname,
+                                              scope_socialmediaaccountid,
+                                              scope_socialcontent,
                                               scope_umap_url,
                                               scope_nominatim_urlbase)
                                      VALUES ('xx_scope',
@@ -80,11 +80,12 @@ if (isset($_POST['scope_id'])) {
     echo '<div class="alert alert-success" role="alert">Scope <strong>' . $scopeid . '</strong> mis à jour</div>';
 }
 
-$twitterlist   = array(0 => "-- Pas de compte Twitter --");
-$query_twitter = mysqli_query($db, "SELECT * FROM obs_twitteraccounts");
-while ($result_twitter = mysqli_fetch_array($query_twitter)) {
-    $twitter_id = $result_twitter['ta_id'];
-    $twitterlist[$twitter_id] = '#' . $twitter_id;
+$sociallist   = array(0 => "-- Pas de réseau social --");
+$query_social = mysqli_query($db, "SELECT * FROM obs_social_media_accounts");
+// TODO: adapt for mastodon
+while ($result_social = mysqli_fetch_array($query_social)) {
+    $social_id = $result_social['ta_id'];
+    $sociallist[$social_id] = '#' . $social_id;
 }
 $query_scopes = mysqli_query($db, "SELECT * FROM obs_scopes");
 
@@ -187,24 +188,24 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
          </td>
        </tr>
        <tr>
-         <td>Compte Twitter affiché</td>
+         <td>Compte affiché</td>
          <td>
-           <input type="text" class="form-control-plaintext" name="scope_twitter" value="<?= $result_scopes['scope_twitter'] ?>" />
+           <input type="text" class="form-control-plaintext" name="scope_socialname" value="<?= $result_scopes['scope_socialname'] ?>" />
          </td>
        </tr>
        <tr>
-             <td>Identifiant compte twitter</td>
+             <td>Identifiant compte</td>
            <td>
-           <select name="scope_twitteraccountid" class=" custom-select">
+           <select name="scope_socialmediaaccountid" class=" custom-select">
 <?php
-    foreach ($twitterlist as $twitterid => $twittername) {
-        if ($twitterid == $result_scopes['scope_twitteraccountid']) {
+    foreach ($sociallist as $socialid => $socialname) {
+        if ($socialid == $result_scopes['scope_socialmediaaccountid']) {
             $selected = "selected";
         } else {
             $selected = "";
         }
         
-        echo '<option value='.$twitterid.' ' . $selected . '>' . $twittername . '</option>';
+        echo '<option value='.$socialid.' ' . $selected . '>' . $socialname . '</option>';
     }
 ?>
          </select>
@@ -224,7 +225,7 @@ while ($result_scopes = mysqli_fetch_array($query_scopes)) {
           </ul>
         </td>
         <td>
-          <textarea class="form-control-plaintext" name="scope_twittercontent" rows="5"><?= $result_scopes['scope_twittercontent'] ?></textarea>
+          <textarea class="form-control-plaintext" name="scope_socialcontent" rows="5"><?= $result_scopes['scope_socialcontent'] ?></textarea>
         </td>
       </tr>
       <tr>
