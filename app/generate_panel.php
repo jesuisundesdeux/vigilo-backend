@@ -54,7 +54,7 @@ if (isset($_GET['s']) && is_numeric($_GET['s'])) {
 
 require_once("$cwd/includes/functions.php");
 
-$image = generate_and_save_panel($token, $resize_width, $secretid, $key, $error_prefix, $cwd . '/images');
+$image = generate_and_save_panel($token, $resize_width, $secretid, $key, $error_prefix);
 
 # Generate full size image
 if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {

@@ -729,7 +729,7 @@ function getWebContent($url) {
 }
 
 
-function generate_and_save_panel($token, $requested_size, $secretid, $key, $error_prefix, $aclsimage_folder) {
+function generate_and_save_panel($token, $requested_size, $secretid, $key, $error_prefix) {
 
     require_once("images.php");
     require_once("handle.php");
