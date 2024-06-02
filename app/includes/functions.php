@@ -141,22 +141,6 @@ function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
         $ch = curl_init($instance . '/api/v2/media');
         echo "<p>". print_r($ch, TRUE) . "</p>";
 
-        $image_is_url = filter_var($image, FILTER_VALIDATE_URL);
-        if ($image_is_url) {
-            // download the image
-            error_log('image is a URL');
-            $image_data = file_get_contents($image);
-            $tmpfname = tempnam("/tmp/vigilo", "VIGILO");
-            // register_shutdown_function(function() use ($tempFile) {
-            //     if (file_exists($tempFile)) {
-            //         unlink($tempFile);
-            //     }
-            // });
-            file_put_contents($tmpfname, $image_data);
-            $image = $tmpfname;
-            error_log('image downloaded to '.$tmpfname);
-        }
-
         // the "file" parameter holds "The file to be attached, encoded using
         // multipart form data. The file must have a MIME type."
         // so we need to get the MIME type of the image
@@ -182,10 +166,6 @@ function post_mastodon($social_ids, $text, $image = NULL, $caption = NULL) {
         echo($ch);
         echo "</p>";
         $response = curl_exec($ch);
-        // clean up
-        // if ($image_is_url) {
-        //     unlink($tmpfname);
-        // }
         $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         // if the media upload was successful, we get the media id
@@ -422,21 +402,9 @@ function tweetToken($token ) {
                 $return['response'] = tweet($social_ids, $tweet_content, $image_url);
             } else {
                 // mastodon needs the images as a local file.
-                // make sure the image is generated, by calling generate_panel.php
-                // we'll just use an HTTP request for this. we don't need the response.
-                $image_url = $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token.'&size=full';
-                // error_log('image_url: ' . $image_url);
-                // $ch = curl_init($image_url);
-                // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                // curl_exec($ch);
-                // $cwd = dirname(__FILE__);
-                // // the image should be relative to our *parent* folder
-                // // but we can't simply use .. since that won't work in the web context
-                // // so we'll splitG the  
-                // $caches_path = 
-                // $img_filename = $caches_path . $token . '_full.jpg';
-                // error_log('img_filename: ' . $img_filename);
-                $return['response'] = post_mastodon($social_ids, $tweet_content, $image_url);
+                // this call gives us a gd image file as returned by gd, as well as the corresponding file name
+                $image_data = generate_and_save_panel($token, NULL, NULL, NULL, 'POST_MASTODON');
+                $return['response'] = post_mastodon($social_ids, $tweet_content, $image_data['filename'], 'sommaire de l\'observation');
             }
 			if ( $return['response']->httpstatus == 200 ) {
 				$return['success'] = true ;
@@ -843,5 +811,17 @@ function generate_and_save_panel($token, $requested_size, $secretid, $key, $erro
 
     $image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
 
-    return $image;
+    # save the resulting image so that the next call is faster
+    if ($resize_width == $MAX_IMG_SIZE && !$AdminOrAuthor) {
+        imagejpeg($image, $img_filename);
+    } else {
+        $imageresized = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
+        imagejpeg($imageresized, $img_filename);
+    }
+
+    // return image and filename as name array
+    return array(
+        'image' => $image,
+        'filename' => $img_filename
+    );
 }

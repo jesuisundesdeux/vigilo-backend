@@ -54,17 +54,14 @@ if (isset($_GET['s']) && is_numeric($_GET['s'])) {
 
 require_once("$cwd/includes/functions.php");
 
-$image = generate_and_save_panel($token, $resize_width, $secretid, $key, $error_prefix);
+$image_and_filename = generate_and_save_panel($token, $resize_width, $secretid, $key, $error_prefix);
+$image             = $image_and_filename['image'];
 
 # Generate full size image
-if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
-    imagejpeg($image);
-} else if ($resize_width == $MAX_IMG_SIZE) {
+if ($resize_width == $MAX_IMG_SIZE) {
     # Use user original image
-    imagejpeg($image, $img_filename);
     imagejpeg($image);
 } else {
     $imageresized = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
-    imagejpeg($imageresized, $img_filename);
     imagejpeg($imageresized);
 }
