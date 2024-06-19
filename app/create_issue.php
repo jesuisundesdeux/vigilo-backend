@@ -162,14 +162,23 @@ if (!($coordinates_lat >= $result_scope['scope_coordinate_lat_min'] && $coordina
     jsonError($error_prefix, "Coordinates out of range and not located in the scope '$scope'", "COORDINATESNOTALLOWED", 403);
 }
 
+error_log("Comment: " . print_r($comment, TRUE));
+error_log("Explanation: " . print_r($explanation, TRUE));
+
+# Note that we already escaped the comment and explanation fields.
+# Double escaping is not necessary and will actually introduce extra "\" in the
+# database that then show up in the app.
+# This is true for any of the fields that have already gone through
+# mysqli_real_escape_string(), but it will only really show up for the ones that
+# are free text: address, comment, and explanation.
 if ($update) {
     mysqli_query($db, 'UPDATE obs_list SET obs_coordinates_lat="' . mysqli_real_escape_string($db, $coordinates_lat) . '",
                                          obs_coordinates_lon="' . mysqli_real_escape_string($db, $coordinates_lon) . '",
                                          obs_city="' . mysqli_real_escape_string($db, $cityid) . '",
                                          obs_cityname="' . mysqli_real_escape_string($db, $cityname) . '",
-                                         obs_comment="' . mysqli_real_escape_string($db, $comment) . '",
-                                         obs_explanation="' . mysqli_real_escape_string($db, $explanation) . '",
-                                         obs_address_string="' . mysqli_real_escape_string($db, $address) . '",
+                                         obs_comment="' . $comment . '",
+                                         obs_explanation="' . $explanation . '",
+                                         obs_address_string="' . $address . '",
                                          obs_categorie="' . mysqli_real_escape_string($db, $categorie) . '",
                                          obs_time="' . mysqli_real_escape_string($db, $time) . '"
                     WHERE obs_token="' . mysqli_real_escape_string($db, $token) . '" AND obs_secretid="' . mysqli_real_escape_string($db, $secretid) . '"');
@@ -195,9 +204,9 @@ if ($update) {
                                "' . mysqli_real_escape_string($db, $cityname) . '",
                                "' . mysqli_real_escape_string($db, $coordinates_lat) . '",
                                "' . mysqli_real_escape_string($db, $coordinates_lon) . '",
-                               "' . mysqli_real_escape_string($db, $address) . '",
-                               "' . mysqli_real_escape_string($db, $comment) . '",
-                               "' . mysqli_real_escape_string($db, $explanation) . '",
+                               "' . $address . '",
+                               "' . $comment . '",
+                               "' . $explanation . '",
                                "' . mysqli_real_escape_string($db, $categorie) . '",
                                "' . mysqli_real_escape_string($db, $token) . '",
                                "' . mysqli_real_escape_string($db, $time) . '",
