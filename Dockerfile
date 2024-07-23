@@ -3,13 +3,13 @@ FROM php:7.3.32-apache
 MAINTAINER Vigilo Team <velocite34@gmail.com>
 
 RUN apt-get update && apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-        default-mysql-client \
-        python3 \
-        python3-docopt \
-        python3-natsort && rm -rf /var/lib/apt/lists/*
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    default-mysql-client \
+    python3 \
+    python3-docopt \
+    python3-natsort && rm -rf /var/lib/apt/lists/*
 
 # Activate php extensions
 RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
@@ -46,7 +46,13 @@ COPY mysql/ /tmp/mysql/
 COPY scripts/migrateDatabase.py /usr/local/bin
 
 ENV AUTOUPDATE false
-ENV VIGILO_VERSION 0.0.19
+ENV VIGILO_VERSION 0.0.20
+
+VOLUME /var/www/html/files
+VOLUME /var/www/html/maps
+VOLUME /var/www/html/caches
+
+RUN chmod -R 777 /var/www/html/images /var/www/html/caches /var/www/html/maps
 
 ENTRYPOINT ["vigilo-entrypoint"]
 #ENTRYPOINT ["docker-php-entrypoint"]

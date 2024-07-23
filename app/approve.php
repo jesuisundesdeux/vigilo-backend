@@ -62,11 +62,13 @@ delete_token_cache($token);
 
 if ($approved == 1) {
 	// on twitte l'observation
+	// TODO: make sure we tweet or toot, depending on the configuration
 	$r = tweetToken($token ) ;
 	if ( $r['success'] == true ) {
 		$i = 0 ; // do nothing
 	}
 	else {
+		// TODO: rename TWITTERERROR to SOCIALERROR or such
 		jsonError($error_prefix, $r['error'] , "TWITTERERROR", 200, "NOTICE");
 	}
 }
