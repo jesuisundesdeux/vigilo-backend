@@ -26,30 +26,30 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 } else {
     $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/tags");
     $git_json = json_decode($data, true);
-    
+
     $biggest = '0.0.1';
     foreach ($git_json as $key => $value) {
-        if (preg_match('/v([0-9]*).([0-9]*).([0-9]*)$/', $value['name'])) {
+        if (preg_match('/^v((\d+\.){2}\d+)$/', $value['name'])) {
             $version = str_replace('v','',$value['name']);
             if (version_compare($version, $biggest, ">")) {
-                $biggest = $value['name'];
+                $biggest = $version;
             }
         }
     }
-    
+
     $query_version  = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version' LIMIT 1");
     $result_version = mysqli_fetch_array($query_version);
-    
+
     $code_version = BACKEND_VERSION;
     $db_version   = $result_version['config_value'];
     $last_version = $biggest;
-    
+
     if ($code_version != $db_version) {
 ?>
  <div class="alert alert-danger" role="alert"><strong>Alerte !</strong> La version du code (<?= $code_version ?>) est différente de la version de la base (<?= $db_version ?>)</div>
   <?php
     }
-    
+
     if ($code_version != $last_version) {
 ?>
  <div class="alert alert-info" role="alert">
@@ -76,11 +76,11 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
     </table>
   </div>
   <?php
-    
+
     $migration_query       = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='migration_from_version' LIMIT 1");
     $migration_result      = mysqli_fetch_array($migration_query);
     $migration_fromversion = $migration_result['config_value'];
-    
+
     // TODO chargé un script sql et le lancer à partir d'ici / si fichier ci dessous existe c'est pour migration/post operation
     if (file_exists('./inc/updates/' . $migration_fromversion . '.php')) {
         echo "<h2>Migration necessaire</h2>";
