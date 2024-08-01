@@ -134,7 +134,7 @@ $map_file_path = $maps_path . $token . '_zoom.jpg';
 $res = GenerateMapQuestForToken($token, $map_file_path, $config['MAPQUEST_API']);
 if (!$res) {
     // Use default place holder picture instead of crashing
-    $map_file_path = "$cwd/panel_components/map_error.jpeg";
+    $map_file_path = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'map_error.jpeg']);
 }
 
 $map = imagecreatefromjpeg($map_file_path);
