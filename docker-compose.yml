@@ -46,7 +46,6 @@ services:
 #      - MYSQL_PASSWORD
 #      - MYSQL_DATABASE
 #
-
 #  sgblur:
 #    image: sgblur
 #    ports: 
