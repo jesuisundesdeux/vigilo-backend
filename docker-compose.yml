@@ -6,12 +6,13 @@ services:
     volumes:
       - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD
-      - MYSQL_USER
-      - MYSQL_PASSWORD
-      - MYSQL_DATABASE
+      - MARIADB_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MARIADB_USER=${MYSQL_USER}
+      - MARIADB_PASSWORD=${MYSQL_PASSWORD}
+      - MARIADB_DATABASE=${MYSQL_DATABASE}
   web:
-     image: vigilobs/vigilo-backend:0.0.19
+#     image: vigilobs/vigilo-backend:0.0.19
+     build: .
      working_dir: /var/www/html
      ports:
        - "${BIND}:80"
@@ -30,17 +31,17 @@ services:
        - MYSQL_PASSWORD
        - MYSQL_DATABASE
        - AUTOUPDATE
-  backup:
-    build: docker_backup/
-    volumes:
-      - ${VOLUME_PATH}/backup:/backup
-      - ${VOLUME_PATH}/files/caches:/tosave/caches:ro
-      - ${VOLUME_PATH}/files/maps:/tosave/maps:ro
-      - ${VOLUME_PATH}/files/images:/tosave/images:ro
-      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs:ro
-    environment:
-      - MYSQL_HOST
-      - MYSQL_USER
-      - MYSQL_PASSWORD
-      - MYSQL_DATABASE
-
+#  backup:
+#    build: docker_backup/
+#    volumes:
+#      - ${VOLUME_PATH}/backup:/backup
+#      - ${VOLUME_PATH}/files/caches:/tosave/caches:ro
+#      - ${VOLUME_PATH}/files/maps:/tosave/maps:ro
+#      - ${VOLUME_PATH}/files/images:/tosave/images:ro
+#      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs:ro
+#    environment:
+#      - MYSQL_HOST
+#      - MYSQL_USER
+#      - MYSQL_PASSWORD
+#      - MYSQL_DATABASE
+#

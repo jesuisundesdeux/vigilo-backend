@@ -67,8 +67,15 @@ if (isset($_GET['key'])) {
     $key = NULL;
 }
 
+if (file_exists($filepath . $token . '.jpg)) {
+  $photo_path = $filepath . $token . '.jpg';
+}
+else {
+  $photo_path = 'panels/jesuisundesdeux/panel_components/image_404.jpg'; 
+}
+
 if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
-    $photo = imagecreatefromjpeg($filepath . $token . '.jpg'); // issue photo
+    $photo = imagecreatefromjpeg($photo_path); // issue photo
     imagejpeg($photo);
 } else {
     jsonError($error_prefix, "Image display is not allowed", "NOTALLOWED", 403);
