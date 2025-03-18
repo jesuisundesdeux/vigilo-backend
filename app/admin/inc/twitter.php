@@ -17,6 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+echo '<div class="alert alert-danger" role="alert">
+  <b>Fonctionnalité depréciée !</b><br />
+  Cette fonctionnalité sera supprimée dans les prochaines versions
+</div>';
+
 if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], $menu[$page_name]['access'])) {
     exit('Not allowed');
 }

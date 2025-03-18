@@ -37,7 +37,7 @@ $MAX_IMG_SIZE = 1024; // For limit attack
 $error_prefix = 'ADD_IMAGE';
 
 if (!isset($_GET['token']) || !isset($_GET['secretid'])) {
-    jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
+   jsonError($error_prefix, "Missing token and/or secretid parameters.", "MISSINGARGUMENT", 400);
 }
 
 if (isset($_GET['type'])) {
@@ -48,6 +48,12 @@ if (isset($_GET['type'])) {
 
 $token    = $_GET['token'];
 $secretid = $_GET['secretid'];
+
+$query      = mysqli_query($db, "SELECT * FROM obs_config
+                            WHERE config_param='sgblur_url'
+                            LIMIT 1");
+$result     = mysqli_fetch_array($query);
+$sgblur_url = $result['config_value'];
 
 if (isset($_GET['method']) && !empty($_GET['method'])) {
     $method = $_GET['method'];
@@ -99,6 +105,31 @@ if ($image_written) {
             imagejpeg($imageresized, $filepath);
         }
 
+        if($sgblur_url) {
+            // Préparer le fichier à envoyer
+            $cfile = curl_file_create($filepath, mime_content_type($filepath), basename($filepath));
+
+            // Configurer la requête cURL
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $sgblur_url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, ['picture' => $cfile]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+            // Exécuter la requête
+            $response = curl_exec($ch);
+
+            // Vérifier les erreurs
+             if (curl_errno($ch)) {
+                jsonError($error_prefix, "Bluring issue : ".curl_error($ch), "SGBLURISSUE", 500);               
+            } else {
+            // Sauvegarder la réponse dans un fichier
+                file_put_contents($filepath, $response);
+            }
+
+            // Fermer la session cURL
+            curl_close($ch); 
+        }
         if ($type == "obs") {
             $obsid = getObsIdByToken($token);
             mysqli_query($db, "UPDATE obs_list SET obs_complete=1 WHERE obs_id='" . $obsid . "'");
