@@ -32,3 +32,6 @@ SyncSettings.ffs_gui
 # Generate umap
 scripts/umap/vigilo.umap
 .dccache
+
+# Dev folders
+dev/
