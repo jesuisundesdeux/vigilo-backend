@@ -95,6 +95,13 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
        </td>
      </tr>
      <tr>
+       <td>URL API SGBlur pour floutage auto<br />Voir <a href="https://github.com/cquest/sgblur">Projet SHBlur</a></td>
+       <td>
+         <input type="text" class="form-control-plaintext" name="config_param_sgblur_url" value="<?= $config['config_param_sgblur_url'] ?>"  />
+       </td>
+     </tr>
+
+     <tr>
        <td>Panel</td>
        <td>
          <select class="form-control" name="config_param_vigilo_panel">

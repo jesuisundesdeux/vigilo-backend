@@ -46,7 +46,7 @@ COPY mysql/ /tmp/mysql/
 COPY scripts/migrateDatabase.py /usr/local/bin
 
 ENV AUTOUPDATE false
-ENV VIGILO_VERSION 0.0.19
+ENV VIGILO_VERSION 0.0.20
 
 ENTRYPOINT ["vigilo-entrypoint"]
 #ENTRYPOINT ["docker-php-entrypoint"]
