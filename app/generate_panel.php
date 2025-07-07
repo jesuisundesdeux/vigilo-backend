@@ -123,6 +123,10 @@ if ($secretid == $result['obs_secretid'] || getrole($key, $acls) == "admin" || g
 
 $filepath = $images_path . $token . '.jpg';
 
+if (!file_exists($filepath)) {
+  $filepath = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'image_404.jpg']); 
+}
+
 # Image is pixelated until approved by a moderator
 if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
     $photo = pixalize($filepath);
