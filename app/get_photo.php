@@ -67,7 +67,7 @@ if (isset($_GET['key'])) {
     $key = NULL;
 }
 
-if (file_exists($filepath . $token . '.jpg)) {
+if (file_exists($filepath . $token . '.jpg')) {
   $photo_path = $filepath . $token . '.jpg';
 }
 else {

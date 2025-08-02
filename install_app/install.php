@@ -68,32 +68,37 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
         background-color: #f5f5f5;
       }
       
-      .form-signin {
+      .form-signup {
         width: 100%;
         max-width: 330px;
         padding: 15px;
         margin: 0 auto;
       }
-      .form-signin .checkbox {
+      .form-signup .checkbox {
         font-weight: 400;
       }
-      .form-signin .form-control {
+      .form-signup .form-control {
         position: relative;
         box-sizing: border-box;
         height: auto;
         padding: 10px;
         font-size: 16px;
       }
-      .form-signin .form-control:focus {
+      .form-signup .form-control:focus {
         z-index: 2;
       }
-      .form-signin input[type="email"] {
-        margin-bottom: -1px;
+      .form-signup input:nth-of-type(1) {
         border-bottom-right-radius: 0;
         border-bottom-left-radius: 0;
       }
-      .form-signin input[type="password"] {
-        margin-bottom: 10px;
+      .form-signup input:nth-of-type(-n+3) {
+        margin-bottom: -1px;
+      }
+      .form-signup input:nth-of-type(2),
+      .form-signup input:nth-of-type(3) {
+        border-radius:0;
+      }
+      .form-signup input:nth-of-type(4) {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
       }
@@ -132,8 +137,8 @@ else {
 ?>
 
     <form class="form-signup" method="POST">
-      <img class="mb-4" src="admin/vigilo.png" alt="" width="72" height="72">
-      <h1 class="h3 mb-3 font-weight-normal">Merci de créer votre compte admin</h1>
+      <img class="mb-3" src="/admin/vigilo.png" alt="" width="72" height="72">
+      <h1 class="h3 mb-4 font-weight-normal">Merci de créer un compte admin</h1>
 
 <?php
   if(isset($diffpass)) {
@@ -142,17 +147,17 @@ else {
   <strong>Alerte!</strong> Mots de passe différents
 </div>
 <?php } ?>
-      <label for="inputEmail" class="sr-only">Nom et Prénom</label>
-      <input type="text" name='name' class="form-control" placeholder="Nom et Prénom" required>
-      <label for="inputEmail" class="sr-only">Identifiant</label>
-      <input type="text" name='login' class="form-control" placeholder="Identifiant" required autofocus>
-      <label for="inputPassword" class="sr-only">Mot de passe</label>
-      <input type="password" name='password' class="form-control" placeholder="Mot de passe" required>
-      <label for="inputPassword" class="sr-only">Mot de passe (confirmation)</label>
-      <input type="password" name='password2' class="form-control" placeholder="Confirmation mot de passe" required>
+      <label for="input-name" class="sr-only">Nom et Prénom</label>
+      <input id="input-name" type="text" name='name' class="form-control" placeholder="Nom et Prénom" required autofocus autocomplete="off">
+      <label for="input-login" class="sr-only">Identifiant</label>
+      <input id="input-login" type="text" name='login' class="form-control" placeholder="Identifiant" required autocomplete="off">
+      <label for="input-password" class="sr-only">Mot de passe</label>
+      <input id="input-password" type="password" name='password' class="form-control" placeholder="Mot de passe" required autocomplete="off">
+      <label for="input-password-2" class="sr-only">Mot de passe (confirmation)</label>
+      <input id="input-password-2" type="password" name='password2' class="form-control mb-4" placeholder="Confirmation mot de passe" required autocomplete="off">
 
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Créer le compte</button>
-      <p class="mt-5 mb-3 text-muted">&copy; 2018-2019</p>
+      <button class="btn btn-lg btn-primary btn-block mb-5" type="submit">Créer le compte</button>
+      <p class="mb-5 text-muted">&copy; 2018-<?= date('Y') ?></p>
     </form>
 <?php 
   } 

@@ -18,44 +18,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], $menu[$page_name]['access'])) {
-    exit('Not allowed');
+  exit('Not allowed');
 }
 
 if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
-    echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
+  echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
 } else {
-    
-    if (isset($_POST['config_param'])) {
-        foreach ($_POST as $key => $value) {
-            if (preg_match('/config_param_(?:.*)$/', $key)) {
-                $key   = str_replace('config_param_', '', mysqli_real_escape_string($db, $key));
-                $value = mysqli_real_escape_string($db, $value);
-                
-                if ($key == "vigilo_shownonapproved") {
-                    $value = 1;
-                }
-                
-                $update = "UPDATE obs_config SET config_value='" . $value . "' WHERE config_param='" . $key . "'";
-                mysqli_query($db, $update);
-            }
+  if (isset($_POST['config_param'])) {
+    foreach ($_POST as $key => $value) {
+      if (preg_match('/config_param_(?:.*)$/', $key)) {
+        $key = str_replace('config_param_', '', mysqli_real_escape_string($db, $key));
+        $value = mysqli_real_escape_string($db, $value);
+
+        if ($key == 'vigilo_shownonapproved') {
+          $value = 1;
         }
-        if (!array_key_exists('config_param_vigilo_shownonapproved', $_POST)) {
-            mysqli_query($db, "UPDATE obs_config SET config_value='0' WHERE config_param='vigilo_shownonapproved'");
-        }
-        
-        echo '<div class="alert alert-success" role="alert">Configuration mise à jour</div>';
+
+        $update = "UPDATE obs_config SET config_value='" . $value . "' WHERE config_param='" . $key . "'";
+        mysqli_query($db, $update);
+      }
     }
-    
-    $query_config = mysqli_query($db, "SELECT * FROM obs_config");
-    while ($result_config = mysqli_fetch_array($query_config)) {
-        $param                            = $result_config['config_param'];
-        $config['config_param_' . $param] = $result_config['config_value'];
+    if (!array_key_exists('config_param_vigilo_shownonapproved', $_POST)) {
+      mysqli_query($db, "UPDATE obs_config SET config_value='0' WHERE config_param='vigilo_shownonapproved'");
     }
-    $shownonapproved_ck = "";
-    if ($config['config_param_vigilo_shownonapproved'] == 1) {
-        $shownonapproved_ck = "checked";
-    }
-?>
+
+    echo '<div class="alert alert-success" role="alert">Configuration mise à jour</div>';
+  }
+
+  $query_config = mysqli_query($db, 'SELECT * FROM obs_config');
+  while ($result_config = mysqli_fetch_array($query_config)) {
+    $param = $result_config['config_param'];
+    $config['config_param_' . $param] = $result_config['config_value'];
+  }
+  $shownonapproved_ck = '';
+  if ($config['config_param_vigilo_shownonapproved'] == 1) {
+    $shownonapproved_ck = 'checked';
+  }
+  ?>
 
 <h2>Liste</h2>
 
@@ -95,7 +94,7 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
        </td>
      </tr>
      <tr>
-       <td>URL API SGBlur pour floutage auto<br />Voir <a href="https://github.com/cquest/sgblur">Projet SHBlur</a></td>
+       <td>URL API SGBlur pour floutage auto<br />Voir <a href="https://github.com/cquest/sgblur">Projet SGBlur</a></td>
        <td>
          <input type="text" class="form-control-plaintext" name="config_param_sgblur_url" value="<?= $config['config_param_sgblur_url'] ?>"  />
        </td>
@@ -106,19 +105,19 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
        <td>
          <select class="form-control" name="config_param_vigilo_panel">
         <?php
-    if ($handle = opendir('../panels')) {
+      if ($handle = opendir('../panels')) {
         while (false !== ($entry = readdir($handle))) {
-            $selected = '';
-            if ($entry != "." && $entry != "..") {
-                if ($config['config_param_vigilo_panel'] == $entry) {
-                    $selected = 'selected';
-                }
-                echo '<option name="' . $entry . '" ' . $selected . '>' . $entry . '</option>';
+          $selected = '';
+          if ($entry != '.' && $entry != '..') {
+            if ($config['config_param_vigilo_panel'] == $entry) {
+              $selected = 'selected';
             }
+            echo '<option name="' . $entry . '" ' . $selected . '>' . $entry . '</option>';
+          }
         }
         closedir($handle);
-    }
-?>
+      }
+  ?>
          </select>
        </td>
      </tr>
