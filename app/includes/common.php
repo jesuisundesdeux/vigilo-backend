@@ -28,7 +28,8 @@ if (file_exists(dirname(__FILE__) . "/../config/config.php")) {
 
 global $config;
 
-define('BACKEND_VERSION', '0.0.21');
+define('BACKEND_VERSION', '0.0.153');
+define('APPD', $_SERVER['DOCUMENT_ROOT']);
 
 if (!isset($config['DATA_PATH'])) {
     $config['DATA_PATH'] = '';
