@@ -19,11 +19,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 session_start();
 
-require_once('../includes/common.php');
-$badlogin = False;
+require_once '../includes/common.php';
+$badlogin = false;
 if (isset($_POST['login'])) {
-  $login = mysqli_real_escape_string($db,$_POST['login']);
-  $login_query = mysqli_query($db,"SELECT * FROM obs_roles WHERE role_login = '".$login."' AND (role_name='admin' OR role_name='citystaff') LIMIT 1");
+  $login = mysqli_real_escape_string($db, $_POST['login']);
+  $login_query = mysqli_query($db, "SELECT * FROM obs_roles WHERE role_login = '" . $login . "' AND (role_name='admin' OR role_name='citystaff') LIMIT 1");
   $login_result = mysqli_fetch_array($login_query);
 
   if (password_verify($_POST['password'], $login_result['role_password'])) {
@@ -31,7 +31,7 @@ if (isset($_POST['login'])) {
     $_SESSION['role'] = $login_result['role_name'];
 
     header('Location: index.php');
-  } elseif (hash('sha256',$_POST['password']) == $login_result['role_password']) {
+  } elseif (hash('sha256', $_POST['password']) == $login_result['role_password']) {
     $newHash = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     $_SESSION['login'] = $login;
@@ -39,101 +39,108 @@ if (isset($_POST['login'])) {
 
     header('Location: index.php?page=accounts&ask_pwd_update=1');
   } else {
-    $badlogin = True;
+    $badlogin = true;
   }
-}
-else {
+} else {
   session_destroy();
 }
 ?>
 
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
 
-    <title>Vigilo Login</title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
 
-    <link rel="canonical" href="https://getbootstrap.com/docs/4.0/examples/sign-in/">
+  <title>Vigilo Login</title>
 
-    <!-- Bootstrap core CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="canonical" href="https://getbootstrap.com/docs/4.0/examples/sign-in/">
 
-    <style>
-      html,
-      body {
-        height: 100%;
-      }
+  <!-- Bootstrap core CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
 
-      body {
-        display: -ms-flexbox;
-        display: -webkit-box;
-        display: flex;
-        -ms-flex-align: center;
-        -ms-flex-pack: center;
-        -webkit-box-align: center;
-        align-items: center;
-        -webkit-box-pack: center;
-        justify-content: center;
-        padding-top: 40px;
-        padding-bottom: 40px;
-        background-color: #f5f5f5;
-      }
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
 
-      .form-signin {
-        width: 100%;
-        max-width: 330px;
-        padding: 15px;
-        margin: 0 auto;
-      }
-      .form-signin .checkbox {
-        font-weight: 400;
-      }
-      .form-signin .form-control {
-        position: relative;
-        box-sizing: border-box;
-        height: auto;
-        padding: 10px;
-        font-size: 16px;
-      }
-      .form-signin .form-control:focus {
-        z-index: 2;
-      }
-      .form-signin input[type="email"] {
-        margin-bottom: -1px;
-        border-bottom-right-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-      .form-signin input[type="password"] {
-        margin-bottom: 10px;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-      }
-    </style>
+    body {
+      display: -ms-flexbox;
+      display: -webkit-box;
+      display: flex;
+      -ms-flex-align: center;
+      -ms-flex-pack: center;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      justify-content: center;
+      padding-top: 40px;
+      padding-bottom: 40px;
+      background-color: #f5f5f5;
+    }
 
-  </head>
+    .form-signin {
+      width: 100%;
+      max-width: 330px;
+      padding: 15px;
+      margin: 0 auto;
+    }
 
-  <body class="text-center">
-    <form class="form-signin" method="POST">
-      <img class="mb-4" src="vigilo.png" alt="" width="72" height="72">
-      <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
-<?php
-      if($badlogin) {
-        echo '<div class="alert alert-danger" role="alert">
-		  <strong>Oh zut!</strong> Login / mot de passe incorrect.
-		  </div>';
-      }
+    .form-signin .checkbox {
+      font-weight: 400;
+    }
 
+    .form-signin .form-control {
+      position: relative;
+      box-sizing: border-box;
+      height: auto;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .form-signin .form-control:focus {
+      z-index: 2;
+    }
+
+    .form-signin input[name="login"] {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .form-signin input[name="password"] {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+  </style>
+
+</head>
+
+<body class="text-center">
+  <form class="form-signin" method="POST">
+    <img class="mb-3" src="vigilo.png" alt="" width="72" height="72">
+    <h1 class="h3 mb-4 font-weight-normal">Please sign in</h1>
+
+    <?php
+    if ($badlogin) {
+      echo '<div class="alert alert-danger mb-4" role="alert">';
+      echo '<strong>Oh zut!</strong><br />Login / mot de passe incorrect.';
+      echo '</div>';
+    }
 ?>
-      <label for="inputEmail" class="sr-only">Login</label>
-      <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
-      <label for="inputPassword" class="sr-only">Password</label>
-      <input type="password" name='password' class="form-control" placeholder="Password" required>
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-      <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
-    </form>
-  </body>
+
+    <label for="inputLogin" class="sr-only">Login</label>
+    <input id="inputLogin" type="text" name='login' class="form-control" placeholder="Login" required autofocus>
+    <label for="inputPassword" class="sr-only">Password</label>
+    <input id="inputPassword" type="password" name='password' class="form-control mb-4" placeholder="Password" required>
+    <button class="btn btn-lg btn-primary btn-block mb-5" type="submit">Sign in</button>
+    <p class="mb-5 text-muted">&copy; 2017-<?= date('Y') ?></p>
+  </form>
+</body>
+
 </html>
