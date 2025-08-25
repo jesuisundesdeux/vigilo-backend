@@ -102,12 +102,12 @@ else {
       .form-signin .form-control:focus {
         z-index: 2;
       }
-      .form-signin input[type="email"] {
+      .form-signin input[name="login"] {
         margin-bottom: -1px;
         border-bottom-right-radius: 0;
         border-bottom-left-radius: 0;
       }
-      .form-signin input[type="password"] {
+      .form-signin input[name="password"] {
         margin-bottom: 10px;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
@@ -118,22 +118,23 @@ else {
 
   <body class="text-center">
     <form class="form-signin" method="POST">
-      <img class="mb-4" src="vigilo.png" alt="" width="72" height="72">
-      <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+      <img class="mb-3" src="vigilo.png" alt="" width="72" height="72">
+      <h1 class="h3 mb-4 font-weight-normal">Merci de vous connecter</h1>
 <?php
       if($badlogin) {
-        echo '<div class="alert alert-danger" role="alert">
-		  <strong>Oh zut!</strong> Login / mot de passe incorrect.
-		  </div>';
+        echo '<div class="alert alert-danger mb-4" role="alert">';
+        echo '<strong>Oh zut!</strong><br />Login / mot de passe incorrect.';
+        echo '</div>';
       }
 
 ?>
-      <label for="inputEmail" class="sr-only">Login</label>
-      <input type="text" name='login' class="form-control" placeholder="Login" required autofocus>
-      <label for="inputPassword" class="sr-only">Password</label>
-      <input type="password" name='password' class="form-control" placeholder="Password" required>
-      <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-      <p class="mt-5 mb-3 text-muted">&copy; 2017-2018</p>
-    </form>
-  </body>
+    <label for="inputLogin" class="sr-only">Login</label>
+    <input id="inputLogin" type="text" name='login' class="form-control" placeholder="Login" required autofocus autocomplete="on">
+    <label for="inputPassword" class="sr-only">Password</label>
+    <input id="inputPassword" type="password" name='password' class="form-control mb-4" placeholder="Password" required autocomplete="on">
+    <button class="btn btn-lg btn-primary btn-block mb-5" type="submit">Se connecter</button>
+    <p class="mb-5 text-muted">&copy; 2017-<?= date('Y') ?></p>
+  </form>
+</body>
+
 </html>
