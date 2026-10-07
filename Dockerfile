@@ -2,13 +2,18 @@ FROM php:7.3.32-apache
 
 MAINTAINER Vigilo Team <velocite34@gmail.com>
 
-# Debian bullseye (base of PHP 7.3) is moving to archive.debian.org: fall back to it
-RUN (apt-get update || (sed -i -e 's|deb.debian.org|archive.debian.org|g' -e '/security.debian.org/d' -e '/-updates/d' /etc/apt/sources.list && apt-get update)) \
-    && apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-        default-mysql-client && rm -rf /var/lib/apt/lists/*
+# Debian bullseye (base of PHP 7.3) is end of life and its packages are leaving the
+# regular mirrors: when the install fails, retry from archive.debian.org.
+RUN PACKAGES="libfreetype6-dev libjpeg62-turbo-dev libpng-dev default-mysql-client" \
+    && (apt-get update && apt-get install -y $PACKAGES) \
+    || (printf '%s\n' \
+          'deb http://archive.debian.org/debian bullseye main' \
+          'deb http://archive.debian.org/debian-security bullseye-security main' \
+          > /etc/apt/sources.list \
+        && rm -rf /var/lib/apt/lists/* \
+        && apt-get -o Acquire::Check-Valid-Until=false update \
+        && apt-get install -y $PACKAGES) \
+    && rm -rf /var/lib/apt/lists/*
 
 # Activate php extensions
 RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \

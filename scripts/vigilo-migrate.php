@@ -3,9 +3,10 @@
  * Command line database migration, used by the Docker entrypoint and usable on a
  * dedicated server:
  *
- *   php scripts/vigilo-migrate.php [--app=/var/www/html] [--status]
+ *   php scripts/vigilo-migrate.php [--app=/var/www/html] [--status] [--to=X.Y.Z]
  *
  * --status only prints "<db version> <code version>" and exits.
+ * --to stops at an older version than the code (tests, step by step upgrades).
  * Exit codes: 0 up to date / migrated, 1 error, 2 database newer than the code.
  */
 
@@ -14,7 +15,7 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-$options = getopt('', array('app:', 'status'));
+$options = getopt('', array('app:', 'status', 'to:'));
 $app     = isset($options['app']) ? $options['app'] : dirname(__FILE__) . '/../app';
 
 require_once($app . '/includes/version.php');
@@ -50,8 +51,14 @@ if (version_compare($db_version, BACKEND_VERSION, '>')) {
     exit(2);
 }
 
+$target = isset($options['to']) ? $options['to'] : BACKEND_VERSION;
+if (!preg_match('/^\d+\.\d+\.\d+$/', $target) || version_compare($target, BACKEND_VERSION, '>')) {
+    fwrite(STDERR, "Version cible invalide : $target\n");
+    exit(1);
+}
+
 try {
-    $applied = vigilo_migrate($db, BACKEND_VERSION, function ($message) {
+    $applied = vigilo_migrate($db, $target, function ($message) {
         echo $message . "\n";
     });
 } catch (Exception $e) {
@@ -59,5 +66,5 @@ try {
     exit(1);
 }
 
-echo count($applied) ? "Base migrée de $db_version à " . BACKEND_VERSION . "\n" : "Base à jour (" . BACKEND_VERSION . ")\n";
+echo count($applied) ? "Base migrée de $db_version à $target\n" : "Base à jour ($target)\n";
 exit(0);

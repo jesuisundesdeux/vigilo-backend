@@ -86,10 +86,16 @@ jobs:
                 cat mysql/pre_sql.sql app/migrations/init-$V.sql
                 echo
               fi
-            done | mysql -h 127.0.0.1 -uroot -proot vigilo
+            done | grep -v '^[[:space:]]*--' | mysql -h 127.0.0.1 -uroot -proot vigilo
             echo "From $(php scripts/vigilo-migrate.php --status)"
             php scripts/vigilo-migrate.php
           done
+      - name: Step by step upgrade
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
+          php scripts/vigilo-migrate.php --to=0.0.17
+          php scripts/vigilo-migrate.php --status | grep -q '^0.0.17 '
+          php scripts/vigilo-migrate.php
       - name: Refuse a database newer than the code
         run: |
           mysql -h 127.0.0.1 -uroot -proot vigilo -e "UPDATE obs_config SET config_value='99.0.0' WHERE config_param='vigilo_db_version'"
