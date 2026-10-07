@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-if (!isset($page_name) || (isset($_SESSION['role']) && !in_array($_SESSION['role'], $menu[$page_name]['access']))) {
+if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role'], $menu[$page_name]['access'])) {
     exit('Not allowed');
 }
 
@@ -117,8 +117,8 @@ if (isset($_POST['resolution_id']) && in_array($_SESSION['role'], $actions_acl['
         echo '<div class="alert alert-success" role="alert">Resolution <strong>' . $resolutionid . '</strong> mise à jour</div>';
     }
 }
-if (isset($_POST['resolution_add']) && $_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add'])) {
-    addObsToResolution($_POST['obs_id'], $_POST['resolution_add']);
+if (isset($_POST['resolution_add']) && $_POST['resolution_add'] != 0 && is_numeric($_POST['resolution_add']) && isset($_POST['obs_id']) && is_numeric($_POST['obs_id'])) {
+    addObsToResolution(intval($_POST['obs_id']), intval($_POST['resolution_add']));
 }
 
 
@@ -241,12 +241,12 @@ while ($result_resolution = mysqli_fetch_array($query_resolution)) {
     $heure = date('H:i', $result_resolution['resolution_time']);
 ?>
      <tr>
-        <td><?= $result_resolution['resolution_token'] ?></td>
+        <td><?= htmlspecialchars($result_resolution['resolution_token']) ?></td>
     <td>
 <?php
     if ($result_resolution['resolution_withphoto'] == 1) {
 ?>
-   <a href="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" target="_blank"><img width="200px" src="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= $result_resolution['resolution_token'] ?>" /></a>
+   <a href="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= urlencode($result_resolution['resolution_token']) ?>" target="_blank"><img width="200px" src="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/get_photo.php?type=resolution&token=<?= urlencode($result_resolution['resolution_token']) ?>" /></a>
 <?php
     } else {
 ?>
@@ -258,7 +258,7 @@ while ($result_resolution = mysqli_fetch_array($query_resolution)) {
     <td>
           <form action="?page=resolutions&resolved=<?= $resolved ?><?= $urlsuffix ?>" method="POST">
             <label for="obs_comment"><strong>Commentaire</strong></label>
-        <input type="text" class="form-control-plaintext" name="resolution_comment" value="<?= $result_resolution['resolution_comment'] ?>" />
+        <input type="text" class="form-control-plaintext" name="resolution_comment" value="<?= htmlspecialchars($result_resolution['resolution_comment']) ?>" />
             <?php
     if ($result_resolution['resolution_status'] == 4 || $result_resolution['resolution_status'] == 1) {
 ?>

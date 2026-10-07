@@ -1,4 +1,37 @@
-## Mise à jour
+## Mise à jour à partir de la version 0.0.22
+
+Depuis la 0.0.22, la base de données est migrée automatiquement :
+
+* **Docker** : au démarrage du conteneur (sauf si `AUTOUPDATE=false`). Le conteneur refuse de démarrer
+  si la base est plus récente que le code (retour à une version antérieure).
+* **Hébergement mutualisé / serveur dédié** : après avoir mis à jour le code, aller dans l'admin,
+  menu « Mises à jour », puis cliquer sur « Appliquer les migrations ».
+  Sur un serveur dédié, on peut aussi lancer `php scripts/vigilo-migrate.php`.
+
+Pensez à sauvegarder la base avant chaque mise à jour.
+
+La version du code est définie à un seul endroit : `app/includes/version.php`.
+Les migrations sont dans `app/migrations/` (anciennement `mysql/init/`).
+
+### Mise à jour vers 0.0.22 (correctifs de sécurité)
+
+1. Mettre à jour le code (voir ci-dessous) ou l'image Docker.
+2. Appliquer les migrations (automatique en Docker, sinon depuis l'admin).
+3. **Vider le répertoire `caches/`** : les versions précédentes pouvaient y écrire des
+   panneaux non floutés. Les nouveaux fichiers de cache ont un nom différent (`_p2_`).
+4. Vérifier que les répertoires `images/` et `caches/` ne sont **pas** accessibles
+   depuis le web (`https://VOTRE_URL/images/` doit répondre 403). Sous nginx, les
+   `.htaccess` ne sont pas lus, il faut ajouter :
+
+   ```nginx
+   location ~ ^/(images|caches|migrations)/ { deny all; return 403; }
+   location = /install.php { deny all; return 403; }
+   ```
+
+5. Vérifier qu'il ne reste pas de fichier `install.php` à la racine.
+
+## Mise à jour des versions antérieures à 0.0.22
+
 Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:
 
 ```
@@ -40,7 +73,7 @@ $ git checkout vX.X.X
 
 #### Mettre à jour la base de données
 
-Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
+Lancer dans l'ordre les fichiers SQL de app/migrations/ (mysql/init/ avant la 0.0.22) correspondant aux versions supérieures à la votre 
 
 Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
 

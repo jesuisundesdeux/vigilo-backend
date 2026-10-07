@@ -20,6 +20,7 @@ session_start();
 
 if(!isset($_SESSION['login']) || !isset($_SESSION['role'])) {
   header('Location: login.php');
+  exit;
 }
 
 require_once('../includes/common.php');
@@ -42,6 +43,9 @@ if(!isset($_GET['page']) || !array_key_exists($_GET['page'],$menu)) {
 else {
   $page_name = $_GET['page'];
 }
+
+/* Every page is restricted to the roles listed in its menu entry */
+$page_allowed = in_array($_SESSION['role'], $menu[$page_name]['access'], true);
 
 /* Check config */
 $config_query = mysqli_query($db,"SELECT * FROM obs_config WHERE config_param='vigilo_urlbase' LIMIT 1");
@@ -132,7 +136,13 @@ if($cities_nb == 0) {
             <h1 class="h2"><?= $menu[$page_name]['name'] ?></h1>
           </div>
 
-    <?php include('inc/'.$page_name.'.php'); ?>
+    <?php
+    if ($page_allowed) {
+        include('inc/'.$page_name.'.php');
+    } else {
+        echo '<div class="alert alert-danger" role="alert">Accès non autorisé pour ce rôle</div>';
+    }
+    ?>
         </main>
       </div>
     </div>

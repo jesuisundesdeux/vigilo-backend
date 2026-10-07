@@ -24,11 +24,39 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
     echo '<div class="alert alert-warning" role="alert">La configuration n\'est pas accessible en SaaS</div>';
 } else {
+    require_once(dirname(__FILE__) . '/../../includes/migrations.php');
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    /* Apply pending database migrations (same runner as the Docker entrypoint) */
+    if (isset($_POST['apply_migrations'])) {
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            echo '<div class="alert alert-danger" role="alert">Jeton de sécurité invalide, merci de recharger la page</div>';
+        } else {
+            $migration_log = array();
+            try {
+                $applied = vigilo_migrate($db, BACKEND_VERSION, function ($message) use (&$migration_log) {
+                    $migration_log[] = $message;
+                });
+                echo '<div class="alert alert-success" role="alert">Base de données à jour (' . htmlspecialchars(BACKEND_VERSION) . ')';
+                if (count($applied)) {
+                    echo ' : migrations ' . htmlspecialchars(implode(', ', $applied)) . ' appliquées';
+                }
+                echo '</div>';
+            } catch (Exception $e) {
+                error_log('[MIGRATION] ' . $e->getMessage());
+                echo '<div class="alert alert-danger" role="alert"><strong>Migration en échec</strong><pre>' . htmlspecialchars(implode("\n", $migration_log)) . '</pre></div>';
+            }
+        }
+    }
+
     $data     = getWebContent("https://api.github.com/repos/jesuisundesdeux/vigilo-backend/tags");
     $git_json = json_decode($data, true);
 
     $biggest = '0.0.1';
-    foreach ($git_json as $key => $value) {
+    foreach ((is_array($git_json) ? $git_json : array()) as $key => $value) {
         if (preg_match('/^v((\d+\.){2}\d+)$/', $value['name'])) {
             $version = str_replace('v','',$value['name']);
             if (version_compare($version, $biggest, ">")) {
@@ -46,15 +74,26 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 
     if ($code_version != $db_version) {
 ?>
- <div class="alert alert-danger" role="alert"><strong>Alerte !</strong> La version du code (<?= $code_version ?>) est différente de la version de la base (<?= $db_version ?>)</div>
+ <div class="alert alert-danger" role="alert"><strong>Alerte !</strong> La version du code (<?= htmlspecialchars($code_version) ?>) est différente de la version de la base (<?= htmlspecialchars($db_version) ?>)</div>
   <?php
+        if (version_compare($db_version, $code_version, '<')) {
+            $pending = array_keys(vigilo_migrations_pending($db_version, $code_version));
+?>
+ <form method="POST" class="mb-4">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>" />
+    <p>Migrations à appliquer : <strong><?= count($pending) ? htmlspecialchars(implode(', ', $pending)) : 'aucune (mise à jour du numéro de version)' ?></strong>.
+    Pensez à sauvegarder la base avant de lancer la mise à jour.</p>
+    <button type="submit" name="apply_migrations" value="1" class="btn btn-warning" onclick="return confirm('Appliquer les migrations de la base de données ?')">Appliquer les migrations</button>
+  </form>
+  <?php
+        }
     }
 
-    if ($code_version != $last_version) {
+    if (version_compare($last_version, $code_version, ">")) {
 ?>
  <div class="alert alert-info" role="alert">
-    <strong>Nouvelle version disponible !</strong> Une nouvelle version (<?= $last_version ?>) est disponible, merci de faire la mise à jour dès que possible.<br />
-    <a href="https://github.com/jesuisundesdeux/vigilo-backend/tree/<?= $last_version ?>">Rendez-vous sur Git-hub</a>
+    <strong>Nouvelle version disponible !</strong> Une nouvelle version (<?= htmlspecialchars($last_version) ?>) est disponible, merci de faire la mise à jour dès que possible.<br />
+    <a href="https://github.com/jesuisundesdeux/vigilo-backend/releases/tag/v<?= htmlspecialchars($last_version) ?>">Voir la version sur GitHub</a>
   </div>
   <?php
     }
@@ -79,10 +118,10 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 
     $migration_query       = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='migration_from_version' LIMIT 1");
     $migration_result      = mysqli_fetch_array($migration_query);
-    $migration_fromversion = $migration_result['config_value'];
+    $migration_fromversion = $migration_result ? basename($migration_result['config_value']) : '';
 
     // TODO chargé un script sql et le lancer à partir d'ici / si fichier ci dessous existe c'est pour migration/post operation
-    if (file_exists('./inc/updates/' . $migration_fromversion . '.php')) {
+    if ($migration_fromversion !== '' && file_exists('./inc/updates/' . $migration_fromversion . '.php')) {
         echo "<h2>Migration necessaire</h2>";
         require_once('./inc/updates/' . $migration_fromversion . '.php');
     }

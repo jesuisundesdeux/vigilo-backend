@@ -97,8 +97,9 @@ if (strlen($time) == 13) {
 
 # Handle optional fields
 if (isset($_POST['comment'])) {
-    $comment = removeEmoji(mysqli_real_escape_string($db, $_POST['comment']));
-    $comment = substr($comment, 0, 50); # Max 50 char
+    # Truncate before escaping: cutting an escaped string can leave a dangling backslash
+    $comment = mb_substr(removeEmoji($_POST['comment']), 0, 50, 'UTF-8'); # Max 50 char
+    $comment = mysqli_real_escape_string($db, $comment);
 } else {
     $comment = Null;
 }

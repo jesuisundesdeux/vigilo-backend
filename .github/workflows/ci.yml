@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.3', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: Syntax check
+        run: |
+          find app scripts install_app -name '*.php' -print0 \
+            | xargs -0 -n1 php -l > /tmp/lint.log 2>&1 || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
+
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version file and migrations agree
+        run: |
+          VERSION=$(sed -n "s/^define('BACKEND_VERSION', '\([0-9.]*\)');/\1/p" app/includes/version.php)
+          echo "Version: $VERSION"
+          test -n "$VERSION"
+          LAST=$(ls app/migrations/init-*.sql | sed 's/.*init-//;s/\.sql$//' | sort -V | tail -1)
+          if [ "$(printf '%s\n%s\n' "$LAST" "$VERSION" | sort -V | tail -1)" != "$VERSION" ]; then
+            echo "::error::Migration $LAST is newer than the code version $VERSION"
+            exit 1
+          fi
+          grep -q "'$LAST' WHERE" app/migrations/init-$LAST.sql
+
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: vigilo
+          MARIADB_USER: vigilo
+          MARIADB_PASSWORD: vigilo
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_USER: vigilo
+      MYSQL_PASSWORD: vigilo
+      MYSQL_DATABASE: vigilo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.3'
+          extensions: mysqli
+          tools: none
+      - name: Install from an empty database
+        run: |
+          cp config/config.php.docker app/config/config.php
+          php scripts/vigilo-migrate.php --status | grep -q '^0.0.0 '
+          php scripts/vigilo-migrate.php
+          php scripts/vigilo-migrate.php --status | awk '{ exit ($1 == $2) ? 0 : 1 }'
+      - name: Migrations are re-runnable
+        run: php scripts/vigilo-migrate.php | grep -q 'Base à jour'
+      - name: Upgrade from every released version
+        run: |
+          VERSIONS=$(ls app/migrations/init-*.sql | sed 's/.*init-//;s/\.sql$//' | sort -V)
+          for FROM in 0.0.17 0.0.18 0.0.19 0.0.20 0.0.21; do
+            mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
+            for V in $VERSIONS; do
+              if [ "$(printf '%s\n%s\n' "$V" "$FROM" | sort -V | tail -1)" = "$FROM" ]; then
+                cat mysql/pre_sql.sql app/migrations/init-$V.sql
+                echo
+              fi
+            done | mysql -h 127.0.0.1 -uroot -proot vigilo
+            echo "From $(php scripts/vigilo-migrate.php --status)"
+            php scripts/vigilo-migrate.php
+          done
+      - name: Refuse a database newer than the code
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot vigilo -e "UPDATE obs_config SET config_value='99.0.0' WHERE config_param='vigilo_db_version'"
+          set +e
+          php scripts/vigilo-migrate.php
+          test $? -eq 2
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: vigilo-backend:ci

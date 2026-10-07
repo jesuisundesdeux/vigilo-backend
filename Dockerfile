@@ -2,14 +2,13 @@ FROM php:7.3.32-apache
 
 MAINTAINER Vigilo Team <velocite34@gmail.com>
 
-RUN apt-get update && apt-get install -y \
+# Debian bullseye (base of PHP 7.3) is moving to archive.debian.org: fall back to it
+RUN (apt-get update || (sed -i -e 's|deb.debian.org|archive.debian.org|g' -e '/security.debian.org/d' -e '/-updates/d' /etc/apt/sources.list && apt-get update)) \
+    && apt-get install -y \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libpng-dev \
-        default-mysql-client \
-        python3 \
-        python3-docopt \
-        python3-natsort && rm -rf /var/lib/apt/lists/*
+        default-mysql-client && rm -rf /var/lib/apt/lists/*
 
 # Activate php extensions
 RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
@@ -31,8 +30,8 @@ COPY config/remoteip.conf /etc/apache2/conf-enabled
 # Add default Apache conf
 COPY config/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 
-# Activate php log
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+# Production settings: errors are logged, never displayed
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY vigilo-entrypoint /usr/local/bin/vigilo-entrypoint
 
@@ -41,12 +40,11 @@ COPY install_app /tmp/install_app
 
 COPY config/config.php.docker /var/www/html/config/config.php
 
-COPY mysql/ /tmp/mysql/
+COPY scripts/vigilo-migrate.php /usr/local/bin/vigilo-migrate.php
 
-COPY scripts/migrateDatabase.py /usr/local/bin
-
-ENV AUTOUPDATE false
-ENV VIGILO_VERSION 0.0.20
+# The version is read from app/includes/version.php at startup, never hardcoded here.
+# Migrations run at startup unless AUTOUPDATE=false.
+ENV AUTOUPDATE true
 
 ENTRYPOINT ["vigilo-entrypoint"]
 #ENTRYPOINT ["docker-php-entrypoint"]

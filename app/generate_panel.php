@@ -69,17 +69,21 @@ if (isset($_GET['secretid'])) {
     $secretid = Null;
 }
 
-if (isset($_GET["s"]) && is_numeric($_GET["s"]) && intval($_GET["s"]) <= $MAX_IMG_SIZE) {
+if (isset($_GET["s"]) && is_numeric($_GET["s"]) && intval($_GET["s"]) > 0 && intval($_GET["s"]) <= $MAX_IMG_SIZE) {
     $resize_width = intval($_GET["s"]);
-    $img_filename = $caches_path . $token . '_w' . $resize_width . '.jpg';
-} else {
-    $img_filename = $caches_path . $token . '_full.jpg';
 }
 
-## Use caches if available
-if (file_exists($img_filename) && !getrole($key, $acls) == "admin" && !getrole($key, $acls) == "moderator") {
-    $image = imagecreatefromjpeg($img_filename);
-    imagejpeg($image);
+# The cache only holds the public rendering (pixelated until approved).
+# "_p2" prefix: ignore caches written by older versions, which could hold
+# a non pixelated rendering generated for an admin or the author.
+$img_filename = $caches_path . $token . '_p2_w' . $resize_width . '.jpg';
+
+$role       = getrole($key, $acls);
+$privileged = ($role == "admin" || $role == "moderator");
+
+## Use caches if available (public rendering only)
+if (!$privileged && $secretid === Null && file_exists($img_filename)) {
+    readfile($img_filename);
     return;
 }
 
@@ -115,7 +119,7 @@ $time = $result['obs_time'];
 $date = date('d/m/Y H:i', $time);
 
 $approved = $result['obs_approved'];
-if ($secretid == $result['obs_secretid'] || getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator") {
+if ($privileged || ($secretid !== Null && $secretid === $result['obs_secretid'])) {
     $AdminOrAuthor = True;
 } else {
     $AdminOrAuthor = False;
@@ -127,8 +131,8 @@ if (!file_exists($filepath)) {
   $filepath = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'image_404.jpg']); 
 }
 
-# Image is pixelated until approved by a moderator
-if ($approved != 1 && !$AdminOrAuthor && $resize_width > 300) {
+# Image is pixelated until approved by a moderator, whatever the requested size
+if ($approved != 1 && !$AdminOrAuthor) {
     $photo = pixalize($filepath);
 } else {
     $photo = imagecreatefromjpeg($filepath); // issue photo
@@ -149,15 +153,12 @@ if (!$map) {
 
 $image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
 
-# Generate full size image
-if ($AdminOrAuthor && $resize_width == $MAX_IMG_SIZE) {
-    imagejpeg($image);
-} else if ($resize_width == $MAX_IMG_SIZE) {
-    # Use user original image
-    imagejpeg($image, $img_filename);
-    imagejpeg($image);
-} else {
-    $imageresized = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
-    imagejpeg($imageresized, $img_filename);
-    imagejpeg($imageresized);
+if ($resize_width != $MAX_IMG_SIZE) {
+    $image = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
 }
+
+# Never cache a rendering made for an admin or the author: it may not be pixelated
+if (!$AdminOrAuthor) {
+    imagejpeg($image, $img_filename);
+}
+imagejpeg($image);

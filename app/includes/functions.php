@@ -291,17 +291,21 @@ function sameas($token, $filter = array())
 {
     global $db;
 
+    $token       = mysqli_real_escape_string($db, $token);
     $tokenquery  = mysqli_query($db, "SELECT obs_categorie,obs_address_string,obs_city,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
     $tokenresult = mysqli_fetch_array($tokenquery);
     
     $similar = array();
+    if (!$tokenresult) {
+        return $similar;
+    }
     
     $where = '';
     if ($filter['fcategorie'] == 1) {
-        $where .= "obs_categorie='" . $tokenresult['obs_categorie'] . "' AND ";
+        $where .= "obs_categorie='" . intval($tokenresult['obs_categorie']) . "' AND ";
     }
     if ($filter['faddress'] == 1) {
-        $where .= "obs_city='" . $tokenresult['obs_city'] . "' AND ";
+        $where .= "obs_city='" . intval($tokenresult['obs_city']) . "' AND ";
     }
     $where .= "1";
     
@@ -489,6 +493,9 @@ function getWebContent($url) {
   $curl = curl_init($url);
   curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+  // A slow remote (GitHub, categories) must not hang the API or the admin
+  curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
+  curl_setopt($curl, CURLOPT_TIMEOUT, 10);
   $data = curl_exec($curl);
   return $data;
 }

@@ -60,10 +60,10 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
     if ( $approveto == 1 && $twitt == 1 ) {
       $r = tweetToken($token ) ;
       if ( $r['success'] == true ) {
-        echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$token.'</strong> parti</div>' ;
+        echo '<div class="alert alert-success" role="alert">Twitt <strong>'.htmlspecialchars($token).'</strong> parti</div>' ;
       }
       else {
-        echo '<div class="alert alert-warning" role="alert">'.$r['error'].'</div>';
+        echo '<div class="alert alert-warning" role="alert">'.htmlspecialchars($r['error']).'</div>';
       }
     }
     
@@ -214,25 +214,25 @@ if (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filter
                 'fdistance' => 1,
                 'fcategorie' => 1,
                 'faddress' => 1);
-  $similar = sameas($searchtoken , $filter);
+  $similar = sameas($_GET['filtertoken'], $filter);
   $querysearch .= " AND obs_token IN ('".implode("','",$similar)."')";
-  $urlsuffix .= "&filtertype=similar&filtertoken=".$searchtoken;
+  $urlsuffix .= "&filtertype=similar&filtertoken=".urlencode($_GET['filtertoken']);
 }
 elseif (isset($_GET['filtertoken']) && !empty($_GET['filtertoken']) && $_GET['filtertype'] == "uniq") {
   $searchtoken = mysqli_real_escape_string($db,$_GET['filtertoken']);
   $querysearch .= " AND obs_token = '".$searchtoken."'";
-  $urlsuffix .= "&filtertype=uniq&filtertoken=".$searchtoken;
+  $urlsuffix .= "&filtertype=uniq&filtertoken=".urlencode($_GET['filtertoken']);
 }
 
 if (isset($_GET['filteraddress']) && !empty($_GET['filteraddress'])) {
   $searchaddress = mysqli_real_escape_string($db,$_GET['filteraddress']);
   $querysearch .= " AND LOWER(obs_address_string) LIKE LOWER('%".$searchaddress."%')";
-  $urlsuffix .= "&filteraddress=".$searchaddress;
+  $urlsuffix .= "&filteraddress=".urlencode($_GET['filteraddress']);
 }
 
 if (isset($_GET['searchcity']) && is_numeric($_GET['searchcity'])) {
   if($_GET['searchcity'] != 0) {
-    $searchcity = $_GET['searchcity'];
+    $searchcity = intval($_GET['searchcity']);
     $querysearch .= " AND obs_city='".$searchcity."'";
     $urlsuffix .= "&searchcity=".$searchcity;
   }
@@ -248,9 +248,9 @@ elseif (isset($_GET['filtercityunknown']) && $_GET['filtercityunknown'] == "1") 
 }
 
 if (isset($_GET['searchcategory']) && $_GET['searchcategory'] != 0 && is_numeric($_GET['searchcategory'])) {
-  $querysearch .= " AND obs_categorie='".$_GET['searchcategory']."'";
-  $urlsuffix .= "&searchcategory=".$_GET['searchcategory'] ;
-  $searchcategory = $_GET['searchcategory'];
+  $searchcategory = intval($_GET['searchcategory']);
+  $querysearch .= " AND obs_categorie='".$searchcategory."'";
+  $urlsuffix .= "&searchcategory=".$searchcategory;
 } else {
   $searchcategory = 0;
 }
@@ -316,7 +316,7 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
   <div class="form-group row">
     <label for="searchToken" class="col-sm-2 col-form-label">Token</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" name="filtertoken" id="searchToken" value="<?=$searchtoken ?>">
+      <input type="text" class="form-control" name="filtertoken" id="searchToken" value="<?=htmlspecialchars(isset($_GET['filtertoken']) ? $_GET['filtertoken'] : '') ?>">
     </div>
   </div>
   <fieldset class="form-group">
@@ -337,7 +337,7 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
   <div class="form-group row">
     <label for="searchAddress" class="col-sm-2 col-form-label">Rue</label>
     <div class="col-sm-10">
-      <input type="text" class="form-control" name="filteraddress" id="searchAddress" value="<?=$searchaddress ?>">
+      <input type="text" class="form-control" name="filteraddress" id="searchAddress" value="<?=htmlspecialchars(isset($_GET['filteraddress']) ? $_GET['filteraddress'] : '') ?>">
     </div>
   </div>
   <div class="form-group row">
@@ -350,10 +350,10 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
 
       foreach ($citylistnametmp as $selectcityid => $selectcityname) {
         if ($searchcity == $selectcityid) {
-          echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
+          echo '<option value="'.$selectcityid.'" selected>'.htmlspecialchars($selectcityname).'</option>';
         }
         else {
-          echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
+          echo '<option value="'.$selectcityid.'">'.htmlspecialchars($selectcityname).'</option>';
               }
             }
      ?>
@@ -369,10 +369,10 @@ while($resolutions_result = mysqli_fetch_array($resolutions_query)) {
       $categorielist[] = array("catid" => 0, "catname" => "---");;
       foreach ($categorielist as $categorie) {
         if ($searchcategory == $categorie['catid']) {
-          echo '<option value="'.$categorie['catid'].'" selected>'.$categorie['catname'].'</option>';
+          echo '<option value="'.$categorie['catid'].'" selected>'.htmlspecialchars($categorie['catname']).'</option>';
         }
         else {
-          echo '<option value="'.$categorie['catid'].'">'.$categorie['catname'].'</option>';
+          echo '<option value="'.$categorie['catid'].'">'.htmlspecialchars($categorie['catname']).'</option>';
               }
             }
      ?>
@@ -456,13 +456,13 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 ?>
       <form action="?page=observations<?=$urlsuffix ?>" method="POST">
       <tr class="<?=$highlight_city ?>">
-        <td><?=$result_obs['obs_token'] ?></td>
+        <td><?=htmlspecialchars($result_obs['obs_token']) ?></td>
         <td>
           <a href="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/generate_panel.php?s=800&token=<?=$result_obs['obs_token'] ?>" target="_blank"><img src="<?=$config['HTTP_PROTOCOL'] ?>://<?=$config['URLBASE'] ?>/generate_panel.php?s=200&token=<?=$result_obs['obs_token'] ?>" /></a>
         </td>
         <td>
           <label for="obs_comment"><strong>Commentaire</strong></label>
-          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=$result_obs['obs_comment'] ?>" <?=$input_enabled ?> />
+          <input type="text" class="form-control-plaintext" name="obs_comment" value="<?=htmlspecialchars($result_obs['obs_comment']) ?>" <?=$input_enabled ?> />
 <!--          #if (in_array($_SESSION['role'],$actions_acl['edit']['access'])) { -->
 
           <label for="obs_categorie"><strong>Catégorie</strong></label>
@@ -470,10 +470,10 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 <?php
                foreach ($categorielist as $categorie) {
                  if ($result_obs['obs_categorie'] == $categorie['catid']) {
-                   echo '<option value="'.$categorie['catid'].'" selected>'.$categorie['catname'].'</option>';
+                   echo '<option value="'.$categorie['catid'].'" selected>'.htmlspecialchars($categorie['catname']).'</option>';
                  }
                  else {
-                   echo '<option value="'.$categorie['catid'].'">'.$categorie['catname'].'</option>';
+                   echo '<option value="'.$categorie['catid'].'">'.htmlspecialchars($categorie['catname']).'</option>';
                  }
                }
      ?>
@@ -486,7 +486,7 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
              <option value="0" selected>---</option>
 <?php
                foreach ($resolutionslist as $resolutionid => $resolutiontoken) {
-                   echo '<option value="'.$resolutionid.'">'.$resolutiontoken.'</option>';
+                   echo '<option value="'.$resolutionid.'">'.htmlspecialchars($resolutiontoken).'</option>';
                }
      ?>
               </select>
@@ -495,12 +495,12 @@ while ($result_obs = mysqli_fetch_array($query_obs)) {
 	<td>
 	  <div class="form-group">
           <label for="obs_address_string"><strong>Rue</strong></label> (<a href="https://www.openstreetmap.org/?mlat=<?=$result_obs['obs_coordinates_lat'] ?>&mlon=<?=$result_obs['obs_coordinates_lon'] ?>#map=16/<?=$result_obs['obs_coordinates_lat'] ?>/<?=$result_obs['obs_coordinates_lon'] ?>&layers=N">Afficher sur une carte</a>)
-	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=$result_obs['obs_address_string'] ?>" required <?=$input_enabled ?> />
+	  <input type="text" class="form-control-plaintext" name="obs_address_string" value="<?=htmlspecialchars($result_obs['obs_address_string']) ?>" required <?=$input_enabled ?> />
            <?php
 
 if (!empty($result_obs['obs_cityname'])) { ?>
             <label for="obs_cityname"><strong>Ville</strong></label>
-            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=$result_obs['obs_cityname'] ?>" required <?=$input_enabled ?> />
+            <input type="text" class="form-control-plaintext" name="obs_cityname" value="<?=htmlspecialchars($result_obs['obs_cityname']) ?>" required <?=$input_enabled ?> />
 <?php
 }
 else { ?>
@@ -509,10 +509,10 @@ else { ?>
 <?php 
   foreach ($citylistname as $selectcityid => $selectcityname) {
     if ($result_obs['obs_city'] == $selectcityid) {
-      echo '<option value="'.$selectcityid.'" selected>'.$selectcityname.'</option>';
+      echo '<option value="'.$selectcityid.'" selected>'.htmlspecialchars($selectcityname).'</option>';
     }
     else {
-      echo '<option value="'.$selectcityid.'">'.$selectcityname.'</option>';
+      echo '<option value="'.$selectcityid.'">'.htmlspecialchars($selectcityname).'</option>';
     }
   }
   if ($result_obs['obs_city'] == 0) {
