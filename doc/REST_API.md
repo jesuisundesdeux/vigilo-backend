@@ -282,6 +282,9 @@ Retourne une image
 | ---- | ----|------------ | ------------- | 
 | image/jpeg | / | Image | >= 0.0.1 |
 
+Si l'observation existe mais n'a pas de photo : HTTP 404, erreur JSON `PHOTONOTFOUND` (>= 0.0.22, comme
+`generate_panel.php`). Les applications affichent alors une image par défaut.
+
 ___
 
 ### Ajout/modifications informations

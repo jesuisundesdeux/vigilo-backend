@@ -63,6 +63,28 @@ body {
   min-width: 10rem;
 }
 
+/*
+ * Tables shown as blocks on narrow screens (no horizontal scroll): .table-stack below
+ * 1200px (observations), .table-stack-md below 768px. The cells of a row flow in columns.
+ */
+@media (max-width: 1199.98px) {
+  .table-stack thead { display: none; }
+  .table-stack, .table-stack tbody { display: block; width: 100%; }
+  .table-stack tr { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: .25rem 1rem; padding: .5rem 0; border-bottom: var(--bs-border-width) solid var(--bs-border-color); }
+  .table-stack td { display: block; width: auto !important; border: 0; }
+  .table-stack td.text-end { text-align: start !important; }
+  .table-stack .form-control, .table-stack .form-select { min-width: 0; }
+}
+@media (max-width: 767.98px) {
+  .table-stack-md thead { display: none; }
+  .table-stack-md, .table-stack-md tbody { display: block; width: 100%; }
+  .table-stack-md tr { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; padding: .5rem .5rem; border-bottom: var(--bs-border-width) solid var(--bs-border-color); }
+  .table-stack-md td { display: block; border: 0; padding: 0; max-width: 100%; }
+  .table-stack-md td[data-label]::before { content: attr(data-label) " : "; color: var(--bs-secondary-color); }
+  .table-stack-md .form-control, .table-stack-md .form-select { min-width: 0; }
+  .table-stack-md .audit-details { max-width: 100%; }
+}
+
 .stat-card .display-6 {
   font-weight: 600;
 }

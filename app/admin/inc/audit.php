@@ -167,7 +167,7 @@ $audit_details = function ($details) {
 <div class="alert alert-secondary" role="alert">Aucune entrée dans le journal.</div>
 <?php } else { ?>
 <div class="table-responsive">
-  <table class="table table-striped table-sm table-admin align-middle">
+  <table class="table table-striped table-sm table-admin table-stack-md align-middle">
     <thead>
       <tr>
         <th scope="col">Date</th>

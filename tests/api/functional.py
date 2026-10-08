@@ -288,6 +288,13 @@ class T03Images(unittest.TestCase):
         self.assertEqual(r.status, 404)
         self.assertEqual(r.json()['error']['code'], 'TOKENNOTFOUND')
 
+    def test_observation_without_photo(self):
+        # TOKA0005 exists but has no photo: 404 PHOTONOTFOUND (the applications show a default image)
+        for path in ['get_photo.php', 'generate_panel.php']:
+            r = call(path, {'token': 'TOKA0005', 'key': ADMIN})
+            self.assertEqual(r.status, 404, path)
+            self.assertEqual(r.json()['error']['code'], 'PHOTONOTFOUND', path)
+
     def test_mosaic(self):
         r = call('mosaic.php')
         self.assertEqual(r.status, 200)

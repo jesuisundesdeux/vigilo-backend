@@ -119,7 +119,7 @@ if (file_exists('../install.php')) {
       <div class="card-body text-body-secondary">Aucune observation en attente de modération.</div>
 <?php } else { ?>
       <div class="table-responsive">
-        <table class="table table-hover align-middle table-admin mb-0">
+        <table class="table table-hover align-middle table-admin table-stack-md mb-0">
           <thead>
             <tr>
               <th scope="col">Token</th>

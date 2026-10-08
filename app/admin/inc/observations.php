@@ -566,7 +566,7 @@ $listurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagen
 
 <div class="card shadow-sm mb-3">
 <div class="table-responsive">
-  <table class="table table-hover align-middle table-admin mb-0">
+  <table class="table table-hover align-middle table-admin table-stack mb-0">
     <thead class="table-light">
       <tr>
         <th style="width: 110px">Token</th>
@@ -615,7 +615,7 @@ foreach ($observations as $result_obs) {
           <?php if ($in_resolution) { ?><br /><span class="badge text-bg-success mt-1"><i class="bi bi-check2-circle"></i> En résolution</span><?php } ?>
         </td>
         <td>
-          <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" target="_blank" rel="noopener"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>
+          <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" data-photo data-photo-title="Observation <?= h($obs_token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>
         </td>
         <td>
           <div class="mb-2">

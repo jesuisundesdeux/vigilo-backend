@@ -89,7 +89,9 @@
     if (!map) {
       map = L.map(form.querySelector('[data-import-map]'));
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        maxZoom: 19, attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // The admin sends no Referer (Referrer-Policy: same-origin): the OSM tile servers block such requests
+        referrerPolicy: 'strict-origin-when-cross-origin'
       }).addTo(map);
     }
     if (layer) {

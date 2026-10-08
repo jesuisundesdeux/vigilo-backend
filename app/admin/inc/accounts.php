@@ -90,6 +90,7 @@ if (!function_exists('account_new_key')) {
 }
 
 $messages      = array();
+$reopen        = null;
 $current_login = isset($_SESSION['login']) ? (string) $_SESSION['login'] : '';
 
 /* Existing cities, used to validate the citystaff selection */
@@ -101,31 +102,8 @@ if ($city_query) {
     }
 }
 
-/* Actions links: add / delete */
+/* Action link: delete */
 if (isset($_GET['action']) && !isset($_POST['role_id'])) {
-    if ($_GET['action'] == 'add') {
-        $new_key = account_new_key();
-        $ok = mysqli_query($db, "INSERT INTO obs_roles (role_key,
-                                            role_name,
-                                            role_owner,
-                                            role_login,
-                                            role_password,
-                                            role_city)
-                               VALUES ('" . mysqli_real_escape_string($db, $new_key) . "',
-                                      'guest',
-                                      '',
-                                      '',
-                                      '',
-                                      '')");
-        if ($ok) {
-            $new_id = intval(mysqli_insert_id($db));
-            audit_log('account_create', 'role:' . $new_id, array('role_name' => 'guest'));
-            $messages[] = array('success', 'Compte <strong>#' . $new_id . '</strong> ajouté, merci de remplir les champs correspondants.');
-        } else {
-            $messages[] = array('danger', 'Impossible d\'ajouter le compte.');
-        }
-    }
-
     if ($_GET['action'] == 'delete' && isset($_GET['roleid']) && is_numeric($_GET['roleid'])) {
         $roleid      = intval($_GET['roleid']);
         $query_check = mysqli_query($db, "SELECT role_id, role_login, role_name FROM obs_roles WHERE role_id = " . $roleid . " LIMIT 1");
@@ -159,10 +137,15 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
         $messages[] = array('warning', 'Compte <strong>#' . $roleid . '</strong> introuvable.');
     }
 } elseif (isset($_POST['role_id'])) {
-    /* POST: edit an account. Only the columns below can be changed. */
+    /* POST: create (role_id 0) or edit an account. Only the columns below can be changed. */
     $roleid      = intval($_POST['role_id']);
-    $query_check = mysqli_query($db, "SELECT * FROM obs_roles WHERE role_id = " . $roleid . " LIMIT 1");
-    $old         = $query_check ? mysqli_fetch_array($query_check) : null;
+    $creating    = ($roleid === 0);
+    if ($creating) {
+        $old = array('role_name' => '', 'role_owner' => '', 'role_login' => '', 'role_password' => '', 'role_city' => '');
+    } else {
+        $query_check = mysqli_query($db, "SELECT * FROM obs_roles WHERE role_id = " . $roleid . " LIMIT 1");
+        $old         = $query_check ? mysqli_fetch_array($query_check) : null;
+    }
     $errors      = array();
     $set         = array();
     $changes     = array();
@@ -225,8 +208,18 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
             }
         }
 
+        if ($creating && !isset($set['role_name'])) {
+            $errors[] = 'Le rôle est obligatoire.';
+        }
+        // A login without password could not sign in
+        $final_login = isset($set['role_login']) ? $set['role_login'] : (string) $old['role_login'];
+        if ($final_login !== '' && ($creating || isset($set['role_login'])) && !isset($set['role_password']) && (string) $old['role_password'] === '') {
+            $errors[] = 'Un mot de passe est obligatoire pour un compte avec login.';
+        }
+
         // Cities of a citystaff (#237, #270): clean JSON array of city names
-        if (isset($_POST['role_city_present'])) {
+        $final_role = isset($set['role_name']) ? $set['role_name'] : (string) $old['role_name'];
+        if (isset($_POST['role_city_present']) && $final_role === 'citystaff') {
             $posted_cities = (isset($_POST['role_city']) && is_array($_POST['role_city'])) ? $_POST['role_city'] : array();
             $allowed       = array_merge($city_names, account_parse_role_cities($old['role_city']));
             $selected      = array();
@@ -251,7 +244,37 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
         foreach ($errors as $error) {
             $messages[] = array('danger', $error);
         }
-        $messages[] = array('warning', 'Le compte <strong>#' . $roleid . '</strong> n\'a pas été modifié.');
+        $messages[] = array('warning', $creating ? 'Le compte n\'a pas été ajouté.' : 'Le compte <strong>#' . $roleid . '</strong> n\'a pas été modifié.');
+        // Reopens the window with what was typed (never the password)
+        $reopen = array('role_id' => $roleid, 'role_password' => '', 'role_city' => array());
+        foreach (array('role_name', 'role_owner', 'role_login') as $field) {
+            $reopen[$field] = isset($_POST[$field]) && is_string($_POST[$field]) ? $_POST[$field] : '';
+        }
+        if (isset($_POST['role_city']) && is_array($_POST['role_city'])) {
+            $reopen['role_city'] = account_clean_city_list($_POST['role_city']);
+        }
+        if (!$creating) {
+            $reopen['is_self'] = $is_self;
+            if ($is_self) {
+                $reopen['role_name'] = (string) $old['role_name'];
+            }
+        }
+    } elseif ($creating) {
+        $set['role_key'] = account_new_key();
+        $columns = array();
+        $inserts = array();
+        foreach (array_merge($old, $set) as $column => $value) {
+            // $column comes from the allowlist above, never from the POST keys
+            $columns[] = $column;
+            $inserts[] = "'" . mysqli_real_escape_string($db, $value) . "'";
+        }
+        if (mysqli_query($db, "INSERT INTO obs_roles (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $inserts) . ")")) {
+            $new_id = intval(mysqli_insert_id($db));
+            audit_log('account_create', 'role:' . $new_id, $changes);
+            $messages[] = array('success', 'Compte <strong>#' . $new_id . '</strong> (' . h($set['role_name']) . ') ajouté.');
+        } else {
+            $messages[] = array('danger', 'Impossible d\'ajouter le compte.');
+        }
     } elseif (empty($set)) {
         $messages[] = array('info', 'Aucune modification pour le compte <strong>#' . $roleid . '</strong>.');
     } else {
@@ -274,7 +297,7 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
 }
 
 if (isset($_GET['ask_pwd_update'])) {
-    echo '<div class="alert alert-info d-flex gap-2" role="alert"><i class="bi bi-info-circle"></i><div>Votre mot de passe utilise un ancien format. Il a été converti automatiquement, mais il est recommandé d\'en définir un nouveau (au moins ' . ACCOUNT_PASSWORD_MIN_LENGTH . ' caractères) dans la ligne de votre compte ci-dessous.</div></div>';
+    echo '<div class="alert alert-info d-flex gap-2" role="alert"><i class="bi bi-info-circle"></i><div>Votre mot de passe utilise un ancien format. Il a été converti automatiquement, mais il est recommandé d\'en définir un nouveau (au moins ' . ACCOUNT_PASSWORD_MIN_LENGTH . ' caractères) avec le bouton « Modifier » de votre compte ci-dessous.</div></div>';
 }
 
 foreach ($messages as $message) {
@@ -288,99 +311,59 @@ $self_url   = '?page=' . urlencode($page_name);
 <div class="card shadow-sm">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-people"></i> Comptes</h2>
-    <a class="btn btn-sm btn-primary" href="<?= h($self_url) ?>&amp;action=add<?= h(csrf_query()) ?>"><i class="bi bi-person-plus"></i> Ajouter un compte</a>
-  </div>
-  <div class="card-body pb-0">
-    <p class="small text-body-secondary mb-2">
-      Laisser le mot de passe vide pour conserver le mot de passe actuel (au moins <?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?> caractères pour un nouveau mot de passe).
-      Les villes ne peuvent être choisies que pour un compte <em>citystaff</em> (enregistrer d'abord le rôle).
-    </p>
+    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#accountModal" data-title="Ajouter un compte"
+            data-fill="<?= h(json_encode(array('role_id' => 0, 'role_name' => 'moderator', 'role_owner' => '', 'role_login' => '', 'role_password' => '', 'role_city' => array(), 'is_self' => false))) ?>"><i class="bi bi-person-plus"></i> Ajouter un compte</button>
   </div>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin mb-0">
       <thead>
         <tr>
-          <th scope="col">#</th>
+          <th scope="col" class="d-none d-md-table-cell">#</th>
           <th scope="col">Rôle</th>
           <th scope="col">Nom utilisateur</th>
-          <th scope="col">Login</th>
-          <th scope="col">Mot de passe</th>
-          <th scope="col">Villes</th>
-          <th scope="col">Clé API</th>
+          <th scope="col" class="d-none d-sm-table-cell">Login</th>
+          <th scope="col" class="d-none d-lg-table-cell">Villes</th>
+          <th scope="col" class="d-none d-xl-table-cell">Clé API</th>
           <th scope="col" class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
 <?php
-$forms = '';
+$forms         = '';
+$role_badges   = array('admin' => 'danger', 'moderator' => 'primary', 'citystaff' => 'success', 'guest' => 'secondary');
+$city_options  = $city_names;
 while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
-    $role_id   = intval($result_role['role_id']);
-    $form_id   = 'role' . $role_id . 'form';
-    $key_form  = 'role' . $role_id . 'keyform';
-    $is_self   = $current_login !== '' && (string) $result_role['role_login'] === $current_login;
-    $role_key  = (string) $result_role['role_key'];
+    $role_id     = intval($result_role['role_id']);
+    $key_form    = 'role' . $role_id . 'keyform';
+    $is_self     = $current_login !== '' && (string) $result_role['role_login'] === $current_login;
+    $role_key    = (string) $result_role['role_key'];
+    $role_name   = (string) $result_role['role_name'];
+    $role_cities = $role_name === 'citystaff' ? account_parse_role_cities($result_role['role_city']) : array();
+    foreach ($role_cities as $role_city) {
+        if (!in_array($role_city, $city_options, true)) {
+            $city_options[] = $role_city;
+        }
+    }
+    $role_fill   = array('role_id' => $role_id, 'role_name' => $role_name, 'role_owner' => (string) $result_role['role_owner'],
+                         'role_login' => (string) $result_role['role_login'], 'role_password' => '', 'role_city' => $role_cities, 'is_self' => $is_self);
 
-    $forms .= '<form method="POST" action="' . h($self_url) . '" id="' . h($form_id) . '">'
-            . csrf_field()
-            . '<input type="hidden" name="role_id" value="' . $role_id . '" /></form>';
     $forms .= '<form method="POST" action="' . h($self_url) . '" id="' . h($key_form) . '">'
             . csrf_field()
             . '<input type="hidden" name="role_id" value="' . $role_id . '" />'
             . '<input type="hidden" name="key_regenerate" value="1" /></form>';
 ?>
         <tr<?= $is_self ? ' class="table-active"' : '' ?>>
+          <td class="d-none d-md-table-cell text-body-secondary">#<?= $role_id ?></td>
           <td class="text-nowrap">
-            #<?= $role_id ?>
-            <?php if ($is_self) { ?><span class="badge text-bg-secondary ms-1">vous</span><?php } ?>
+            <span class="badge text-bg-<?= h(isset($role_badges[$role_name]) ? $role_badges[$role_name] : 'warning') ?>"><?= h($role_name) ?></span>
+            <?php if ($is_self) { ?><span class="badge text-bg-light border ms-1">vous</span><?php } ?>
           </td>
-          <td>
-            <select name="role_name" class="form-select form-select-sm" form="<?= h($form_id) ?>" aria-label="Rôle"<?= $is_self ? ' disabled' : '' ?>>
-<?php
-    foreach ($account_roles as $value) {
-        $selected = ($value == $result_role['role_name']) ? ' selected' : '';
-        echo '<option value="' . h($value) . '"' . $selected . '>' . h($value) . '</option>';
-    }
-    if (!in_array((string) $result_role['role_name'], $account_roles, true)) {
-        echo '<option value="' . h($result_role['role_name']) . '" selected disabled>' . h($result_role['role_name']) . '</option>';
-    }
-?>
-            </select>
-            <?php if ($is_self) { ?><div class="form-text">Votre propre rôle admin ne peut pas être retiré.</div><?php } ?>
+          <td><?= h($result_role['role_owner']) ?></td>
+          <td class="d-none d-sm-table-cell"><?= $result_role['role_login'] !== '' ? '<code>' . h($result_role['role_login']) . '</code>' : '<span class="text-body-secondary small">clé API seule</span>' ?></td>
+          <td class="d-none d-lg-table-cell small">
+            <?php if ($role_name === 'citystaff') { echo $role_cities ? h(implode(', ', $role_cities)) : '<span class="badge text-bg-warning">aucune ville</span>'; } else { echo '<span class="text-body-secondary">—</span>'; } ?>
           </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="role_owner" form="<?= h($form_id) ?>" value="<?= h($result_role['role_owner']) ?>" maxlength="255" aria-label="Nom utilisateur" />
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="role_login" form="<?= h($form_id) ?>" value="<?= h($result_role['role_login']) ?>" maxlength="60" autocomplete="off" aria-label="Login" />
-          </td>
-          <td>
-            <input type="password" class="form-control form-control-sm" name="role_password" form="<?= h($form_id) ?>" placeholder="Inchangé" minlength="<?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?>" autocomplete="new-password" aria-label="Nouveau mot de passe" />
-          </td>
-          <td>
-<?php
-    if ($result_role['role_name'] == 'citystaff') {
-        $role_cities = account_parse_role_cities($result_role['role_city']);
-        $options     = $city_names;
-        foreach ($role_cities as $role_city) {
-            if (!in_array($role_city, $options, true)) {
-                $options[] = $role_city;
-            }
-        }
-        echo '<input type="hidden" name="role_city_present" value="1" form="' . h($form_id) . '" />';
-        echo '<select class="form-select form-select-sm" name="role_city[]" form="' . h($form_id) . '" multiple size="' . intval(min(6, max(3, count($options)))) . '" aria-label="Villes">';
-        foreach ($options as $city) {
-            $selected = in_array($city, $role_cities, true) ? ' selected' : '';
-            $label    = in_array($city, $city_names, true) ? $city : $city . ' (ville inconnue)';
-            echo '<option value="' . h($city) . '"' . $selected . '>' . h($label) . '</option>';
-        }
-        echo '</select>';
-        echo '<div class="form-text">Ctrl / Cmd + clic pour une sélection multiple.</div>';
-    } else {
-        echo '<small class="text-body-secondary">n\'est pas citystaff</small>';
-    }
-?>
-          </td>
-          <td class="text-nowrap">
+          <td class="d-none d-xl-table-cell text-nowrap">
 <?php if ($role_key === '') { ?>
             <span class="badge text-bg-warning">aucune clé</span>
 <?php } else { ?>
@@ -390,9 +373,10 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
             <button type="submit" class="btn btn-sm btn-outline-warning ms-1" form="<?= h($key_form) ?>" title="Générer une nouvelle clé" aria-label="Générer une nouvelle clé" data-confirm="Générer une nouvelle clé API pour le compte #<?= $role_id ?> ? L'ancienne clé ne fonctionnera plus."><i class="bi bi-arrow-repeat"></i></button>
           </td>
           <td class="text-end text-nowrap">
-            <button class="btn btn-sm btn-outline-primary" type="submit" form="<?= h($form_id) ?>"><i class="bi bi-check-lg"></i> Enregistrer</button>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#accountModal"
+                    data-title="Modifier le compte #<?= $role_id ?>" data-fill="<?= h(json_encode($role_fill)) ?>"><i class="bi bi-pencil"></i><span class="d-none d-lg-inline"> Modifier</span></button>
 <?php if (!$is_self) { ?>
-            <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;roleid=<?= $role_id ?><?= h(csrf_query()) ?>" data-confirm="Merci de valider la suppression du compte #<?= $role_id ?>"><i class="bi bi-trash"></i> Supprimer</a>
+            <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;roleid=<?= $role_id ?><?= h(csrf_query()) ?>" data-confirm="Merci de valider la suppression du compte #<?= $role_id ?>" title="Supprimer"><i class="bi bi-trash"></i><span class="d-none d-lg-inline"> Supprimer</span></a>
 <?php } ?>
           </td>
         </tr>
@@ -402,10 +386,89 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
       </tbody>
     </table>
   </div>
+  <div class="card-body py-2">
+    <p class="small text-body-secondary mb-0 d-xl-none">La clé API de chaque compte s'affiche sur un écran plus large.</p>
+  </div>
 </div>
 <?= $forms ?>
 
+<div class="modal fade" id="accountModal" tabindex="-1" aria-labelledby="accountModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" action="<?= h($self_url) ?>" autocomplete="off">
+      <?= csrf_field() ?>
+      <input type="hidden" name="role_id" value="0" />
+      <input type="hidden" name="role_city_present" value="1" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="accountModalTitle">Compte</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label class="form-label" for="role_name">Rôle</label>
+            <select class="form-select" id="role_name" name="role_name" required>
+              <?php foreach ($account_roles as $value) { ?><option value="<?= h($value) ?>"><?= h($value) ?></option><?php } ?>
+            </select>
+            <div class="form-text" data-account-self hidden>Votre propre rôle admin ne peut pas être retiré.</div>
+          </div>
+          <div class="col-md-7">
+            <label class="form-label" for="role_owner">Nom utilisateur</label>
+            <input type="text" class="form-control" id="role_owner" name="role_owner" maxlength="255" />
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="role_login">Login</label>
+            <input type="text" class="form-control" id="role_login" name="role_login" maxlength="60" autocomplete="off" />
+            <div class="form-text">Vide : compte utilisable seulement avec sa clé API.</div>
+          </div>
+          <div class="col-md-7">
+            <label class="form-label" for="role_password">Mot de passe</label>
+            <input type="password" class="form-control" id="role_password" name="role_password" minlength="<?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?>" autocomplete="new-password" />
+            <div class="form-text" data-account-password></div>
+          </div>
+          <div class="col-12" data-account-cities>
+            <label class="form-label" for="role_city">Villes du compte citystaff</label>
+            <select class="form-select" id="role_city" name="role_city[]" multiple size="<?= intval(min(8, max(3, count($city_options)))) ?>">
+              <?php foreach ($city_options as $city) { ?>
+                <option value="<?= h($city) ?>"><?= h(in_array($city, $city_names, true) ? $city : $city . ' (ville inconnue)') ?></option>
+              <?php } ?>
+            </select>
+            <div class="form-text">Ctrl / Cmd + clic pour une sélection multiple.</div>
+          </div>
+        </div>
+        <p class="small text-body-secondary mt-3 mb-0" data-account-new>Une clé API est générée à la création du compte.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php if ($reopen !== null) { ?>
+<div hidden data-reopen-modal="#accountModal" data-title="<?= $reopen['role_id'] ? 'Modifier le compte #' . intval($reopen['role_id']) : 'Ajouter un compte' ?>" data-fill="<?= h(json_encode($reopen)) ?>"></div>
+<?php } ?>
+
 <script>
+  // Account window: cities only for a citystaff, own role locked, password hint
+  (function () {
+    var form = document.querySelector('#accountModal form');
+    var role = form.elements['role_name'];
+    var cities = form.querySelector('[data-account-cities]');
+    function sync() { cities.hidden = role.value !== 'citystaff'; }
+    role.addEventListener('change', sync);
+    form.addEventListener('vigilo:filled', function (event) {
+      var values = event.detail;
+      var creating = String(values.role_id) === '0';
+      role.disabled = values.is_self === true;
+      form.querySelector('[data-account-self]').hidden = values.is_self !== true;
+      form.querySelector('[data-account-new]').hidden = !creating;
+      form.elements['role_password'].placeholder = creating ? '' : 'Inchangé';
+      form.querySelector('[data-account-password]').textContent = (creating ? 'Obligatoire avec un login' : 'Vide : mot de passe inchangé')
+        + ', au moins <?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?> caractères.';
+      sync();
+    });
+  })();
+
   // Show / hide the full API key
   (function () {
     document.querySelectorAll('.account-key-toggle').forEach(function (button) {

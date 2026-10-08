@@ -31,6 +31,7 @@ if (!function_exists('city_number')) {
 }
 
 $messages = array();
+$reopen   = null;
 
 $scopelist    = array();
 $scopebounds  = array();
@@ -100,27 +101,6 @@ if (isset($_POST['cities_import'])) {
 }
 
 if (isset($_GET['action']) && !isset($_POST['city_id'])) {
-    if ($_GET['action'] == 'add') {
-        $ok = mysqli_query($db, "INSERT INTO obs_cities (city_scope,
-                                              city_name,
-                                              city_postcode,
-                                              city_area,
-                                              city_population,
-                                              city_website)
-                                     VALUES (0,
-                                             'Ville',
-                                             '00000',
-                                             '0',
-                                             '0',
-                                             '')");
-        if ($ok) {
-            $new_id = intval(mysqli_insert_id($db));
-            audit_log('city_create', 'city:' . $new_id);
-            $messages[] = array('success', 'Ville <strong>#' . $new_id . '</strong> ajoutée, merci de remplir les champs correspondants.');
-        } else {
-            $messages[] = array('danger', 'Impossible d\'ajouter la ville.');
-        }
-    }
     if ($_GET['action'] == 'delete' && isset($_GET['cityid']) && is_numeric($_GET['cityid'])) {
         $cityid      = intval($_GET['cityid']);
         $query_check = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id = " . $cityid . " LIMIT 1");
@@ -142,12 +122,20 @@ if (isset($_POST['city_id'])) {
      * they may come from a Wikidata import (second-order injection, H4).
      */
     $cityid      = intval($_POST['city_id']);
-    $query_check = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id = " . $cityid . " LIMIT 1");
-    $old         = $query_check ? mysqli_fetch_array($query_check) : null;
+    $creating    = ($cityid === 0);
+    if ($creating) {
+        // Creation window: the same checks, then an INSERT with every column
+        $old = array('city_name' => '', 'city_scope' => 0, 'city_postcode' => 0, 'city_area' => 0, 'city_population' => 0, 'city_website' => '');
+    } else {
+        $query_check = mysqli_query($db, "SELECT * FROM obs_cities WHERE city_id = " . $cityid . " LIMIT 1");
+        $old         = $query_check ? mysqli_fetch_array($query_check) : null;
+    }
     $errors      = array();
     $values      = array();
 
-    if (!$old) {
+    if ($creating && (!isset($_POST['city_name']) || !is_string($_POST['city_name']))) {
+        $errors[] = 'Le nom de la ville est obligatoire.';
+    } elseif (!$old) {
         $errors[] = 'Ville <strong>#' . $cityid . '</strong> introuvable.';
     } else {
         if (isset($_POST['city_name']) && is_string($_POST['city_name'])) {
@@ -206,7 +194,33 @@ if (isset($_POST['city_id'])) {
         foreach ($errors as $error) {
             $messages[] = array('danger', $error);
         }
-        $messages[] = array('warning', 'La ville <strong>#' . $cityid . '</strong> n\'a pas été modifiée.');
+        $messages[] = array('warning', $creating ? 'La ville n\'a pas été ajoutée.' : 'La ville <strong>#' . $cityid . '</strong> n\'a pas été modifiée.');
+        // Reopens the window with what was typed
+        $reopen = array('city_id' => $cityid);
+        foreach (array('city_name', 'city_scope', 'city_postcode', 'city_area', 'city_population', 'city_website') as $field) {
+            $reopen[$field] = isset($_POST[$field]) && is_scalar($_POST[$field]) ? (string) $_POST[$field] : '';
+        }
+    } elseif ($creating) {
+        $columns = array();
+        $inserts = array();
+        foreach (array_merge($old, $values) as $column => $value) {
+            // $column comes from the allowlist above, never from the POST keys
+            $columns[] = $column;
+            if (is_int($value)) {
+                $inserts[] = $value;
+            } elseif (is_float($value)) {
+                $inserts[] = "'" . mysqli_real_escape_string($db, sprintf('%F', $value)) . "'";
+            } else {
+                $inserts[] = "'" . mysqli_real_escape_string($db, $value) . "'";
+            }
+        }
+        if (mysqli_query($db, "INSERT INTO obs_cities (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $inserts) . ")")) {
+            $new_id = intval(mysqli_insert_id($db));
+            audit_log('city_create', 'city:' . $new_id, $values);
+            $messages[] = array('success', 'Ville <strong>' . h($values['city_name']) . '</strong> (#' . $new_id . ') ajoutée.');
+        } else {
+            $messages[] = array('danger', 'Impossible d\'ajouter la ville.');
+        }
     } else {
         $parts   = array();
         $changes = array();
@@ -248,6 +262,8 @@ while ($query_names && ($row = mysqli_fetch_array($query_names))) {
     $cities_by_scope[intval($row['city_scope'])][] = (string) $row['city_name'];
 }
 $import_scope = isset($_GET['import_scope']) ? intval($_GET['import_scope']) : 0;
+$city_empty   = array('city_id' => 0, 'city_name' => '', 'city_scope' => $scopebounds ? $scopebounds[0]['id'] : 0, 'city_postcode' => '',
+                      'city_area' => '', 'city_population' => '', 'city_website' => '', 'wikidata_import' => '0');
 ?>
 <div class="card shadow-sm mb-4" id="import">
   <div class="card-header fw-semibold"><i class="bi bi-cloud-download"></i> Importer les communes d'un territoire</div>
@@ -299,72 +315,48 @@ $import_scope = isset($_GET['import_scope']) ? intval($_GET['import_scope']) : 0
 <div class="card shadow-sm">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-buildings"></i> Villes</h2>
-    <a class="btn btn-sm btn-primary" href="<?= h($self_url) ?>&amp;action=add<?= h(csrf_query()) ?>"><i class="bi bi-plus-lg"></i> Ajouter une ville</a>
-  </div>
-  <div class="card-body pb-0">
-    <p class="small text-body-secondary mb-2">
-      Le bouton <i class="bi bi-cloud-download"></i> Wikidata propose les données de la commune (code postal, surface, population, site) à partir de son nom ; vérifier puis enregistrer.
-    </p>
+    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#cityModal" data-title="Ajouter une ville"
+            data-fill="<?= h(json_encode($city_empty)) ?>"><i class="bi bi-plus-lg"></i> Ajouter une ville</button>
   </div>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin mb-0">
       <thead>
         <tr>
-          <th scope="col">#</th>
+          <th scope="col" class="d-none d-md-table-cell">#</th>
           <th scope="col">Nom</th>
           <th scope="col">Scope</th>
-          <th scope="col">Code postal</th>
-          <th scope="col">Surface (km²)</th>
-          <th scope="col">Population</th>
-          <th scope="col">Site</th>
+          <th scope="col" class="d-none d-sm-table-cell">Code postal</th>
+          <th scope="col" class="d-none d-xl-table-cell text-end">Surface (km²)</th>
+          <th scope="col" class="d-none d-lg-table-cell text-end">Population</th>
+          <th scope="col" class="d-none d-xl-table-cell">Site</th>
           <th scope="col" class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
 <?php
-$forms = '';
 while ($query_cities && ($result_cities = mysqli_fetch_array($query_cities))) {
-    $city_id = intval($result_cities['city_id']);
-    $form_id = 'city' . $city_id . 'form';
-    $forms  .= '<form method="POST" action="' . h($self_url) . '" id="' . h($form_id) . '" name="' . h($form_id) . '">'
-             . csrf_field()
-             . '<input type="hidden" name="city_id" value="' . $city_id . '" />'
-             . '<input type="hidden" name="wikidata_import" value="0" /></form>';
+    $city_id    = intval($result_cities['city_id']);
+    $city_scope = intval($result_cities['city_scope']);
+    $city_fill  = array('city_id' => $city_id, 'city_name' => (string) $result_cities['city_name'], 'city_scope' => $city_scope,
+                        'city_postcode' => (string) $result_cities['city_postcode'], 'city_area' => (string) $result_cities['city_area'],
+                        'city_population' => (string) $result_cities['city_population'], 'city_website' => (string) $result_cities['city_website'],
+                        'wikidata_import' => '0');
+    $website    = (string) $result_cities['city_website'];
 ?>
         <tr id="city<?= $city_id ?>">
-          <td>#<?= $city_id ?></td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="city_name" form="<?= h($form_id) ?>" value="<?= h($result_cities['city_name']) ?>" maxlength="255" required aria-label="Nom" />
-          </td>
-          <td>
-            <select name="city_scope" class="form-select form-select-sm" form="<?= h($form_id) ?>" aria-label="Scope">
-<?php
-    if (!isset($scopelist[intval($result_cities['city_scope'])])) {
-        echo '<option value="0" selected>-- Aucun scope --</option>';
-    }
-    foreach ($scopelist as $scopeid => $scopename) {
-        $selected = ($scopeid == $result_cities['city_scope']) ? ' selected' : '';
-        echo '<option value="' . intval($scopeid) . '"' . $selected . '>' . h($scopename) . '</option>';
-    }
-?>
-            </select>
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="city_postcode" form="<?= h($form_id) ?>" value="<?= h($result_cities['city_postcode']) ?>" inputmode="numeric" required aria-label="Code postal" />
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="city_area" form="<?= h($form_id) ?>" value="<?= h($result_cities['city_area']) ?>" inputmode="decimal" required aria-label="Surface" />
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="city_population" form="<?= h($form_id) ?>" value="<?= h($result_cities['city_population']) ?>" inputmode="numeric" required aria-label="Population" />
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" name="city_website" form="<?= h($form_id) ?>" value="<?= h($result_cities['city_website']) ?>" maxlength="255" aria-label="Site" />
+          <td class="d-none d-md-table-cell text-body-secondary">#<?= $city_id ?></td>
+          <td class="fw-semibold"><?= h($result_cities['city_name']) ?></td>
+          <td><?= isset($scopelist[$city_scope]) ? h($scopelist[$city_scope]) : '<span class="badge text-bg-warning">Aucun scope</span>' ?></td>
+          <td class="d-none d-sm-table-cell"><?= h(sprintf('%05d', intval($result_cities['city_postcode']))) ?></td>
+          <td class="d-none d-xl-table-cell text-end"><?= h(number_format((float) $result_cities['city_area'], 2, ',', ' ')) ?></td>
+          <td class="d-none d-lg-table-cell text-end"><?= h(number_format((float) $result_cities['city_population'], 0, ',', ' ')) ?></td>
+          <td class="d-none d-xl-table-cell text-truncate" style="max-width: 16rem;">
+            <?php if (preg_match('#^https?://#i', $website)) { ?><a href="<?= h($website) ?>" target="_blank" rel="noopener noreferrer"><?= h(preg_replace('#^https?://(www\.)?#i', '', $website)) ?></a><?php } else { echo h($website); } ?>
           </td>
           <td class="text-end text-nowrap">
-            <button class="btn btn-sm btn-outline-primary" type="submit" form="<?= h($form_id) ?>"><i class="bi bi-check-lg"></i> Enregistrer</button>
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-wikidata-form="<?= h($form_id) ?>" title="Compléter avec Wikidata"><i class="bi bi-cloud-download"></i> Wikidata</button>
-            <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;cityid=<?= $city_id ?><?= h(csrf_query()) ?>" data-confirm="Merci de valider la suppression de la ville #<?= $city_id ?>"><i class="bi bi-trash"></i> Supprimer</a>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#cityModal"
+                    data-title="Modifier la ville #<?= $city_id ?>" data-fill="<?= h(json_encode($city_fill)) ?>"><i class="bi bi-pencil"></i><span class="d-none d-lg-inline"> Modifier</span></button>
+            <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;cityid=<?= $city_id ?><?= h(csrf_query()) ?>" data-confirm="Merci de valider la suppression de la ville #<?= $city_id ?>" title="Supprimer"><i class="bi bi-trash"></i><span class="d-none d-lg-inline"> Supprimer</span></a>
           </td>
         </tr>
 <?php
@@ -374,7 +366,64 @@ while ($query_cities && ($result_cities = mysqli_fetch_array($query_cities))) {
     </table>
   </div>
 </div>
-<?= $forms ?>
+
+<div class="modal fade" id="cityModal" tabindex="-1" aria-labelledby="cityModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" action="<?= h($self_url) ?>" name="cityform">
+      <?= csrf_field() ?>
+      <input type="hidden" name="city_id" value="0" />
+      <input type="hidden" name="wikidata_import" value="0" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="cityModalTitle">Ville</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label class="form-label" for="city_name">Nom</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="city_name" name="city_name" maxlength="255" required />
+              <button class="btn btn-outline-secondary" type="button" data-wikidata-form="cityform" title="Compléter avec Wikidata"><i class="bi bi-cloud-download"></i> Wikidata</button>
+            </div>
+            <div class="form-text">Wikidata propose le code postal, la surface, la population et le site à partir du nom.</div>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="city_scope">Scope</label>
+            <select class="form-select" id="city_scope" name="city_scope">
+              <option value="0">-- Aucun scope --</option>
+              <?php foreach ($scopelist as $scopeid => $scopename) { ?>
+                <option value="<?= intval($scopeid) ?>"><?= h($scopename) ?></option>
+              <?php } ?>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="city_postcode">Code postal</label>
+            <input type="text" class="form-control" id="city_postcode" name="city_postcode" inputmode="numeric" pattern="[0-9]{1,5}" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="city_area">Surface (km²)</label>
+            <input type="text" class="form-control" id="city_area" name="city_area" inputmode="decimal" />
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" for="city_population">Population</label>
+            <input type="text" class="form-control" id="city_population" name="city_population" inputmode="numeric" />
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="city_website">Site</label>
+            <input type="text" class="form-control" id="city_website" name="city_website" maxlength="255" placeholder="https://" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php if ($reopen !== null) { ?>
+<div hidden data-reopen-modal="#cityModal" data-title="<?= $reopen['city_id'] ? 'Modifier la ville #' . intval($reopen['city_id']) : 'Ajouter une ville' ?>" data-fill="<?= h(json_encode($reopen)) ?>"></div>
+<?php } ?>
 
 <script src="js/wikidata.js"></script>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">

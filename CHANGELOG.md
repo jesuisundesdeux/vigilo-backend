@@ -14,6 +14,8 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
   approuvée, avec les mêmes paramètres (`token`, `s`, `secretid`, `key`) et les mêmes erreurs.
 - **MapQuest** : plus de carte ni de clé d'API (#278 : plus besoin de compte MapQuest).
 - Le champ `twitter` de `get_scope.php` est toujours renvoyé (valeur existante) mais n'est plus modifiable.
+- `get_photo.php` et `generate_panel.php` répondent 404 (`PHOTONOTFOUND`) quand l'observation n'a pas de photo ; les
+  applications affichent une image par défaut.
 
 ### Sécurité
 - Injections SQL corrigées (`mosaic.php` sans authentification, commentaires tronqués après échappement,
@@ -38,6 +40,13 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
 - Tableau de bord, notes privées des modérateurs (#266), gestion des villes des comptes citystaff (#237, #270),
   réglages regroupés.
 - Les modérateurs voient les photos non pixelisées dans l'admin (`admin/photo.php`, réservé aux sessions admin).
+- Villes, comptes, scopes et catégories de l'instance : listes en lecture, création et modification dans une fenêtre
+  (plus d'entrée vide à compléter) ; les valeurs refusées rouvrent la fenêtre avec la saisie.
+- Tableaux sans défilement horizontal : colonnes secondaires masquées sur les écrans étroits, observations et listes
+  affichées en blocs sur tablette et mobile.
+- Photos ouvertes dans une fenêtre plutôt qu'un nouvel onglet ; image par défaut si la photo manque.
+- Cartes OpenStreetMap de l'admin : tuiles demandées avec l'origine du site (« Access blocked » corrigé).
+- Champ « Texte de partage par défaut » retiré (il servait à Twitter) ; `tweet_content` reste renvoyé par `get_scope.php`.
 
 ### Floutage des photos
 - Serveur de floutage optionnel (`blur-server/`, service `blur` du docker-compose, image
