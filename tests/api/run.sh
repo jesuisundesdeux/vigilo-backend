@@ -19,7 +19,8 @@ REPO=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=${CONTRACT_PORT:-8089}
 NAME=vigilo-contract-$PORT
 WORK=$(mktemp -d)
-trap 'docker rm -f "$NAME" > /dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
+# Files written by Apache (www-data) in the container: made removable before cleaning up
+trap 'docker exec "$NAME" chmod -R a+rwX /var/www/html > /dev/null 2>&1 || true; docker rm -f "$NAME" > /dev/null 2>&1 || true; rm -rf "$WORK" 2> /dev/null || true' EXIT
 
 export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"
 mysql -h "$MYSQL_HOST" -uroot -e "DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\`; GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%'"
@@ -54,7 +55,7 @@ if [ "$IMAGE" == "host" ]; then
   # Local PHP (built-in server): quick check of the PHP version installed on this machine
   (cd "$WORK/app" && MYSQL_HOST="$MYSQL_HOST" MYSQL_USER="$MYSQL_USER" MYSQL_PASSWORD="$MYSQL_PASSWORD" MYSQL_DATABASE="$MYSQL_DATABASE" \
     PHP_CLI_SERVER_WORKERS=4 php -d display_errors=stderr -d variables_order=EGPCS -S "127.0.0.1:$PORT" > "$WORK/php.log" 2>&1 &)
-  trap 'pkill -f "^php -d display_errors=stderr -d variables_order=EGPCS -S 127.0.0.1:$PORT" > /dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
+  trap 'pkill -f "^php -d display_errors=stderr -d variables_order=EGPCS -S 127.0.0.1:$PORT" > /dev/null 2>&1 || true; rm -rf "$WORK" 2> /dev/null || true' EXIT
 else
 docker run -d --name "$NAME" --network host \
   -v "$WORK/app:/var/www/html" \
