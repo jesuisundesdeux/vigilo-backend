@@ -2,7 +2,7 @@
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
+require_once("{$cwd}/includes/common.php");
 
 function deleteInstallFile() {
   unlink('./install.php');

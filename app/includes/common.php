@@ -34,6 +34,9 @@ if (!isset($config['DATA_PATH'])) {
     $config['DATA_PATH'] = '';
 }
 
+// PHP >= 8.1 throws an exception on any SQL error: the code checks the results itself
+mysqli_report(MYSQLI_REPORT_OFF);
+
 if (!$db = mysqli_connect($config['MYSQL_HOST'], $config['MYSQL_USER'], $config['MYSQL_PASSWORD'], $config['MYSQL_DATABASE'])) {
     error_log("[FATAL] Connection à la base impossible");
     exit();

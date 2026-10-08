@@ -1,7 +1,15 @@
-version: '3.7'
+# Vigilo backend with Docker.
+#
+# The code comes from the versioned image: "docker compose pull && docker compose up -d"
+# installs the latest patch of the 0.0 series, the database is migrated at startup
+# (AUTOUPDATE). To update from the admin (page "Mises à jour"), start Watchtower too:
+#
+#   docker compose --profile watchtower up -d
+#
+# Development with the code of this repository: see docker-compose.dev.yml.
 services:
   db:
-    image: mariadb
+    image: ${MARIADB_IMAGE:-mariadb:lts}
     restart: always
     volumes:
       - ${VOLUME_PATH}/db/mysql:/var/lib/mysql
@@ -10,44 +18,47 @@ services:
       - MARIADB_USER=${MYSQL_USER}
       - MARIADB_PASSWORD=${MYSQL_PASSWORD}
       - MARIADB_DATABASE=${MYSQL_DATABASE}
+      # Upgrade the data files when the MariaDB image changes major version
+      - MARIADB_AUTO_UPGRADE=1
+
   web:
-#     image: vigilobs/vigilo-backend:0.0.19
-     build: .
-     working_dir: /var/www/html
-     ports:
-       - "${BIND}:80"
-     links:
-       - db
-       - sgblur
-     volumes:
-       - ./app:/var/www/html
-       - ./config/config.php.docker:/var/www/html/config/config.php
-       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
-       - ${VOLUME_PATH}/files/maps:/var/www/html/maps
-       - ${VOLUME_PATH}/files/images:/var/www/html/images
-       - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
-     environment:
-       - MYSQL_HOST
-       - MYSQL_USER
-       - MYSQL_PASSWORD
-       - MYSQL_DATABASE
-       - AUTOUPDATE
-#  backup:
-#    build: docker_backup/
-#    volumes:
-#      - ${VOLUME_PATH}/backup:/backup
-#      - ${VOLUME_PATH}/files/caches:/tosave/caches:ro
-#      - ${VOLUME_PATH}/files/maps:/tosave/maps:ro
-#      - ${VOLUME_PATH}/files/images:/tosave/images:ro
-#      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/tosave/logs:ro
-#    environment:
-#      - MYSQL_HOST
-#      - MYSQL_USER
-#      - MYSQL_PASSWORD
-#      - MYSQL_DATABASE
-#
+    image: ${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}
+    restart: always
+    ports:
+      - "${BIND}:80"
+    depends_on:
+      - db
+    volumes:
+      - ${VOLUME_PATH}/files/caches:/var/www/html/caches
+      - ${VOLUME_PATH}/files/maps:/var/www/html/maps
+      - ${VOLUME_PATH}/files/images:/var/www/html/images
+      - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
+    environment:
+      - MYSQL_HOST
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+      - MYSQL_DATABASE
+      - AUTOUPDATE
+      # Update button of the admin (needs the watchtower profile)
+      - VIGILO_WATCHTOWER_URL=${VIGILO_WATCHTOWER_URL:-}
+      - VIGILO_WATCHTOWER_TOKEN=${WATCHTOWER_TOKEN:-}
+    labels:
+      # Only this container is updated by Watchtower
+      - com.centurylinklabs.watchtower.enable=true
+
+  # Optional: updates the "web" image when asked from the admin (HTTP API),
+  # never on its own. Enable with: docker compose --profile watchtower up -d
+  watchtower:
+    image: ${WATCHTOWER_IMAGE:-containrrr/watchtower:1.7.1}
+    profiles: ["watchtower"]
+    restart: always
+    command: --http-api-update --label-enable --cleanup
+    environment:
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
 #  sgblur:
 #    image: sgblur
-#    ports: 
+#    ports:
 #      - 8001:8001
-

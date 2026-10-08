@@ -19,9 +19,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
-require_once("${cwd}/includes/handle.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/handle.php");
+require_once("{$cwd}/includes/security.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -36,6 +37,15 @@ if (isset($_GET['key'])) {
 }
 
 $update = 0;
+
+# Anti-spam: same limit as the creation of observations
+$ratelimit_query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_ratelimit_create' LIMIT 1");
+$ratelimit_row   = $ratelimit_query ? mysqli_fetch_array($ratelimit_query) : null;
+$ratelimit       = $ratelimit_row ? intval($ratelimit_row['config_value']) : 0;
+if ($ratelimit > 0 && getrole($key, $acls) != "admin" && api_rate_limited($db, 'create_resolution', $ratelimit, 600)) {
+    header('Retry-After: 600');
+    jsonError($error_prefix, "Too many resolutions created, please retry later", "RATELIMITED", 429);
+}
 
 # Check if token exists
 if (isset($_POST['token']) AND !empty($_POST['token'])) {
@@ -77,7 +87,7 @@ if (strlen($time) == 13) {
 # Handle optional fields
 if (isset($_POST['comment'])) {
     # Truncate before escaping: cutting an escaped string can leave a dangling backslash
-    $comment = mb_substr(removeEmoji($_POST['comment']), 0, 50, 'UTF-8'); # Max 50 char
+    $comment = vigilo_truncate(removeEmoji($_POST['comment']), 50); # Max 50 char
     $comment = mysqli_real_escape_string($db, $comment);
 } else {
     $comment = Null;
@@ -109,9 +119,11 @@ if ($update) {
     );
     
     $obsidlist = array();
-    foreach ($tokenlist as $token) {
-        if (!empty($token)) {
-            $obsidlist[] = getObsIdByToken($token);
+    foreach ($tokenlist as $obstoken) {
+        // Unknown tokens used to be linked as observation 0
+        $obsid = empty($obstoken) ? False : getObsIdByToken(trim($obstoken));
+        if ($obsid !== False) {
+            $obsidlist[] = intval($obsid);
         }
     }
     

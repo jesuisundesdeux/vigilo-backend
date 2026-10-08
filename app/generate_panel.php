@@ -139,7 +139,7 @@ if ($approved != 1 && !$AdminOrAuthor) {
 }
 
 $map_file_path = $maps_path . $token . '_zoom.jpg';
-$res = GenerateMapQuestForToken($token, $map_file_path, $config['MAPQUEST_API']);
+$res = GenerateMapForToken($token, $map_file_path);
 if (!$res) {
     // Use default place holder picture instead of crashing
     $map_file_path = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'map_error.jpeg']);

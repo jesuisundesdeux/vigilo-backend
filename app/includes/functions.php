@@ -19,6 +19,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 require_once(dirname(__FILE__) . '/../lib/codebird-php/codebird.php');
 
+/* First $length characters of a UTF-8 string (mbstring is not always installed) */
+function vigilo_truncate($text, $length)
+{
+    $text = (string) $text;
+    if (function_exists('mb_substr')) {
+        return mb_substr($text, 0, $length, 'UTF-8');
+    }
+    return preg_match('/^.{0,' . intval($length) . '}/us', $text, $m) ? $m[0] : substr($text, 0, $length);
+}
+
 function tokenGenerator($length)
 {
     $bytes = random_bytes($length);
@@ -222,6 +232,17 @@ function tweetToken($token ) {
 }
 
 
+/* Timestamp from the admin date (dd/mm/yyyy) and time (hh:mm) fields, False if invalid */
+function parseAdminDateTime($date, $time)
+{
+    $datetime = DateTime::createFromFormat('!d/m/Y H:i', trim($date) . ' ' . trim($time));
+    $errors   = DateTime::getLastErrors();
+    if ($datetime === false || ($errors && ($errors['warning_count'] || $errors['error_count']))) {
+        return False;
+    }
+    return $datetime->getTimestamp();
+}
+
 function getrole($privatekey, $acls)
 {
     foreach ($acls as $key => $value) {
@@ -362,45 +383,80 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
     }
 }
 
+/*
+ * JSON document from a remote URL, cached on disk for $ttl seconds.
+ * When the remote is unreachable, the last cached copy is used (even if older), so
+ * that a GitHub outage does not break the panels.
+ */
+function getCachedRemoteJson($url, $cache_name, $ttl = 86400)
+{
+    global $config;
+
+    $cache_dir  = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'caches/';
+    $cache_file = $cache_dir . 'remote_' . preg_replace('/[^a-z0-9_]/', '', $cache_name) . '.json';
+
+    if (file_exists($cache_file) && filemtime($cache_file) > time() - $ttl) {
+        $data = json_decode(file_get_contents($cache_file), true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+
+    $content = getWebContent($url);
+    $data    = $content ? json_decode($content, true) : null;
+    if (is_array($data)) {
+        @file_put_contents($cache_file, $content, LOCK_EX);
+        return $data;
+    }
+
+    if (file_exists($cache_file)) {
+        $data = json_decode(file_get_contents($cache_file), true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+    return array();
+}
+
 function getCategoriesList()
 {
     global $config;
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    return $categories_list;
+    return getCachedRemoteJson($config['CATEGORIES_NATIONAL_URL'], 'categories', 3600);
 }
 
 function getCategorieName($catid)
 {
-    global $config;
-
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    foreach ($categories_list as $value) {
-        if ($value['catid'] == $catid) {
+    $categorie_string = null;
+    foreach (getCategoriesList() as $value) {
+        if (isset($value['catid']) && $value['catid'] == $catid) {
             $categorie_string = $value['catname'];
         }
     }
     return $categorie_string;
 }
 
-
+/* Name of the instance in vigilo-conf (citylist.json) for a scope, used for links to the web app */
 function getInstanceNameFromFirebase($scope)
 {
-    $citylist_list = json_decode($citylist_json, JSON_OBJECT_AS_ARRAY);
+    $citylist_list = getCachedRemoteJson('https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/citylist.json', 'citylist', 86400);
     foreach ($citylist_list as $key => $value) {
-        if ($value['scope'] == $scope) {
+        if (isset($value['scope']) && $value['scope'] == $scope) {
             return $key;
         }
     }
     return False;
 }
 
+/* Observations less than 200 m away from $issue, most recent first */
 function findClosestIssues($db, $issue)
 {
-    $closestIssues = [];
-    
-    $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat, obs_coordinates_lon, obs_time, obs_token FROM obs_list ORDER BY obs_time DESC");
+    $closestIssues = array();
+
+    if (!$issue) {
+        return $closestIssues;
+    }
+
+    $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat, obs_coordinates_lon, obs_time, obs_token FROM obs_list WHERE obs_complete=1 ORDER BY obs_time DESC");
     while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
         if (distance(
                 $issue['obs_coordinates_lat'],
@@ -411,11 +467,149 @@ function findClosestIssues($db, $issue)
             ) < 200
             && $result_issues_coordinates['obs_token'] != $issue['obs_token']
         ) {
-            $additionalmarkers[] = $result_issues_coordinates;
+            $closestIssues[] = $result_issues_coordinates;
         }
     }
 
     return $closestIssues;
+}
+
+/* Marker colour of an observation according to its age */
+function mapMarkerColor($time)
+{
+    $age = time() - $time;
+    if ($age < 3600 * 24 * 30) {
+        return 'db0000';
+    } elseif ($age < 3600 * 24 * 30 * 6) {
+        return 'db7800';
+    }
+    return 'a8a8a8';
+}
+
+/*
+ * Map of the panel. Provider "mapquest" needs an API key (and a credit card at MapQuest,
+ * issue #278); "osm" draws the map from OpenStreetMap tiles, without any key. "auto"
+ * (default) uses MapQuest when a key is configured, OpenStreetMap otherwise.
+ */
+function GenerateMapForToken($token, $path)
+{
+    global $config, $db;
+
+    $provider = 'auto';
+    $tiles    = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    $query    = mysqli_query($db, "SELECT config_param, config_value FROM obs_config WHERE config_param IN ('vigilo_map_provider', 'vigilo_map_tiles_url')");
+    while ($query && $row = mysqli_fetch_array($query)) {
+        if ($row['config_param'] == 'vigilo_map_provider' && $row['config_value'] !== '') {
+            $provider = $row['config_value'];
+        } elseif ($row['config_param'] == 'vigilo_map_tiles_url' && $row['config_value'] !== '') {
+            $tiles = $row['config_value'];
+        }
+    }
+    $mapquest_key = isset($config['MAPQUEST_API']) ? $config['MAPQUEST_API'] : '';
+
+    if ($provider == 'mapquest' || ($provider == 'auto' && $mapquest_key !== '')) {
+        $config['MAP_ATTRIBUTION'] = '©MAPQUEST ©OPENSTREETMAP ©MAPBOX';
+        return GenerateMapQuestForToken($token, $path, $mapquest_key);
+    }
+    $config['MAP_ATTRIBUTION'] = '© LES CONTRIBUTEURS D’OPENSTREETMAP';
+    return GenerateOSMMapForToken($token, $path, $tiles);
+}
+
+function GenerateOSMMapForToken($token, $path, $tiles_url, $size = 390, $zoom = 17)
+{
+    global $db, $config;
+
+    if (file_exists($path)) {
+        return true;
+    }
+
+    $query_token   = mysqli_query($db, "SELECT obs_token, obs_coordinates_lat, obs_coordinates_lon FROM obs_list WHERE obs_token='" . mysqli_real_escape_string($db, $token) . "' LIMIT 1");
+    $current_issue = mysqli_fetch_array($query_token);
+    if (!$current_issue || !is_numeric($current_issue['obs_coordinates_lat']) || !is_numeric($current_issue['obs_coordinates_lon'])) {
+        return false;
+    }
+
+    $lat = floatval($current_issue['obs_coordinates_lat']);
+    $lon = floatval($current_issue['obs_coordinates_lon']);
+
+    // Pixel position of the centre in the world map at this zoom
+    $world  = 256 * pow(2, $zoom);
+    $toPixel = function ($lat, $lon) use ($world) {
+        $x = ($lon + 180) / 360 * $world;
+        $s = sin(deg2rad($lat));
+        $y = (0.5 - log((1 + $s) / (1 - $s)) / (4 * M_PI)) * $world;
+        return array($x, $y);
+    };
+    list($cx, $cy) = $toPixel($lat, $lon);
+    $left = $cx - $size / 2;
+    $top  = $cy - $size / 2;
+
+    $map = imagecreatetruecolor($size, $size);
+    imagefill($map, 0, 0, imagecolorallocate($map, 230, 230, 230));
+
+    $tiles_dir = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'maps/tiles/';
+    if (!file_exists($tiles_dir)) {
+        @mkdir($tiles_dir, 0775, true);
+    }
+
+    $loaded = 0;
+    for ($tx = (int) floor($left / 256); $tx <= (int) floor(($left + $size) / 256); $tx++) {
+        for ($ty = (int) floor($top / 256); $ty <= (int) floor(($top + $size) / 256); $ty++) {
+            $tile = loadMapTile($tiles_url, $zoom, $tx, $ty, $tiles_dir);
+            if ($tile) {
+                imagecopy($map, $tile, (int) round($tx * 256 - $left), (int) round($ty * 256 - $top), 0, 0, 256, 256);
+                imagedestroy($tile);
+                $loaded++;
+            }
+        }
+    }
+    if ($loaded == 0) {
+        imagedestroy($map);
+        return false;
+    }
+
+    // Nearby observations, then the observation itself on top
+    $markers = array_slice(findClosestIssues($db, $current_issue), 0, 150);
+    foreach (array_reverse($markers) as $marker) {
+        list($mx, $my) = $toPixel(floatval($marker['obs_coordinates_lat']), floatval($marker['obs_coordinates_lon']));
+        drawMapMarker($map, (int) round($mx - $left), (int) round($my - $top), mapMarkerColor($marker['obs_time']), 7);
+    }
+    drawMapMarker($map, (int) round($size / 2), (int) round($size / 2), 'ff0000', 11);
+
+    $written = imagejpeg($map, $path, 90);
+    imagedestroy($map);
+    return $written;
+}
+
+function drawMapMarker($image, $x, $y, $hex_color, $radius)
+{
+    $color = imagecolorallocate($image, hexdec(substr($hex_color, 0, 2)), hexdec(substr($hex_color, 2, 2)), hexdec(substr($hex_color, 4, 2)));
+    $white = imagecolorallocate($image, 255, 255, 255);
+    imagefilledellipse($image, $x, $y, 2 * $radius + 4, 2 * $radius + 4, $white);
+    imagefilledellipse($image, $x, $y, 2 * $radius, 2 * $radius, $color);
+}
+
+/* One map tile, cached 30 days on disk (OpenStreetMap tile usage policy) */
+function loadMapTile($tiles_url, $z, $x, $y, $tiles_dir)
+{
+    $max = pow(2, $z);
+    if ($y < 0 || $y >= $max) {
+        return false;
+    }
+    $x    = (($x % $max) + $max) % $max;
+    $file = $tiles_dir . md5($tiles_url) . "_{$z}_{$x}_{$y}.png";
+
+    if (!file_exists($file) || filemtime($file) < time() - 30 * 86400) {
+        $url  = str_replace(array('{z}', '{x}', '{y}'), array($z, $x, $y), $tiles_url);
+        $data = getWebContent($url);
+        if ($data && @imagecreatefromstring($data) !== false) {
+            @file_put_contents($file, $data, LOCK_EX);
+        } elseif (!file_exists($file)) {
+            return false;
+        }
+    }
+    $tile = @imagecreatefromstring(file_get_contents($file));
+    return $tile ? $tile : false;
 }
 
 function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
@@ -426,12 +620,12 @@ function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
     $size_h = 390;
     $size_zoom = $size_w . ',' . $size_h;
     $zoom = 17;
-    $color_recent = 'db0000';
-    $color_month = 'db7800';
-    $color_old = 'a8a8a8';
     
-    $query_token  = mysqli_query($db, 'SELECT obs_token, obs_coordinates_lat, obs_coordinates_lon FROM obs_list WHERE obs_token="' . $token . '" LIMIT 1');
+    $query_token  = mysqli_query($db, "SELECT obs_token, obs_coordinates_lat, obs_coordinates_lon FROM obs_list WHERE obs_token='" . mysqli_real_escape_string($db, $token) . "' LIMIT 1");
     $current_issue = mysqli_fetch_array($query_token);
+    if (!$current_issue) {
+        return false;
+    }
 
     // mapquestapi limits requests size to 8 kbytes.
     // That's why we set a limit and select only 150 last markers.
@@ -440,19 +634,10 @@ function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
     # Check closest issues
     $additionalmarkers = '';
     foreach($closestIssues as $closeIssue) {
-        $age = time() - $closeIssue['obs_time'];
-        if ($age < 3600 * 24 * 30) {
-            $color = $color_recent;
-        } elseif ($age < 3600 * 24 * 30 * 6) {
-            $color = $color_month;
-        } else {
-            $color = $color_old;
-        }
-
-        $additionalmarkers .= $closeIssue['obs_coordinates_lat'] . ',' . $closeIssue['obs_coordinates_lon'] . '|via-md-' . $color . '||';
+        $additionalmarkers .= $closeIssue['obs_coordinates_lat'] . ',' . $closeIssue['obs_coordinates_lon'] . '|via-md-' . mapMarkerColor($closeIssue['obs_time']) . '||';
     }
     
-    $url_zoom  = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquest_apikey
+    $url_zoom  = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . urlencode($mapquest_apikey)
         . '&center=' . $current_issue['obs_coordinates_lat'] . ',' . $current_issue['obs_coordinates_lon']
         . '&size=' . $size_zoom . '&zoom=' . $zoom
         . '&locations=' . $additionalmarkers . $current_issue['obs_coordinates_lat'] . ',' . $current_issue['obs_coordinates_lon']
@@ -463,6 +648,8 @@ function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
         curl_setopt($ch, CURLOPT_URL, $url_zoom);
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // catch output (do NOT print!)
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $content_zoom = curl_exec($ch);
         
         $http_error_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -470,11 +657,8 @@ function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
         
         # Check the request went ok and Content-Type is a JPEG image
         if ($http_error_code != 200 || $content_type != 'image/jpeg') {
-            error_log(
-                'Unexpected HTTP result HTTP_CODE = ' . $http_error_code .
-                ' - Url = ' . $url_zoom .
-                ' - Content-Type = ' . $content_type
-            );
+            // The URL holds the API key: never write it to the logs
+            error_log('MapQuest map failed for ' . $token . ': HTTP_CODE = ' . $http_error_code . ' - Content-Type = ' . $content_type);
             curl_close($ch);
             return false;
         } else {
@@ -491,11 +675,18 @@ function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
 function getWebContent($url) {
 
   $curl = curl_init($url);
-  curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
+  curl_setopt($curl, CURLOPT_USERAGENT, "Vigilo-Backend/" . BACKEND_VERSION . " (+https://github.com/jesuisundesdeux/vigilo-backend)");
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
   // A slow remote (GitHub, categories) must not hang the API or the admin
   curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
   curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+  curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+  curl_setopt($curl, CURLOPT_MAXREDIRS, 3);
   $data = curl_exec($curl);
+  $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
+  if ($data === false || $code >= 400) {
+      return false;
+  }
   return $data;
 }

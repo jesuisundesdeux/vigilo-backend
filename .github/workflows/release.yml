@@ -1,7 +1,11 @@
 name: Release image
 
-# Pushing a tag vX.Y.Z publishes the Docker image with the tags
-# X.Y.Z, X.Y, stable and latest, signed with cosign (keyless).
+# Pushing a tag vX.Y.Z publishes:
+# - a GitHub release with the update archive used by the admin updater
+#   (vigilo-backend-X.Y.Z.zip, SHA256SUMS, and a .sig when the secret
+#   VIGILO_RELEASE_SIGNING_KEY is set, see scripts/release-keygen.php)
+# - the Docker image with the tags X.Y.Z, X.Y, stable and latest, signed with
+#   cosign (keyless)
 # Docker Hub (vigilobs/vigilo-backend) needs the DOCKERHUB_USERNAME and
 # DOCKERHUB_TOKEN secrets; the GitHub registry needs nothing.
 
@@ -10,7 +14,7 @@ on:
     tags: ['v*.*.*']
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
 
@@ -47,6 +51,18 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "dockerhub=$([ -n "$DOCKERHUB_USERNAME" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
+      # Update archive installed by the admin updater (classic installs)
+      - name: Build update archive
+        env:
+          VIGILO_RELEASE_SIGNING_KEY: ${{ secrets.VIGILO_RELEASE_SIGNING_KEY }}
+        run: scripts/build-release.sh "${GITHUB_REF_NAME#v}" dist
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
@@ -81,6 +97,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: VIGILO_IMAGE_VERSION=${{ github.ref_name }}
 
       - uses: sigstore/cosign-installer@v3
 

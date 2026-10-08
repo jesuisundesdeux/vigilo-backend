@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (C) 2020 Velocité Montpellier
+Copyright (C) 2026 Velocité Montpellier
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,17 +16,18 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+require_once('../includes/security.php');
 
-$cwd = dirname(__FILE__);
+vigilo_session_start();
 
-require_once("{$cwd}/includes/common.php");
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valid()) {
+  $_SESSION = array();
+  if (ini_get('session.use_cookies')) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+  }
+  session_destroy();
+}
 
-header('BACKEND_VERSION: ' . BACKEND_VERSION);
-header('Content-Type: application/json; charset=utf-8');
-
-
-echo json_encode(array(
-    'version' => BACKEND_VERSION
-));
-
-?>
+header('Location: login.php');
+exit;

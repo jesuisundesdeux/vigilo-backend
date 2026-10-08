@@ -59,7 +59,15 @@ function saveImageOnDisk($method, $filepath, $error_prefix)
 
 function saveImageOnDiskFromBase64($filepath, $error_prefix)
 {
-    $data          = $_POST['imagebin64'];
+    if (isset($_POST['imagebin64'])) {
+        $data = $_POST['imagebin64'];
+    } else {
+        // Also accept a JSON body {"imagebin64": "..."} (#267)
+        $json = json_decode(file_get_contents('php://input'), true);
+        $data = (is_array($json) && isset($json['imagebin64'])) ? $json['imagebin64'] : '';
+    }
+    // Data URLs ("data:image/jpeg;base64,...") are accepted
+    $data          = preg_replace('/^data:[^,]*,/', '', (string) $data);
     $image_content = base64_decode(str_replace(array(
         '-',
         '_',

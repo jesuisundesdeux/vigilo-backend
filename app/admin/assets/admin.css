@@ -1,0 +1,80 @@
+/* Vigilo admin, on top of Bootstrap 5 */
+
+:root {
+  --vigilo-yellow: #fdd835;
+}
+
+body {
+  font-size: .925rem;
+}
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+
+@media (min-width: 768px) {
+  .sidebar .offcanvas-lg,
+  .sidebar .offcanvas-md {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 48px;
+  }
+  .sidebar .offcanvas-md .offcanvas-body {
+    height: calc(100vh - 48px);
+  }
+}
+
+.sidebar .nav-link {
+  font-size: .925rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  border-left: 3px solid transparent;
+}
+
+.sidebar .nav-link.active {
+  color: var(--bs-primary);
+  border-left-color: var(--vigilo-yellow);
+  background-color: var(--bs-secondary-bg);
+}
+
+.sidebar .nav-link:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Observation and resolution cards */
+.obs-thumb {
+  width: 100%;
+  max-width: 220px;
+  border-radius: .375rem;
+  border: 1px solid var(--bs-border-color);
+}
+
+.table-admin td,
+.table-admin th {
+  vertical-align: middle;
+}
+
+.table-admin .form-control-plaintext,
+.table-admin .form-control,
+.table-admin .form-select {
+  min-width: 10rem;
+}
+
+.stat-card .display-6 {
+  font-weight: 600;
+}
+
+.audit-details {
+  max-width: 32rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Login */
+.form-signin {
+  max-width: 360px;
+  padding: 1rem;
+}

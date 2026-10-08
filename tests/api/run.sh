@@ -70,6 +70,10 @@ done
 
 status=0
 python3 "$REPO/tests/api/contract.py" --base "http://127.0.0.1:$PORT" "$@" || status=$?
+# Admin smoke test (only for the code of this repository, the old admin differs)
+if [ "${ADMIN_SMOKE:-0}" = "1" ]; then
+  python3 "$REPO/tests/admin/smoke.py" --base "http://127.0.0.1:$PORT" || status=$?
+fi
 if [ $status -ne 0 ]; then
   echo "--- PHP / Apache log"
   if [ "$IMAGE" == "host" ]; then grep -i "warning\|error\|deprecated" "$WORK/php.log" | sort | uniq -c | sort -rn | head -40; else docker logs "$NAME" 2>&1 | grep -v ' 200 ' | tail -50; fi

@@ -17,6 +17,34 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA    02111-1307    USA
 */
 
+/*
+ * Ids of the cities of a citystaff account. obs_roles.role_city holds a JSON array of
+ * city names, or a comma separated list for accounts not saved since 0.0.21 (#237).
+ */
+function getRoleCityIds($db, $login)
+{
+    $ids    = array();
+    $result = mysqli_query($db, "SELECT role_city FROM obs_roles WHERE role_login = '" . mysqli_real_escape_string($db, (string) $login) . "'");
+    while ($result && $row = mysqli_fetch_array($result)) {
+        $raw    = trim((string) $row['role_city']);
+        $cities = json_decode($raw, true);
+        if (!is_array($cities)) {
+            $cities = explode(',', $raw);
+        }
+        foreach ($cities as $city) {
+            if (!is_scalar($city) || trim((string) $city) === '') {
+                continue;
+            }
+            $city_result = mysqli_query($db, "SELECT city_id FROM obs_cities WHERE city_name = '" . mysqli_real_escape_string($db, trim((string) $city)) . "' LIMIT 1");
+            $city_row    = $city_result ? mysqli_fetch_array($city_result) : null;
+            if ($city_row && intval($city_row['city_id']) > 0) {
+                $ids[] = intval($city_row['city_id']);
+            }
+        }
+    }
+    return array_values(array_unique($ids));
+}
+
 /* Observations functions */
 function getObsIdByToken($token)
 {
@@ -81,7 +109,7 @@ function deleteObs($obsid)
     global $db;
     global $config;
     $cwd         = dirname(__FILE__);
-    $images_path = "${cwd}" . '/../' . $config['DATA_PATH'] . "images/";
+    $images_path = "{$cwd}" . '/../' . $config['DATA_PATH'] . "images/";
     $token       = getTokenByObsid($obsid);
     
     mysqli_query($db, "DELETE FROM obs_list WHERE obs_id='" . $obsid . "' LIMIT 1");

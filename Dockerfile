@@ -1,42 +1,38 @@
-FROM php:7.3.32-apache
+FROM php:8.3-apache-bookworm
 
-MAINTAINER Vigilo Team <velocite34@gmail.com>
+LABEL org.opencontainers.image.title="vigilo-backend" \
+      org.opencontainers.image.source="https://github.com/jesuisundesdeux/vigilo-backend" \
+      org.opencontainers.image.licenses="GPL-3.0"
 
-# Debian bullseye (base of PHP 7.3) is end of life and its packages are leaving the
-# regular mirrors: when the install fails, retry from archive.debian.org.
-RUN PACKAGES="libfreetype6-dev libjpeg62-turbo-dev libpng-dev default-mysql-client" \
-    && (apt-get update && apt-get install -y $PACKAGES) \
-    || (printf '%s\n' \
-          'deb http://archive.debian.org/debian bullseye main' \
-          'deb http://archive.debian.org/debian-security bullseye-security main' \
-          > /etc/apt/sources.list \
-        && rm -rf /var/lib/apt/lists/* \
-        && apt-get -o Acquire::Check-Valid-Until=false update \
-        && apt-get install -y $PACKAGES) \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libzip-dev \
+        unzip \
+        default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Activate php extensions
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
-    && docker-php-ext-install -j$(nproc) gd mysqli exif
+# PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd mysqli exif zip
 
-# Activate phpunit
-RUN curl -L https://phar.phpunit.de/phpunit-8.phar > /usr/local/bin/phpunit \
-    && chmod +x /usr/local/bin/phpunit
+RUN a2enmod remoteip rewrite headers
 
-# Enable Remote IP
-RUN a2enmod remoteip
-
-# Enable Rewrite
-RUN a2enmod rewrite
-
-# Add logs with good ip
+# Logs with the real client IP behind a reverse proxy
 COPY config/remoteip.conf /etc/apache2/conf-enabled
 
-# Add default Apache conf
+# Default Apache conf
 COPY config/000-default.conf /etc/apache2/sites-enabled/000-default.conf
 
 # Production settings: errors are logged, never displayed
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && { echo 'expose_php = Off'; \
+         echo 'upload_max_filesize = 20M'; \
+         echo 'post_max_size = 25M'; \
+         echo 'session.cookie_httponly = 1'; \
+         echo 'session.use_strict_mode = 1'; } > "$PHP_INI_DIR/conf.d/vigilo.ini"
 
 COPY vigilo-entrypoint /usr/local/bin/vigilo-entrypoint
 
@@ -47,12 +43,12 @@ COPY config/config.php.docker /var/www/html/config/config.php
 
 COPY scripts/vigilo-migrate.php /usr/local/bin/vigilo-migrate.php
 
-# The version is read from app/includes/version.php at startup, never hardcoded here.
-# Migrations run at startup unless AUTOUPDATE=false.
-ENV AUTOUPDATE true
+# Version of the image, shown in the admin (Mises à jour) to compare with the releases
+ARG VIGILO_IMAGE_VERSION=dev
+ENV VIGILO_RUNTIME=docker \
+    VIGILO_IMAGE_VERSION=$VIGILO_IMAGE_VERSION \
+    AUTOUPDATE=true
 
 ENTRYPOINT ["vigilo-entrypoint"]
-#ENTRYPOINT ["docker-php-entrypoint"]
 
 CMD ["apache2-foreground"]
-

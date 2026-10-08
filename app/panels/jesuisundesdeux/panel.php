@@ -120,7 +120,7 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     ## Photo
     $photo_position_y = $photo_min_y;
     
-    imagecopyresized($image, $photo, $photo_position_x, $photo_position_y, 0, 0, $photo_new_size_w, $photo_new_size_h, $photo_w, $photo_h);
+    imagecopyresized($image, $photo, (int) round($photo_position_x), (int) round($photo_position_y), 0, 0, (int) round($photo_new_size_w), (int) round($photo_new_size_h), $photo_w, $photo_h);
     
     $mask        = imagecreatetruecolor(360, 360);
     $transparent = imagecolorallocate($mask, 255, 0, 0);
@@ -141,7 +141,9 @@ function GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_
     imagecopymerge($image, $map_circle, $map_x, $map_y, 0, 0, 360, 360, 100);
     
     ## ADD MAP COPYRIGHTS ##
-    imagettftext($image, 7, 0, $copyright_x, $background_h - 13, $white, $font_regular, "©2020 MAPQUEST ©OPENSTREETMAP ©MAPBOX");
+    global $config;
+    $map_attribution = isset($config['MAP_ATTRIBUTION']) ? $config['MAP_ATTRIBUTION'] : "©OPENSTREETMAP";
+    imagettftext($image, 7, 0, $copyright_x, $background_h - 13, $white, $font_regular, $map_attribution);
     
     ## ADD CONTENT BLOCK ##
     $content_block = imagecreatefrompng($content_image);

@@ -147,4 +147,36 @@ jobs:
       - name: Contract tests
         run: |
           if [ "${{ matrix.runtime }}" = "image" ]; then IMAGE=vigilo-backend:ci; else IMAGE=vigilobs/vigilo-backend:0.0.20; fi
-          tests/api/run.sh app "$IMAGE"
+          ADMIN_SMOKE=1 tests/api/run.sh app "$IMAGE"
+
+  # Admin updater, end to end: signed release installed, tampered archive refused,
+  # broken migration rolled back (code and database)
+  updater:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: vigilo
+          MARIADB_USER: vigilo
+          MARIADB_PASSWORD: vigilo
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_USER: vigilo
+      MYSQL_PASSWORD: vigilo
+      MYSQL_DATABASE: vigilo
+      MYSQL_ROOT_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, gd, curl, zip, sodium
+          tools: none
+      - name: Updater test
+        run: tests/update/run.sh

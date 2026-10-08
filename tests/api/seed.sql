@@ -23,9 +23,10 @@ INSERT INTO obs_cities (city_id, city_scope, city_name, city_postcode, city_area
   (2, 1, 'Saint-Exemple', 99100, 3.2, 4000, '');
 
 INSERT INTO obs_roles (role_id, role_key, role_name, role_owner, role_login, role_password, role_city) VALUES
-  (1, 'ADMINKEY0123456789', 'admin', 'Admin Test', 'admin', '', ''),
-  (2, 'MODKEY0123456789', 'moderator', 'Modo Test', 'modo', '', ''),
-  (3, 'STAFFKEY0123456789', 'citystaff', 'Staff Test', 'staff', '', '["Testville"]');
+  -- password of every account: vigilo-test
+  (1, 'ADMINKEY0123456789', 'admin', 'Admin Test', 'admin', '$2y$10$J.AsOqLgRiZO8Sf.EmYlU.G0mWsHvu2EwKLfOnuB0Pm2njE1dT57e', ''),
+  (2, 'MODKEY0123456789', 'moderator', 'Modo Test', 'modo', '$2y$10$J.AsOqLgRiZO8Sf.EmYlU.G0mWsHvu2EwKLfOnuB0Pm2njE1dT57e', ''),
+  (3, 'STAFFKEY0123456789', 'citystaff', 'Staff Test', 'staff', '$2y$10$J.AsOqLgRiZO8Sf.EmYlU.G0mWsHvu2EwKLfOnuB0Pm2njE1dT57e', '["Testville"]');
 
 INSERT INTO obs_list (obs_id, obs_scope, obs_city, obs_cityname, obs_coordinates_lat, obs_coordinates_lon,
   obs_address_string, obs_comment, obs_explanation, obs_categorie, obs_token, obs_time, obs_status,
