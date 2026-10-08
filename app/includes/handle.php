@@ -113,7 +113,9 @@ function deleteObs($obsid)
     $token       = getTokenByObsid($obsid);
     
     mysqli_query($db, "DELETE FROM obs_list WHERE obs_id='" . $obsid . "' LIMIT 1");
-    unlink($images_path . $token . '.jpg');
+    if ($token && file_exists($images_path . basename($token) . '.jpg')) {
+        unlink($images_path . basename($token) . '.jpg');
+    }
     
     if ($token) {
         delete_token_cache($token);

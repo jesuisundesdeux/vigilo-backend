@@ -1,7 +1,7 @@
 #!/bin/bash
 # Runs the API contract tests against a given code tree and PHP runtime image.
 #
-#   tests/api/run.sh <app dir> <docker image> [--record]
+#   tests/api/run.sh <app dir> <docker image> [--record | --functional]
 #
 # - <app dir>: the "app" directory to serve (this repository's app/, or an older version)
 # - <docker image>: image providing PHP + Apache (e.g. vigilobs/vigilo-backend:0.0.20
@@ -70,7 +70,13 @@ for i in $(seq 1 30); do
 done
 
 status=0
-python3 "$REPO/tests/api/contract.py" --base "http://127.0.0.1:$PORT" "$@" || status=$?
+if [ "${1:-}" = "--functional" ]; then
+  # Functional tests (assertions on the behaviour of each call), on the fresh database
+  shift
+  python3 "$REPO/tests/api/functional.py" --base "http://127.0.0.1:$PORT" "$@" || status=$?
+else
+  python3 "$REPO/tests/api/contract.py" --base "http://127.0.0.1:$PORT" "$@" || status=$?
+fi
 # Admin smoke test (only for the code of this repository, the old admin differs)
 if [ "${ADMIN_SMOKE:-0}" = "1" ]; then
   python3 "$REPO/tests/admin/smoke.py" --base "http://127.0.0.1:$PORT" || status=$?
