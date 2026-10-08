@@ -6,7 +6,7 @@ Composant de l'application Vigilo permettant l'hebergement, la gestion et l'affi
 
 #### Catégories 
 
-Permettent de classer les observations selon leur type, elles doivent être identiques sur l'ensemble des backends
+Permettent de classer les observations selon leur type. La liste nationale ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)) est commune à tous les backends ; chaque instance peut en désactiver et ajouter les siennes (numéros à partir de 1000), voir [FONCTIONNEMENT.md](FONCTIONNEMENT.md#catégories).
 
 #### Observation 
 
@@ -43,3 +43,7 @@ Service optionnel qui masque visages et plaques d'immatriculation sur les photos
 #### Statut
 
 État de suivi d'une observation : 0 nouvelle, 1 résolue, 2 prise en compte, 3 en cours de résolution, 4 indiquée comme résolue.
+
+#### Webhook
+
+Appel d'un service externe (Mastodon, Slack, outil de ticketing Open311…) à chaque publication d'une observation, défini dans l'admin : voir [FONCTIONNEMENT.md](FONCTIONNEMENT.md#webhooks) et [WEBHOOKS.md](WEBHOOKS.md).
