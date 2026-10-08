@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("{$cwd}/includes/common.php");
 require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/webhooks.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -55,13 +56,16 @@ if (mysqli_num_rows($checktoken_query) != 1) {
 }
 
 /* Set the observation to approved */
+$approved_before = webhook_approval_state($db, $token);
 $query = mysqli_query($db, "UPDATE obs_list set obs_approved=" . $approved . " WHERE obs_token='" . $token . "'");
 
 /* Now remove the cache for this observation to remove blurring or add */
 delete_token_cache($token);
 
-echo json_encode(array(
+/* The application gets its answer now, the webhooks of a publication run after */
+vigilo_send_response_and_continue(json_encode(array(
     'status' => '0'
-));
+)));
+webhooks_on_approval($db, $token, $approved_before, $approved);
 
 ?>

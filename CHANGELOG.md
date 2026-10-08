@@ -48,6 +48,14 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
 - Si le serveur échoue, la photo est enregistrée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
   la modération manuelle reste le garde-fou, l'envoi n'échoue jamais à cause du floutage.
 
+### Webhooks
+- Page « Webhooks » de l'admin : à chaque publication d'une observation (validation par un modérateur, depuis
+  l'admin ou `approve.php`), appel d'un ou plusieurs endpoints HTTP (POST, PUT, PATCH ou GET).
+- URL, en-têtes et corps personnalisables avec des variables (`{{token}}`, `{{comment}}`, `{{photo_url}}`,
+  `{{observation_url}}`, `{{lat}}`…) échappées selon le format (JSON, formulaire, texte).
+- Appels en parallèle après la réponse à l'application (5 s au plus, `VIGILO_WEBHOOK_TIMEOUT`), journal des envois,
+  bouton de test ; un endpoint en échec n'empêche jamais la publication.
+
 ### Fonctionnalités et corrections
 - Option pour masquer les observations résolues depuis N jours (#257).
 - Image en base64 dans un corps JSON (#267), documentation de l'envoi d'image.

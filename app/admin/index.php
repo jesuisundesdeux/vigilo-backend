@@ -29,6 +29,7 @@ if(!isset($_SESSION['login']) || !isset($_SESSION['role'])) {
 require_once('../includes/common.php');
 require_once('../includes/functions.php');
 require_once('../includes/handle.php');
+require_once('../includes/webhooks.php');
 
 $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "camera", "name" => "Observations", "access" => array('admin','citystaff')),
@@ -37,6 +38,7 @@ $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil"
         "accounts" => array("icon" => "people", "name" => "Comptes", "access" => array('admin')),
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
         "settings" => array("icon" => "gear", "name" => "Configuration", "access" => array('admin')),
+        "webhooks" => array("icon" => "broadcast", "name" => "Webhooks", "access" => array('admin')),
         "audit" => array("icon" => "journal-text", "name" => "Journal", "access" => array('admin')),
         "update" => array("icon" => "arrow-repeat", "name" => "Mises à jour", "access" => array('admin')));
 

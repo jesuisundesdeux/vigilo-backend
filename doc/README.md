@@ -9,7 +9,7 @@ Présentation et démarrage rapide : [README](../README.md).
 
 Documentation technique (ce dépôt) :
 
-- [Fonctionnement](FONCTIONNEMENT.md) : observations, statuts, scopes, rôles, photos et floutage
+- [Fonctionnement](FONCTIONNEMENT.md) : observations, statuts, scopes, rôles, photos, floutage et webhooks
 - [API REST](REST_API.md)
 - [Mises à jour](UPGRADE.md) (publiée aussi sur [vigilo.city](https://vigilo.city/fr/documentation/upgrade/))
 - [Architecture](ARCHITECTURE.md) : code, variables d'environnement, base de données
