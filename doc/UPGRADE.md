@@ -51,6 +51,14 @@ de la page « Mises à jour » télécharge la nouvelle image et redémarre le c
 que sur le conteneur `web` (label `com.centurylinklabs.watchtower.enable`) et seulement à la demande.
 Il a accès au socket Docker : ne l'activez que si vous en avez besoin.
 
+Watchtower est l'image `nickfedor/watchtower`, version maintenue de `containrrr/watchtower` (archivée). Si
+Watchtower ne démarre pas avec `client version 1.25 is too old. Minimum supported API version is 1.44` (Docker
+Engine 29 et suivants), c'est que l'ancienne image est encore utilisée : retirez `WATCHTOWER_IMAGE` de `.env` (ou
+mettez `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), reprenez le `docker-compose.yml` de cette version, puis
+`docker compose --profile watchtower up -d`. Le bouton de l'admin appelle Watchtower en POST, comme le demande la
+nouvelle image (backend 0.0.24 et suivants) ; avec un backend plus ancien, gardez `containrrr/watchtower:1.7.1` en
+ajoutant `DOCKER_API_VERSION=1.44` à l'environnement du service `watchtower`.
+
 Pour passer à une nouvelle série (0.1, 1.0…), changez `VIGILO_IMAGE` dans `.env`.
 
 Pour développer avec le code du dépôt :

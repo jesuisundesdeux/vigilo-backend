@@ -432,7 +432,10 @@ function vigilo_install_release($db, $release, $log)
     return $version;
 }
 
-/* Docker: Watchtower HTTP API (https://containrrr.dev/watchtower/http-api-mode/) */
+/*
+ * Docker: Watchtower HTTP API, POST /v1/update (nickfedor/watchtower, the maintained fork,
+ * only accepts POST; the former containrrr/watchtower accepts any method)
+ */
 function vigilo_watchtower_configured()
 {
     return getenv('VIGILO_WATCHTOWER_URL') && getenv('VIGILO_WATCHTOWER_TOKEN');
@@ -442,6 +445,8 @@ function vigilo_watchtower_update()
 {
     $ch = curl_init(rtrim(getenv('VIGILO_WATCHTOWER_URL'), '/') . '/v1/update');
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Authorization: Bearer ' . getenv('VIGILO_WATCHTOWER_TOKEN')));
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, '');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
     // Watchtower answers when the update is finished, or never if it restarts us
@@ -452,6 +457,9 @@ function vigilo_watchtower_update()
     curl_close($ch);
     if ($code == 401) {
         throw new Exception("Watchtower refuse le jeton (VIGILO_WATCHTOWER_TOKEN).");
+    }
+    if ($code == 405) {
+        throw new Exception("Watchtower refuse la requête : mettre à jour son image (nickfedor/watchtower, voir doc/UPGRADE.md).");
     }
     if ($errno && $errno != 28) {
         throw new Exception("Watchtower injoignable à " . getenv('VIGILO_WATCHTOWER_URL') . ".");
