@@ -14,7 +14,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build   #
 ```
 
 L'image est construite depuis le dépôt et le code de `app/` est monté dans le conteneur : les modifications
-sont prises en compte sans reconstruire. Voir [INSTALLATION.md](INSTALLATION.md) pour la mise en route
+sont prises en compte sans reconstruire. Voir l'[initialisation](https://vigilo.city/fr/documentation/installation/initialisation/) pour la mise en route
 (`install.php`, configuration).
 
 ## Branches et pull requests

@@ -30,6 +30,13 @@ Dockerfile, vigilo-entrypoint, docker-compose*.yml
 `vigilo-entrypoint` (Docker) attend la base, crée le schéma ou applique les migrations, met en place
 `install.php` sur une base vide et rend `images/` et `caches/` accessibles à Apache.
 
+## Variables d'environnement
+
+Lues par le backend : `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`
+(`config/config.php.docker`), `VIGILO_BLUR_URL`, `VIGILO_BLUR_TIMEOUT`, `VIGILO_WATCHTOWER_URL`,
+`VIGILO_WATCHTOWER_TOKEN`, `VIGILO_RELEASE_API` (tests).
+Les réglages de l'instance (table `obs_config`) sont décrits sur [vigilo.city](https://vigilo.city/fr/documentation/configuration/global/).
+
 ## Base de données
 
 | Table | Contenu |

@@ -24,11 +24,12 @@ instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)).
 | Rôle | Accès |
 |---|---|
 | `admin` | Tout : observations, résolutions, villes, comptes, scopes, réglages, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
-| `moderator` | Modération (approbation, modification, suppression) dans l'admin et par l'API. |
+| `moderator` | Modération (approbation, modification, suppression) depuis l'application web (mode admin) et par l'API, avec sa clé ; pas d'accès au panneau d'administration. |
 | `citystaff` | Observations et résolutions des villes associées au compte uniquement (statuts « prise en compte », « en cours »). |
 | `guest` | Compte sans droit (en attente d'attribution). |
 
 Chaque compte a une **clé API** (régénérable dans l'admin) passée en paramètre `key` aux appels qui le demandent.
+Panneau d'administration et ajout de modérateurs : [guide d'administration](https://vigilo.city/fr/documentation/administration/) sur vigilo.city.
 
 ## Photos, pixelisation et floutage
 
