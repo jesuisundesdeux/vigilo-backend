@@ -101,6 +101,8 @@ nouvelle route, action d'admin ou règle (`tests/api/functional.py`, `tests/admi
 
 ## Documentation à tenir à jour
 
+- `doc/GUIDE_CODE.md` : fonctionnement détaillé du code (à mettre à jour avec toute évolution d'un module, d'une route
+  ou de l'admin).
 - `CHANGELOG.md` à chaque changement visible.
 - `doc/REST_API.md` pour toute évolution de l'API, et la spécification OpenAPI du site (`vigilo-website/data/openapi.yaml`).
 - `doc/FONCTIONNEMENT.md`, `doc/WEBHOOKS.md`, `doc/UPGRADE.md` selon le sujet ; la documentation utilisateur

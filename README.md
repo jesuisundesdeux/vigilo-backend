@@ -36,6 +36,7 @@ Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-ba
 | [API REST](doc/REST_API.md) | Vue d'ensemble des routes, paramètres et réponses |
 | [Mises à jour](doc/UPGRADE.md) | Mise à jour depuis l'admin ou Docker (Watchtower), passage à la 0.0.22, anciennes versions (publiée aussi sur vigilo.city) |
 | [Architecture](doc/ARCHITECTURE.md) | Organisation du code, variables d'environnement, base de données |
+| [Guide du code](doc/GUIDE_CODE.md) | Fonctionnement détaillé du code : modules, routes, admin, données, sous-systèmes, tests, recettes, pièges |
 | [Guide du contributeur](doc/GUIDE_CONTRIBUTION.md) | Développement, tests, publication d'une version |
 | [Glossaire](doc/GLOSSAIRE.md) | Vocabulaire Vigilo |
 | [Serveur de floutage](blur-server/README.md) | Masquage des visages et plaques d'immatriculation |
