@@ -279,7 +279,28 @@ Version backend >= 0.0.1
 | URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG si method=stdin | >= 0.0.1 |
 | URL | str | method | | Methode d'upload d'image (par defaut stdin pour upload en RAW / base64 pour upload en base64 dans le champs imagebin64) | >= 0.0.16 |
-| POST | JPEG base64 |  imagebin64 | | Image encodée en base64 | = 0.0.16 |
+| POST | JPEG base64 |  imagebin64 | | Image encodée en base64 (formulaire, ou corps JSON `{"imagebin64": "..."}` depuis 0.0.22, préfixe `data:image/jpeg;base64,` accepté) | >= 0.0.16 |
+| URL | str | key | | Clé admin/modérateur : nécessaire pour remplacer la photo d'une observation déjà approuvée | >= 0.0.22 |
+
+###### Exemples (#267)
+
+Envoi brut (méthode par défaut) :
+
+    curl -X POST --data-binary @photo.jpg \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID"
+
+Envoi en base64 (formulaire) :
+
+    curl -X POST --data-urlencode "imagebin64=$(base64 -w0 photo.jpg)" \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID&method=base64"
+
+Envoi en base64 (JSON, depuis 0.0.22) :
+
+    curl -X POST -H "Content-Type: application/json" \
+      -d "{\"imagebin64\": \"$(base64 -w0 photo.jpg)\"}" \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID&method=base64"
+
+Erreurs ajoutées en 0.0.22 : `ALREADYAPPROVED` (403, l'observation est approuvée : sa photo ne peut plus être remplacée sans clé), `SGBLURISSUE` (500, le service de floutage n'a pas pu traiter la photo : elle n'est pas publiée).
 
 
 ###### Retour
@@ -537,4 +558,16 @@ Les catégories sont disponibles sur toutes les instance sur l'adresse https://v
 | ---- | ----|------------ | ------------- | 
 | int | status | 0 => Nouvelle observation <br> 1 => Observation résolue <br> 2 => Prise en compte <br> 3 => En cours de résolution <br> 4 => Indiquée comme résolue | >= 0.0.10 |
 
+___
 
+## Limitation des créations (depuis 0.0.22)
+
+`create_issue.php` et `create_resolution.php` refusent les nouvelles créations au-delà d'un nombre
+par adresse IP et par tranche de 10 minutes (réglage « Anti-spam » de l'admin, 60 par défaut, 0 pour
+désactiver). Réponse : HTTP 429, code `RATELIMITED`, en-tête `Retry-After`. Les requêtes faites avec une
+clé admin ou modérateur ne sont pas limitées.
+
+## Observations résolues anciennes (depuis 0.0.22)
+
+Si le réglage « Masquer les observations résolues depuis plus de N jours » est activé (désactivé par
+défaut), `get_issues.php` ne renvoie plus ces observations, sauf avec une clé admin ou modérateur.
