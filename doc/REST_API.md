@@ -11,7 +11,7 @@ Toutes les routes sont à la racine de l'instance, répondent en JSON (sauf imag
 |---|---|---|
 | `GET get_version.php` | Version du backend | — |
 | `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, partage) | — |
-| `GET get_categories.php` | Catégories de l'instance (depuis 0.0.22, voir [Catégories](#catégories)) | — |
+| `GET get_categories.php` | Catégories de l'instance (depuis 0.0.23, voir [Catégories](#catégories)) | — |
 | `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` pour les non approuvées |
 | `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` | `secretid` de l'auteur ou `key` pour la version nette |
@@ -282,7 +282,7 @@ Retourne une image
 | ---- | ----|------------ | ------------- | 
 | image/jpeg | / | Image | >= 0.0.1 |
 
-Si l'observation existe mais n'a pas de photo : HTTP 404, erreur JSON `PHOTONOTFOUND` (>= 0.0.22, comme
+Si l'observation existe mais n'a pas de photo : HTTP 404, erreur JSON `PHOTONOTFOUND` (>= 0.0.23, comme
 `generate_panel.php`). Les applications affichent alors une image par défaut.
 
 ___
@@ -536,10 +536,10 @@ ___
 La liste nationale, commune à toutes les instances, est publiée dans
 [vigilo-conf](https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/categorielist.json).
 
-Depuis la 0.0.22, chaque instance publie sa propre liste sur `GET /get_categories.php`, au même format : la liste
+Depuis la 0.0.23, chaque instance publie sa propre liste sur `GET /get_categories.php`, au même format : la liste
 nationale, où les catégories désactivées par l'instance ont `"catdisable": true` (elles restent listées pour nommer les
 observations existantes), suivie des catégories ajoutées par l'instance (`"catcustom": true`, numéros à partir de 1000).
-Une application qui reçoit une erreur sur cette adresse (instance antérieure à 0.0.22) utilise la liste nationale.
+Une application qui reçoit une erreur sur cette adresse (instance antérieure à 0.0.23) utilise la liste nationale.
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
@@ -549,7 +549,7 @@ Une application qui reçoit une erreur sur cette adresse (instance antérieure �
 | str | catcolor | Couleur (nom CSS ou #rrggbb) | |
 | bool | catresolvable | Les citoyens peuvent déclarer l'observation résolue | |
 | bool | catdisable | Catégorie à ne plus proposer (facultatif) | |
-| bool | catcustom | Catégorie propre à l'instance (facultatif) | >= 0.0.22 |
+| bool | catcustom | Catégorie propre à l'instance (facultatif) | >= 0.0.23 |
 
 ### Observations
 

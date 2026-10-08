@@ -53,19 +53,6 @@ CREATE TABLE IF NOT EXISTS `obs_notes` (
   KEY `note_obsid` (`note_obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Categories of the instance: national categories disabled locally, and categories
--- added by the instance (cat_custom = 1, ids from 1000)
-CREATE TABLE IF NOT EXISTS `obs_categories` (
-  `cat_id` int(11) NOT NULL,
-  `cat_custom` tinyint(1) NOT NULL DEFAULT 0,
-  `cat_disabled` tinyint(1) NOT NULL DEFAULT 0,
-  `cat_name` varchar(100) NOT NULL DEFAULT '',
-  `cat_name_en` varchar(100) NOT NULL DEFAULT '',
-  `cat_color` varchar(30) NOT NULL DEFAULT '',
-  `cat_resolvable` tinyint(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`cat_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- Webhooks: HTTP calls to external services when an observation is published
 CREATE TABLE IF NOT EXISTS `obs_webhooks` (
   `webhook_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -77,8 +64,6 @@ CREATE TABLE IF NOT EXISTS `obs_webhooks` (
   `webhook_format` varchar(10) NOT NULL DEFAULT 'json',
   `webhook_headers` text NOT NULL,
   `webhook_body` text NOT NULL,
-  `webhook_category_map` text NULL,
-  `webhook_category_only` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`webhook_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

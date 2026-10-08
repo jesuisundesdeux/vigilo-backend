@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
- * Categories of this instance (since 0.0.22), same format as categorielist.json of
+ * Categories of this instance (since 0.0.23), same format as categorielist.json of
  * vigilo-conf: the national categories ("catdisable": true when disabled by this
  * instance) and the categories added by this instance ("catcustom": true).
  */
