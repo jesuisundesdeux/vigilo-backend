@@ -11,6 +11,7 @@ Documentation technique (ce dépôt) :
 
 - [Fonctionnement](FONCTIONNEMENT.md) : observations, statuts, scopes, rôles, photos, floutage et webhooks
 - [API REST](REST_API.md)
+- [Webhooks : exemples](WEBHOOKS.md) (Mastodon, Slack, Bluesky, ticketing Open311, Redmine)
 - [Mises à jour](UPGRADE.md) (publiée aussi sur [vigilo.city](https://vigilo.city/fr/documentation/upgrade/))
 - [Architecture](ARCHITECTURE.md) : code, variables d'environnement, base de données
 - [Guide du contributeur](GUIDE_CONTRIBUTION.md) : développement, tests, publication

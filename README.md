@@ -32,6 +32,7 @@ Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-ba
 | [Configuration](https://vigilo.city/fr/documentation/configuration/) (vigilo.city) | Réglages de l'instance, scopes, villes, référencement |
 | [Administration](https://vigilo.city/fr/documentation/administration/) (vigilo.city) | Panneau d'administration, rôles, modération |
 | [Sauvegarde](https://vigilo.city/fr/documentation/maintenance/sauvegarde/) (vigilo.city) | Données à sauvegarder |
+| [Webhooks](doc/WEBHOOKS.md) | Exemples : Mastodon, Slack, Bluesky, ticketing de collectivité (Open311), Redmine |
 | [API REST](doc/REST_API.md) | Vue d'ensemble des routes, paramètres et réponses |
 | [Mises à jour](doc/UPGRADE.md) | Mise à jour depuis l'admin ou Docker, passage à la 0.0.22, anciennes versions (publiée aussi sur vigilo.city) |
 | [Architecture](doc/ARCHITECTURE.md) | Organisation du code, variables d'environnement, base de données |

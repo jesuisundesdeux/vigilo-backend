@@ -63,6 +63,8 @@ les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux adm
   automatique. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
   « Enregistrer et tester » envoie la requête avec la dernière observation publiée.
 
+Exemples prêts à l'emploi (Mastodon, Slack, Bluesky, Open311, Redmine) : [WEBHOOKS.md](WEBHOOKS.md).
+
 Exemple de corps JSON :
 
 ```json
