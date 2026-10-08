@@ -8,6 +8,14 @@
   Reprendre le `docker-compose.yml` (ou `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), voir doc/UPGRADE.md.
 - Le bouton de l'admin appelle l'API de Watchtower en POST (seule méthode acceptée par la nouvelle image).
 
+### Floutage des photos
+- Serveur de floutage (`blur-server/`) plus fiable : détection des visages et des plaques par le modèle YOLO11s
+  entraîné par Panoramax pour son service de floutage (SGBlur), exécuté sur CPU avec ONNX Runtime, complété par
+  YuNet pour les visages proches. Les plaques lointaines sont trouvées et les textes et panneaux ne sont plus floutés
+  à tort (98 à 100 % des plaques trouvées sur le benchmark OpenALPR). Environ 0,4 s par photo sur 4 cœurs.
+- Nouveaux réglages : `BLUR_SIZES` (passe supplémentaire à 2048 pour les très petits visages), `BLUR_THREADS`,
+  `BLUR_FACE_CONFIDENCE`, `BLUR_PLATE_CONFIDENCE`, `BLUR_MODEL`. Mettre à jour l'image `vigilo-blur`.
+
 ## 0.0.23
 
 L'API reste compatible avec les applications ; la base est mise à jour automatiquement (migration

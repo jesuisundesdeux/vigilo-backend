@@ -794,22 +794,33 @@ locale.
 
 ### 7.6 Serveur de floutage (`blur-server/blur_server.py`)
 
-Serveur HTTP Python (bibliothèque standard + OpenCV + NumPy), image `vigilo-blur` séparée.
+Serveur HTTP Python (bibliothèque standard + OpenCV + NumPy + ONNX Runtime), image `vigilo-blur` séparée, CPU
+seulement. Méthode reprise du service de floutage de Panoramax ([SGBlur](https://github.com/cquest/sgblur)).
 
 - `POST /blur` : photo en multipart (champ `picture`, ou premier fichier) ou corps brut. 400 sans photo ou si ce n'est
   pas une image, 413 au-delà de `BLUR_MAX_BYTES` (20 Mo). Réponse 200 `image/jpeg` (qualité `BLUR_JPEG_QUALITY`, 90)
-  avec `X-Blur-Faces` et `X-Blur-Plates` (nombre de zones masquées). `GET /health` (ou `/`) : `{"status": "ok"}`,
-  utilisé par le `HEALTHCHECK` de l'image.
-- Concurrence : `ThreadingHTTPServer`, un sémaphore limite à `BLUR_WORKERS` (2) les photos traitées en même temps ;
-  détecteurs OpenCV créés une fois par thread (`threading.local`, ils ne sont pas thread-safe).
-- `blur_image()` : détection sur une copie réduite à 1 600 px au plus, zones ramenées à l'échelle de l'original.
-  - visages : YuNet (`models/face_detection_yunet_2023mar.onnx`, seuil `BLUR_FACE_THRESHOLD`, 0.6) ;
-  - plaques : `_character_rows()` cherche des rangées de 4 à 10 « caractères » de même hauteur (seuillage adaptatif,
-    clair sur foncé et foncé sur clair, deux tailles de bloc), élargies aux bords de la plaque, plus la cascade de Haar
-    `haarcascade_russian_plate_number.xml` ; les zones qui se recouvrent sont fusionnées (`_merge`) ;
-  - masquage (`_mask`) : pixelisation (environ 6 blocs sur le petit côté) puis flou gaussien, en ellipse avec une
-    marge de 25 % pour les visages, en rectangle avec 10 % pour les plaques. Non réversible.
-- Tests : `blur-server/tests/test_blur.py` (photo `tests/fixtures/scene.jpg` avec un visage et des plaques).
+  avec `X-Blur-Faces` et `X-Blur-Plates` (nombre de zones masquées). `GET /health` (ou `/`) :
+  `{"status": "ok", "model": …, "sizes": […]}`, utilisé par le `HEALTHCHECK` de l'image.
+- Concurrence : `ThreadingHTTPServer`, un sémaphore limite à `BLUR_WORKERS` (2) les photos traitées en même temps.
+  Une seule session ONNX Runtime (`_session`, thread-safe, `BLUR_THREADS` threads par photo) ; détecteur YuNet créé une
+  fois par thread (`threading.local`, il n'est pas thread-safe).
+- `detect()` renvoie `(visages, plaques)` en `(x, y, w, h)` dans l'image d'origine :
+  - `_yolo(img, size)` pour chaque taille de `BLUR_SIZES` (1024 par défaut) : modèle YOLO11s de Panoramax
+    (`models/yolo11s_panoramax.onnx`, classes `sign`, `plate`, `face`). Image réduite à `size` sur son grand côté,
+    complétée à un multiple de 32 (gris 114), RGB / 255 ; sortie `(1, 7, N)` (centre, taille, 3 scores) ; par classe,
+    seuil (`BLUR_FACE_CONFIDENCE` 0.2, `BLUR_PLATE_CONFIDENCE` 0.3) puis `cv2.dnn.NMSBoxes` (IoU 0.45). Les panneaux
+    (`sign`) sont ignorés : ils ne sont jamais masqués ;
+  - `_yunet_faces()` : YuNet (`models/face_detection_yunet_2023mar.onnx`, seuil `BLUR_FACE_THRESHOLD`, 0.6) sur une
+    copie réduite à 1 600 px au plus, en complément (meilleur sur les visages proches) ;
+  - `_dedupe()` retire une zone contenue à plus de 60 % dans une zone plus grande déjà retenue.
+- Masquage (`_mask`) : pixelisation (environ 6 blocs sur le petit côté) puis flou gaussien, en ellipse avec une marge de
+  20 % pour les visages, en rectangle avec 10 % pour les plaques. Non réversible.
+- Le backend réduit la photo à 1 024 px avant de l'envoyer : une passe à 1024 voit l'image à pleine résolution
+  (environ 0,4 s sur 4 cœurs, 500 Mo de mémoire).
+- Changer de modèle : exporter un autre modèle YOLO de SGBlur en ONNX (voir `blur-server/models/README.md`) et le
+  désigner par `BLUR_MODEL` ; les classes doivent rester dans le même ordre.
+- Tests : `blur-server/tests/test_blur.py` (`tests/fixtures/street.jpg` : un visage masqué et un panneau intact ;
+  `car.jpg` : une plaque masquée).
 
 ---
 

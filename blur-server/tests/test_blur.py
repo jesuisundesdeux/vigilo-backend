@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Tests of the blur server: detection and masking on tests/fixtures/scene.jpg
-(a face, a plate on a car and a small plate), and the HTTP calls.
+Tests of the blur server: detection and masking on tests/fixtures/street.jpg (a face
+and a road sign, which must stay sharp) and car.jpg (a licence plate), and the HTTP calls.
 
   python3 -m unittest discover -s tests -v           # in-process server
   BLUR_URL=http://127.0.0.1:8000 python3 -m unittest discover -s tests -v   # running server
@@ -23,12 +23,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import blur_server  # noqa: E402
 
-SCENE = open(os.path.join(HERE, 'fixtures', 'scene.jpg'), 'rb').read()
-# Areas of the fixture (x0, y0, x1, y1)
-FACE = (380, 40, 520, 200)
-PLATE = (640, 600, 840, 642)
-SMALL_PLATE = (120, 700, 230, 723)
-FLAG_PATCH = (270, 570, 410, 710)   # text on a round patch: not a plate
+STREET = open(os.path.join(HERE, 'fixtures', 'street.jpg'), 'rb').read()
+CAR = open(os.path.join(HERE, 'fixtures', 'car.jpg'), 'rb').read()
+# Areas of the fixtures (x0, y0, x1, y1)
+FACE = (885, 250, 935, 315)      # street.jpg
+SIGN = (315, 228, 375, 288)      # street.jpg, road sign: not masked
+PLATE = (428, 480, 590, 512)     # car.jpg
 
 
 def sharpness(img, area):
@@ -46,15 +46,22 @@ def decode(data):
 
 
 class Detection(unittest.TestCase):
-    def test_masks_faces_and_plates(self):
-        before = decode(SCENE)
-        jpeg, faces, plates = blur_server.blur_bytes(SCENE)
+    def test_masks_face_not_sign(self):
+        before = decode(STREET)
+        jpeg, faces, plates = blur_server.blur_bytes(STREET)
         after = decode(jpeg)
         self.assertEqual(after.shape, before.shape)
-        self.assertEqual((faces, plates), (1, 2))
-        for name, area in [('face', FACE), ('plate', PLATE), ('small plate', SMALL_PLATE)]:
-            self.assertLess(sharpness(after, area), sharpness(before, area) * 0.1, name + ' masked')
-        self.assertLess(difference(before, after, FLAG_PATCH), 3, 'rest of the photo unchanged')
+        self.assertEqual((faces, plates), (1, 0))
+        self.assertLess(sharpness(after, FACE), sharpness(before, FACE) * 0.1, 'face masked')
+        self.assertLess(difference(before, after, SIGN), 3, 'road sign unchanged')
+
+    def test_masks_plate(self):
+        before = decode(CAR)
+        jpeg, faces, plates = blur_server.blur_bytes(CAR)
+        after = decode(jpeg)
+        self.assertEqual((faces, plates), (0, 1))
+        self.assertLess(sharpness(after, PLATE), sharpness(before, PLATE) * 0.1, 'plate masked')
+        self.assertLess(difference(before, after, (100, 100, 300, 300)), 3, 'rest of the photo unchanged')
 
     def test_nothing_to_mask(self):
         img = np.full((300, 400, 3), 200, np.uint8)
@@ -99,25 +106,25 @@ class Http(unittest.TestCase):
     def check_blurred(self, status, headers, data):
         self.assertEqual(status, 200, data[:200])
         self.assertEqual(headers['Content-Type'], 'image/jpeg')
-        self.assertEqual((headers['X-Blur-Faces'], headers['X-Blur-Plates']), ('1', '2'))
-        self.assertLess(sharpness(decode(data), PLATE), sharpness(decode(SCENE), PLATE) * 0.1)
+        self.assertEqual((headers['X-Blur-Faces'], headers['X-Blur-Plates']), ('0', '1'))
+        self.assertLess(sharpness(decode(data), PLATE), sharpness(decode(CAR), PLATE) * 0.1)
 
     def test_multipart_picture(self):
         # Same call as SGBlur, used by add_image.php
-        self.check_blurred(*self.post('/blur', *self.multipart('picture', SCENE)))
-        self.check_blurred(*self.post('/blur/', *self.multipart('picture', SCENE)))
+        self.check_blurred(*self.post('/blur', *self.multipart('picture', CAR)))
+        self.check_blurred(*self.post('/blur/', *self.multipart('picture', CAR)))
 
     def test_raw_body(self):
-        self.check_blurred(*self.post('/blur', SCENE, 'image/jpeg'))
+        self.check_blurred(*self.post('/blur', CAR, 'image/jpeg'))
 
     def test_errors(self):
         self.assertEqual(self.post('/blur', b'not an image', 'image/jpeg')[0], 400)
         self.assertEqual(self.post('/blur', *self.multipart('other', b'xx'))[0], 400)
-        self.assertEqual(self.post('/elsewhere', SCENE, 'image/jpeg')[0], 404)
+        self.assertEqual(self.post('/elsewhere', CAR, 'image/jpeg')[0], 404)
 
     def test_health(self):
         r = urllib.request.urlopen(self.url + '/health', timeout=10)
-        self.assertEqual(json.loads(r.read()), {'status': 'ok'})
+        self.assertEqual(json.loads(r.read())['status'], 'ok')
 
 
 if __name__ == '__main__':

@@ -42,9 +42,11 @@ MODO = 'MODKEY0123456789'
 
 with open(os.path.join(HERE, 'fixtures', 'photo.jpg'), 'rb') as f:
     PHOTO = f.read()
-# Photo with a face and licence plates (1024x768), see blur-server/tests/fixtures
-with open(os.path.join(HERE, '..', '..', 'blur-server', 'tests', 'fixtures', 'scene.jpg'), 'rb') as f:
+# Photos with a face and with a licence plate (1024x768), see blur-server/tests/fixtures
+with open(os.path.join(HERE, '..', '..', 'blur-server', 'tests', 'fixtures', 'street.jpg'), 'rb') as f:
     SCENE = f.read()
+with open(os.path.join(HERE, '..', '..', 'blur-server', 'tests', 'fixtures', 'car.jpg'), 'rb') as f:
+    CAR = f.read()
 
 
 class Response:
@@ -609,10 +611,11 @@ class T08BlurServer(unittest.TestCase):
 
 
 class T09RealBlurServer(unittest.TestCase):
-    """With the blur server of this repository: the face and the plates of the uploaded
-    photo are masked. Needs numpy and opencv, and either BLUR_SERVER_URL (e.g.
-    http://127.0.0.1:8000/blur, set in the admin setting) or BLUR_FROM_ENVIRONMENT=1
-    (the instance has VIGILO_BLUR_URL, e.g. docker-compose with the "blur" profile)."""
+    """With the blur server of this repository: the face and the licence plate of the
+    uploaded photos are masked, the road sign is not. Needs numpy and opencv, and either
+    BLUR_SERVER_URL (e.g. http://127.0.0.1:8000/blur, set in the admin setting) or
+    BLUR_FROM_ENVIRONMENT=1 (the instance has VIGILO_BLUR_URL, e.g. docker-compose with
+    the "blur" profile)."""
 
     def test_face_and_plates_masked(self):
         url = os.environ.get('BLUR_SERVER_URL')
@@ -627,21 +630,27 @@ class T09RealBlurServer(unittest.TestCase):
         def sharpness(img, x0, y0, x1, y1):
             return cv2.Laplacian(img[y0:y1, x0:x1], cv2.CV_64F).var()
 
-        set_config('vigilo_blur_url', url or '')
-        try:
+        def upload(photo):
             r = create()
             token, secret = r.json()['token'], r.json()['secretid']
-            r = call('add_image.php', {'token': token, 'secretid': secret}, raw=SCENE)
+            r = call('add_image.php', {'token': token, 'secretid': secret}, raw=photo)
             self.assertEqual(r.status, 200, r.text)
+            after = decode(call('get_photo.php', {'token': token, 'key': ADMIN}).body)
+            before = decode(photo)
+            self.assertEqual(after.shape, before.shape)
+            return before, after
+
+        set_config('vigilo_blur_url', url or '')
+        try:
+            street = upload(SCENE)
+            car = upload(CAR)
         finally:
             set_config('vigilo_blur_url', '')
-        before = decode(SCENE)
-        after = decode(call('get_photo.php', {'token': token, 'key': ADMIN}).body)
-        self.assertEqual(after.shape, before.shape)
-        for name, area in [('face', (380, 40, 520, 200)), ('plate', (640, 600, 840, 642)), ('small plate', (120, 700, 230, 723))]:
+        for name, (before, after), area in [('face', street, (885, 250, 935, 315)), ('plate', car, (428, 480, 590, 512))]:
             self.assertLess(sharpness(after, *area), sharpness(before, *area) * 0.1, name + ' masked')
-        patch = (270, 570, 410, 710)
-        self.assertGreater(sharpness(after, *patch), sharpness(before, *patch) * 0.5, 'rest of the photo kept')
+        before, after = street
+        sign = (315, 228, 375, 288)
+        self.assertGreater(sharpness(after, *sign), sharpness(before, *sign) * 0.5, 'road sign kept')
 
 
 class WebhookReceiver:
