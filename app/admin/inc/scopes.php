@@ -44,6 +44,19 @@ $scope_fields = array(
     'scope_nominatim_urlbase'    => array('type' => 'string', 'max' => 255)
 );
 
+/*
+ * Identifier of a scope: department number (01 to 95, 2A, 2B, 971 to 976) or country
+ * code (be, ch...), "_", then the name of the territory without space or special
+ * character (e.g. 34_montpellier). Only checked when it changes: the identifier of an
+ * existing scope is used by the applications (vigilo-conf).
+ */
+if (!function_exists('scope_name_valid')) {
+    function scope_name_valid($name)
+    {
+        return (bool) preg_match('/^(0[1-9]|[1-8][0-9]|9[0-5]|2[AB]|97[1-6]|[a-z]{2})_[A-Za-z0-9]+$/', $name);
+    }
+}
+
 if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
     if ($_GET['action'] == 'add' && !$saas_mode) {
         $ok = mysqli_query($db, "INSERT INTO obs_scopes (scope_name,
@@ -135,6 +148,10 @@ if (isset($_POST['scope_id'])) {
                         $errors[] = 'Le champ <strong>' . h($column) . '</strong> est trop long (' . intval($field['max']) . ' caractères maximum).';
                         continue 2;
                     }
+                    if ($column == 'scope_name' && $value !== (string) $old['scope_name'] && !scope_name_valid($value)) {
+                        $errors[] = 'Identifiant invalide : numéro de département (ex. 34, 2A, 974) ou code pays, « _ », puis le nom du territoire sans espace, accent ni caractère spécial (ex. 34_montpellier).';
+                        continue 2;
+                    }
             }
             // $column comes from the allowlist above, never from the POST keys
             if (is_int($value)) {
@@ -203,7 +220,9 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
       <div class="row g-3 mb-4">
         <div class="col-md-4">
           <label class="form-label" for="<?= $prefix ?>name">Identifiant</label>
-          <input type="text" class="form-control" id="<?= $prefix ?>name" name="scope_name" value="<?= h($result_scopes['scope_name']) ?>" maxlength="255" required />
+          <input type="text" class="form-control font-monospace" id="<?= $prefix ?>name" name="scope_name" value="<?= h($result_scopes['scope_name']) ?>" maxlength="255" required
+                 pattern="(0[1-9]|[1-8][0-9]|9[0-5]|2[AB]|97[1-6]|[a-z]{2})_[A-Za-z0-9]+" data-scope-name="<?= $prefix ?>department" aria-describedby="<?= $prefix ?>name_help" />
+          <div class="form-text" id="<?= $prefix ?>name_help">N° de département (ou code pays), « _ », nom sans espace ni accent. Ex. : <code>34_montpellier</code></div>
         </div>
         <div class="col-md-5">
           <label class="form-label" for="<?= $prefix ?>display_name">Nom affiché</label>
@@ -224,6 +243,21 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
       </div>
 
       <h4 class="h6 text-body-secondary">Carte</h4>
+      <div class="scope-map-block mb-3">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <div class="input-group input-group-sm" style="max-width: 22rem;">
+            <input type="search" class="form-control" placeholder="Aller à une ville, un lieu…" data-map-search aria-label="Rechercher un lieu" />
+            <button class="btn btn-outline-secondary" type="button" data-map-action="search"><i class="bi bi-search"></i></button>
+          </div>
+          <button class="btn btn-sm btn-outline-primary" type="button" data-map-action="draw"><i class="bi bi-bounding-box"></i> Tracer le territoire</button>
+          <button class="btn btn-sm btn-outline-primary" type="button" data-map-action="view-bounds"><i class="bi bi-aspect-ratio"></i> Territoire = vue de la carte</button>
+          <button class="btn btn-sm btn-outline-primary" type="button" data-map-action="view-center"><i class="bi bi-crosshair"></i> Centre et zoom = vue de la carte</button>
+          <a class="btn btn-sm btn-outline-secondary" href="?page=cities&amp;import_scope=<?= $scope_id ?>#import"><i class="bi bi-buildings"></i> Importer les villes du territoire</a>
+        </div>
+        <div class="scope-map rounded border" data-scope-map="<?= $prefix ?>" style="height: 380px;"></div>
+        <div class="form-text" data-map-status aria-live="polite"></div>
+        <div class="form-text">Le rectangle bleu limite le territoire (observations acceptées) ; le marqueur, déplaçable, est le centre des cartes des applications. Les champs ci-dessous se mettent à jour : enregistrer pour valider.</div>
+      </div>
       <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
           <label class="form-label" for="<?= $prefix ?>lat_min">Latitude minimale (DD)</label>
@@ -274,3 +308,7 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
 <?php
 }
 ?>
+
+<link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="js/scope-map.js"></script>

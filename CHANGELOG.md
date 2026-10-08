@@ -48,6 +48,14 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
 - Si le serveur échoue, la photo est enregistrée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
   la modération manuelle reste le garde-fou, l'envoi n'échoue jamais à cause du floutage.
 
+### Scopes et villes
+- Page Scopes : carte (OpenStreetMap, Leaflet servi localement) pour tracer le rectangle du territoire, choisir le
+  centre et le zoom des cartes (vue de la carte ou marqueur déplaçable) et rechercher un lieu.
+- Identifiant de scope vérifié quand il change : `XX_nom` où `XX` est un numéro de département (01 à 95, 2A, 2B, 971 à
+  976) ou un code pays, et `nom` sans espace ni caractère spécial ; le département se remplit à partir de l'identifiant.
+- Page Villes : import des communes françaises du territoire d'un scope (geo.api.gouv.fr : nom, code postal, surface,
+  population), avec carte, sélection et doublons ignorés.
+
 ### Webhooks
 - Page « Webhooks » de l'admin : à chaque publication d'une observation (validation par un modérateur, depuis
   l'admin ou `approve.php`), appel d'un ou plusieurs endpoints HTTP (POST, PUT, PATCH ou GET).
