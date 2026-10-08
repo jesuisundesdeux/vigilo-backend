@@ -28,7 +28,7 @@ Sur un serveur dédié, les migrations peuvent aussi être lancées en ligne de 
 
 Le code fait partie de l'image : il n'est jamais modifié dans le conteneur. Le
 `docker-compose.yml` fourni utilise l'image `vigilobs/vigilo-backend:0.0`, qui suit les
-correctifs de la série 0.0 (tags publiés : `0.0.22`, `0.0`, `stable`, `latest` ; l'image est aussi
+correctifs de la série 0.0 (tags publiés : `0.0.23`, `0.0`, `stable`, `latest` ; l'image est aussi
 publiée sur `ghcr.io/jesuisundesdeux/vigilo-backend`). La base est migrée au démarrage du conteneur
 (sauf si `AUTOUPDATE=false`) ; le conteneur refuse de démarrer si la base est plus récente que le code.
 

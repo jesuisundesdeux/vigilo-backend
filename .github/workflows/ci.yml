@@ -79,7 +79,7 @@ jobs:
       - name: Upgrade from every released version
         run: |
           VERSIONS=$(ls app/migrations/init-*.sql | sed 's/.*init-//;s/\.sql$//' | sort -V)
-          for FROM in 0.0.17 0.0.18 0.0.19 0.0.20 0.0.21; do
+          for FROM in 0.0.17 0.0.18 0.0.19 0.0.20 0.0.21 0.0.22; do
             mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
             for V in $VERSIONS; do
               if [ "$(printf '%s\n%s\n' "$V" "$FROM" | sort -V | tail -1)" = "$FROM" ]; then
