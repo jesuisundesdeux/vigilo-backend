@@ -521,7 +521,8 @@ class StubBlurServer:
 
 
 class T08BlurServer(unittest.TestCase):
-    """Optional blur server: photos sent to it and replaced by its answer, never published when it fails."""
+    """Optional blur server: photos sent to it and replaced by its answer, kept as sent when it fails
+    (the moderators check them before publication)."""
 
     @classmethod
     def setUpClass(cls):
@@ -549,6 +550,7 @@ class T08BlurServer(unittest.TestCase):
         token, secret = self.new()
         r = call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
         self.assertEqual(r.status, 200, r.text)
+        self.assertEqual(r.header('X-Vigilo-Blur'), 'done')
         self.assertEqual(len(self.stub.received), 1, 'photo sent to the blur server')
         path, parts = self.stub.received[0]
         self.assertEqual(path, '/blur')
@@ -569,7 +571,7 @@ class T08BlurServer(unittest.TestCase):
         self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
         self.assertEqual(jpeg_size(self.photo(token)), (320, 240))
 
-    def test_never_published_when_the_server_fails(self):
+    def test_kept_as_sent_when_the_server_fails(self):
         for mode in ['error', 'garbage', 'down']:
             token, secret = self.new()
             self.stub.mode = mode
@@ -579,18 +581,14 @@ class T08BlurServer(unittest.TestCase):
                 r = call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
             finally:
                 set_config('vigilo_blur_url', self.stub.url)
-            self.assertEqual((r.status, r.json()['error']['code']), (500, 'SGBLURISSUE'), mode)
-            self.assertNotIn(token, issue_tokens({'key': ADMIN}), mode + ': observation not completed')
-            self.assertEqual(sql("SELECT obs_complete FROM obs_list WHERE obs_token = '%s'" % token), '0', mode)
-
-    def test_published_photo_kept_when_the_server_fails(self):
-        token, secret = self.new()
-        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
-        before = self.photo(token)
-        self.stub.mode = 'error'
-        r = call('add_image.php', {'token': token, 'secretid': secret, 'key': ADMIN}, raw=PHOTO)
-        self.assertEqual(r.status, 500)
-        self.assertEqual(self.photo(token), before, 'photo in place untouched')
+            self.assertEqual(r.status, 200, mode + ': ' + r.text)
+            self.assertEqual(r.json(), {'status': 0}, mode)
+            self.assertEqual(r.header('X-Vigilo-Blur'), 'failed', mode)
+            self.assertEqual(jpeg_size(self.photo(token)), (800, 600), mode + ': photo stored as sent')
+            self.assertEqual(sql("SELECT obs_complete FROM obs_list WHERE obs_token = '%s'" % token), '1', mode)
+            issue = call('get_issues.php', {'token': token, 'key': ADMIN}).json()[0]
+            self.assertEqual(issue['approved'], '0', mode + ': waits for the moderators')
+            self.assertEqual(call('get_photo.php', {'token': token}).status, 403, mode + ': not public before approval')
 
     def test_disabled(self):
         set_config('vigilo_blur_url', '')

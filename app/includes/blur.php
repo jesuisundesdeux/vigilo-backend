@@ -20,7 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
  * Optional blur server: when one is configured, every uploaded photo (observations
  * and resolutions) is sent to it, and replaced by the photo it returns, with the
- * faces and licence plates masked. See blur-server/ (docker-compose profile "blur");
+ * faces and licence plates masked (if it fails, the photo is kept as sent and
+ * left to the moderators). See blur-server/ (docker-compose profile "blur");
  * any server answering the same call works (e.g. SGBlur):
  *
  *   POST <url>, multipart field "picture" -> 200 and the blurred image
@@ -43,7 +44,7 @@ function blur_server_url($db)
 /*
  * Sends the JPEG $filepath to the blur server $url and replaces it with the blurred
  * photo. Returns null when done, else the reason of the failure (the file is then
- * left as it was: the caller must not publish it).
+ * left as it was).
  */
 function blur_photo($url, $filepath)
 {

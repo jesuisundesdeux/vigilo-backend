@@ -69,7 +69,7 @@ $settings_fields = array(
 
   'vigilo_blur_url' => array(
     'card' => 'photos', 'type' => 'url', 'label' => 'Serveur de floutage', 'default' => '', 'env' => 'VIGILO_BLUR_URL',
-    'help' => 'Si renseigné, chaque photo envoyée (observations et résolutions) est d\'abord transmise à ce serveur, qui masque les visages et les plaques d\'immatriculation. Si le serveur ne répond pas, la photo est refusée et l\'application affiche une erreur. Laisser vide pour publier les photos telles quelles. Exemple : http://blur:8000/blur (service « blur » du docker-compose).',
+    'help' => 'Si renseigné, chaque photo envoyée (observations et résolutions) est d\'abord transmise à ce serveur, qui masque les visages et les plaques d\'immatriculation. Si le serveur ne répond pas, la photo est enregistrée telle qu\'envoyée (à vérifier lors de la modération, l\'incident est journalisé). Laisser vide pour publier les photos telles quelles. Exemple : http://blur:8000/blur (service « blur » du docker-compose).',
     'link' => array('https://github.com/jesuisundesdeux/vigilo-backend/tree/master/blur-server', 'Serveur de floutage Vigilo')),
 
   'vigilo_ratelimit_create' => array(

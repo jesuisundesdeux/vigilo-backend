@@ -3,8 +3,9 @@
 Service optionnel qui masque les **visages** et les **plaques d'immatriculation** des photos
 avant leur publication. Quand il est configuré, le backend lui envoie chaque photo reçue
 (observations et résolutions) et enregistre la photo floutée à la place de l'originale.
-Si le serveur ne répond pas ou renvoie une erreur, la photo est refusée (erreur
-`SGBLURISSUE` côté application) : une photo n'est jamais publiée sans floutage.
+Si le serveur ne répond pas ou renvoie une erreur, la photo est enregistrée telle
+qu'envoyée et l'incident est journalisé (log PHP) : la modération manuelle reste le garde-fou,
+une photo non approuvée n'étant visible que pixelisée.
 
 Le service tourne sur le CPU, sans GPU ni accès réseau :
 

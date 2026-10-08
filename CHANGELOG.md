@@ -45,8 +45,8 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
   envoyée (observations et résolutions), sur CPU, sans service externe.
 - Remplace l'appel spécifique à SGBlur : réglage générique « Serveur de floutage » (ancienne URL reprise)
   ou variable `VIGILO_BLUR_URL` ; tout serveur compatible (dont SGBlur) reste utilisable.
-- Une photo que le serveur n'a pas pu traiter n'est jamais publiée (erreur `SGBLURISSUE`, code conservé
-  pour les applications) ; une photo déjà en place n'est pas modifiée.
+- Si le serveur échoue, la photo est enregistrée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
+  la modération manuelle reste le garde-fou, l'envoi n'échoue jamais à cause du floutage.
 
 ### Fonctionnalités et corrections
 - Option pour masquer les observations résolues depuis N jours (#257).

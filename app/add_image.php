@@ -120,13 +120,15 @@ if ($image_written) {
             imagejpeg($imageresized, $filepath);
         }
 
-        // Optional blur server (faces, licence plates): a photo it could not
-        // process is never published. Error code kept for the client apps.
+        // Optional blur server (faces, licence plates). If it fails, the photo is
+        // kept as sent: the moderators check it before it is published.
         if ($blur_url !== '') {
             $blur_error = blur_photo($blur_url, $filepath);
             if ($blur_error !== null) {
-                unlink($filepath);
-                jsonError($error_prefix, "Blurring issue : " . $blur_error, "SGBLURISSUE", 500);
+                error_log('[WARNING] ' . $error_prefix . ': photo of ' . $token . ' not blurred - ' . $blur_error);
+                header('X-Vigilo-Blur: failed');
+            } else {
+                header('X-Vigilo-Blur: done');
             }
         }
         rename($filepath, $final_filepath);
