@@ -33,9 +33,70 @@ if (!function_exists('city_number')) {
 $messages = array();
 
 $scopelist    = array();
-$query_scopes = mysqli_query($db, "SELECT scope_id, scope_name, scope_display_name FROM obs_scopes ORDER BY scope_id");
+$scopebounds  = array();
+$query_scopes = mysqli_query($db, "SELECT scope_id, scope_name, scope_display_name, scope_coordinate_lat_min, scope_coordinate_lat_max,
+                                          scope_coordinate_lon_min, scope_coordinate_lon_max FROM obs_scopes ORDER BY scope_id");
 while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
     $scopelist[intval($result_scopes['scope_id'])] = (string) $result_scopes['scope_name'];
+    $scopebounds[] = array(
+        'id'      => intval($result_scopes['scope_id']),
+        'name'    => (string) $result_scopes['scope_name'],
+        'display' => (string) $result_scopes['scope_display_name'],
+        'bounds'  => array_map('floatval', array($result_scopes['scope_coordinate_lat_min'], $result_scopes['scope_coordinate_lon_min'],
+                                                 $result_scopes['scope_coordinate_lat_max'], $result_scopes['scope_coordinate_lon_max'])),
+    );
+}
+
+/* Import of communes found in the territory of a scope (js/cities-import.js, geo.api.gouv.fr) */
+if (isset($_POST['cities_import'])) {
+    $scope    = isset($_POST['import_scope']) ? intval($_POST['import_scope']) : 0;
+    $incoming = isset($_POST['cities_json']) && is_string($_POST['cities_json']) ? json_decode($_POST['cities_json'], true) : null;
+    if (!isset($scopelist[$scope])) {
+        $messages[] = array('danger', 'Scope inconnu : aucune ville importée.');
+    } elseif (!is_array($incoming) || count($incoming) == 0 || count($incoming) > 2000) {
+        $messages[] = array('warning', 'Aucune ville sélectionnée.');
+    } else {
+        $existing = array();
+        $query    = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_scope = " . $scope);
+        while ($query && ($row = mysqli_fetch_array($query))) {
+            $existing[mb_strtolower(trim($row['city_name']), 'UTF-8')] = true;
+        }
+        $added = array();
+        $skipped = 0;
+        foreach ($incoming as $city) {
+            // Every value is checked and cast: it comes from the browser (geo.api.gouv.fr)
+            if (!is_array($city) || !isset($city['name']) || !is_string($city['name'])) {
+                $skipped++;
+                continue;
+            }
+            $name = trim($city['name']);
+            $key  = mb_strtolower($name, 'UTF-8');
+            if ($name === '' || strlen($name) > 255 || isset($existing[$key])) {
+                $skipped++;
+                continue;
+            }
+            $postcode   = isset($city['postcode']) ? intval(preg_replace('/[^0-9]/', '', (string) $city['postcode'])) : 0;
+            $area       = isset($city['area']) && is_numeric($city['area']) ? max(0, (float) $city['area']) : 0;
+            $population = isset($city['population']) && is_numeric($city['population']) ? max(0, intval($city['population'])) : 0;
+            if ($postcode < 0 || $postcode > 99999) {
+                $postcode = 0;
+            }
+            $ok = mysqli_query($db, "INSERT INTO obs_cities (city_scope, city_name, city_postcode, city_area, city_population, city_website)
+                                     VALUES (" . $scope . ", '" . mysqli_real_escape_string($db, $name) . "', " . $postcode . ", '"
+                                     . mysqli_real_escape_string($db, sprintf('%F', $area)) . "', " . $population . ", '')");
+            if ($ok) {
+                $existing[$key] = true;
+                $added[] = $name;
+            } else {
+                $skipped++;
+            }
+        }
+        if ($added) {
+            audit_log('city_import', 'scope:' . $scope, array('source' => 'geo.api.gouv.fr', 'count' => count($added), 'cities' => implode(', ', array_slice($added, 0, 50))));
+        }
+        $messages[] = array($added ? 'success' : 'warning', count($added) . ' ville' . (count($added) > 1 ? 's' : '') . ' importée' . (count($added) > 1 ? 's' : '')
+            . ' dans le scope <strong>' . h($scopelist[$scope]) . '</strong>' . ($skipped ? ' (' . $skipped . ' ignorée' . ($skipped > 1 ? 's' : '') . ' : déjà présentes ou invalides)' : '') . '.');
+    }
 }
 
 if (isset($_GET['action']) && !isset($_POST['city_id'])) {
@@ -181,7 +242,60 @@ foreach ($messages as $message) {
 
 $query_cities = mysqli_query($db, "SELECT * FROM obs_cities ORDER BY city_name");
 $self_url     = '?page=' . urlencode($page_name);
+$cities_by_scope = array();
+$query_names = mysqli_query($db, "SELECT city_scope, city_name FROM obs_cities");
+while ($query_names && ($row = mysqli_fetch_array($query_names))) {
+    $cities_by_scope[intval($row['city_scope'])][] = (string) $row['city_name'];
+}
+$import_scope = isset($_GET['import_scope']) ? intval($_GET['import_scope']) : 0;
 ?>
+<div class="card shadow-sm mb-4" id="import">
+  <div class="card-header fw-semibold"><i class="bi bi-cloud-download"></i> Importer les communes d'un territoire</div>
+  <div class="card-body">
+    <p class="small text-body-secondary">
+      Recherche les communes françaises dont le centre est dans le territoire (rectangle) d'un scope, avec leur code postal,
+      leur surface et leur population (<a href="https://geo.api.gouv.fr" target="_blank" rel="noopener noreferrer">geo.api.gouv.fr</a>),
+      puis importe celles qui sont cochées. Le territoire se trace sur la page <a href="?page=scopes">Scopes</a>.
+    </p>
+    <form method="POST" action="<?= h($self_url) ?>#import" data-cities-import>
+      <?= csrf_field() ?>
+      <input type="hidden" name="cities_import" value="1" />
+      <input type="hidden" name="cities_json" value="" />
+      <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+        <div>
+          <label class="form-label small mb-1" for="import_scope">Scope</label>
+          <select class="form-select form-select-sm" id="import_scope" name="import_scope">
+            <?php foreach ($scopebounds as $scope_info) { ?>
+              <option value="<?= intval($scope_info['id']) ?>"<?= $scope_info['id'] == $import_scope ? ' selected' : '' ?>><?= h($scope_info['display'] . ' (' . $scope_info['name'] . ')') ?></option>
+            <?php } ?>
+          </select>
+        </div>
+        <button class="btn btn-sm btn-primary" type="button" data-import-action="search"><i class="bi bi-search"></i> Rechercher les communes du territoire</button>
+      </div>
+      <div class="text-body-secondary small mb-2" data-import-status aria-live="polite"></div>
+      <div class="row g-3" data-import-results hidden>
+        <div class="col-12 col-xl-5">
+          <div class="rounded border" data-import-map style="height: 360px;"></div>
+        </div>
+        <div class="col-12 col-xl-7">
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-import-action="all">Tout cocher</button>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-import-action="none">Tout décocher</button>
+            <button class="btn btn-sm btn-success ms-auto" type="submit"><i class="bi bi-download"></i> Importer la sélection</button>
+          </div>
+          <div class="table-responsive border rounded" style="max-height: 320px;">
+            <table class="table table-sm table-hover align-middle mb-0 small">
+              <thead class="sticky-top"><tr><th scope="col"></th><th scope="col">Commune</th><th scope="col">Code postal</th><th scope="col">Surface (km²)</th><th scope="col">Population</th></tr></thead>
+              <tbody data-import-rows></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="application/json" id="cities_import_data"><?= json_encode(array('scopes' => $scopebounds, 'cities' => $cities_by_scope), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+
 <div class="card shadow-sm">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-buildings"></i> Villes</h2>
@@ -263,3 +377,6 @@ while ($query_cities && ($result_cities = mysqli_fetch_array($query_cities))) {
 <?= $forms ?>
 
 <script src="js/wikidata.js"></script>
+<link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="js/cities-import.js"></script>

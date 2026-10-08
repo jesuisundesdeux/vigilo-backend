@@ -184,9 +184,34 @@ def main():
             'webhook_save': '1'})
         check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted' % key)
 
+    # Scopes: identifier checked when it changes, legacy identifier still editable
+    status, _, page = admin.request('index.php?page=scopes')
+    clean('scopes map', status, page)
+    check('data-scope-map="scope1_"' in page and 'leaflet.js' in page, 'scope map present')
+    scope_form = {'csrf_token': admin.token(page), 'scope_id': '1', 'scope_name': '34 test ville', 'scope_display_name': 'Testville'}
+    status, _, page = admin.request('index.php?page=scopes', scope_form)
+    check('Identifiant invalide' in page, 'invalid scope identifier refused')
+    scope_form.update({'scope_name': '99_testville', 'scope_display_name': 'Testville', 'scope_map_zoom': '14',
+                       'scope_coordinate_lat_min': '43.5', 'scope_coordinate_lat_max': '43.7'})
+    status, _, page = admin.request('index.php?page=scopes', scope_form)
+    check('Identifiant invalide' not in page and 'alert-danger' not in page, 'unchanged legacy identifier accepted')
+
+    # Cities: import of communes (data checked server side), duplicates skipped
+    status, _, page = admin.request('index.php?page=cities&import_scope=1')
+    clean('cities import', status, page)
+    check('data-cities-import' in page, 'cities import form present')
+    cities = [{'name': 'Lattes', 'postcode': '34970', 'area': 27.88, 'population': 16000},
+              {'name': 'Testville', 'postcode': '34000', 'area': 1, 'population': 1},
+              {'name': "<b>X</b>' OR 1=1 -- ", 'postcode': 'abc', 'area': 'x', 'population': -5}]
+    status, _, page = admin.request('index.php?page=cities', {'csrf_token': admin.token(page), 'cities_import': '1',
+                                                               'import_scope': '1', 'cities_json': json.dumps(cities)})
+    clean('cities import result', status, page)
+    check('2 villes importées' in page and '1 ignorée' in page, 'communes imported, existing one skipped')
+    check('&lt;b&gt;X&lt;/b&gt;' in page and '<b>X</b>' not in page, 'imported names escaped')
+
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
