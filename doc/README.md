@@ -14,6 +14,7 @@ Documentation technique (ce dépôt) :
 - [Webhooks : exemples](WEBHOOKS.md) (Mastodon, Slack, Bluesky, ticketing Open311, Redmine)
 - [Mises à jour](UPGRADE.md) (publiée aussi sur [vigilo.city](https://vigilo.city/fr/documentation/upgrade/))
 - [Architecture](ARCHITECTURE.md) : code, variables d'environnement, base de données
+- [Guide du code](GUIDE_CODE.md) : fonctionnement détaillé du code pour reprendre le projet (modules, routes, admin, tests, recettes, pièges)
 - [Guide du contributeur](GUIDE_CONTRIBUTION.md) : développement, tests, publication
 - [Glossaire](GLOSSAIRE.md)
 - [Serveur de floutage](../blur-server/README.md)
