@@ -26,12 +26,40 @@ $self_url = '?page=' . urlencode($page_name);
 $formats  = array('json' => 'JSON', 'form' => 'Formulaire (x-www-form-urlencoded)', 'text' => 'Texte brut');
 $methods  = array('POST', 'PUT', 'PATCH', 'GET');
 
-$default_body = "{\n  \"event\": \"{{event}}\",\n  \"token\": \"{{token}}\",\n  \"url\": \"{{observation_url}}\",\n  \"photo\": \"{{photo_url}}\",\n"
-              . "  \"categorie\": \"{{categorie_name}}\",\n  \"comment\": \"{{comment}}\",\n  \"address\": \"{{address}}\",\n"
-              . "  \"city\": \"{{cityname}}\",\n  \"lat\": {{lat}},\n  \"lon\": {{lon}},\n  \"date\": \"{{date}}\"\n}";
+/*
+ * Templates of the form ("Modèle"): they fill the fields, the values in CAPITALS are to
+ * be replaced. Same settings as doc/WEBHOOKS.md.
+ */
+$webhook_templates = array(
+    'empty' => array('label' => 'Vide', 'name' => '', 'method' => 'POST', 'url' => '', 'format' => 'json', 'headers' => '', 'body' => ''),
+    'json' => array('label' => 'JSON générique', 'name' => '', 'method' => 'POST', 'url' => '', 'format' => 'json', 'headers' => '',
+        'body' => "{\n  \"event\": \"{{event}}\",\n  \"token\": \"{{token}}\",\n  \"url\": \"{{observation_url}}\",\n  \"photo\": \"{{photo_url}}\",\n"
+                . "  \"categorie\": \"{{categorie_name}}\",\n  \"comment\": \"{{comment}}\",\n  \"address\": \"{{address}}\",\n"
+                . "  \"city\": \"{{cityname}}\",\n  \"lat\": {{lat}},\n  \"lon\": {{lon}},\n  \"date\": \"{{date}}\"\n}"),
+    'mastodon' => array('label' => 'Mastodon', 'name' => 'Mastodon', 'method' => 'POST', 'url' => 'https://MASTODON.EXEMPLE/api/v1/statuses', 'format' => 'json',
+        'headers' => "Authorization: Bearer JETON_D_ACCES\nIdempotency-Key: vigilo-{{token}}",
+        'body' => "{\n  \"status\": \"📍 Nouvelle observation à {{cityname}} : {{categorie_name}}\\n« {{comment}} »\\n{{address}}\\n\\n{{observation_url}}\\n\\n#Vigilo #vélo\",\n"
+                . "  \"visibility\": \"public\",\n  \"language\": \"fr\"\n}"),
+    'slack' => array('label' => 'Slack / Mattermost', 'name' => 'Slack', 'method' => 'POST', 'url' => 'https://hooks.slack.com/services/T000/B000/XXXX', 'format' => 'json', 'headers' => '',
+        'body' => "{\n  \"text\": \"Nouvelle observation à {{cityname}} : {{categorie_name}}\",\n  \"blocks\": [\n"
+                . "    {\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\",\n      \"text\": \"*{{categorie_name}}* à {{cityname}}\\n{{comment}}\\n_{{address}}_\\n<{{observation_url}}|Voir l'observation {{token}}>\"}},\n"
+                . "    {\"type\": \"image\", \"image_url\": \"{{photo_url}}\", \"alt_text\": \"Photo de l'observation {{token}}\"}\n  ]\n}"),
+    'discord' => array('label' => 'Discord', 'name' => 'Discord', 'method' => 'POST', 'url' => 'https://discord.com/api/webhooks/ID/JETON', 'format' => 'json', 'headers' => '',
+        'body' => "{\"content\": \"📍 {{categorie_name}} à {{cityname}} : {{comment}}\\n{{observation_url}}\"}"),
+    'bluesky' => array('label' => 'Bluesky (via le relais)', 'name' => 'Bluesky', 'method' => 'POST', 'url' => 'http://ADRESSE_DU_RELAIS:8080/', 'format' => 'json',
+        'headers' => 'X-Relay-Secret: UNE_LONGUE_CHAINE_ALEATOIRE',
+        'body' => "{\n  \"text\": \"📍 {{categorie_name}} à {{cityname}} : « {{comment}} » #Vigilo\",\n  \"url\": \"{{observation_url}}\",\n"
+                . "  \"title\": \"Observation {{token}} – {{categorie_name}}\",\n  \"description\": \"{{address}}\"\n}"),
+    'open311' => array('label' => 'Ticketing de collectivité (Open311)', 'name' => 'Open311', 'method' => 'POST', 'url' => 'https://ENDPOINT/requests.json', 'format' => 'form', 'headers' => '',
+        'body' => 'api_key=CLE_API&service_code=CODE_SERVICE&lat={{lat}}&long={{lon}}&address_string={{address}}&description=Vigilo {{token}} - {{categorie_name}} : {{comment}} {{explanation}}&media_url={{photo_url}}'),
+    'redmine' => array('label' => 'Redmine', 'name' => 'Redmine', 'method' => 'POST', 'url' => 'https://REDMINE.EXEMPLE/issues.json', 'format' => 'json',
+        'headers' => 'X-Redmine-API-Key: CLE_API',
+        'body' => "{\n  \"issue\": {\n    \"project_id\": \"IDENTIFIANT_DU_PROJET\",\n    \"subject\": \"Vigilo {{token}} : {{categorie_name}} - {{address}}\",\n"
+                . "    \"description\": \"{{comment}}\\n\\n{{explanation}}\\n\\nAdresse : {{address}}, {{cityname}}\\nPosition : {{lat}}, {{lon}}\\nDate : {{date}}\\n\\nObservation : {{observation_url}}\\nPhoto : {{photo_url}}\"\n  }\n}"),
+);
 
 $empty_hook = array('webhook_id' => 0, 'webhook_name' => '', 'webhook_enabled' => 1, 'webhook_method' => 'POST',
-                    'webhook_url' => '', 'webhook_format' => 'json', 'webhook_headers' => '', 'webhook_body' => $default_body);
+                    'webhook_url' => '', 'webhook_format' => 'json', 'webhook_headers' => '', 'webhook_body' => $webhook_templates['json']['body']);
 
 function webhook_admin_load($db, $id)
 {
@@ -214,6 +242,19 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
       <div class="card-header fw-semibold"><?= $edit['webhook_id'] ? 'Modifier le webhook' : 'Nouveau webhook' ?></div>
       <div class="card-body">
         <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="webhook_template">Modèle</label>
+            <select class="form-select" id="webhook_template" aria-describedby="webhook_template_help">
+              <option value="">— Choisir un modèle pour préremplir les champs —</option>
+              <?php foreach ($webhook_templates as $key => $template) { ?>
+                <option value="<?= h($key) ?>"><?= h($template['label']) ?></option>
+              <?php } ?>
+            </select>
+            <div class="form-text" id="webhook_template_help">
+              Remplace les champs ci-dessous ; remplacer ensuite les valeurs en MAJUSCULES (adresse, jeton…).
+              <a href="https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/WEBHOOKS.md" target="_blank" rel="noopener noreferrer">Détails de chaque modèle <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
           <div class="col-md-8">
             <label class="form-label" for="webhook_name">Nom</label>
             <input class="form-control" id="webhook_name" name="webhook_name" maxlength="100" required value="<?= h($edit['webhook_name']) ?>" placeholder="Carte de l'association">
@@ -280,6 +321,35 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
     </div>
   </div>
 </div>
+<?php } ?>
+<?php if ($edit) { ?>
+<script type="application/json" id="webhook_templates_data"><?= json_encode($webhook_templates, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+<script>
+  (function () {
+    var select = document.getElementById('webhook_template');
+    var templates = JSON.parse(document.getElementById('webhook_templates_data').textContent);
+    var fields = {name: 'webhook_name', method: 'webhook_method', url: 'webhook_url', format: 'webhook_format', headers: 'webhook_headers', body: 'webhook_body'};
+    var changed = false;
+    Object.keys(fields).forEach(function (key) {
+      document.getElementById(fields[key]).addEventListener('input', function () { changed = true; });
+    });
+    select.addEventListener('change', function () {
+      var template = templates[select.value];
+      if (!template) {
+        return;
+      }
+      // Fields typed by hand are only replaced after a confirmation
+      if (changed && !window.confirm('Remplacer les champs par le modèle « ' + template.label + ' » ?')) {
+        select.value = '';
+        return;
+      }
+      Object.keys(fields).forEach(function (key) {
+        document.getElementById(fields[key]).value = template[key];
+      });
+      changed = false;
+    });
+  })();
+</script>
 <?php } ?>
 
 <?php

@@ -16,6 +16,7 @@ Standard library only.
 
 import argparse
 import html
+import json
 import http.cookiejar
 import re
 import sys
@@ -165,6 +166,23 @@ def main():
         status, _, page = admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
         clean('webhook delete', status, page)
         check('supprimé' in page, 'webhook deleted')
+
+    # Templates of the webhook form: listed, and each one is accepted as is (valid JSON body)
+    status, _, page = admin.request('index.php?page=webhooks&edit=new')
+    m = re.search(r'<script type="application/json" id="webhook_templates_data">(.*?)</script>', page, re.S)
+    templates = json.loads(m.group(1)) if m else {}
+    check(set(['empty', 'json', 'mastodon', 'slack', 'discord', 'bluesky', 'open311', 'redmine']) <= set(templates), 'webhook templates available')
+    check('Ticketing de collectivité (Open311)' in page, 'webhook template menu')
+    for key, template in templates.items():
+        if key == 'empty':
+            continue
+        name = template['name'] or 'Modèle ' + key
+        status, _, page = admin.request('index.php?page=webhooks', {
+            'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': name, 'webhook_enabled': '1',
+            'webhook_method': template['method'], 'webhook_url': template['url'] or 'https://example.org/hook',
+            'webhook_format': template['format'], 'webhook_headers': template['headers'], 'webhook_body': template['body'],
+            'webhook_save': '1'})
+        check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted' % key)
 
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
