@@ -72,7 +72,7 @@ cp "$REPO/tests/api/fixtures/photo.jpg" "$WORK/app/images/TOKA0001.jpg"
 # Code of an older version, listed in scripts/obsolete-paths.txt: removed by the update
 mkdir -p "$WORK/app/panels/jesuisundesdeux" && echo "<?php // old panel" > "$WORK/app/panels/jesuisundesdeux/panel.php"
 php "$REPO/scripts/vigilo-migrate.php" --app="$WORK/app" > /dev/null
-mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" < "$REPO/tests/api/seed.sql"
+mysql --default-character-set=utf8mb4 -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" < "$REPO/tests/api/seed.sql"
 mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" -e "UPDATE obs_config SET config_value='127.0.0.1:$PORT' WHERE config_param='vigilo_urlbase'"
 
 feed "$NEXT"

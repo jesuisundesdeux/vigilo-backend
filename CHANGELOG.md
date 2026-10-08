@@ -39,10 +39,20 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
   réglages regroupés.
 - Les modérateurs voient les photos non pixelisées dans l'admin (`admin/photo.php`, réservé aux sessions admin).
 
+### Floutage des photos
+- Serveur de floutage optionnel (`blur-server/`, service `blur` du docker-compose, image
+  `ghcr.io/jesuisundesdeux/vigilo-blur`) : visages et plaques d'immatriculation masqués sur chaque photo
+  envoyée (observations et résolutions), sur CPU, sans service externe.
+- Remplace l'appel spécifique à SGBlur : réglage générique « Serveur de floutage » (ancienne URL reprise)
+  ou variable `VIGILO_BLUR_URL` ; tout serveur compatible (dont SGBlur) reste utilisable.
+- Une photo que le serveur n'a pas pu traiter n'est jamais publiée (erreur `SGBLURISSUE`, code conservé
+  pour les applications) ; une photo déjà en place n'est pas modifiée.
+
 ### Fonctionnalités et corrections
 - Option pour masquer les observations résolues depuis N jours (#257).
 - Image en base64 dans un corps JSON (#267), documentation de l'envoi d'image.
 - Compatibilité PHP 8.x (#285), code toujours compatible PHP 7.3.
 - `delete.php` sans notice PHP dans le JSON.
+- Docker : volumes `images/` et `caches/` accessibles en écriture à Apache sur une installation neuve.
 - Catégories et liste des instances mises en cache (plus de 500 si GitHub ne répond pas).
 - `mosaic.php` sans scripts tiers.

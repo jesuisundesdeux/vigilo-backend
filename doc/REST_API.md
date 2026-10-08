@@ -303,7 +303,9 @@ Envoi en base64 (JSON, depuis 0.0.22) :
       -d "{\"imagebin64\": \"$(base64 -w0 photo.jpg)\"}" \
       "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID&method=base64"
 
-Erreurs ajoutées en 0.0.22 : `ALREADYAPPROVED` (403, l'observation est approuvée : sa photo ne peut plus être remplacée sans clé), `SGBLURISSUE` (500, le service de floutage n'a pas pu traiter la photo : elle n'est pas publiée).
+Erreurs ajoutées en 0.0.22 : `ALREADYAPPROVED` (403, l'observation est approuvée : sa photo ne peut plus être remplacée sans clé), `SGBLURISSUE` (500, le serveur de floutage configuré n'a pas pu traiter la photo : elle n'est pas publiée, l'application peut la renvoyer plus tard).
+
+Si un serveur de floutage est configuré (réglage « Serveur de floutage » ou variable `VIGILO_BLUR_URL`, voir `blur-server/`), la photo enregistrée est celle renvoyée par ce serveur, visages et plaques d'immatriculation masqués.
 
 
 ###### Retour

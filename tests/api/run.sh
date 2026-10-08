@@ -29,7 +29,7 @@ mysql -h "$MYSQL_HOST" -uroot -e "DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; C
 cp -r "$REPO/app" "$WORK/schema"
 cp "$REPO/config/config.php.docker" "$WORK/schema/config/config.php"
 php "$REPO/scripts/vigilo-migrate.php" --app="$WORK/schema" > /dev/null
-mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" < "$REPO/tests/api/seed.sql"
+mysql --default-character-set=utf8mb4 -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" < "$REPO/tests/api/seed.sql"
 mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" -e "UPDATE obs_config SET config_value='127.0.0.1:$PORT' WHERE config_param='vigilo_urlbase'"
 
 # Writable copy of the code under test, with the seeded photos

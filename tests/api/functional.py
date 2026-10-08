@@ -19,13 +19,18 @@ Standard library only.
 
 import argparse
 import base64
+import email.parser
+import email.policy
 import json
 import os
 import struct
 import subprocess
 import sys
+import threading
 import time
 import unittest
+import zlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -37,6 +42,9 @@ MODO = 'MODKEY0123456789'
 
 with open(os.path.join(HERE, 'fixtures', 'photo.jpg'), 'rb') as f:
     PHOTO = f.read()
+# Photo with a face and licence plates (1024x768), see blur-server/tests/fixtures
+with open(os.path.join(HERE, '..', '..', 'blur-server', 'tests', 'fixtures', 'scene.jpg'), 'rb') as f:
+    SCENE = f.read()
 
 
 class Response:
@@ -458,6 +466,177 @@ class T07Security(unittest.TestCase):
             self.skipTest('not served by Apache')
         for path in ['images/TOKA0002.jpg', 'caches/', 'migrations/init-0.0.22.sql']:
             self.assertIn(call(path).status, (403, 404), path)
+
+
+def png(width, height):
+    """A grey PNG image (standard library only)."""
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
+    rows = b''.join(b'\0' + b'\x80' * (width * 3) for _ in range(height))
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(rows)) + chunk(b'IEND', b''))
+
+
+class StubBlurServer:
+    """Blur server answering what the test asks (self.mode), recording the photos it gets."""
+
+    def __init__(self):
+        stub = self
+        self.mode = 'ok'
+        self.received = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers['Content-Length']))
+                message = email.parser.BytesParser(policy=email.policy.HTTP).parsebytes(
+                    b'Content-Type: ' + self.headers['Content-Type'].encode() + b'\r\n\r\n' + body)
+                parts = {p.get_param('name', header='content-disposition'): p.get_payload(decode=True) for p in message.iter_parts()}
+                stub.received.append((self.path, parts))
+                if stub.mode == 'ok':
+                    self.reply(200, SCENE, 'image/jpeg')
+                elif stub.mode == 'png':
+                    self.reply(200, png(320, 240), 'image/png')
+                elif stub.mode == 'garbage':
+                    self.reply(200, b'<html>not an image</html>', 'text/html')
+                else:
+                    self.reply(500, b'{"error": "boom"}', 'application/json')
+
+            def reply(self, code, body, content_type):
+                self.send_response(code)
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        self.httpd = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        self.url = 'http://127.0.0.1:%d/blur' % self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def close(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+class T08BlurServer(unittest.TestCase):
+    """Optional blur server: photos sent to it and replaced by its answer, never published when it fails."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.stub = StubBlurServer()
+        set_config('vigilo_blur_url', cls.stub.url)
+
+    @classmethod
+    def tearDownClass(cls):
+        set_config('vigilo_blur_url', '')
+        cls.stub.close()
+
+    def setUp(self):
+        self.stub.mode = 'ok'
+        self.stub.received = []
+
+    def new(self):
+        r = create()
+        return r.json()['token'], r.json()['secretid']
+
+    def photo(self, token, **query):
+        query.update({'token': token, 'key': ADMIN})
+        return call('get_photo.php', query).body
+
+    def test_photo_replaced_by_the_blurred_one(self):
+        token, secret = self.new()
+        r = call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
+        self.assertEqual(r.status, 200, r.text)
+        self.assertEqual(len(self.stub.received), 1, 'photo sent to the blur server')
+        path, parts = self.stub.received[0]
+        self.assertEqual(path, '/blur')
+        self.assertEqual(jpeg_size(parts['picture']), (800, 600), 'multipart field "picture", the uploaded JPEG')
+        self.assertEqual(jpeg_size(self.photo(token)), (1024, 768), 'the blurred photo is stored')
+        self.assertIn(token, issue_tokens())
+
+    def test_resolution_photo_blurred(self):
+        res = call('create_resolution.php', form={'tokenlist': 'TOKA0004', 'time': '1700000300'}).json()
+        r = call('add_image.php', {'token': res['token'], 'secretid': res['secretid'], 'type': 'resolution'}, raw=PHOTO)
+        self.assertEqual(r.status, 200, r.text)
+        self.assertEqual(len(self.stub.received), 1)
+        self.assertEqual(jpeg_size(self.photo(res['token'], type='resolution')), (1024, 768))
+
+    def test_other_image_format_stored_as_jpeg(self):
+        self.stub.mode = 'png'
+        token, secret = self.new()
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        self.assertEqual(jpeg_size(self.photo(token)), (320, 240))
+
+    def test_never_published_when_the_server_fails(self):
+        for mode in ['error', 'garbage', 'down']:
+            token, secret = self.new()
+            self.stub.mode = mode
+            if mode == 'down':
+                set_config('vigilo_blur_url', 'http://127.0.0.1:9/blur')
+            try:
+                r = call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
+            finally:
+                set_config('vigilo_blur_url', self.stub.url)
+            self.assertEqual((r.status, r.json()['error']['code']), (500, 'SGBLURISSUE'), mode)
+            self.assertNotIn(token, issue_tokens({'key': ADMIN}), mode + ': observation not completed')
+            self.assertEqual(sql("SELECT obs_complete FROM obs_list WHERE obs_token = '%s'" % token), '0', mode)
+
+    def test_published_photo_kept_when_the_server_fails(self):
+        token, secret = self.new()
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        before = self.photo(token)
+        self.stub.mode = 'error'
+        r = call('add_image.php', {'token': token, 'secretid': secret, 'key': ADMIN}, raw=PHOTO)
+        self.assertEqual(r.status, 500)
+        self.assertEqual(self.photo(token), before, 'photo in place untouched')
+
+    def test_disabled(self):
+        set_config('vigilo_blur_url', '')
+        try:
+            token, secret = self.new()
+            self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        finally:
+            set_config('vigilo_blur_url', self.stub.url)
+        self.assertEqual(self.stub.received, [], 'nothing sent when no blur server is configured')
+        self.assertEqual(jpeg_size(self.photo(token)), (800, 600))
+
+
+class T09RealBlurServer(unittest.TestCase):
+    """With the blur server of this repository: the face and the plates of the uploaded
+    photo are masked. Needs numpy and opencv, and either BLUR_SERVER_URL (e.g.
+    http://127.0.0.1:8000/blur, set in the admin setting) or BLUR_FROM_ENVIRONMENT=1
+    (the instance has VIGILO_BLUR_URL, e.g. docker-compose with the "blur" profile)."""
+
+    def test_face_and_plates_masked(self):
+        url = os.environ.get('BLUR_SERVER_URL')
+        if not url and os.environ.get('BLUR_FROM_ENVIRONMENT') != '1':
+            self.skipTest('BLUR_SERVER_URL or BLUR_FROM_ENVIRONMENT not set')
+        import cv2
+        import numpy
+
+        def decode(data):
+            return cv2.imdecode(numpy.frombuffer(data, numpy.uint8), cv2.IMREAD_GRAYSCALE)
+
+        def sharpness(img, x0, y0, x1, y1):
+            return cv2.Laplacian(img[y0:y1, x0:x1], cv2.CV_64F).var()
+
+        set_config('vigilo_blur_url', url or '')
+        try:
+            r = create()
+            token, secret = r.json()['token'], r.json()['secretid']
+            r = call('add_image.php', {'token': token, 'secretid': secret}, raw=SCENE)
+            self.assertEqual(r.status, 200, r.text)
+        finally:
+            set_config('vigilo_blur_url', '')
+        before = decode(SCENE)
+        after = decode(call('get_photo.php', {'token': token, 'key': ADMIN}).body)
+        self.assertEqual(after.shape, before.shape)
+        for name, area in [('face', (380, 40, 520, 200)), ('plate', (640, 600, 840, 642)), ('small plate', (120, 700, 230, 723))]:
+            self.assertLess(sharpness(after, *area), sharpness(before, *area) * 0.1, name + ' masked')
+        patch = (270, 570, 410, 710)
+        self.assertGreater(sharpness(after, *patch), sharpness(before, *patch) * 0.5, 'rest of the photo kept')
 
 
 def main():

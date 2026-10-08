@@ -6,6 +6,11 @@
 #
 #   docker compose --profile watchtower up -d
 #
+# To mask the faces and licence plates of the photos before they are published,
+# start the blur server too and set VIGILO_BLUR_URL=http://blur:8000/blur in .env:
+#
+#   docker compose --profile blur up -d
+#
 # Development with the code of this repository: see docker-compose.dev.yml.
 services:
   db:
@@ -41,6 +46,9 @@ services:
       # Update button of the admin (needs the watchtower profile)
       - VIGILO_WATCHTOWER_URL=${VIGILO_WATCHTOWER_URL:-}
       - VIGILO_WATCHTOWER_TOKEN=${WATCHTOWER_TOKEN:-}
+      # Blur server (profile "blur"); empty: photos published as sent. The admin
+      # setting "Serveur de floutage" takes precedence when filled in.
+      - VIGILO_BLUR_URL=${VIGILO_BLUR_URL:-}
     labels:
       # Only this container is updated by Watchtower
       - com.centurylinklabs.watchtower.enable=true
@@ -57,7 +65,13 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-#  sgblur:
-#    image: sgblur
-#    ports:
-#      - 8001:8001
+  # Optional: blur server (blur-server/), masks the faces and licence plates of every
+  # photo sent to the backend. Enable with: docker compose --profile blur up -d
+  blur:
+    image: ${VIGILO_BLUR_IMAGE:-ghcr.io/jesuisundesdeux/vigilo-blur:0.0}
+    build: ./blur-server
+    profiles: ["blur"]
+    restart: always
+    environment:
+      # Photos processed at the same time (CPU and memory)
+      - BLUR_WORKERS=${BLUR_WORKERS:-2}

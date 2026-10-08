@@ -79,7 +79,13 @@ Pour développer avec le code du dépôt :
    génération des panneaux et cartes MapQuest. `generate_panel.php` reste disponible et renvoie la photo de l'observation
    (pixelisée tant qu'elle n'est pas approuvée) : les applications existantes continuent de fonctionner.
 8. Nouveaux réglages (admin « Configuration ») : limite anti-spam,
-   masquage des observations résolues anciennes, URL du service de floutage (sgblur).
+   masquage des observations résolues anciennes, serveur de floutage.
+9. Floutage des photos : le réglage SGBlur devient « Serveur de floutage » (valeur reprise). Un serveur
+   de floutage est fourni (`blur-server/`) : visages et plaques masqués avant publication. Avec Docker :
+   `VIGILO_BLUR_URL=http://blur:8000/blur` dans `.env` et `docker compose --profile blur up -d` ;
+   sinon voir `blur-server/README.md`. Aucun serveur configuré : les photos sont publiées telles qu'envoyées.
+10. Docker : les répertoires `images/` et `caches/` des volumes sont rendus accessibles en écriture à Apache
+   au démarrage (installation neuve avec docker-compose).
 
 ### Publier une version (mainteneurs)
 

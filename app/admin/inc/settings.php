@@ -67,10 +67,10 @@ $settings_fields = array(
     'help' => 'Les observations résolues depuis plus de N jours ne sont plus listées publiquement. 0 = jamais masquées.'),
 
 
-  'sgblur_url' => array(
-    'card' => 'photos', 'type' => 'url', 'label' => 'URL du service SGBlur', 'default' => '',
-    'help' => 'Si renseignée, les photos envoyées sont transmises à ce service pour flouter automatiquement visages et plaques d\'immatriculation. Laisser vide pour désactiver.',
-    'link' => array('https://github.com/cquest/sgblur', 'Projet SGBlur')),
+  'vigilo_blur_url' => array(
+    'card' => 'photos', 'type' => 'url', 'label' => 'Serveur de floutage', 'default' => '', 'env' => 'VIGILO_BLUR_URL',
+    'help' => 'Si renseigné, chaque photo envoyée (observations et résolutions) est d\'abord transmise à ce serveur, qui masque les visages et les plaques d\'immatriculation. Si le serveur ne répond pas, la photo est refusée et l\'application affiche une erreur. Laisser vide pour publier les photos telles quelles. Exemple : http://blur:8000/blur (service « blur » du docker-compose).',
+    'link' => array('https://github.com/jesuisundesdeux/vigilo-backend/tree/master/blur-server', 'Serveur de floutage Vigilo')),
 
   'vigilo_ratelimit_create' => array(
     'card' => 'antispam', 'type' => 'int', 'label' => 'Observations créées max. par IP et par 10 minutes', 'default' => '60',
@@ -265,7 +265,11 @@ $render_field = function ($param, $field, $value, $error) use ($timezones) {
         }
         break;
       case 'url':
-        $control = '<input type="url" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" placeholder="https://" aria-describedby="' . h($help_id) . '">';
+        $env = !empty($field['env']) ? trim((string) getenv($field['env'])) : '';
+        $control = '<input type="url" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" placeholder="' . h($env !== '' ? $env : 'https://') . '" aria-describedby="' . h($help_id) . '">';
+        if ($env !== '') {
+          $control .= '<div class="form-text text-success"><i class="bi bi-info-circle"></i> Vide : la variable d\'environnement ' . h($field['env']) . ' est utilisée (' . h($env) . ').</div>';
+        }
         break;
       default:
         $control = '<input type="text" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" aria-describedby="' . h($help_id) . '"' . $required . '>';

@@ -90,6 +90,14 @@ jobs:
             echo "From $(php scripts/vigilo-migrate.php --status)"
             php scripts/vigilo-migrate.php
           done
+      - name: SGBlur setting kept as the blur server
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
+          php scripts/vigilo-migrate.php --to=0.0.21
+          mysql -h 127.0.0.1 -uroot -proot vigilo -e "UPDATE obs_config SET config_value='http://sgblur:8001/blur/' WHERE config_param='sgblur_url'"
+          php scripts/vigilo-migrate.php
+          test "$(mysql -h 127.0.0.1 -uroot -proot vigilo -N -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_blur_url'")" = "http://sgblur:8001/blur/"
+          test "$(mysql -h 127.0.0.1 -uroot -proot vigilo -N -e "SELECT COUNT(*) FROM obs_config WHERE config_param='sgblur_url'")" = "0"
       - name: Step by step upgrade
         run: |
           mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
@@ -196,6 +204,36 @@ jobs:
         run: |
           if [ "${{ matrix.runtime }}" = "image" ]; then IMAGE=vigilo-backend:ci; else IMAGE=vigilobs/vigilo-backend:0.0.20; fi
           tests/api/run.sh app "$IMAGE" --functional
+
+  # Blur server (blur-server/): detection and masking of faces and licence plates, then
+  # docker-compose.yml with the "blur" profile end to end (photo sent by the backend,
+  # stored with its face and plates masked)
+  blur:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit tests
+        run: |
+          pip install -r blur-server/requirements.txt
+          python -m unittest discover -s blur-server/tests -v
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: vigilo-backend:ci
+      - name: Build blur image
+        uses: docker/build-push-action@v6
+        with:
+          context: blur-server
+          load: true
+          tags: vigilo-blur:ci
+      - name: docker-compose with the blur server
+        run: tests/blur/compose.sh vigilo-backend:ci vigilo-blur:ci
 
   # Admin updater, end to end: signed release installed, tampered archive refused,
   # broken migration rolled back (code and database)

@@ -1,9 +1,12 @@
 --------------------
 -- init 0.0.22
 --------------------
--- sgblur_url was inserted by both init-0.0.20 and init-0.0.21 on some branches:
--- make sure it exists whatever path the instance took
-INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('sgblur_url','');
+-- Blur server: the SGBlur setting (init-0.0.20 / init-0.0.21) becomes the generic
+-- vigilo_blur_url, its value kept
+INSERT IGNORE INTO obs_config (`config_param`,`config_value`)
+  SELECT 'vigilo_blur_url', `config_value` FROM obs_config WHERE `config_param` = 'sgblur_url';
+INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_blur_url','');
+DELETE FROM obs_config WHERE `config_param` = 'sgblur_url';
 
 -- Admin login throttling
 CREATE TABLE IF NOT EXISTS `obs_login_attempts` (

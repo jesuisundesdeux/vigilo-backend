@@ -22,6 +22,7 @@ $cwd = dirname(__FILE__);
 require_once("{$cwd}/includes/common.php");
 require_once("{$cwd}/includes/functions.php");
 require_once("{$cwd}/includes/images.php");
+require_once("{$cwd}/includes/blur.php");
 require_once("{$cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
@@ -49,11 +50,7 @@ if (isset($_GET['type'])) {
 $token    = $_GET['token'];
 $secretid = $_GET['secretid'];
 
-$query      = mysqli_query($db, "SELECT * FROM obs_config
-                            WHERE config_param='sgblur_url'
-                            LIMIT 1");
-$result     = mysqli_fetch_array($query);
-$sgblur_url = $result['config_value'];
+$blur_url = blur_server_url($db);
 
 if (isset($_GET['method']) && !empty($_GET['method'])) {
     $method = $_GET['method'];
@@ -123,38 +120,14 @@ if ($image_written) {
             imagejpeg($imageresized, $filepath);
         }
 
-        if($sgblur_url) {
-            // Préparer le fichier à envoyer
-            $cfile = curl_file_create($filepath, mime_content_type($filepath), basename($filepath));
-
-            // Configurer la requête cURL
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $sgblur_url);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, ['picture' => $cfile]);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-
-            // Exécuter la requête
-            $response = curl_exec($ch);
-
-            // Vérifier les erreurs
-            $blur_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-             if (curl_errno($ch)) {
+        // Optional blur server (faces, licence plates): a photo it could not
+        // process is never published. Error code kept for the client apps.
+        if ($blur_url !== '') {
+            $blur_error = blur_photo($blur_url, $filepath);
+            if ($blur_error !== null) {
                 unlink($filepath);
-                jsonError($error_prefix, "Bluring issue : ".curl_error($ch), "SGBLURISSUE", 500);               
-            } elseif ($blur_code == 200 && @imagecreatefromstring($response) !== false) {
-            // Sauvegarder la réponse dans un fichier
-                file_put_contents($filepath, $response);
-            } else {
-                // Never publish a photo that the blur service could not process
-                unlink($filepath);
-                jsonError($error_prefix, "Bluring issue : HTTP " . $blur_code, "SGBLURISSUE", 500);
+                jsonError($error_prefix, "Blurring issue : " . $blur_error, "SGBLURISSUE", 500);
             }
-
-            // Fermer la session cURL
-            curl_close($ch); 
         }
         rename($filepath, $final_filepath);
         $filepath = $final_filepath;

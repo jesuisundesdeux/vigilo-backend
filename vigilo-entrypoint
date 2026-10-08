@@ -65,6 +65,14 @@ then
   fi
 fi
 
+# Volumes created by Docker belong to root: Apache (www-data) writes the photos and
+# the caches. Only the directories themselves are changed, never their content.
+for DIR in "$APP_DIR/images" "$APP_DIR/images/resolutions" "$APP_DIR/caches"
+do
+  mkdir -p "$DIR"
+  [ "$(stat -c %u "$DIR")" = "33" ] || chown 33:33 "$DIR"
+done
+
 # first arg is `-f` or `--some-option`
 if [ "${1#-}" != "$1" ]; then
         set -- apache2-foreground "$@"
