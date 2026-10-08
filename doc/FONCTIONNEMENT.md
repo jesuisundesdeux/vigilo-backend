@@ -54,7 +54,7 @@ l'application web utilise ; les applications qui ne la lisent pas utilisent la l
   depuis la 0.0.22 : il renvoie la photo, comme `get_photo.php`.
 - **Serveur de floutage** (optionnel, [`blur-server/`](../blur-server/README.md)) : s'il est configuré, chaque
   photo reçue lui est envoyée et remplacée par sa version où visages et plaques d'immatriculation sont
-  masqués. S'il échoue, la photo est gardée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
+  masqués (modèle de détection de Panoramax, sur CPU). S'il échoue, la photo est gardée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
   la modération manuelle reste le garde-fou. Tout serveur compatible (champ multipart `picture`), comme
   [SGBlur](https://github.com/cquest/sgblur), convient.
 
