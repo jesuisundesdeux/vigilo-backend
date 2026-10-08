@@ -169,6 +169,7 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
       actif appelle son adresse avec les en-têtes et le corps définis ci-dessous, où les <code>{{variables}}</code> sont
       remplacées par les champs de l'observation. Les appels sont faits en parallèle (5 secondes au plus) ; un échec
       n'empêche pas la publication et apparaît dans le journal ci-dessous.
+      <a href="https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/WEBHOOKS.md" target="_blank" rel="noopener noreferrer">Exemples : Mastodon, Slack, Bluesky, ticketing de collectivité <i class="bi bi-box-arrow-up-right"></i></a>
     </p>
   </div>
   <?php if (empty($hooks)) { ?>
