@@ -69,6 +69,8 @@ cp "$REPO/config/config.php.docker" "$WORK/app/config/config.php"
 echo "// instance specific" >> "$WORK/app/config/config.php"
 sed -i "s|define('VIGILO_RELEASE_PUBLIC_KEY', '[^']*');|define('VIGILO_RELEASE_PUBLIC_KEY', '$PUBLIC');|" "$WORK/app/includes/release_key.php"
 cp "$REPO/tests/api/fixtures/photo.jpg" "$WORK/app/images/TOKA0001.jpg"
+# Code of an older version, listed in scripts/obsolete-paths.txt: removed by the update
+mkdir -p "$WORK/app/panels/jesuisundesdeux" && echo "<?php // old panel" > "$WORK/app/panels/jesuisundesdeux/panel.php"
 php "$REPO/scripts/vigilo-migrate.php" --app="$WORK/app" > /dev/null
 mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" < "$REPO/tests/api/seed.sql"
 mysql -h "$MYSQL_HOST" -uroot "$MYSQL_DATABASE" -e "UPDATE obs_config SET config_value='127.0.0.1:$PORT' WHERE config_param='vigilo_urlbase'"
@@ -129,6 +131,7 @@ check('Vigilo est à jour' in page, 'admin says up to date')
 check('// instance specific' in open(work + '/app/config/config.php').read(), 'config.php preserved')
 import os
 check(os.path.exists(work + '/app/images/TOKA0001.jpg'), 'photos preserved')
+check(not os.path.exists(work + '/app/panels'), 'obsolete code (panels) removed')
 page = req('admin/index.php?page=audit')
 check('update_install' in page, 'update recorded in the audit log')
 

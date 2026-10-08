@@ -404,6 +404,23 @@ function vigilo_install_release($db, $release, $log)
         throw new Exception($e->getMessage() . " La version précédente a été restaurée.");
     }
 
+    // Files of the previous versions that do not exist anymore (still in the backup)
+    if (isset($manifest['obsolete_paths']) && is_array($manifest['obsolete_paths'])) {
+        foreach ($manifest['obsolete_paths'] as $obsolete) {
+            $obsolete = trim((string) $obsolete, '/');
+            if ($obsolete === '' || strpos($obsolete, '..') !== false || in_array(strtok($obsolete, '/'), vigilo_update_preserved(), true)
+                || in_array($obsolete, vigilo_update_preserved(), true) || file_exists($stage . '/app/' . $obsolete)) {
+                continue;
+            }
+            $path = $root . '/' . $obsolete;
+            if (is_dir($path) && !is_link($path)) {
+                vigilo_remove_tree($path);
+            } elseif (file_exists($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
     vigilo_remove_tree($stage);
     @unlink($archive);
     // Keep the 3 most recent backups

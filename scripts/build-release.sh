@@ -28,9 +28,12 @@ rm -f "$STAGE/app/config/config.php" "$STAGE/app/install.php"
 find "$STAGE/app/images" "$STAGE/app/caches" "$STAGE/app/maps" -mindepth 1 \
   ! -name 'index.html' ! -name '.htaccess' -exec rm -rf {} + 2> /dev/null || true
 
+OBSOLETE=$(grep -v '^#' "$REPO/scripts/obsolete-paths.txt" | sed '/^$/d' | sed 's/.*/"&"/' | paste -sd, -)
+
 cat > "$STAGE/manifest.json" <<JSON
 {
   "version": "$VERSION",
+  "obsolete_paths": [$OBSOLETE],
   "min_php": "7.3",
   "required_extensions": ["mysqli", "gd", "curl", "json"],
   "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
