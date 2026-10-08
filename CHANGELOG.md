@@ -32,8 +32,9 @@ L'API reste compatible avec les applications ; la base est mise à jour automati
   population), avec carte, sélection et doublons ignorés.
 
 ### Admin
-- Villes, comptes, scopes et catégories de l'instance : listes en lecture, création et modification dans une fenêtre
-  (plus d'entrée vide à compléter) ; les valeurs refusées rouvrent la fenêtre avec la saisie.
+- Villes, comptes et catégories de l'instance : listes en lecture, création et modification dans une fenêtre ; scopes :
+  création dans une fenêtre, puis modification sur la carte de chaque scope (plus d'entrée vide à compléter). Les
+  valeurs refusées rouvrent la fenêtre avec la saisie.
 - Tableaux sans défilement horizontal : colonnes secondaires masquées sur les écrans étroits, observations et listes
   affichées en blocs sur tablette et mobile.
 - Photos ouvertes dans une fenêtre plutôt qu'un nouvel onglet ; image par défaut si la photo manque.
