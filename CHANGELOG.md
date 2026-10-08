@@ -56,7 +56,15 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
 - Page Villes : import des communes françaises du territoire d'un scope (geo.api.gouv.fr : nom, code postal, surface,
   population), avec carte, sélection et doublons ignorés.
 
+### Catégories
+- Page « Catégories » de l'admin : désactiver des catégories nationales pour l'instance, ajouter des catégories propres
+  à l'instance (numéros à partir de 1000 ; nom, nom anglais, couleur, résolvable).
+- `get_categories.php` : catégories de l'instance au format de `categorielist.json` ; l'application web l'utilise et se
+  rabat sur la liste nationale pour les instances antérieures.
+
 ### Webhooks
+- Correspondance des catégories par webhook : code de chaque catégorie dans l'outil appelé (`{{categorie_code}}`, par
+  exemple le `service_code` Open311), et option pour n'envoyer que les catégories qui ont un code.
 - Page « Webhooks » de l'admin : à chaque publication d'une observation (validation par un modérateur, depuis
   l'admin ou `approve.php`), appel d'un ou plusieurs endpoints HTTP (POST, PUT, PATCH ou GET).
 - URL, en-têtes et corps personnalisables avec des variables (`{{token}}`, `{{comment}}`, `{{photo_url}}`,

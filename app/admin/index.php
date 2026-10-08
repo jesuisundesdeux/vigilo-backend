@@ -37,6 +37,7 @@ $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil"
         "cities" => array("icon" => "buildings", "name" => "Villes", "access" => array('admin')),
         "accounts" => array("icon" => "people", "name" => "Comptes", "access" => array('admin')),
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
+        "categories" => array("icon" => "tags", "name" => "Catégories", "access" => array('admin')),
         "settings" => array("icon" => "gear", "name" => "Configuration", "access" => array('admin')),
         "webhooks" => array("icon" => "broadcast", "name" => "Webhooks", "access" => array('admin')),
         "audit" => array("icon" => "journal-text", "name" => "Journal", "access" => array('admin')),

@@ -258,10 +258,61 @@ function getCachedRemoteJson($url, $cache_name, $ttl = 86400)
     return array();
 }
 
-function getCategoriesList()
+/* Categories shared by every instance (vigilo-conf, categorielist.json) */
+function getNationalCategoriesList()
 {
     global $config;
     return getCachedRemoteJson($config['CATEGORIES_NATIONAL_URL'], 'categories', 3600);
+}
+
+/*
+ * Categories of this instance, same format as categorielist.json: the national ones,
+ * those disabled by the admin having "catdisable": true (still listed: the existing
+ * observations keep their name), then the categories added by the instance
+ * ("catcustom": true). See admin page "Catégories" and get_categories.php.
+ */
+function getCategoriesList()
+{
+    global $db;
+    $local = array();
+    $query = mysqli_query($db, "SELECT * FROM obs_categories ORDER BY cat_id");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $local[intval($row['cat_id'])] = $row;
+    }
+    $list = array();
+    foreach (getNationalCategoriesList() as $category) {
+        if (!is_array($category) || !isset($category['catid'])) {
+            continue;
+        }
+        $id = intval($category['catid']);
+        if (isset($local[$id]) && !$local[$id]['cat_custom'] && $local[$id]['cat_disabled']) {
+            $category['catdisable'] = true;
+        }
+        $list[] = $category;
+        if (isset($local[$id]) && !$local[$id]['cat_custom']) {
+            unset($local[$id]);
+        }
+    }
+    foreach ($local as $id => $row) {
+        if (!$row['cat_custom']) {
+            continue;
+        }
+        $category = array(
+            'catcolor'       => (string) $row['cat_color'],
+            'catid'          => $id,
+            'catname'        => (string) $row['cat_name'],
+            'catresolvable'  => (bool) $row['cat_resolvable'],
+            'catcustom'      => true,
+        );
+        if ((string) $row['cat_name_en'] !== '') {
+            $category['catname_en_US'] = (string) $row['cat_name_en'];
+        }
+        if ($row['cat_disabled']) {
+            $category['catdisable'] = true;
+        }
+        $list[] = $category;
+    }
+    return $list;
 }
 
 /* Name of the instance in vigilo-conf (citylist.json) for a scope, used for links to the web app */
