@@ -146,7 +146,8 @@ ticketing des collectivités (voirie, propreté…). Si la collectivité en expo
 créer une demande d'intervention, avec sa position et sa photo.
 
 À demander à la collectivité : l'adresse de l'API (`ENDPOINT`), une clé d'API (`api_key`) et le code du service
-destinataire (`service_code`, liste sur `ENDPOINT/services.json`).
+destinataire de chaque catégorie (`service_code`, liste sur `ENDPOINT/services.json`), à saisir dans la
+**Correspondance des catégories** du webhook.
 
 | Champ | Valeur |
 |---|---|
@@ -158,14 +159,15 @@ destinataire (`service_code`, liste sur `ENDPOINT/services.json`).
 Corps (une seule ligne) :
 
 ```
-api_key=CLE_API&service_code=CODE_SERVICE&lat={{lat}}&long={{lon}}&address_string={{address}}&description=Vigilo {{token}} - {{categorie_name}} : {{comment}} {{explanation}}&media_url={{photo_url}}
+api_key=CLE_API&service_code={{categorie_code}}&lat={{lat}}&long={{lon}}&address_string={{address}}&description=Vigilo {{token}} - {{categorie_name}} : {{comment}} {{explanation}}&media_url={{photo_url}}
 ```
 
 - Les valeurs des variables sont encodées automatiquement ; les textes fixes du modèle doivent rester simples (lettres,
   chiffres, espaces).
 - La réponse contient le numéro de la demande (`service_request_id`), visible dans le journal des webhooks.
-- Pour n'envoyer qu'une catégorie (par exemple le stationnement gênant) ou une ville, créer un service dédié côté
-  collectivité ou filtrer avec un outil d'automatisation : les webhooks Vigilo n'ont pas de filtre.
+- `{{categorie_code}}` prend le code saisi pour la catégorie de l'observation. Pour n'envoyer que certaines catégories
+  (par exemple le stationnement gênant), ne renseigner que celles-ci et cocher « N'envoyer que les observations des
+  catégories qui ont un code ».
 
 ## Redmine
 

@@ -11,6 +11,7 @@ Toutes les routes sont à la racine de l'instance, répondent en JSON (sauf imag
 |---|---|---|
 | `GET get_version.php` | Version du backend | — |
 | `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, partage) | — |
+| `GET get_categories.php` | Catégories de l'instance (depuis 0.0.22, voir [Catégories](#catégories)) | — |
 | `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` pour les non approuvées |
 | `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` | `secretid` de l'auteur ou `key` pour la version nette |
@@ -529,12 +530,23 @@ ___
 
 ### Catégories
 
-Les catégories sont disponibles sur toutes les instance sur l'adresse https://vigilo-bf7f2.firebaseio.com/categorieslist.json
+La liste nationale, commune à toutes les instances, est publiée dans
+[vigilo-conf](https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/categorielist.json).
+
+Depuis la 0.0.22, chaque instance publie sa propre liste sur `GET /get_categories.php`, au même format : la liste
+nationale, où les catégories désactivées par l'instance ont `"catdisable": true` (elles restent listées pour nommer les
+observations existantes), suivie des catégories ajoutées par l'instance (`"catcustom": true`, numéros à partir de 1000).
+Une application qui reçoit une erreur sur cette adresse (instance antérieure à 0.0.22) utilise la liste nationale.
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
 | int | catid | Identifiant unique de catégorie | >= 0.0.1 |
 | str | catname | Nom affiché de la catégorie | >= 0.0.1 |
+| str | catname_en_US | Nom en anglais (facultatif) | |
+| str | catcolor | Couleur (nom CSS ou #rrggbb) | |
+| bool | catresolvable | Les citoyens peuvent déclarer l'observation résolue | |
+| bool | catdisable | Catégorie à ne plus proposer (facultatif) | |
+| bool | catcustom | Catégorie propre à l'instance (facultatif) | >= 0.0.22 |
 
 ### Observations
 

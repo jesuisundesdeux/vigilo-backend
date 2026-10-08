@@ -40,6 +40,8 @@ for t in TOKA0001 TOKA0002 TOKA0003 TOKA0004 TOKA0006 TOKA0007 TOKA0008; do
   cp "$REPO/tests/api/fixtures/photo.jpg" "$WORK/app/images/$t.jpg"
 done
 cp "$REPO/tests/api/fixtures/photo.jpg" "$WORK/app/images/resolutions/R_RES00001.jpg"
+# National categories (vigilo-conf) without network access: the cache of the backend
+cp "$REPO/tests/api/fixtures/categorielist.json" "$WORK/app/caches/remote_categories.json"
 chmod -R a+rwX "$WORK/app"
 
 EXTRA=()

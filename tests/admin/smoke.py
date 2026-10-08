@@ -84,7 +84,7 @@ def main():
     check(url.endswith('index.php'), 'admin login redirects to the admin')
     clean('dashboard', status, page)
 
-    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'settings', 'webhooks', 'audit', 'update']
+    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'categories', 'settings', 'webhooks', 'audit', 'update']
     for name in pages:
         status, _, page = admin.request('index.php?page=' + name)
         clean('page ' + name, status, page)
@@ -209,9 +209,35 @@ def main():
     check('2 villes importées' in page and '1 ignorée' in page, 'communes imported, existing one skipped')
     check('&lt;b&gt;X&lt;/b&gt;' in page and '<b>X</b>' not in page, 'imported names escaped')
 
+    # Categories: national one disabled then enabled again, category of the instance added, edited, deleted
+    status, _, page = admin.request('index.php?page=categories')
+    check('Véhicule ou objet gênant' in page, 'national categories listed')
+    disable = [l for l in links(page, 'action=disable') if 'catid=2&' in l or l.endswith('catid=2')]
+    check(len(disable) == 1, 'disable link of a national category')
+    if disable:
+        status, _, page = admin.request('index.php' + disable[0] if disable[0].startswith('?') else disable[0])
+        clean('category disable', status, page)
+        check('désactivée pour cette instance' in page, 'national category disabled')
+        enable = [l for l in links(page, 'action=enable') if 'catid=2' in l]
+        check(len(enable) == 1, 'enable link')
+        if enable:
+            status, _, page = admin.request('index.php' + enable[0] if enable[0].startswith('?') else enable[0])
+            check('réactivée' in page, 'national category enabled again')
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_save': '1', 'cat_id': '0',
+                                                                   'cat_name': 'Trottinette <b>gênante</b>', 'cat_color': '#123456', 'cat_active': '1'})
+    clean('category add', status, page)
+    check('ajoutée (n° 1000)' in page and 'Trottinette &lt;b&gt;gênante&lt;/b&gt;' in page, 'category of the instance added')
+    status, _, page = admin.request('index.php?page=webhooks&edit=new')
+    check('category_map[1000]' in page and '{{categorie_code}}' in page, 'category correspondence in the webhook form')
+    status, _, page = admin.request('index.php?page=categories')
+    delete = [l for l in links(page, 'action=delete') if 'catid=1000' in l]
+    if delete:
+        status, _, page = admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
+        check('supprimée' in page, 'unused category of the instance deleted')
+
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'category_disable', 'category_create']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
@@ -225,7 +251,7 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
-    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks']:
+    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
     status, _, page = staff.request('index.php?page=observations&approved=1')

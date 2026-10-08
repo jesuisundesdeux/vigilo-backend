@@ -675,11 +675,12 @@ class WebhookReceiver:
         self.httpd.server_close()
 
 
-def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1):
+def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1, category_map='{}', category_only=0):
     def q(v):
         return "'" + v.replace('\\', '\\\\').replace("'", "\\'") + "'"
-    sql("INSERT INTO obs_webhooks (webhook_name, webhook_enabled, webhook_event, webhook_method, webhook_url, webhook_format, webhook_headers, webhook_body) "
-        "VALUES (%s, %d, 'observation.approved', %s, %s, %s, %s, %s)" % (q(name), enabled, q(method), q(url), q(fmt), q(headers), q(body)))
+    sql("INSERT INTO obs_webhooks (webhook_name, webhook_enabled, webhook_event, webhook_method, webhook_url, webhook_format, webhook_headers, webhook_body, "
+        "webhook_category_map, webhook_category_only) VALUES (%s, %d, 'observation.approved', %s, %s, %s, %s, %s, %s, %d)"
+        % (q(name), enabled, q(method), q(url), q(fmt), q(headers), q(body), q(category_map), category_only))
     return sql("SELECT MAX(webhook_id) FROM obs_webhooks")
 
 
@@ -774,6 +775,73 @@ class T10Webhooks(unittest.TestCase):
         finally:
             time.sleep(4)
             sql("DELETE FROM obs_webhooks WHERE webhook_id = %s" % hook)
+
+
+class T11Categories(unittest.TestCase):
+    """Categories of the instance: national list (vigilo-conf), disabled locally, added locally."""
+
+    def tearDown(self):
+        sql("DELETE FROM obs_categories")
+
+    def categories(self):
+        r = call('get_categories.php')
+        self.assertEqual(r.status, 200)
+        self.assertEqual(r.header('Access-Control-Allow-Origin'), '*')
+        return {c['catid']: c for c in r.json()}
+
+    def test_national_list(self):
+        cats = self.categories()
+        self.assertEqual(cats[2]['catname'], 'Véhicule ou objet gênant')
+        self.assertTrue(cats[50].get('catdisable'), 'disabled nationally')
+        self.assertFalse(cats[2].get('catdisable', False))
+
+    def test_disable_and_add(self):
+        sql("INSERT INTO obs_categories (cat_id, cat_custom, cat_disabled) VALUES (2, 0, 1)")
+        sql("INSERT INTO obs_categories (cat_id, cat_custom, cat_disabled, cat_name, cat_name_en, cat_color, cat_resolvable) "
+            "VALUES (1000, 1, 0, 'Trottinette mal garée', 'Badly parked scooter', '#e67e22', 1)")
+        cats = self.categories()
+        self.assertTrue(cats[2]['catdisable'], 'national category disabled by the instance, still listed')
+        self.assertEqual(cats[1000], {'catcolor': '#e67e22', 'catid': 1000, 'catname': 'Trottinette mal garée', 'catresolvable': True,
+                                      'catcustom': True, 'catname_en_US': 'Badly parked scooter'})
+        r = create(categorie='1000')
+        self.assertEqual(r.status, 200, 'observation in a category of the instance')
+
+
+class T12WebhookCategories(unittest.TestCase):
+    """Correspondence of the categories of a webhook: {{categorie_code}}, only the mapped categories."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.receiver = WebhookReceiver()
+        sql("DELETE FROM obs_webhooks")
+        add_webhook('mapped', cls.receiver.base + '/all', body='service_code={{categorie_code}}', fmt='form', category_map='{"2": "VOIRIE-12"}')
+        add_webhook('only', cls.receiver.base + '/only', body='{"code": "{{categorie_code}}"}', category_map='{"2": "STAT"}', category_only=1)
+
+    @classmethod
+    def tearDownClass(cls):
+        sql("DELETE FROM obs_webhooks")
+        cls.receiver.close()
+
+    def publish(self, categorie):
+        r = create(categorie=categorie)
+        token, secret = r.json()['token'], r.json()['secretid']
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        self.receiver.calls = []
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+
+    def test_mapped_category(self):
+        self.publish('2')
+        calls = {c['path']: c for c in self.receiver.wait(2)}
+        self.assertEqual(urllib.parse.parse_qs(calls['/all']['body']), {'service_code': ['VOIRIE-12']})
+        self.assertEqual(json.loads(calls['/only']['body']), {'code': 'STAT'})
+
+    def test_unmapped_category(self):
+        self.publish('5')
+        self.receiver.wait(1)
+        time.sleep(1)
+        paths = [c['path'] for c in self.receiver.calls]
+        self.assertEqual(paths, ['/all'], 'not sent to the webhook limited to the mapped categories')
+        self.assertEqual(self.receiver.calls[0]['body'], 'service_code=', 'no code: empty value')
 
 
 def main():

@@ -51,7 +51,7 @@ $webhook_templates = array(
         'body' => "{\n  \"text\": \"📍 {{categorie_name}} à {{cityname}} : « {{comment}} » #Vigilo\",\n  \"url\": \"{{observation_url}}\",\n"
                 . "  \"title\": \"Observation {{token}} – {{categorie_name}}\",\n  \"description\": \"{{address}}\"\n}"),
     'open311' => array('label' => 'Ticketing de collectivité (Open311)', 'name' => 'Open311', 'method' => 'POST', 'url' => 'https://ENDPOINT/requests.json', 'format' => 'form', 'headers' => '',
-        'body' => 'api_key=CLE_API&service_code=CODE_SERVICE&lat={{lat}}&long={{lon}}&address_string={{address}}&description=Vigilo {{token}} - {{categorie_name}} : {{comment}} {{explanation}}&media_url={{photo_url}}'),
+        'body' => 'api_key=CLE_API&service_code={{categorie_code}}&lat={{lat}}&long={{lon}}&address_string={{address}}&description=Vigilo {{token}} - {{categorie_name}} : {{comment}} {{explanation}}&media_url={{photo_url}}'),
     'redmine' => array('label' => 'Redmine', 'name' => 'Redmine', 'method' => 'POST', 'url' => 'https://REDMINE.EXEMPLE/issues.json', 'format' => 'json',
         'headers' => 'X-Redmine-API-Key: CLE_API',
         'body' => "{\n  \"issue\": {\n    \"project_id\": \"IDENTIFIANT_DU_PROJET\",\n    \"subject\": \"Vigilo {{token}} : {{categorie_name}} - {{address}}\",\n"
@@ -106,7 +106,18 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         'webhook_format'  => (isset($_POST['webhook_format']) && isset($formats[$_POST['webhook_format']])) ? $_POST['webhook_format'] : 'json',
         'webhook_headers' => isset($_POST['webhook_headers']) ? str_replace("\r\n", "\n", (string) $_POST['webhook_headers']) : '',
         'webhook_body'    => isset($_POST['webhook_body']) ? str_replace("\r\n", "\n", (string) $_POST['webhook_body']) : '',
+        'webhook_category_only' => !empty($_POST['webhook_category_only']) ? 1 : 0,
     );
+    // Correspondence of the categories: only the filled codes are kept
+    $map = array();
+    if (isset($_POST['category_map']) && is_array($_POST['category_map'])) {
+        foreach ($_POST['category_map'] as $catid => $code) {
+            if (is_scalar($code) && trim((string) $code) !== '' && preg_match('/^[0-9]+$/', (string) $catid)) {
+                $map[(string) intval($catid)] = mb_substr(trim((string) $code), 0, 200);
+            }
+        }
+    }
+    $edit['webhook_category_map'] = json_encode($map, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT);
     $errors = array();
     if ($edit['webhook_name'] === '' || strlen($edit['webhook_name']) > 100) {
         $errors[] = 'Le nom est obligatoire (100 caractères au plus).';
@@ -129,10 +140,11 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         $messages[] = array('danger', 'Webhook non enregistré :<ul class="mb-0"><li>' . implode('</li><li>', array_map('h', $errors)) . '</li></ul>');
     } else {
         $fields = array();
-        foreach (array('webhook_name', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body') as $field) {
+        foreach (array('webhook_name', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body', 'webhook_category_map') as $field) {
             $fields[$field] = "'" . mysqli_real_escape_string($db, $edit[$field]) . "'";
         }
         $fields['webhook_enabled'] = intval($edit['webhook_enabled']);
+        $fields['webhook_category_only'] = intval($edit['webhook_category_only']);
         if ($edit['webhook_id'] > 0 && webhook_admin_load($db, $edit['webhook_id'])) {
             $sets = array();
             foreach ($fields as $field => $value) {
@@ -292,6 +304,34 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
               JSON : les valeurs sont échappées, mettre les variables de texte entre guillemets (<code>"{{comment}}"</code>).
               Formulaire : <code>token={{token}}&amp;comment={{comment}}</code>, valeurs encodées. Ignoré pour GET.
             </div>
+          </div>
+          <div class="col-12">
+            <details<?= webhook_category_map($edit) ? ' open' : '' ?>>
+              <summary class="fw-semibold">Correspondance des catégories</summary>
+              <p class="form-text mt-2">
+                Code de chaque catégorie Vigilo dans l'outil appelé (par exemple le <code>service_code</code> Open311, un
+                identifiant de projet ou de type de ticket), disponible dans la variable <code>{{categorie_code}}</code>.
+              </p>
+              <?php $current_map = webhook_category_map($edit); ?>
+              <div class="table-responsive border rounded mb-2" style="max-height: 18rem;">
+                <table class="table table-sm align-middle mb-0 small">
+                  <tbody>
+                  <?php foreach (getCategoriesList() as $category) {
+                      if (!isset($category['catid']) || !empty($category['catdisable'])) { continue; }
+                      $catid = (string) intval($category['catid']); ?>
+                    <tr>
+                      <td class="text-nowrap"><label for="category_map_<?= h($catid) ?>"><?= h($category['catname']) ?></label> <span class="text-body-secondary">(<?= h($catid) ?>)</span></td>
+                      <td style="width: 45%;"><input class="form-control form-control-sm font-monospace" id="category_map_<?= h($catid) ?>" name="category_map[<?= h($catid) ?>]" maxlength="200" value="<?= h(isset($current_map[$catid]) ? $current_map[$catid] : '') ?>"></td>
+                    </tr>
+                  <?php } ?>
+                  </tbody>
+                </table>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="webhook_category_only" name="webhook_category_only" value="1"<?= !empty($edit['webhook_category_only']) ? ' checked' : '' ?>>
+                <label class="form-check-label" for="webhook_category_only">N'envoyer que les observations des catégories qui ont un code</label>
+              </div>
+            </details>
           </div>
         </div>
       </div>

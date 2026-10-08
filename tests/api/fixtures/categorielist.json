@@ -1,0 +1,103 @@
+[
+   {
+      "catcolor":"paleturquoise",
+      "catid":8,
+      "catname":"Absence d'aménagement",
+      "catname_en_US":"Missing of bicycle or pedestrian way",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"seagreen",
+      "catid":3,
+      "catname":"Aménagement mal conçu",
+      "catname_en_US":"Bad designed way",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"darkgreen",
+      "catid":4,
+      "catname":"Défaut d'entretien",
+      "catname_en_US":"Maintenance issue",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"turquoise",
+      "catid":5,
+      "catname":"Absence d'arceaux de stationnement",
+      "catname_en_US":"Missing bicycle parking",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"crimson",
+      "catid":2,
+      "catname":"Véhicule ou objet gênant",
+      "catname_en_US":"Annoying vehicle or object",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"black",
+      "catid":9,
+      "catname":"Accident, chute, incident",
+      "catname_en_US":"Accident, incident or drop ",
+      "catresolvable": false
+   },
+   {
+      "catcolor":"yellowgreen",
+      "catid":6,
+      "catname":"Signalisation, marquage",
+      "catname_en_US":"Traffic sign or labeling",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"lightcoral",
+      "catid":7,
+      "catname":"Incivilité récurrente sur la route",
+      "catname_en_US":"Antisocial behaviour on the road",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"black",
+      "catid":11,
+      "catname":"Éclairage public insuffisant",
+      "catname_en_US":"Insufficient public lighting",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"blue",
+      "catid":10,
+      "catname":"Vol ou dégradation de vélo",
+      "catname_en_US":"Bike theft or vandalism",
+      "catresolvable": false
+   },
+   {
+      "catcolor":"grey",
+      "catid":100,
+      "catname":"Autre",
+      "catname_en_US":"Other",
+      "catresolvable": true
+   },
+   {
+      "catcolor":"orange",
+      "catdisable":true,
+      "catid":50,
+      "catname":"COVID - Distanciation physique impossible",
+      "catname_en_US": "COVID - Impossible physical distancing",
+      "catresolvable": false
+   },
+   {
+      "catcolor":"red",
+      "catdisable":true,
+      "catid":51,
+      "catname":"COVID - Aménagement fermé",
+      "catname_en_US": "COVID - Closed cycle way",
+      "catresolvable": false
+   },
+   {
+      "catcolor":"green",
+      "catdisable":true,
+      "catid":52,
+      "catname":"COVID - Voirie en période de confinement",
+      "catname_en_US": "COVID - Street during lockdown",
+      "catresolvable": false
+   }
+]

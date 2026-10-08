@@ -47,6 +47,7 @@ function webhook_variables()
         'explanation'     => 'Explication',
         'categorie'       => 'Numéro de la catégorie',
         'categorie_name'  => 'Nom de la catégorie',
+        'categorie_code'  => 'Code de la catégorie dans l\'outil appelé (correspondance du webhook)',
         'address'         => 'Adresse',
         'cityname'        => 'Ville',
         'scope'           => 'Scope',
@@ -84,6 +85,7 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'explanation'     => (string) $obs['obs_explanation'],
         'categorie'       => (string) $obs['obs_categorie'],
         'categorie_name'  => null, // computed only when used (remote list of the categories)
+        'categorie_code'  => '',   // set for each webhook (webhook_category_code())
         'address'         => (string) $obs['obs_address_string'],
         'cityname'        => (string) $cityname,
         'scope'           => (string) $obs['obs_scope'],
@@ -143,9 +145,25 @@ function webhook_render($template, &$values, $mode)
     }, (string) $template);
 }
 
+/* Correspondence of the categories of a webhook: Vigilo category id => code of the called tool */
+function webhook_category_map($hook)
+{
+    $map = isset($hook['webhook_category_map']) ? json_decode((string) $hook['webhook_category_map'], true) : null;
+    return is_array($map) ? $map : array();
+}
+
+/* Code of the category of the observation for a webhook, null if it has none */
+function webhook_category_code($hook, $values)
+{
+    $map = webhook_category_map($hook);
+    return (isset($values['categorie']) && isset($map[$values['categorie']]) && (string) $map[$values['categorie']] !== '') ? (string) $map[$values['categorie']] : null;
+}
+
 /* The HTTP request of a webhook for these values: url, method, headers, body */
 function webhook_build_request($hook, &$values)
 {
+    $code = webhook_category_code($hook, $values);
+    $values['categorie_code'] = $code === null ? '' : $code;
     $format  = in_array($hook['webhook_format'], array('json', 'form', 'text'), true) ? $hook['webhook_format'] : 'json';
     $method  = in_array($hook['webhook_method'], array('POST', 'PUT', 'PATCH', 'GET'), true) ? $hook['webhook_method'] : 'POST';
     $headers = array();
@@ -202,6 +220,10 @@ function webhooks_deliver($db, $hooks, $values)
     $multi   = curl_multi_init();
     $handles = array();
     foreach ($hooks as $hook) {
+        // "Only the mapped categories": the other observations are not sent to this webhook
+        if (!empty($hook['webhook_category_only']) && webhook_category_code($hook, $values) === null) {
+            continue;
+        }
         $request = webhook_build_request($hook, $values);
         $id      = intval($hook['webhook_id']);
         if (!preg_match('#^https?://#i', $request['url'])) {

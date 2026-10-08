@@ -31,6 +31,14 @@ instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)).
 Chaque compte a une **clé API** (régénérable dans l'admin) passée en paramètre `key` aux appels qui le demandent.
 Panneau d'administration et ajout de modérateurs : [guide d'administration](https://vigilo.city/fr/documentation/administration/) sur vigilo.city.
 
+## Catégories
+
+Les catégories nationales sont communes à toutes les instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)).
+Dans l'admin (page **Catégories**), chaque instance peut en désactiver (elles ne sont plus proposées, les observations
+existantes gardent leur catégorie) et ajouter les siennes (numéros à partir de 1000, nom, nom anglais, couleur,
+résolvable). La liste de l'instance est publiée sur `get_categories.php`, que l'application web utilise ; les
+applications qui ne la lisent pas utilisent la liste nationale.
+
 ## Photos, pixelisation et floutage
 
 - Les photos sont dans `images/<token>.jpg` et `images/resolutions/<token>.jpg`, jamais servies directement
@@ -53,14 +61,15 @@ les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux adm
 - **appel** : méthode (POST, PUT, PATCH, GET), URL, en-têtes (`Nom: valeur`, un par ligne) et corps ;
 - **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `token`,
   `observation_url` (lien vers l'application web), `photo_url`, `comment`, `explanation`, `categorie`,
-  `categorie_name`, `address`, `cityname`, `scope`, `lat`, `lon`, `time` (timestamp), `date` (ISO 8601), `status`,
+  `categorie_name`, `categorie_code` (code de la catégorie dans l'outil appelé, défini dans la **correspondance des
+  catégories** du webhook), `address`, `cityname`, `scope`, `lat`, `lon`, `time` (timestamp), `date` (ISO 8601), `status`,
   `instance_name`, `instance_url` ;
 - **échappement** selon l'emplacement : encodées dans l'URL et un corps « formulaire », échappées JSON dans un corps
   JSON (écrire `"{{comment}}"` entre guillemets ; le corps est vérifié à l'enregistrement), sans saut de ligne dans
   les en-têtes, telles quelles dans un corps texte ;
 - **envoi** : une seule fois par observation (pas de nouvel appel si elle est déjà publiée), en parallèle, après la
   réponse à l'application, avec un délai maximal de 5 secondes (`VIGILO_WEBHOOK_TIMEOUT`) ; pas de nouvel essai
-  automatique. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
+  automatique. Un webhook peut être limité aux catégories qui ont un code dans sa correspondance. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
   « Enregistrer et tester » envoie la requête avec la dernière observation publiée.
 
 Le menu **Modèle** du formulaire préremplit les champs pour Mastodon, Slack / Mattermost, Discord, Bluesky, Open311 et
