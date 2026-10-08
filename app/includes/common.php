@@ -28,11 +28,14 @@ if (file_exists(dirname(__FILE__) . "/../config/config.php")) {
 
 global $config;
 
-define('BACKEND_VERSION', '0.0.21');
+require_once(dirname(__FILE__) . '/version.php');
 
 if (!isset($config['DATA_PATH'])) {
     $config['DATA_PATH'] = '';
 }
+
+// PHP >= 8.1 throws an exception on any SQL error: the code checks the results itself
+mysqli_report(MYSQLI_REPORT_OFF);
 
 if (!$db = mysqli_connect($config['MYSQL_HOST'], $config['MYSQL_USER'], $config['MYSQL_PASSWORD'], $config['MYSQL_DATABASE'])) {
     error_log("[FATAL] Connection à la base impossible");
@@ -55,12 +58,6 @@ while ($config_result = mysqli_fetch_array($config_query)) {
             break;
         case 'vigilo_language':
             $config['VIGILO_LANGUAGE'] = $config_result['config_value'];
-            break;
-        case 'vigilo_mapquest_api':
-            $config['MAPQUEST_API'] = $config_result['config_value'];
-            break;
-        case 'twitter_expiry_time':
-            $config['APPROVE_TWITTER_EXPTIME'] = $config_result['config_value'];
             break;
         case 'mysql_charset':
             $config['MYSQL_CHARSET'] = $config_result['config_value'];

@@ -19,124 +19,83 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/security.php");
+// Only defines the GetIssues class when included
+require_once("{$cwd}/get_issues.php");
 
+// get_issues.php sends the API headers: the mosaic is a page, not an API response
+header_remove('Access-Control-Allow-Origin');
+header_remove('BACKEND_VERSION');
+header('Content-Type: text/html; charset=utf-8');
+
+$cat   = (isset($_GET['c']) && $_GET['c'] !== '') ? (string) $_GET['c'] : 'all';
+$token = (isset($_GET['t']) && $_GET['t'] !== '') ? (string) $_GET['t'] : 'all';
+
+$obslink       = 'image';
+$instance_name = '';
+if (isset($_GET['scope']) && $_GET['scope'] !== '') {
+    if ($instance_name = getInstanceNameFromFirebase((string) $_GET['scope'])) {
+        $obslink = 'web';
+    }
+}
+
+// Same list as get_issues.php without parameters (no HTTP call to ourselves anymore)
+$export  = new GetIssues();
+$content = $export->getIssues();
+
+$similar = array();
+if ($token != 'all') {
+    $similar = sameas($token, array(
+        'distance' => 300,
+        'fdistance' => 1,
+        'fcategorie' => 1,
+        'faddress' => 1
+    ));
+}
+
+$language = isset($config['VIGILO_LANGUAGE']) ? substr($config['VIGILO_LANGUAGE'], 0, 2) : 'fr';
+$title    = isset($config['VIGILO_NAME']) ? $config['VIGILO_NAME'] : 'Vigilo';
+$base     = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'];
 ?>
-<!-- https://codepen.io/desandro/full/RPKgEN -->
 <!DOCTYPE html>
-<?php
-echo '<html lang="' . $config['VIGILO_LANGUAGE'] . '">';
-?>
+<html lang="<?= h($language) ?>">
 <head>
-  <?php
-echo '<title>' . $config['VIGILO_NAME'] . '</title>';
-?>
- <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-  <link href="/style/mosaic.css" type="text/css" rel="stylesheet">
-  <link rel="icon" type="image/png" href="/style/favicon.png">
-
-  <script>
-  window.console = window.console || function(t) {};
-  </script>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><?= h($title) ?></title>
+  <link href="style/mosaic.css" type="text/css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="style/favicon.png">
   <script>
   if (document.location.search.match(/type=embed/gi)) {
     window.parent.postMessage("resize", "*");
   }
   </script>
 </head>
-
-<body bgcolor="#000000">
+<body>
   <div class="grid">
-  <div class="grid-sizer"></div>
-
 <?php
-
-if (isset($_GET['c']) AND !empty($_GET['c'])) {
-    $cat = $_GET['c'];
-} else {
-    $cat = 'all';
-}
-
-if (isset($_GET['t']) AND !empty($_GET['t'])) {
-    $token = $_GET['t'];
-} else {
-    $token = 'all';
-}
-
-$obslink = 'image';
-if (isset($_GET['scope']) AND !empty($_GET['scope'])) {
-    $scope = $_GET['scope'];
-    if ($instance_name = getInstanceNameFromFirebase($scope)) {
-        $obslink = 'web';
-    }
-} else {
-    $scope = '';
-}
-
-$url = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/get_issues.php';
-
-$data    = file_get_contents($url);
-/*
- *  TODO
- *  We should use get_issues filters instead of filtering the whole list
- *  each time we call mosaic.php
- */
-$content = json_decode($data, true);
-$item    = 0;
-$filter  = array(
-    'distance' => 300,
-    'fdistance' => 1,
-    'fcategorie' => 1,
-    'faddress' => 1
-);
-$similar = sameas($token, $filter);
-
 foreach ($content as $value) {
     if ($cat != 'all' && $value['categorie'] != $cat) {
         /* Wrong category - Do not display */
         continue;
     }
-    if ($token != 'all' && (!isset($similar) OR !in_array($value['token'], $similar))) {
+    if ($token != 'all' && !in_array($value['token'], $similar)) {
         /* Wrong token - Do not display */
         continue;
     }
 
     if ($obslink == 'web') {
-        $obsurl = 'https://app.vigilo.city/?token=' . $value['token'] . '&instance=' . $instance_name;
+        $obsurl = 'https://app.vigilo.city/?token=' . urlencode($value['token']) . '&instance=' . urlencode($instance_name);
     } else {
-        $obsurl = '/generate_panel.php?token=' . $value['token'];
+        $obsurl = 'generate_panel.php?token=' . urlencode($value['token']);
     }
 
-    $src = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/generate_panel.php?token=' . $value['token'] . '&s=400';
-    echo '<div class="grid-item"><a target="_blank" href="' . htmlspecialchars($obsurl). '">
-      <img width="100%" src="'.htmlspecialchars($src).'" /></a></div>';
+    $src = $base . '/generate_panel.php?token=' . urlencode($value['token']) . '&s=400';
+    echo '    <a class="grid-item" target="_blank" rel="noopener" href="' . h($obsurl) . '"><img loading="lazy" src="' . h($src) . '" alt="' . h($value['token']) . '"></a>' . "\n";
 }
 ?>
-</div>
-  <script src="https://static.codepen.io/assets/common/stopExecutionOnTimeout-de7e2ef6bfefd24b79a3f68b414b87b8db5b08439cac3f1012092b2290c719cd.js"></script>
-
-  <script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
-  <script src='https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.js'></script>
-  <script src='https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.js'></script>
-
-  <script >
-    // external js: masonry.pkgd.js, imagesloaded.pkgd.js
-
-    // init Masonry
-    var $grid = $('.grid').masonry({
-      itemSelector: '.grid-item',
-      percentPosition: true,
-      columnWidth: '.grid-sizer'
-    });
-    // layout Masonry after each image loads
-    $grid.imagesLoaded().progress( function() {
-      $grid.masonry();
-    });
-    //# sourceURL=pen.js
-  </script>
-
-  <script src="https://static.codepen.io/assets/editor/live/css_reload-5619dc0905a68b2e6298901de54f73cefe4e079f65a75406858d92924b4938bf.js"></script>
+  </div>
 </body>
 </html>

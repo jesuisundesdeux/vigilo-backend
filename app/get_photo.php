@@ -19,15 +19,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
-require_once("${cwd}/includes/handle.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header("Content-type: image/png");
 header('Access-Control-Allow-Origin: *');
 
 $error_prefix = "GET_PHOTO";
+$approved     = 0;
 
 if (isset($_GET['type'])) {
     $type = $_GET['type'];
@@ -71,7 +72,7 @@ if (file_exists($filepath . $token . '.jpg')) {
   $photo_path = $filepath . $token . '.jpg';
 }
 else {
-  $photo_path = 'panels/jesuisundesdeux/panel_components/image_404.jpg'; 
+  $photo_path = 'style/image_404.jpg';
 }
 
 if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {

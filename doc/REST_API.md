@@ -12,7 +12,7 @@ Présentation API Vigilo
        - [Récupération catégories](#récupération-catégories)
        - [Récupération informations scope](#récupération-informations-scope)
      - Observations
-       - [Récupération panel](#récupération-panel)
+       - [Récupération image de l'observation (ex-panel)](#récupération-panel)
        - [Récupération liste observations](#récupération-liste-observations)
        - [Récupération photo originale](#récupération-photo-originale)
    - Ajout/modifications informations
@@ -22,7 +22,6 @@ Présentation API Vigilo
        - [Création observation](#création-observation)
        - [Suppression observation](#suppression-observation)
        - [Changer status observation](#changer-status-observation)
-       - [Obtenir carte en cache](#obtenir-carte-en-cache)
  - Données
    - [Catégories](#catégories)
    - [Observations](#observations)
@@ -43,7 +42,7 @@ ___
 
 - [Création observation](#création-observation) : Création de l'entrée et récupération des informations d'identification
 - [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation) : Ajout de l'image 
-- [Récupération panel](#récupération-panel) : Génération du panel
+- [Récupération panel](#récupération-panel) : Image de l'observation
 
 ## Méthodes 
 
@@ -179,6 +178,10 @@ Version backend >= 0.0.1
 | URL | str | key | | Clé d'admin pour visualisation non pixelisée | >= 0.0.1 |
 | URL | str | secretid | | Clé secret de l'observation pour visualisation non pixelisée | >= 0.0.1 |
 
+Depuis la 0.0.22, le « panel » (photo, carte, textes) n'est plus généré : la route renvoie la **photo de
+l'observation**, pixelisée tant qu'elle n'est pas approuvée (sauf avec `secretid` ou une clé admin/modérateur),
+à la largeur demandée (`s`, 1024 au maximum). Mêmes paramètres, mêmes codes d'erreur, toujours en `image/jpeg`.
+
 ###### Retour
 
 Retourne une image
@@ -279,7 +282,30 @@ Version backend >= 0.0.1
 | URL | str | type |  | Type d'image (resolution/obs) | >= 0.0.14 |
 | RAW | image/jpeg | / | X | Flux de l'image en JPEG si method=stdin | >= 0.0.1 |
 | URL | str | method | | Methode d'upload d'image (par defaut stdin pour upload en RAW / base64 pour upload en base64 dans le champs imagebin64) | >= 0.0.16 |
-| POST | JPEG base64 |  imagebin64 | | Image encodée en base64 | = 0.0.16 |
+| POST | JPEG base64 |  imagebin64 | | Image encodée en base64 (formulaire, ou corps JSON `{"imagebin64": "..."}` depuis 0.0.22, préfixe `data:image/jpeg;base64,` accepté) | >= 0.0.16 |
+| URL | str | key | | Clé admin/modérateur : nécessaire pour remplacer la photo d'une observation déjà approuvée | >= 0.0.22 |
+
+###### Exemples (#267)
+
+Envoi brut (méthode par défaut) :
+
+    curl -X POST --data-binary @photo.jpg \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID"
+
+Envoi en base64 (formulaire) :
+
+    curl -X POST --data-urlencode "imagebin64=$(base64 -w0 photo.jpg)" \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID&method=base64"
+
+Envoi en base64 (JSON, depuis 0.0.22) :
+
+    curl -X POST -H "Content-Type: application/json" \
+      -d "{\"imagebin64\": \"$(base64 -w0 photo.jpg)\"}" \
+      "https://INSTANCE/add_image.php?token=TOKEN&secretid=SECRETID&method=base64"
+
+Erreurs ajoutées en 0.0.22 : `ALREADYAPPROVED` (403, l'observation est approuvée : sa photo ne peut plus être remplacée sans clé).
+
+Si un serveur de floutage est configuré (réglage « Serveur de floutage » ou variable `VIGILO_BLUR_URL`, voir `blur-server/`), la photo enregistrée est celle renvoyée par ce serveur, visages et plaques d'immatriculation masqués (en-tête de réponse `X-Vigilo-Blur: done`). Si le serveur échoue, la photo est enregistrée telle qu'envoyée (`X-Vigilo-Blur: failed`) et la réponse reste un succès : la modération manuelle s'en charge.
 
 
 ###### Retour
@@ -472,17 +498,6 @@ JSON : Retourne les informations d'identification de l'observation
 
 ___
 
-##### Obtenir carte en cache
-
-###### Compatibilité
-
-Version backend >= 0.0.1
-
-######  Requête
-
-    GET /maps/{TOKEN}_zoom.jpg
-
-___
 
 
 ## Données
@@ -526,7 +541,7 @@ Les catégories sont disponibles sur toutes les instance sur l'adresse https://v
 | str | map_center_string | Latitude + "," + Longitude du centre de la carte qui doit être affichée | >= 0.0.5 |
 | int | map_zoom | Zoom de la carte à afficher | >= 0.0.5 |
 | str | contact_email | Adresse mail de contact du scope  | >= 0.0.5 |
-| str | tweet_content | ontenu du tweet qui mis par défaut via le composant de partage de l'application | >= 0.0.5 |
+| str | tweet_content | Texte proposé par défaut par le composant de partage de l'application | >= 0.0.5 |
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |
 | str | nominatim_urlbase | URL base du service nominatim | >= 0.0.14 |
 | str | backend_version | Version du backend| >= 0.0.5 |
@@ -537,4 +552,16 @@ Les catégories sont disponibles sur toutes les instance sur l'adresse https://v
 | ---- | ----|------------ | ------------- | 
 | int | status | 0 => Nouvelle observation <br> 1 => Observation résolue <br> 2 => Prise en compte <br> 3 => En cours de résolution <br> 4 => Indiquée comme résolue | >= 0.0.10 |
 
+___
 
+## Limitation des créations (depuis 0.0.22)
+
+`create_issue.php` et `create_resolution.php` refusent les nouvelles créations au-delà d'un nombre
+par adresse IP et par tranche de 10 minutes (réglage « Anti-spam » de l'admin, 60 par défaut, 0 pour
+désactiver). Réponse : HTTP 429, code `RATELIMITED`, en-tête `Retry-After`. Les requêtes faites avec une
+clé admin ou modérateur ne sont pas limitées.
+
+## Observations résolues anciennes (depuis 0.0.22)
+
+Si le réglage « Masquer les observations résolues depuis plus de N jours » est activé (désactivé par
+défaut), `get_issues.php` ne renvoie plus ces observations, sauf avec une clé admin ou modérateur.

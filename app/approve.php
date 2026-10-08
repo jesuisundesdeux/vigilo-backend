@@ -19,8 +19,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -59,17 +59,6 @@ $query = mysqli_query($db, "UPDATE obs_list set obs_approved=" . $approved . " W
 
 /* Now remove the cache for this observation to remove blurring or add */
 delete_token_cache($token);
-
-if ($approved == 1) {
-	// on twitte l'observation
-	$r = tweetToken($token ) ;
-	if ( $r['success'] == true ) {
-		$i = 0 ; // do nothing
-	}
-	else {
-		jsonError($error_prefix, $r['error'] , "TWITTERERROR", 200, "NOTICE");
-	}
-}
 
 echo json_encode(array(
     'status' => '0'

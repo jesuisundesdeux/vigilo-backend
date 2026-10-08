@@ -17,7 +17,16 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-require_once(dirname(__FILE__) . '/../lib/codebird-php/codebird.php');
+
+/* First $length characters of a UTF-8 string (mbstring is not always installed) */
+function vigilo_truncate($text, $length)
+{
+    $text = (string) $text;
+    if (function_exists('mb_substr')) {
+        return mb_substr($text, 0, $length, 'UTF-8');
+    }
+    return preg_match('/^.{0,' . intval($length) . '}/us', $text, $m) ? $m[0] : substr($text, 0, $length);
+}
 
 function tokenGenerator($length)
 {
@@ -63,164 +72,16 @@ function delete_token_cache($token)
         unlink($file);
     }
 }
-function delete_map_cache($token)
+/* Timestamp from the admin date (dd/mm/yyyy) and time (hh:mm) fields, False if invalid */
+function parseAdminDateTime($date, $time)
 {
-    global $config;
-    
-    foreach (glob(__DIR__ . "/../" . $config['DATA_PATH'] . "/maps/" . $token . "*") as $file) {
-        unlink($file);
+    $datetime = DateTime::createFromFormat('!d/m/Y H:i', trim($date) . ' ' . trim($time));
+    $errors   = DateTime::getLastErrors();
+    if ($datetime === false || ($errors && ($errors['warning_count'] || $errors['error_count']))) {
+        return False;
     }
+    return $datetime->getTimestamp();
 }
-/**
- * tweet
- *
- * Poste un tweet comprenant du texte et une image ; remplace tweet($text, $image, $twitter_ids)
- *
- * @param array $twitter_ids
- *      ensemble des identifiants consumer, consumersecret, accesstoken, accesstokensecret
- * @param string $text
- *      texte du tweet
- * @param string $image
- *      adresse web d'une image sous forme http... 
- * @return obj
- *	objet au format codebird comprenant le code erreur/succès httpstatus de l'API twitter
-**/
-function tweet($twitter_ids, $text, $image = NULL ) {
-
-    \Codebird\Codebird::setConsumerKey($twitter_ids['consumer'], $twitter_ids['consumersecret']);
-    $cb = \Codebird\Codebird::getInstance();
-    $cb->setToken($twitter_ids['accesstoken'], $twitter_ids['accesstokensecret']);
-    // $text = urlencode($text) ; // n'est pas nécessaire
-    if ( !empty($image) ) { 
-    	$reply   = $cb->media_upload(array(
-        	'media' => $image
-    	));
-    	$mediaID = $reply->media_id_string;
-    
-        $params = array(
-		'status' => $text,
-		'media_ids' => $mediaID
-    	);
-    }
-    else {
-        $params = array(
-		'status' => $text
-    	);
-    }
-    $reply  = $cb->statuses_update($params);
-    
-    return $reply ;
-}
-
-
-/**
- * tweetToken
- *
- * Poste un tweet au format personnalisé à partir d'un token
- *
- * @param string $token
- *      identifiant du token à twitter
- * @return array
- *	[success] => true/false
- *	[error] => message d'erreur
- *	[response] => Objet au format codebird, retour de l'API twitter
-**/
-function tweetToken($token ) {
-
-	global $db;
-	global $config;
-
-	// on pourrait faire un test sur format de token
-
-	if ( $db == false ) {
-		$return['success'] = false ;
-		$return['error'] = "Erreur MySQL." ;
-		return $return ;
-	}
-
-	// récupère les infos du token ds la base
-	$checktoken_query = mysqli_query($db, "SELECT obs_token,obs_scope,obs_comment,obs_time,obs_coordinates_lat,obs_coordinates_lon,obs_categorie,obs_city,obs_cityname,obs_address_string FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
-	$checktoken_result = mysqli_fetch_array($checktoken_query);
-	$comment           = $checktoken_result['obs_comment'];
-	$time              = $checktoken_result['obs_time'];
-	$coordinates_lat   = $checktoken_result['obs_coordinates_lat'];
-	$coordinates_lon   = $checktoken_result['obs_coordinates_lon'];
-	$scope             = $checktoken_result['obs_scope'];
-	$categorie         = getCategorieName($checktoken_result['obs_categorie']);
-	
-	$cityname = "";
-	if (!empty($checktoken_result['obs_city']) && $checktoken_result['obs_city'] != 0) {
-		$cityquery  = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id='" . $checktoken_result['obs_city'] . "' LIMIT 1");
-		$cityresult = mysqli_fetch_array($cityquery);
-		$cityname   = $cityresult['city_name'];
-	} elseif (!empty($checktoken_result['obs_cityname'])) {
-		$cityname = $checktoken_result['obs_cityname'];
-	} elseif (preg_match('/^(?:[^,]*),([^,]*)$/', $checktoken_result['obs_address_string'], $cityInadress)) {
-		if (count($cityInadress) == 2) {
-			$cityname = trim($cityInadress[1]);
-		}	
-	}
-	// crée le hashtag CITYHASHTAG
-	$citynamehashtag = "#".str_replace( array("-"," ") , "" , $cityname ) ;
-
-	$scope_query  = mysqli_query($db, "SELECT obs_scopes.scope_twitteraccountid,
-		  obs_scopes.scope_twittercontent,
-		  obs_twitteraccounts.ta_consumer,
-		  obs_twitteraccounts.ta_consumersecret,
-		  obs_twitteraccounts.ta_accesstoken,
-		  obs_twitteraccounts.ta_accesstokensecret  
-	   FROM obs_scopes, obs_twitteraccounts 
-	   WHERE obs_scopes.scope_twitteraccountid= obs_twitteraccounts.ta_id 
-	     AND obs_scopes.scope_name = '" . $scope . "'");
-	$scope_result = mysqli_fetch_array($scope_query);
-
-	if (!empty($scope_result['ta_consumer']) && !empty($scope_result['ta_consumersecret']) && !empty($scope_result['ta_accesstoken']) && !empty($scope_result['ta_accesstokensecret'])) {
-
-		$twitter_ids   = array(
-			"consumer" => $scope_result['ta_consumer'],
-			"consumersecret" => $scope_result['ta_consumersecret'],
-			"accesstoken" => $scope_result['ta_accesstoken'],
-			"accesstokensecret" => $scope_result['ta_accesstokensecret']
-		);
-		$tweet_content = $scope_result['scope_twittercontent'];
-
-		if ( empty($tweet_content) ) {
-			$tweet_content = "" ;
-		}
-
-		/* Don't tweet observations if they are more than N-hours old */
-		if ($time > (time() - 3600 * $config['APPROVE_TWITTER_EXPTIME'] )) {
-			$tweet_content = str_replace('[COMMENT]', $comment, $tweet_content);
-			$tweet_content = str_replace('[TOKEN]', $token, $tweet_content);
-			$tweet_content = str_replace('[COORDINATES_LON]', $coordinates_lon, $tweet_content);
-			$tweet_content = str_replace('[COORDINATES_LAT]', $coordinates_lat, $tweet_content);
-			$tweet_content = str_replace('[CATEGORY]', $categorie, $tweet_content);
-			$tweet_content = str_replace('[CITY]', $cityname, $tweet_content);
-			$tweet_content = str_replace('[CITYHASHTAG]', $citynamehashtag, $tweet_content);
-
-			$return['response'] = tweet($twitter_ids, $tweet_content, $config['HTTP_PROTOCOL'].'://'. $config['URLBASE'] .'/generate_panel.php?token='.$token );
-			if ( $return['response']->httpstatus == 200 ) {
-				$return['success'] = true ;
-				$return['error'] = "" ;
-			}
-			else {
-				$return['success'] = false ;
-				$return['error'] = "Erreur ".$return['response']->httpstatus ;
-			}
-
-			//echo '<div class="alert alert-success" role="alert">Twitt <strong>'.$obsid.'</strong> parti</div>';
-
-		} else {
-			$return['success'] = false ;
-			$return['error'] = "Token : " . $token . " older than " . $config['APPROVE_TWITTER_EXPTIME'] . "h. We won't tweet it." ;
-		}
-	} else {
-		$return['success'] = false ;
-		$return['error'] = "Empty Twitter informations on scope." ;
-	}
-    return $return ;
-}
-
 
 function getrole($privatekey, $acls)
 {
@@ -291,17 +152,21 @@ function sameas($token, $filter = array())
 {
     global $db;
 
+    $token       = mysqli_real_escape_string($db, $token);
     $tokenquery  = mysqli_query($db, "SELECT obs_categorie,obs_address_string,obs_city,obs_coordinates_lat,obs_coordinates_lon FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
     $tokenresult = mysqli_fetch_array($tokenquery);
     
     $similar = array();
+    if (!$tokenresult) {
+        return $similar;
+    }
     
     $where = '';
     if ($filter['fcategorie'] == 1) {
-        $where .= "obs_categorie='" . $tokenresult['obs_categorie'] . "' AND ";
+        $where .= "obs_categorie='" . intval($tokenresult['obs_categorie']) . "' AND ";
     }
     if ($filter['faddress'] == 1) {
-        $where .= "obs_city='" . $tokenresult['obs_city'] . "' AND ";
+        $where .= "obs_city='" . intval($tokenresult['obs_city']) . "' AND ";
     }
     $where .= "1";
     
@@ -358,137 +223,74 @@ function jsonError($prefix, $error_msg, $internal_code = "Unknown", $http_status
     }
 }
 
+/*
+ * JSON document from a remote URL, cached on disk for $ttl seconds.
+ * When the remote is unreachable, the last cached copy is used (even if older), so
+ * that a GitHub outage does not break the panels.
+ */
+function getCachedRemoteJson($url, $cache_name, $ttl = 86400)
+{
+    global $config;
+
+    $cache_dir  = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'caches/';
+    $cache_file = $cache_dir . 'remote_' . preg_replace('/[^a-z0-9_]/', '', $cache_name) . '.json';
+
+    if (file_exists($cache_file) && filemtime($cache_file) > time() - $ttl) {
+        $data = json_decode(file_get_contents($cache_file), true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+
+    $content = getWebContent($url);
+    $data    = $content ? json_decode($content, true) : null;
+    if (is_array($data)) {
+        @file_put_contents($cache_file, $content, LOCK_EX);
+        return $data;
+    }
+
+    if (file_exists($cache_file)) {
+        $data = json_decode(file_get_contents($cache_file), true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+    return array();
+}
+
 function getCategoriesList()
 {
     global $config;
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    return $categories_list;
+    return getCachedRemoteJson($config['CATEGORIES_NATIONAL_URL'], 'categories', 3600);
 }
 
-function getCategorieName($catid)
-{
-    global $config;
-
-    $categories_json = getWebContent($config['CATEGORIES_NATIONAL_URL']);
-    $categories_list = json_decode($categories_json, JSON_OBJECT_AS_ARRAY);
-    foreach ($categories_list as $value) {
-        if ($value['catid'] == $catid) {
-            $categorie_string = $value['catname'];
-        }
-    }
-    return $categorie_string;
-}
-
-
+/* Name of the instance in vigilo-conf (citylist.json) for a scope, used for links to the web app */
 function getInstanceNameFromFirebase($scope)
 {
-    $citylist_list = json_decode($citylist_json, JSON_OBJECT_AS_ARRAY);
+    $citylist_list = getCachedRemoteJson('https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/citylist.json', 'citylist', 86400);
     foreach ($citylist_list as $key => $value) {
-        if ($value['scope'] == $scope) {
+        if (isset($value['scope']) && $value['scope'] == $scope) {
             return $key;
         }
     }
     return False;
 }
 
-function findClosestIssues($db, $issue)
-{
-    $closestIssues = [];
-    
-    $query_issues_coordinates = mysqli_query($db, "SELECT obs_coordinates_lat, obs_coordinates_lon, obs_time, obs_token FROM obs_list ORDER BY obs_time DESC");
-    while ($result_issues_coordinates = mysqli_fetch_array($query_issues_coordinates)) {
-        if (distance(
-                $issue['obs_coordinates_lat'],
-                $issue['obs_coordinates_lon'],
-                $result_issues_coordinates['obs_coordinates_lat'],
-                $result_issues_coordinates['obs_coordinates_lon'],
-                'm'
-            ) < 200
-            && $result_issues_coordinates['obs_token'] != $issue['obs_token']
-        ) {
-            $additionalmarkers[] = $result_issues_coordinates;
-        }
-    }
-
-    return $closestIssues;
-}
-
-function GenerateMapQuestForToken($token, $path, $mapquest_apikey)
-{
-    global $db;
-
-    $size_w = 390;
-    $size_h = 390;
-    $size_zoom = $size_w . ',' . $size_h;
-    $zoom = 17;
-    $color_recent = 'db0000';
-    $color_month = 'db7800';
-    $color_old = 'a8a8a8';
-    
-    $query_token  = mysqli_query($db, 'SELECT obs_token, obs_coordinates_lat, obs_coordinates_lon FROM obs_list WHERE obs_token="' . $token . '" LIMIT 1');
-    $current_issue = mysqli_fetch_array($query_token);
-
-    // mapquestapi limits requests size to 8 kbytes.
-    // That's why we set a limit and select only 150 last markers.
-    $closestIssues = array_slice(findClosestIssues($db, $current_issue), 0, 150);
-
-    # Check closest issues
-    $additionalmarkers = '';
-    foreach($closestIssues as $closeIssue) {
-        $age = time() - $closeIssue['obs_time'];
-        if ($age < 3600 * 24 * 30) {
-            $color = $color_recent;
-        } elseif ($age < 3600 * 24 * 30 * 6) {
-            $color = $color_month;
-        } else {
-            $color = $color_old;
-        }
-
-        $additionalmarkers .= $closeIssue['obs_coordinates_lat'] . ',' . $closeIssue['obs_coordinates_lon'] . '|via-md-' . $color . '||';
-    }
-    
-    $url_zoom  = 'https://www.mapquestapi.com/staticmap/v5/map?key=' . $mapquest_apikey
-        . '&center=' . $current_issue['obs_coordinates_lat'] . ',' . $current_issue['obs_coordinates_lon']
-        . '&size=' . $size_zoom . '&zoom=' . $zoom
-        . '&locations=' . $additionalmarkers . $current_issue['obs_coordinates_lat'] . ',' . $current_issue['obs_coordinates_lon']
-        . '|marker-ff0000&type=hyb';
-    
-    if (!file_exists($path)) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url_zoom);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // catch output (do NOT print!)
-        $content_zoom = curl_exec($ch);
-        
-        $http_error_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $content_type    = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        
-        # Check the request went ok and Content-Type is a JPEG image
-        if ($http_error_code != 200 || $content_type != 'image/jpeg') {
-            error_log(
-                'Unexpected HTTP result HTTP_CODE = ' . $http_error_code .
-                ' - Url = ' . $url_zoom .
-                ' - Content-Type = ' . $content_type
-            );
-            curl_close($ch);
-            return false;
-        } else {
-            file_put_contents($path, $content_zoom);
-            curl_close($ch);
-            return true;
-        }
-    }
-
-    return true;
-}
-
-
 function getWebContent($url) {
 
   $curl = curl_init($url);
-  curl_setopt($curl, CURLOPT_USERAGENT, "User-Agent: Vigilo Backend Version/" . BACKEND_VERSION);
+  curl_setopt($curl, CURLOPT_USERAGENT, "Vigilo-Backend/" . BACKEND_VERSION . " (+https://github.com/jesuisundesdeux/vigilo-backend)");
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+  // A slow remote (GitHub, categories) must not hang the API or the admin
+  curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
+  curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+  curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+  curl_setopt($curl, CURLOPT_MAXREDIRS, 3);
   $data = curl_exec($curl);
+  $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+  curl_close($curl);
+  if ($data === false || $code >= 400) {
+      return false;
+  }
   return $data;
 }

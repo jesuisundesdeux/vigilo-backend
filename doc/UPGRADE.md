@@ -1,4 +1,103 @@
-## Mise à jour
+## Mise à jour à partir de la version 0.0.22
+
+À partir de la 0.0.22, les mises à jour se font depuis l'admin, menu **« Mises à jour »**.
+La page indique la version du code, celle de la base, la dernière version publiée et
+des vérifications de sécurité.
+
+### Installation classique (hébergement mutualisé, serveur dédié)
+
+Quand une nouvelle version est publiée, le bouton **« Installer la version X »** (mot de passe demandé) :
+
+1. télécharge l'archive de la version publiée sur GitHub et vérifie sa somme SHA-256
+   (et sa signature ed25519 si une clé publique est définie dans `app/includes/release_key.php`) ;
+2. vérifie la version de PHP et les extensions demandées par la nouvelle version ;
+3. sauvegarde le code et la base dans `caches/updates/` (les 3 dernières sauvegardes sont gardées) ;
+4. installe les fichiers (sans toucher à `config/config.php`, `images/` et `caches/`) ;
+5. applique les migrations de la base ;
+6. vérifie que l'instance répond avec la nouvelle version ;
+7. en cas d'échec, restaure le code et la base.
+
+Prérequis : extensions PHP `zip` et `curl`, et le serveur web doit pouvoir écrire dans le
+répertoire du code. Sinon la page explique comment faire la mise à jour à la main : remplacer
+le contenu de `app` par celui de l'archive, puis cliquer sur « Appliquer les migrations ».
+
+Sur un serveur dédié, les migrations peuvent aussi être lancées en ligne de commande :
+`php scripts/vigilo-migrate.php` (`--status` pour voir les versions).
+
+### Docker
+
+Le code fait partie de l'image : il n'est jamais modifié dans le conteneur. Le
+`docker-compose.yml` fourni utilise l'image `vigilobs/vigilo-backend:0.0`, qui suit les
+correctifs de la série 0.0 (tags publiés : `0.0.22`, `0.0`, `stable`, `latest` ; l'image est aussi
+publiée sur `ghcr.io/jesuisundesdeux/vigilo-backend`). La base est migrée au démarrage du conteneur
+(sauf si `AUTOUPDATE=false`) ; le conteneur refuse de démarrer si la base est plus récente que le code.
+
+Mise à jour en ligne de commande :
+
+```
+docker compose pull
+docker compose up -d
+```
+
+Mise à jour depuis l'admin, avec Watchtower (optionnel) : dans `.env`,
+
+```
+WATCHTOWER_TOKEN=une-longue-chaine-aleatoire
+VIGILO_WATCHTOWER_URL=http://watchtower:8080
+```
+
+puis `docker compose --profile watchtower up -d`. Le bouton « Mettre à jour l'image avec Watchtower »
+de la page « Mises à jour » télécharge la nouvelle image et redémarre le conteneur. Watchtower n'agit
+que sur le conteneur `web` (label `com.centurylinklabs.watchtower.enable`) et seulement à la demande.
+Il a accès au socket Docker : ne l'activez que si vous en avez besoin.
+
+Pour passer à une nouvelle série (0.1, 1.0…), changez `VIGILO_IMAGE` dans `.env`.
+
+Pour développer avec le code du dépôt :
+`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`.
+
+### Passage à la 0.0.22 (dernière mise à jour manuelle)
+
+1. Sauvegardez la base et les répertoires `images/` et `caches/`.
+2. Mettez à jour le code :
+   - Docker : remplacez `docker-compose.yml` par celui de la 0.0.22, puis `docker compose pull && docker compose up -d` ;
+   - installation classique : remplacez le contenu de `app` (sans écraser `config/config.php`, `images`, `caches`).
+3. Appliquez les migrations (automatique avec Docker, sinon depuis l'admin « Mises à jour »).
+4. **Videz les répertoires `caches/` et `maps/`** : les versions précédentes pouvaient y écrire des panneaux non floutés
+   (les nouveaux fichiers de cache ont un nom différent) ; `maps/` (cartes MapQuest) et `panels/` ne servent plus et peuvent être supprimés.
+5. Ouvrez la page « Mises à jour » : la rubrique « Vérifications de sécurité » doit être au vert. En particulier,
+   `images/` et `caches/` ne doivent pas être accessibles depuis le web. Sous nginx, les `.htaccess` ne
+   sont pas lus, ajoutez :
+
+   ```nginx
+   location ~ ^/(images|caches|migrations)/ { deny all; return 403; }
+   location = /install.php { deny all; return 403; }
+   ```
+
+6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine.
+7. Fonctionnalités retirées : publication sur Twitter (les comptes Twitter enregistrés sont supprimés de la base),
+   génération des panneaux et cartes MapQuest. `generate_panel.php` reste disponible et renvoie la photo de l'observation
+   (pixelisée tant qu'elle n'est pas approuvée) : les applications existantes continuent de fonctionner.
+8. Nouveaux réglages (admin « Configuration ») : limite anti-spam,
+   masquage des observations résolues anciennes, serveur de floutage.
+9. Floutage des photos : le réglage SGBlur devient « Serveur de floutage » (valeur reprise). Un serveur
+   de floutage est fourni (`blur-server/`) : visages et plaques masqués avant publication. Avec Docker :
+   `VIGILO_BLUR_URL=http://blur:8000/blur` dans `.env` et `docker compose --profile blur up -d` ;
+   sinon voir `blur-server/README.md`. Aucun serveur configuré : les photos sont publiées telles qu'envoyées.
+10. Docker : les répertoires `images/` et `caches/` des volumes sont rendus accessibles en écriture à Apache
+   au démarrage (installation neuve avec docker-compose).
+
+### Publier une version (mainteneurs)
+
+1. Mettre à jour `app/includes/version.php` et ajouter `app/migrations/init-X.Y.Z.sql`.
+2. Pousser le tag `vX.Y.Z` : le workflow « Release image » publie la release GitHub avec l'archive de mise à jour
+   (`scripts/build-release.sh`) et l'image Docker.
+3. Signature (recommandé) : `php scripts/release-keygen.php`, clé secrète dans le secret GitHub
+   `VIGILO_RELEASE_SIGNING_KEY`, clé publique dans `app/includes/release_key.php` (publiée avec une version).
+4. Docker Hub : secrets `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (sinon seulement ghcr.io).
+
+## Mise à jour des versions antérieures à 0.0.22
+
 Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:
 
 ```
@@ -40,7 +139,7 @@ $ git checkout vX.X.X
 
 #### Mettre à jour la base de données
 
-Lancer dans l'ordre les fichiers SQL de mysql/init/ correspondant aux versions supérieures à la votre 
+Lancer dans l'ordre les fichiers SQL de app/migrations/ (mysql/init/ avant la 0.0.22) correspondant aux versions supérieures à la votre 
 
 Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
 

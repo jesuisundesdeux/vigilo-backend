@@ -59,7 +59,15 @@ function saveImageOnDisk($method, $filepath, $error_prefix)
 
 function saveImageOnDiskFromBase64($filepath, $error_prefix)
 {
-    $data          = $_POST['imagebin64'];
+    if (isset($_POST['imagebin64'])) {
+        $data = $_POST['imagebin64'];
+    } else {
+        // Also accept a JSON body {"imagebin64": "..."} (#267)
+        $json = json_decode(file_get_contents('php://input'), true);
+        $data = (is_array($json) && isset($json['imagebin64'])) ? $json['imagebin64'] : '';
+    }
+    // Data URLs ("data:image/jpeg;base64,...") are accepted
+    $data          = preg_replace('/^data:[^,]*,/', '', (string) $data);
     $image_content = base64_decode(str_replace(array(
         '-',
         '_',
@@ -96,7 +104,9 @@ function saveImageOnDiskFromStdinOrInput($filepath, $error_prefix)
 
 function pixalize($filepath)
 {
-    $RATIO_PIXELATED = 100;
+    # Blocks of 1/25th of the photo: enough to hide plates and faces
+    # (1/100th let them be read, especially on resized panels)
+    $RATIO_PIXELATED = 25;
 
     $photo = imagecreatefromjpeg($filepath); // issue photo
 
@@ -108,7 +118,7 @@ function pixalize($filepath)
         $pixelate_size = $photo_h / $RATIO_PIXELATED;
     }
     # Then apply pixelating + gaussian filters
-    imagefilter($photo, IMG_FILTER_PIXELATE, $pixelate_size, True);
+    imagefilter($photo, IMG_FILTER_PIXELATE, max(1, intval($pixelate_size)), True);
 
     # Gaussian blur reduces pixel effect on small images
     imagefilter($photo, IMG_FILTER_GAUSSIAN_BLUR);

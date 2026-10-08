@@ -19,8 +19,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/security.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -46,12 +47,22 @@ if (isset($_POST['token']) AND !empty($_POST['token'])) {
         $query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
         # If token exists and the request is from an admin : We consider it as an update
         if (mysqli_num_rows($query_token) == 1) {
-            delete_map_cache($token);
             delete_token_cache($token);
             $result_token = mysqli_fetch_array($query_token);
             $secretid     = $result_token['obs_secretid'];
             $update       = 1;
         }
+    }
+}
+
+# Anti-spam (#139): limited number of new observations per IP (setting vigilo_ratelimit_create, per 10 minutes)
+if (!$update && getrole($key, $acls) != "admin" && getrole($key, $acls) != "moderator") {
+    $ratelimit_query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_ratelimit_create' LIMIT 1");
+    $ratelimit_row   = $ratelimit_query ? mysqli_fetch_array($ratelimit_query) : null;
+    $ratelimit       = $ratelimit_row ? intval($ratelimit_row['config_value']) : 0;
+    if ($ratelimit > 0 && api_rate_limited($db, 'create_issue', $ratelimit, 600)) {
+        header('Retry-After: 600');
+        jsonError($error_prefix, "Too many observations created, please retry later", "RATELIMITED", 429);
     }
 }
 
@@ -97,8 +108,9 @@ if (strlen($time) == 13) {
 
 # Handle optional fields
 if (isset($_POST['comment'])) {
-    $comment = removeEmoji(mysqli_real_escape_string($db, $_POST['comment']));
-    $comment = substr($comment, 0, 50); # Max 50 char
+    # Truncate before escaping: cutting an escaped string can leave a dangling backslash
+    $comment = vigilo_truncate(removeEmoji($_POST['comment']), 50); # Max 50 char
+    $comment = mysqli_real_escape_string($db, $comment);
 } else {
     $comment = Null;
 }

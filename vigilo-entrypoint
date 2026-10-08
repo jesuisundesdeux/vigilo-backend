@@ -2,16 +2,20 @@
 set -e
 
 function log()  {
-  echo $1 > /proc/1/fd/1
+  echo "$1" > /proc/1/fd/1
 }
 function logerr() {
-  echo $1 > /proc/1/fd/2
+  echo "$1" > /proc/1/fd/2
 }
+
+APP_DIR=/var/www/html
+# Keep the password out of the process list
+export MYSQL_PWD="$MYSQL_PASSWORD"
 
 i=0
 
 log "Trying to connect to database ..."
-while ! mysql -e ';' -h $MYSQL_HOST -u$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE > /dev/null 2>&1
+while ! mysql -e ';' -h "$MYSQL_HOST" -u"$MYSQL_USER" "$MYSQL_DATABASE" > /dev/null 2>&1
 do
   i=$((i+1))
   log "Trying to connect to database [${i}/30]"
@@ -24,43 +28,54 @@ do
   sleep 1
 done
 
-DBVER=$(mysql -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version'" -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE 2>/dev/null | tail -1 | tr -d '\n' || true)
-if [ -z $DBVER ]
+# The version comes from the code actually served (it may be mounted over the image)
+if ! STATUS=$(php /usr/local/bin/vigilo-migrate.php --app="$APP_DIR" --status 2> /proc/1/fd/2)
 then
-  DBVER='0.0.0'
-  cp /tmp/install_app/install.php /var/www/html/install.php
-  chown 33:33 /var/www/html/install.php
+  logerr "Unable to read the database version, refusing to start (nothing was changed)"
+  exit 1
+fi
+read -r DBVER APPVER <<< "$STATUS"
+
+log "DB Version ${DBVER}, APP Version ${APPVER}"
+
+if [ "$(printf '%s\n%s\n' "$DBVER" "$APPVER" | sort -V | tail -1)" != "$APPVER" ]
+then
+  logerr "Database (${DBVER}) is newer than the code (${APPVER}): refusing to start an older version"
+  exit 2
 fi
 
-log "DB Version ${DBVER}, APP Version ${VIGILO_VERSION}"
-
-if [ "$DBVER" != "$VIGILO_VERSION" ]
+if [ "$DBVER" == "0.0.0" ]
 then
-  if $AUTOUPDATE || [ "$DBVER" == "0.0.0" ]
+  # Fresh database: create the schema, then let the admin create the first account.
+  # install.php refuses to run once an account exists.
+  log "Empty database, installing ..."
+  php /usr/local/bin/vigilo-migrate.php --app="$APP_DIR" > /proc/1/fd/1
+  cp /tmp/install_app/install.php "$APP_DIR/install.php"
+  chown 33:33 "$APP_DIR/install.php"
+elif [ "$DBVER" != "$APPVER" ]
+then
+  if [ "$AUTOUPDATE" != "false" ]
   then
     log "Upgrading DB ..."
-    cd /tmp/mysql
-    migrateDatabase.py --from $DBVER --to $VIGILO_VERSION --sql-path=/tmp/mysql
-    mysql  -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE < /tmp/mysql/sql_migration.sql
- 
-    DBNEWVER=$(mysql -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version'" -h $MYSQL_HOST -u$MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE | tail -1 | tr -d '\n')
-     if [ "$DBNEWVER" == "$DBVER" ] || [ "$DBNEWVER" != "$VIGILO_VERSION" ]
-    then
-      logerr "DB upgrading problem, please debug manually ..."
-    else
-      log "DB upgraded successfully !"
-    fi
+    # Exit code 2: database newer than the code, the container must not start
+    php /usr/local/bin/vigilo-migrate.php --app="$APP_DIR" > /proc/1/fd/1
+    log "DB upgraded successfully !"
   else
-    log 'Please update your database manually or set variable AUTOUPDATE to true'
+    log "AUTOUPDATE=false: apply the migrations from the admin (Mises à jour) or set AUTOUPDATE to true"
   fi
 fi
-    
+
+# Volumes created by Docker belong to root: Apache (www-data) writes the photos and
+# the caches. Only the directories themselves are changed, never their content.
+for DIR in "$APP_DIR/images" "$APP_DIR/images/resolutions" "$APP_DIR/caches"
+do
+  mkdir -p "$DIR"
+  [ "$(stat -c %u "$DIR")" = "33" ] || chown 33:33 "$DIR"
+done
+
 # first arg is `-f` or `--some-option`
 if [ "${1#-}" != "$1" ]; then
         set -- apache2-foreground "$@"
 fi
 
 exec "$@"
-
-
-

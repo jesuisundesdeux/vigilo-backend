@@ -19,9 +19,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
-require_once("${cwd}/includes/handle.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/handle.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Access-Control-Allow-Origin: *');
@@ -54,6 +54,9 @@ class GetIssues
   protected $cityid = -1;
   protected $authkey = -1;
   protected $returnempty = False;
+  protected $token_filter_distance = 0;
+  protected $db;
+  protected $acls;
 
   function __construct()
   {
@@ -78,7 +81,7 @@ class GetIssues
   public function setFormat($value) : void
   {
     if (!array_key_exists($value, $this->format_list)) {
-      throw new Exception("${value} format not available");
+      throw new Exception("{$value} format not available");
     }
 
     $this->format = $value;
@@ -93,7 +96,7 @@ class GetIssues
   public function setStatus($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
 
     $this->status = intval($value);
@@ -102,7 +105,7 @@ class GetIssues
   public function setTimefilter($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
 
     $this->timefilter = intval($value);
@@ -111,10 +114,10 @@ class GetIssues
   public function setSincefilter($since, $sinceUnit) : void
   {
     if (!is_numeric($since)) {
-      throw new Exception("${since} is not numeric value");
+      throw new Exception("{$since} is not numeric value");
     }
     if (!in_array($sinceUnit, $this->since_unit_list)) {
-      throw new Exception("${sinceUnit} must have one of these values : " . implode(', ', $this->since_unit_list));
+      throw new Exception("{$sinceUnit} must have one of these values : " . implode(', ', $this->since_unit_list));
     }
 
     $this->sincefilter = intval($since);
@@ -145,7 +148,7 @@ class GetIssues
   public function setCount($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
 
     $this->count = intval($value);
@@ -154,7 +157,7 @@ class GetIssues
   public function setOffset($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
 
     $this->offset = intval($value);
@@ -163,7 +166,7 @@ class GetIssues
   public function setApproved($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
   
     if (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator")) {
@@ -184,7 +187,7 @@ class GetIssues
   public function setCityid($value) : void
   {
     if (!is_numeric($value)) {
-      throw new Exception("${value} is not numeric value");
+      throw new Exception("{$value} is not numeric value");
     }
 
     $this->cityid = intval($value);
@@ -193,6 +196,17 @@ class GetIssues
   public function setAuthKey($value) : void
   {
     $this->authkey = mysqli_real_escape_string($this->db, $value);
+  }
+
+  /* Days after which resolved observations leave the public list (#257), 0 = never */
+  public function resolvedHideDays() : int
+  {
+    if (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator")) {
+      return 0;
+    }
+    $query = mysqli_query($this->db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_resolved_hide_days' LIMIT 1");
+    $result = $query ? mysqli_fetch_array($query) : null;
+    return ($result && is_numeric($result['config_value'])) ? max(0, intval($result['config_value'])) : 0;
   }
 
   public function getLimitQuery($count, $offset) : string
@@ -255,6 +269,11 @@ class GetIssues
 
     if ($this->cityid != 0 && $this->cityid != -1) {
       $where .= " AND obs_city = '" . $this->cityid . "'";
+    }
+
+    $hide_days = $this->resolvedHideDays();
+    if ($hide_days > 0) {
+      $where .= " AND NOT (COALESCE(obs_resolutions.resolution_status,0) = 1 AND obs_resolutions.resolution_time > 0 AND obs_resolutions.resolution_time < " . (time() - $hide_days * 86400) . ")";
     }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 

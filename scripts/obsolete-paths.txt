@@ -1,0 +1,6 @@
+# Paths of app/ removed from the code: the admin updater deletes them from the
+# instance after a successful update (classic installs only). One path per line,
+# relative to app/. Instance data (config/config.php, images, caches) is never listed.
+panels
+lib/codebird-php
+admin/inc/twitter.php

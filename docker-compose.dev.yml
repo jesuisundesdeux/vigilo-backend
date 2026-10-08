@@ -1,0 +1,10 @@
+# Development: image built from this repository, code mounted from ./app.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+services:
+  web:
+    build: .
+    image: vigilo-backend:dev
+    volumes:
+      - ./app:/var/www/html
+      - ./config/config.php.docker:/var/www/html/config/config.php

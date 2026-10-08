@@ -2,10 +2,19 @@
 
 $cwd = dirname(__FILE__);
 
-require_once("${cwd}/includes/common.php");
+require_once("{$cwd}/includes/common.php");
 
 function deleteInstallFile() {
   unlink('./install.php');
+}
+
+/* Install only runs on a fresh instance: once an account exists, this file must not
+   be able to create another admin (it used to accept the POST whatever the state) */
+$query_roles = mysqli_query($db, "SELECT COUNT(*) FROM obs_roles");
+if ($query_roles && mysqli_fetch_array($query_roles)[0] != 0) {
+  @deleteInstallFile();
+  http_response_code(403);
+  exit('Compte admin déjà existant. Veuillez supprimer install.php');
 }
 
 if(isset($_POST['password']) && !empty($_POST['password'])) {
@@ -29,6 +38,7 @@ if(isset($_POST['password']) && !empty($_POST['password'])) {
                                       '')");
    deleteInstallFile();
    header('Location: admin/index.php');
+   exit;
  } 
 }
 ?>
