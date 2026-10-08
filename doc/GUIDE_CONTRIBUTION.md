@@ -35,13 +35,15 @@ L'application est installable soit comme une application PHP/MySQL classique soi
 * .env* : fichiers de variables d'environnement chargés par docker
 * docker-compose.yml
 
-Une installation automatisée et des tests unitaires complètent également le modèle sous Docker avec Makefile et Travis
+Les tests (contrat de l'API, fonctionnels, admin, mises à jour, floutage) tournent dans GitHub Actions, voir [tests/README.md](../tests/README.md).
 
 ###### Vigilo-Backend App
 
 
-* *app* contient l'ensemble du code PHP. La version du code (liée à la version figée) est renseignée dans app/includes/common.php avec la variable BACKEND_VERSION
-* *mysql* contient les évolutions mysql necessaires pour les nouvelles versions
+* *app* contient l'ensemble du code PHP. La version du code est renseignée dans `app/includes/version.php` (`BACKEND_VERSION`)
+* *app/migrations* contient les évolutions de la base (`init-X.Y.Z.sql`), appliquées par `scripts/vigilo-migrate.php`
+
+L'organisation détaillée du code et les tests sont décrits dans le [README](../README.md#architecture-du-code).
 
 ##### Tracker
 
