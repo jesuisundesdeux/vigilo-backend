@@ -55,8 +55,10 @@ services:
 
   # Optional: updates the "web" image when asked from the admin (HTTP API),
   # never on its own. Enable with: docker compose --profile watchtower up -d
+  # nickfedor/watchtower is the maintained fork of containrrr/watchtower (archived): the
+  # latter speaks the Docker API 1.25, refused by Docker Engine 29 and later.
   watchtower:
-    image: ${WATCHTOWER_IMAGE:-containrrr/watchtower:1.7.1}
+    image: ${WATCHTOWER_IMAGE:-nickfedor/watchtower:1}
     profiles: ["watchtower"]
     restart: always
     command: --http-api-update --label-enable --cleanup

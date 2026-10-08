@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.24
+
+### Docker
+- Watchtower (mise à jour de l'image depuis l'admin) : image `nickfedor/watchtower`, version maintenue de
+  `containrrr/watchtower`, archivée, qui ne démarre plus avec Docker Engine 29 (`client version 1.25 is too old`).
+  Reprendre le `docker-compose.yml` (ou `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), voir doc/UPGRADE.md.
+- Le bouton de l'admin appelle l'API de Watchtower en POST (seule méthode acceptée par la nouvelle image).
+
 ## 0.0.23
 
 L'API reste compatible avec les applications ; la base est mise à jour automatiquement (migration
