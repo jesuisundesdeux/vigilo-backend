@@ -2,8 +2,9 @@
 
 Les webhooks appellent un service externe à chaque publication d'une observation. Leur fonctionnement (variables,
 échappement, envoi) est décrit dans [FONCTIONNEMENT.md](FONCTIONNEMENT.md#webhooks). Cette page donne des réglages
-prêts à l'emploi pour la page **Webhooks** de l'admin : copier chaque champ, remplacer les valeurs en `MAJUSCULES`,
-puis **Enregistrer et tester**.
+prêts à l'emploi pour la page **Webhooks** de l'admin. Ils sont aussi proposés dans le menu **Modèle** du formulaire,
+qui préremplit les champs : il reste à remplacer les valeurs en `MAJUSCULES`, puis à cliquer sur **Enregistrer et
+tester**.
 
 Rappels :
 

@@ -53,6 +53,8 @@ l'image renvoyée par `generate_panel.php` (voir « Fonctionnalités retirées �
   l'admin ou `approve.php`), appel d'un ou plusieurs endpoints HTTP (POST, PUT, PATCH ou GET).
 - URL, en-têtes et corps personnalisables avec des variables (`{{token}}`, `{{comment}}`, `{{photo_url}}`,
   `{{observation_url}}`, `{{lat}}`…) échappées selon le format (JSON, formulaire, texte).
+- Menu « Modèle » qui préremplit le formulaire : Mastodon, Slack / Mattermost, Discord, Bluesky (relais), ticketing de
+  collectivité (Open311), Redmine, JSON générique ou vide (exemples détaillés dans `doc/WEBHOOKS.md`).
 - Appels en parallèle après la réponse à l'application (5 s au plus, `VIGILO_WEBHOOK_TIMEOUT`), journal des envois,
   bouton de test ; un endpoint en échec n'empêche jamais la publication.
 
