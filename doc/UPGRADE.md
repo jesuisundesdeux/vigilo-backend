@@ -89,7 +89,7 @@ Pour développer avec le code du dépôt :
 
 ### Publier une version (mainteneurs)
 
-Voir le [guide du contributeur](GUIDE_CONTRIBUTION.md#publier-une-version).
+Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).
 
 ## Mise à jour des versions antérieures à 0.0.22
 

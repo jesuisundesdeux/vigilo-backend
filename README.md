@@ -18,7 +18,7 @@ docker compose up -d         # --profile blur : serveur de floutage, --profile w
 ```
 
 Puis ouvrir `https://<instance>/install.php` pour créer le premier administrateur, et `https://<instance>/admin/`.
-Hébergement PHP/MySQL classique : voir [l'installation](doc/INSTALLATION.md#hébergement-classique-mutualisé-serveur-dédié).
+Procédures complètes (Docker, hébergement mutualisé, configuration) : [documentation d'installation](https://vigilo.city/fr/documentation/installation/) sur vigilo.city.
 
 Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-backend) et
 `ghcr.io/jesuisundesdeux/vigilo-backend` (PHP 8.3 ; le code reste compatible PHP 7.3).
@@ -28,11 +28,13 @@ Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-ba
 | Document | Contenu |
 |---|---|
 | [Fonctionnement](doc/FONCTIONNEMENT.md) | Cycle d'une observation, statuts, scopes, rôles, photos, pixelisation et floutage |
-| [Installation](doc/INSTALLATION.md) | Docker ou hébergement classique, mise en route, configuration (réglages, variables d'environnement) |
-| [Administration](doc/ADMINISTRATION.md) | Pages de l'admin, modération, comptes, journal, sécurité |
+| [Installation](https://vigilo.city/fr/documentation/installation/) (vigilo.city) | Docker ou hébergement mutualisé, initialisation |
+| [Configuration](https://vigilo.city/fr/documentation/configuration/) (vigilo.city) | Réglages de l'instance, scopes, villes, référencement |
+| [Administration](https://vigilo.city/fr/documentation/administration/) (vigilo.city) | Panneau d'administration, rôles, modération |
+| [Sauvegarde](https://vigilo.city/fr/documentation/maintenance/sauvegarde/) (vigilo.city) | Données à sauvegarder |
 | [API REST](doc/REST_API.md) | Vue d'ensemble des routes, paramètres et réponses |
-| [Mises à jour](doc/UPGRADE.md) | Mise à jour depuis l'admin ou Docker, passage à la 0.0.22, anciennes versions |
-| [Architecture](doc/ARCHITECTURE.md) | Organisation du code, base de données |
+| [Mises à jour](doc/UPGRADE.md) | Mise à jour depuis l'admin ou Docker, passage à la 0.0.22, anciennes versions (publiée aussi sur vigilo.city) |
+| [Architecture](doc/ARCHITECTURE.md) | Organisation du code, variables d'environnement, base de données |
 | [Guide du contributeur](doc/GUIDE_CONTRIBUTION.md) | Développement, tests, publication d'une version |
 | [Glossaire](doc/GLOSSAIRE.md) | Vocabulaire Vigilo |
 | [Serveur de floutage](blur-server/README.md) | Masquage des visages et plaques d'immatriculation |
