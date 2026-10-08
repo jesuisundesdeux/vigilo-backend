@@ -95,28 +95,14 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
       if (isset($_GET['approveto']) && in_array((string) $_GET['approveto'], array('0', '1', '2'), true)) {
         $approveto = intval($_GET['approveto']);
       }
-      $twitt = (isset($_GET['twitt']) && is_numeric($_GET['twitt'])) ? intval($_GET['twitt']) : 0;
 
       delete_token_cache($token);
       mysqli_query($db, "UPDATE obs_list SET obs_approved='" . $approveto . "' WHERE obs_id='" . $obsid . "'");
       audit_log('observation_approve', $token, array('approved' => $approveto));
       obsadmin_message($messages, 'success', 'Observation <strong>' . h($token) . '</strong> ' . ($approveto == 1 ? 'approuvée' : ($approveto == 2 ? 'désapprouvée' : 'remise à qualifier')));
-
-      // puis fait un twitt
-      if ($approveto == 1 && $twitt == 1) {
-        $r = tweetToken($token);
-        if (is_array($r) && isset($r['success']) && $r['success'] == true) {
-          audit_log('observation_tweet', $token);
-          obsadmin_message($messages, 'success', 'Tweet <strong>' . h($token) . '</strong> parti');
-        }
-        else {
-          obsadmin_message($messages, 'warning', h(is_array($r) && isset($r['error']) ? $r['error'] : 'Erreur lors du tweet'));
-        }
-      }
     }
     elseif ($action == 'cleancache' && in_array($current_role, $actions_acl['cleancache']['access'])) {
       delete_token_cache($token);
-      delete_map_cache($token);
       audit_log('observation_cleancache', $token);
       obsadmin_message($messages, 'success', 'Cache de l\'observation <strong>' . h($token) . '</strong> effacé');
     }
@@ -609,7 +595,8 @@ foreach ($observations as $result_obs) {
   $obsinresolution_query = mysqli_query($db, "SELECT restok_observationid FROM obs_resolutions_tokens WHERE restok_observationid='" . $obs_id . "' LIMIT 1");
   $in_resolution = ($obsinresolution_query && mysqli_num_rows($obsinresolution_query) > 0);
 
-  $panel_base = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/generate_panel.php';
+  // Photos through the admin: never pixelated for moderators
+  $panel_base = 'photo.php';
   $lat = (float) $result_obs['obs_coordinates_lat'];
   $lon = (float) $result_obs['obs_coordinates_lon'];
   $osm_url = 'https://www.openstreetmap.org/?mlat=' . $lat . '&mlon=' . $lon . '#map=16/' . $lat . '/' . $lon . '&layers=N';
@@ -747,7 +734,6 @@ foreach ($observations as $result_obs) {
           if ($can_act && in_array($current_role, $actions_acl['approve']['access'])) { ?>
             <div class="btn-group btn-group-sm" role="group" aria-label="Approuver">
               <a class="btn btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1' . csrf_query()) ?>"><i class="bi bi-check-lg"></i> Approuver</a>
-              <a class="btn btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1&twitt=1' . csrf_query()) ?>" title="Approuver et tweeter"><i class="bi bi-twitter-x"></i><span class="visually-hidden">Approuver et tweeter</span></a>
             </div>
             <a class="btn btn-sm btn-outline-warning" href="<?= h($actionurl . '&action=approve&approveto=2' . csrf_query()) ?>"><i class="bi bi-x-lg"></i> Désapprouver</a>
           <?php }

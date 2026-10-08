@@ -10,13 +10,13 @@ UPDATE obs_config SET config_value = '1' WHERE config_param = 'vigilo_shownonapp
 INSERT INTO obs_scopes (scope_id, scope_name, scope_display_name, scope_department,
   scope_coordinate_lat_min, scope_coordinate_lat_max, scope_coordinate_lon_min, scope_coordinate_lon_max,
   scope_map_center_string, scope_map_zoom, scope_contact_email, scope_sharing_content_text,
-  scope_twitter, scope_twitteraccountid, scope_twittercontent, scope_umap_url, scope_nominatim_urlbase)
+  scope_twitter, scope_umap_url, scope_nominatim_urlbase)
 VALUES
   (1, '99_testville', 'Testville', 99, '43.5', '43.7', '3.8', '4.0', '43.6, 3.9', 14,
-   'contact@testville.example', 'Partagez [URL]', 'testville', 0, '', 'https://umap.example/testville',
+   'contact@testville.example', 'Partagez [URL]', 'testville', 'https://umap.example/testville',
    'https://nominatim.openstreetmap.org'),
   (2, '98_autre', 'Autre', 98, '44.0', '44.2', '4.0', '4.2', '44.1, 4.1', 13,
-   '', '', '', 0, '', '', 'https://nominatim.openstreetmap.org');
+   '', '', '', '', 'https://nominatim.openstreetmap.org');
 
 INSERT INTO obs_cities (city_id, city_scope, city_name, city_postcode, city_area, city_population, city_website) VALUES
   (1, 1, 'Testville', 99000, 12.5, 25000, 'https://testville.example'),

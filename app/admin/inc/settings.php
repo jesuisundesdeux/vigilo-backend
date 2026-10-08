@@ -29,24 +29,20 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 /*
  * Editable settings. Only these parameters can be written from the UI
  * (vigilo_db_version, in particular, is never editable).
- * type: text, urlbase, proto, language, timezone, charset, bool, int, panel,
- *       provider, tiles, url, secret
+ * type: text, urlbase, proto, language, timezone, charset, bool, int, url
  */
-$default_tiles_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 $settings_cards = array(
   'instance' => array('title' => 'Instance', 'icon' => 'house-gear'),
   'publication' => array('title' => 'Publication', 'icon' => 'megaphone'),
-  'map' => array('title' => 'Carte', 'icon' => 'map'),
   'photos' => array('title' => 'Photos', 'icon' => 'image'),
   'antispam' => array('title' => 'Anti-spam', 'icon' => 'shield-check'),
-  'twitter' => array('title' => 'Twitter', 'icon' => 'twitter-x'),
 );
 
 $settings_fields = array(
   'vigilo_name' => array(
     'card' => 'instance', 'type' => 'text', 'label' => 'Nom de l\'instance', 'required' => true, 'default' => '',
-    'help' => 'Nom affiché dans l\'application, l\'administration et sur les panneaux.'),
+    'help' => 'Nom affiché dans l\'application et l\'administration.'),
   'vigilo_urlbase' => array(
     'card' => 'instance', 'type' => 'urlbase', 'label' => 'URL de base', 'required' => true, 'default' => '',
     'help' => 'Nom de domaine (et chemin éventuel) du backend, sans protocole. Exemple : vigilo.example.org'),
@@ -69,19 +65,7 @@ $settings_fields = array(
   'vigilo_resolved_hide_days' => array(
     'card' => 'publication', 'type' => 'int', 'label' => 'Masquer les observations résolues depuis plus de (jours)', 'default' => '0', 'suffix' => 'jours',
     'help' => 'Les observations résolues depuis plus de N jours ne sont plus listées publiquement. 0 = jamais masquées.'),
-  'vigilo_panel' => array(
-    'card' => 'publication', 'type' => 'panel', 'label' => 'Panneau', 'required' => true, 'default' => '',
-    'help' => 'Modèle graphique utilisé pour générer les images des observations (dossier panels/).'),
 
-  'vigilo_map_provider' => array(
-    'card' => 'map', 'type' => 'provider', 'label' => 'Fournisseur de carte', 'default' => 'auto',
-    'help' => 'Automatique : MapQuest si une clé est renseignée, OpenStreetMap sinon.'),
-  'vigilo_map_tiles_url' => array(
-    'card' => 'map', 'type' => 'tiles', 'label' => 'URL des tuiles OpenStreetMap', 'default' => $default_tiles_url,
-    'help' => 'Modèle d\'URL des tuiles, avec {z}, {x} et {y}. Laisser vide pour le serveur OpenStreetMap par défaut ; respectez sa politique d\'utilisation.'),
-  'vigilo_mapquest_api' => array(
-    'card' => 'map', 'type' => 'secret', 'label' => 'Clé API MapQuest', 'default' => '',
-    'help' => 'Nécessaire uniquement pour le fournisseur MapQuest.'),
 
   'sgblur_url' => array(
     'card' => 'photos', 'type' => 'url', 'label' => 'URL du service SGBlur', 'default' => '',
@@ -92,22 +76,8 @@ $settings_fields = array(
     'card' => 'antispam', 'type' => 'int', 'label' => 'Observations créées max. par IP et par 10 minutes', 'default' => '60',
     'help' => 'Au-delà, les créations depuis la même adresse IP sont refusées temporairement. 0 = pas de limite.'),
 
-  'twitter_expiry_time' => array(
-    'card' => 'twitter', 'type' => 'int', 'label' => 'Délai max. pour tweeter une observation', 'default' => '0', 'suffix' => 'heures',
-    'help' => 'Nombre d\'heures maximum après sa création pendant lequel une observation peut encore être tweetée.'),
 );
 
-/* Available panels (directories in ../panels) */
-$available_panels = array();
-if (is_dir('../panels') && ($panels_handle = opendir('../panels'))) {
-  while (false !== ($entry = readdir($panels_handle))) {
-    if ($entry !== '.' && $entry !== '..' && $entry[0] !== '.' && is_dir('../panels/' . $entry)) {
-      $available_panels[] = $entry;
-    }
-  }
-  closedir($panels_handle);
-  sort($available_panels);
-}
 
 $timezones = timezone_identifiers_list();
 
@@ -173,11 +143,6 @@ if (isset($_POST['settings_save'])) {
           $errors[$param] = 'Valeur attendue : http ou https.';
         }
         break;
-      case 'provider':
-        if (!in_array($value, array('auto', 'osm', 'mapquest'), true)) {
-          $errors[$param] = 'Valeur attendue : auto, osm ou mapquest.';
-        }
-        break;
       case 'urlbase':
         $value = rtrim($value, '/');
         $values[$param] = $value;
@@ -202,40 +167,15 @@ if (isset($_POST['settings_save'])) {
           $errors[$param] = 'Jeu de caractères invalide.';
         }
         break;
-      case 'panel':
-        if (!in_array($value, $available_panels, true)) {
-          $errors[$param] = 'Panneau inconnu.';
-        }
-        break;
       case 'url':
         if ($value !== '' && !preg_match('#^https?://[^\s"\'<>]+$#i', $value)) {
           $errors[$param] = 'L\'URL doit commencer par http:// ou https:// (ou être vide).';
-        }
-        break;
-      case 'tiles':
-        if ($value === '') {
-          $value = $default_tiles_url;
-          $values[$param] = $value;
-        }
-        if (!preg_match('#^https?://[^\s"\'<>]+$#i', $value)) {
-          $errors[$param] = 'L\'URL doit commencer par http:// ou https://.';
-        } elseif (strpos($value, '{z}') === false || strpos($value, '{x}') === false || strpos($value, '{y}') === false) {
-          $errors[$param] = 'L\'URL doit contenir {z}, {x} et {y}.';
-        }
-        break;
-      case 'secret':
-        if (preg_match('/\s/', $value)) {
-          $errors[$param] = 'La clé ne doit pas contenir d\'espace.';
         }
         break;
       default:
         // Free text
         break;
     }
-  }
-
-  if (empty($errors) && $values['vigilo_map_provider'] === 'mapquest' && $values['vigilo_mapquest_api'] === '') {
-    $errors['vigilo_mapquest_api'] = 'Une clé MapQuest est nécessaire avec le fournisseur MapQuest.';
   }
 
   if (empty($errors)) {
@@ -282,7 +222,7 @@ if (!empty($errors)) {
 }
 
 /* Rendering of one field */
-$render_field = function ($param, $field, $value, $error) use ($available_panels, $timezones) {
+$render_field = function ($param, $field, $value, $error) use ($timezones) {
   $id = 'cfg_' . $param;
   $name = 'cfg[' . $param . ']';
   $invalid = ($error !== null) ? ' is-invalid' : '';
@@ -306,13 +246,6 @@ $render_field = function ($param, $field, $value, $error) use ($available_panels
         }
         $control .= '</select>';
         break;
-      case 'provider':
-        $control = '<select class="form-select' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" aria-describedby="' . h($help_id) . '">';
-        foreach (array('auto' => 'Automatique', 'osm' => 'OpenStreetMap', 'mapquest' => 'MapQuest') as $k => $label) {
-          $control .= '<option value="' . h($k) . '"' . ($value === $k ? ' selected' : '') . '>' . h($label) . '</option>';
-        }
-        $control .= '</select>';
-        break;
       case 'timezone':
         $control = '<select class="form-select' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" aria-describedby="' . h($help_id) . '"' . $required . '>';
         if (!in_array($value, $timezones, true)) {
@@ -323,22 +256,6 @@ $render_field = function ($param, $field, $value, $error) use ($available_panels
         }
         $control .= '</select>';
         break;
-      case 'panel':
-        $control = '<select class="form-select' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" aria-describedby="' . h($help_id) . '"' . $required . '>';
-        if (!in_array($value, $available_panels, true)) {
-          $control .= '<option value="' . h($value) . '" selected>' . h($value === '' ? '— choisir —' : $value . ' (introuvable)') . '</option>';
-        }
-        foreach ($available_panels as $panel) {
-          $control .= '<option value="' . h($panel) . '"' . ($value === $panel ? ' selected' : '') . '>' . h($panel) . '</option>';
-        }
-        $control .= '</select>';
-        break;
-      case 'secret':
-        $control = '<div class="input-group">';
-        $control .= '<input type="password" class="form-control font-monospace' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" autocomplete="off" spellcheck="false" aria-describedby="' . h($help_id) . '">';
-        $control .= '<button class="btn btn-outline-secondary" type="button" data-secret-toggle="' . h($id) . '" title="Afficher / masquer" aria-label="Afficher / masquer"><i class="bi bi-eye"></i></button>';
-        $control .= '</div>';
-        break;
       case 'int':
         $input = '<input type="number" min="0" step="1" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" aria-describedby="' . h($help_id) . '" required>';
         if (!empty($field['suffix'])) {
@@ -348,7 +265,6 @@ $render_field = function ($param, $field, $value, $error) use ($available_panels
         }
         break;
       case 'url':
-      case 'tiles':
         $control = '<input type="url" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" placeholder="https://" aria-describedby="' . h($help_id) . '">';
         break;
       default:
@@ -383,9 +299,6 @@ foreach ($settings_cards as $card_key => $card) {
         <div class="card-header fw-semibold"><i class="bi bi-<?= h($card['icon']) ?> me-1"></i> <?= h($card['title']) ?></div>
         <div class="card-body">
 <?php
-  if ($card_key === 'twitter') {
-    echo '<p class="small text-body-secondary">L\'API Twitter/X a changé : la publication automatique peut ne plus fonctionner.</p>';
-  }
   foreach ($settings_fields as $param => $field) {
     if ($field['card'] !== $card_key) {
       continue;

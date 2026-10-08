@@ -279,7 +279,8 @@ def main():
         if name in expected:
             want = dict(want or {})
             want.update(expected[name]['now'])
-            want = {k: v for k, v in want.items() if v is not None}
+            # "__removed__": the key does not exist anymore in the response
+            want = {k: v for k, v in want.items() if v != '__removed__'}
         if got != want:
             failures += 1
             print('FAIL %s' % name)

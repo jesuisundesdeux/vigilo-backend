@@ -117,7 +117,6 @@ function deleteObs($obsid)
     
     if ($token) {
         delete_token_cache($token);
-        delete_map_cache($token);
     }
     
     $obsinresolution_query = mysqli_query($db, "SELECT restok_resolutionid FROM obs_resolutions_tokens WHERE restok_observationid='" . $obsid . "'");

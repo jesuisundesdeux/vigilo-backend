@@ -56,7 +56,6 @@ if (mysqli_num_rows($checktoken_query) == 1) {
     mysqli_query($db, "DELETE FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
     unlink($images_path . basename($token) . '.jpg');
     delete_token_cache($token);
-    delete_map_cache($token);
 } else {
     jsonError($error_prefix, "Token : " . $token . " and/or secretid : " . $secretid . " do not exist.", "TOKENNOTPROVIDED", 400);
 }

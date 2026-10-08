@@ -19,6 +19,7 @@ import html
 import http.cookiejar
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -82,7 +83,7 @@ def main():
     check(url.endswith('index.php'), 'admin login redirects to the admin')
     clean('dashboard', status, page)
 
-    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'twitter', 'settings', 'audit', 'update']
+    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'settings', 'audit', 'update']
     for name in pages:
         status, _, page = admin.request('index.php?page=' + name)
         clean('page ' + name, status, page)
@@ -97,6 +98,18 @@ def main():
     for query in ['resolved=1', 'resolved=2', 'resolved=3', 'resolved=4']:
         status, _, page = admin.request('index.php?page=resolutions&' + query)
         clean('resolutions ' + query, status, page)
+
+    # Photos in the admin: never pixelated, only with a session
+    try:
+        resp = admin.opener.open(admin.base + 'photo.php?token=TOKA0002&s=200', timeout=30)
+        check(resp.status == 200 and resp.headers.get('Content-Type') == 'image/jpeg', 'admin photo of a pending observation')
+    except urllib.error.HTTPError as e:
+        check(False, 'admin photo of a pending observation (HTTP %s)' % e.code)
+    try:
+        urllib.request.urlopen(admin.base + 'photo.php?token=TOKA0002', timeout=30)
+        check(False, 'admin photo refused without session')
+    except urllib.error.HTTPError as e:
+        check(e.code == 403, 'admin photo refused without session')
 
     # CSRF: an action without token is ignored
     status, _, page = admin.request('index.php?page=observations&approved=0&action=approve&approveto=1&token=TOKA0002&obsid=2')
@@ -147,7 +160,7 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
-    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'twitter']:
+    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
     status, _, page = staff.request('index.php?page=observations&approved=1')

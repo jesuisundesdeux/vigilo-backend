@@ -18,6 +18,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 ini_set('memory_limit', '256M');
 
+/*
+ * Image of an observation. This endpoint used to build a "panel" (photo, map, texts);
+ * it now serves the photo itself, with the same parameters and the same rules:
+ * pixelated until a moderator approves it, except for its author (secretid) and for
+ * admins/moderators (key). "s" is the requested width (max 1024).
+ */
 
 $error_prefix = 'GENERATE_PANEL';
 $cwd          = dirname(__FILE__);
@@ -31,24 +37,10 @@ require_once("$cwd/includes/functions.php");
 require_once("$cwd/includes/images.php");
 require_once("$cwd/includes/handle.php");
 
-
-$query      = mysqli_query($db, "SELECT * FROM obs_config
-                            WHERE config_param='vigilo_panel'
-                            LIMIT 1");
-$result     = mysqli_fetch_array($query);
-$panel_path = $result['config_value'];
-
-if (file_exists('panels/' . $panel_path . '/panel.php')) {
-    require_once('panels/' . $panel_path . '/panel.php');
-} else {
-    die('Panel not exists');
-}
-
-$caches_path     = "$cwd" . '/' . $config['DATA_PATH'] . "caches/";
-$images_path     = "$cwd" . '/' . $config['DATA_PATH'] . "images/";
-$maps_path       = "$cwd" . '/' . $config['DATA_PATH'] . "maps/";
-$MAX_IMG_SIZE    = 1024; // For limit attack
-$resize_width    = $MAX_IMG_SIZE; // default width
+$caches_path  = "$cwd" . '/' . $config['DATA_PATH'] . "caches/";
+$images_path  = "$cwd" . '/' . $config['DATA_PATH'] . "images/";
+$MAX_IMG_SIZE = 1024; // For limit attack
+$resize_width = $MAX_IMG_SIZE; // default width
 
 if (isset($_GET['key'])) {
     $key = $_GET['key'];
@@ -74,9 +66,8 @@ if (isset($_GET["s"]) && is_numeric($_GET["s"]) && intval($_GET["s"]) > 0 && int
 }
 
 # The cache only holds the public rendering (pixelated until approved).
-# "_p2" prefix: ignore caches written by older versions, which could hold
-# a non pixelated rendering generated for an admin or the author.
-$img_filename = $caches_path . $token . '_p2_w' . $resize_width . '.jpg';
+# "_p3" prefix: ignore the panels cached by older versions.
+$img_filename = $caches_path . $token . '_p3_w' . $resize_width . '.jpg';
 
 $role       = getrole($key, $acls);
 $privileged = ($role == "admin" || $role == "moderator");
@@ -88,77 +79,42 @@ if (!$privileged && $secretid === Null && file_exists($img_filename)) {
 }
 
 # Get issue information
-$query = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token = '$token' LIMIT 1");
+$query = mysqli_query($db, "SELECT obs_token, obs_approved, obs_secretid FROM obs_list WHERE obs_token = '$token' LIMIT 1");
 
 if (mysqli_num_rows($query) != 1) {
     jsonError($error_prefix, "Token : " . $token . " not found.", "TOKENNOTFOUND", 404);
 }
 
-$result            = mysqli_fetch_array($query);
-$coordinates_lat   = $result['obs_coordinates_lat'];
-$coordinates_lon   = $result['obs_coordinates_lon'];
-$street_name       = $result['obs_address_string'];
-$comment           = $result['obs_comment'];
-$categorie_id      = $result['obs_categorie'];
-$resolution_status = getResolutionStatus($result['obs_id']);
-$categorie_string  = getCategorieName($categorie_id);
+$result        = mysqli_fetch_array($query);
+$approved      = $result['obs_approved'];
+$AdminOrAuthor = ($privileged || ($secretid !== Null && $secretid === $result['obs_secretid']));
 
-if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
-    $cityquery  = mysqli_query($db, "SELECT city_name FROM obs_cities WHERE city_id='" . $result['obs_city'] . "' LIMIT 1");
-    $cityresult = mysqli_fetch_array($cityquery);
-    $street_name .= ', ' . $cityresult['city_name'];
-} elseif (!empty($result['obs_cityname'])) {
-    $street_name .= ', ' . $result['obs_cityname'];
+$filepath = $images_path . basename($token) . '.jpg';
+$found    = file_exists($filepath);
+if (!$found) {
+    $filepath = "$cwd/style/image_404.jpg";
 }
 
-if (!isset($categorie_string)) {
-    jsonError($error_prefix, "unknown categorie_id: ' . $categorie_id", "UNKNOWCATEGORIE", 500);
-}
-
-$time = $result['obs_time'];
-$date = date('d/m/Y H:i', $time);
-
-$approved = $result['obs_approved'];
-if ($privileged || ($secretid !== Null && $secretid === $result['obs_secretid'])) {
-    $AdminOrAuthor = True;
+# Photo is pixelated until approved by a moderator, whatever the requested size
+if ($found && $approved != 1 && !$AdminOrAuthor) {
+    $image = pixalize($filepath);
 } else {
-    $AdminOrAuthor = False;
+    $image = @imagecreatefromjpeg($filepath);
 }
 
-$filepath = $images_path . $token . '.jpg';
-
-if (!file_exists($filepath)) {
-  $filepath = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'image_404.jpg']); 
+if (!$image) {
+    jsonError($error_prefix, "Image for : " . $token . " can not be read.", "IMAGENOTREADABLE", 500);
 }
 
-# Image is pixelated until approved by a moderator, whatever the requested size
-if ($approved != 1 && !$AdminOrAuthor) {
-    $photo = pixalize($filepath);
-} else {
-    $photo = imagecreatefromjpeg($filepath); // issue photo
-}
-
-$map_file_path = $maps_path . $token . '_zoom.jpg';
-$res = GenerateMapForToken($token, $map_file_path);
-if (!$res) {
-    // Use default place holder picture instead of crashing
-    $map_file_path = implode(DIRECTORY_SEPARATOR, [$cwd, 'panels', $panel_path, 'panel_components', 'map_error.jpeg']);
-}
-
-$map = imagecreatefromjpeg($map_file_path);
-
-if (!$map) {
-    jsonError($error_prefix, "Map for : " . $token . " can not be created.", "MAPNOTCREATED", 500);
-}
-
-$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status);
-
-if ($resize_width != $MAX_IMG_SIZE) {
-    $image = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
+if (imagesx($image) > $resize_width || imagesy($image) > $MAX_IMG_SIZE) {
+    $resized = resizeImage($image, $resize_width, $MAX_IMG_SIZE);
+    if ($resized !== false) {
+        $image = $resized;
+    }
 }
 
 # Never cache a rendering made for an admin or the author: it may not be pixelated
-if (!$AdminOrAuthor) {
-    imagejpeg($image, $img_filename);
+if (!$AdminOrAuthor && $found) {
+    imagejpeg($image, $img_filename, 90);
 }
-imagejpeg($image);
+imagejpeg($image, null, 90);

@@ -55,9 +55,21 @@ CREATE TABLE IF NOT EXISTS `obs_notes` (
 INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_ratelimit_create','60');
 -- Hide observations resolved more than N days ago from the public list (0: never) (#257)
 INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_resolved_hide_days','0');
--- Map of the panels: osm (no API key) or mapquest (#278)
-INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_map_provider','auto');
--- Tile server used for the OpenStreetMap panels
-INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_map_tiles_url','https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+-- Twitter, panels and MapQuest are removed: their settings and the Twitter accounts
+-- (API secrets) are deleted. obs_scopes.scope_twitter stays, it is still returned by
+-- get_scope.php for the applications.
+DROP TABLE IF EXISTS `obs_twitteraccounts`;
+-- (DROP COLUMN IF EXISTS does not exist in MySQL: conditional statement)
+SET @vigilo_sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `obs_scopes` DROP COLUMN `scope_twitteraccountid`', 'SELECT 1') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'obs_scopes' AND COLUMN_NAME = 'scope_twitteraccountid');
+PREPARE vigilo_stmt FROM @vigilo_sql;
+EXECUTE vigilo_stmt;
+DEALLOCATE PREPARE vigilo_stmt;
+-- (DROP COLUMN IF EXISTS does not exist in MySQL: conditional statement)
+SET @vigilo_sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `obs_scopes` DROP COLUMN `scope_twittercontent`', 'SELECT 1') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'obs_scopes' AND COLUMN_NAME = 'scope_twittercontent');
+PREPARE vigilo_stmt FROM @vigilo_sql;
+EXECUTE vigilo_stmt;
+DEALLOCATE PREPARE vigilo_stmt;
+DELETE FROM obs_config WHERE config_param IN ('twitter_expiry_time', 'vigilo_mapquest_api', 'vigilo_panel', 'vigilo_map_provider', 'vigilo_map_tiles_url');
 
 UPDATE `obs_config` SET `config_value` = '0.0.22' WHERE `obs_config`.`config_param` = 'vigilo_db_version';

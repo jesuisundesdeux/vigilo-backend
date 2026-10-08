@@ -12,7 +12,7 @@ Présentation API Vigilo
        - [Récupération catégories](#récupération-catégories)
        - [Récupération informations scope](#récupération-informations-scope)
      - Observations
-       - [Récupération panel](#récupération-panel)
+       - [Récupération image de l'observation (ex-panel)](#récupération-panel)
        - [Récupération liste observations](#récupération-liste-observations)
        - [Récupération photo originale](#récupération-photo-originale)
    - Ajout/modifications informations
@@ -22,7 +22,6 @@ Présentation API Vigilo
        - [Création observation](#création-observation)
        - [Suppression observation](#suppression-observation)
        - [Changer status observation](#changer-status-observation)
-       - [Obtenir carte en cache](#obtenir-carte-en-cache)
  - Données
    - [Catégories](#catégories)
    - [Observations](#observations)
@@ -43,7 +42,7 @@ ___
 
 - [Création observation](#création-observation) : Création de l'entrée et récupération des informations d'identification
 - [Ajout d'une image à l'observation](#ajout-dune-image-à-lobservation) : Ajout de l'image 
-- [Récupération panel](#récupération-panel) : Génération du panel
+- [Récupération panel](#récupération-panel) : Image de l'observation
 
 ## Méthodes 
 
@@ -178,6 +177,10 @@ Version backend >= 0.0.1
 | URL | int | s | | Largeur de l'image | >= 0.0.1 |
 | URL | str | key | | Clé d'admin pour visualisation non pixelisée | >= 0.0.1 |
 | URL | str | secretid | | Clé secret de l'observation pour visualisation non pixelisée | >= 0.0.1 |
+
+Depuis la 0.0.22, le « panel » (photo, carte, textes) n'est plus généré : la route renvoie la **photo de
+l'observation**, pixelisée tant qu'elle n'est pas approuvée (sauf avec `secretid` ou une clé admin/modérateur),
+à la largeur demandée (`s`, 1024 au maximum). Mêmes paramètres, mêmes codes d'erreur, toujours en `image/jpeg`.
 
 ###### Retour
 
@@ -493,17 +496,6 @@ JSON : Retourne les informations d'identification de l'observation
 
 ___
 
-##### Obtenir carte en cache
-
-###### Compatibilité
-
-Version backend >= 0.0.1
-
-######  Requête
-
-    GET /maps/{TOKEN}_zoom.jpg
-
-___
 
 
 ## Données
@@ -547,7 +539,7 @@ Les catégories sont disponibles sur toutes les instance sur l'adresse https://v
 | str | map_center_string | Latitude + "," + Longitude du centre de la carte qui doit être affichée | >= 0.0.5 |
 | int | map_zoom | Zoom de la carte à afficher | >= 0.0.5 |
 | str | contact_email | Adresse mail de contact du scope  | >= 0.0.5 |
-| str | tweet_content | ontenu du tweet qui mis par défaut via le composant de partage de l'application | >= 0.0.5 |
+| str | tweet_content | Texte proposé par défaut par le composant de partage de l'application | >= 0.0.5 |
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |
 | str | nominatim_urlbase | URL base du service nominatim | >= 0.0.14 |
 | str | backend_version | Version du backend| >= 0.0.5 |

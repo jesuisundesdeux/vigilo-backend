@@ -30,7 +30,6 @@ services:
       - db
     volumes:
       - ${VOLUME_PATH}/files/caches:/var/www/html/caches
-      - ${VOLUME_PATH}/files/maps:/var/www/html/maps
       - ${VOLUME_PATH}/files/images:/var/www/html/images
       - ${VOLUME_PATH}/logs/apache2/var_log_apache2:/var/log/apache2
     environment:

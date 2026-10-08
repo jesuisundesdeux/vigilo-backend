@@ -72,7 +72,7 @@ if (file_exists($filepath . $token . '.jpg')) {
   $photo_path = $filepath . $token . '.jpg';
 }
 else {
-  $photo_path = 'panels/jesuisundesdeux/panel_components/image_404.jpg'; 
+  $photo_path = 'style/image_404.jpg';
 }
 
 if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {

@@ -2,15 +2,63 @@
   "delete_bad_secret": {
     "why": "delete.php used $config before loading it: on servers that display PHP notices, the JSON was prefixed with an HTML notice. The response is now plain JSON (same status and content).",
     "now": {
-      "body": {"error": {"code": "TOKENNOTPROVIDED", "message": "Token : TOKA0008 and/or secretid : WRONG do not exist.", "status": 400}},
-      "body_text": null
+      "body": {
+        "error": {
+          "code": "TOKENNOTPROVIDED",
+          "message": "Token : TOKA0008 and/or secretid : WRONG do not exist.",
+          "status": 400
+        }
+      },
+      "body_text": "__removed__"
     }
   },
   "delete_ok": {
     "why": "Same as delete_bad_secret: plain JSON without the PHP notice.",
     "now": {
-      "body": {"status": 0},
-      "body_text": null
+      "body": {
+        "status": 0
+      },
+      "body_text": "__removed__"
+    }
+  },
+  "panel_approved": {
+    "why": "The panel (photo + map + texts) is removed: generate_panel.php now serves the photo itself, pixelated until approved, at the requested width. Same status, content type and headers; only the image size changes.",
+    "now": {
+      "body": {
+        "height": 600,
+        "image": "jpeg",
+        "width": 800
+      }
+    }
+  },
+  "panel_approved_small": {
+    "why": "The panel (photo + map + texts) is removed: generate_panel.php now serves the photo itself, pixelated until approved, at the requested width. Same status, content type and headers; only the image size changes.",
+    "now": {
+      "body": {
+        "height": 225,
+        "image": "jpeg",
+        "width": 300
+      }
+    }
+  },
+  "panel_pending": {
+    "why": "The panel (photo + map + texts) is removed: generate_panel.php now serves the photo itself, pixelated until approved, at the requested width. Same status, content type and headers; only the image size changes.",
+    "now": {
+      "body": {
+        "height": 600,
+        "image": "jpeg",
+        "width": 800
+      }
+    }
+  },
+  "panel_new": {
+    "why": "The panel (photo + map + texts) is removed: generate_panel.php now serves the photo itself, pixelated until approved, at the requested width. Same status, content type and headers; only the image size changes.",
+    "now": {
+      "body": {
+        "height": 600,
+        "image": "jpeg",
+        "width": 800
+      }
     }
   }
 }

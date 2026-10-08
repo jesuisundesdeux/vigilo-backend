@@ -469,7 +469,7 @@ function vigilo_security_checks()
             curl_close($ch);
             if ($code == 200) {
                 $checks[] = array('danger', "Le répertoire $dir/ est accessible depuis le web",
-                    "Les photos originales (non modérées, non floutées) peuvent être téléchargées directement. Sous nginx ajoutez : location ~ ^/(images|caches|maps/tiles)/ { deny all; return 403; } — sous Apache vérifiez que AllowOverride autorise les fichiers .htaccess.");
+                    "Les photos originales (non modérées, non floutées) peuvent être téléchargées directement. Sous nginx ajoutez : location ~ ^/(images|caches)/ { deny all; return 403; } — sous Apache vérifiez que AllowOverride autorise les fichiers .htaccess.");
             } elseif ($code == 403 || $code == 404) {
                 $checks[] = array('success', "Le répertoire $dir/ n'est pas accessible depuis le web", '');
             }

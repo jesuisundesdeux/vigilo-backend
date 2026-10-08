@@ -351,7 +351,7 @@ while ($query_resolution && $result_resolution = mysqli_fetch_array($query_resol
     $currentstatus  = intval($result_resolution['resolution_status']);
     $date           = $res_time > 0 ? date('d/m/Y', $res_time) : '';
     $heure          = $res_time > 0 ? date('H:i', $res_time) : '';
-    $photo_url      = $config['HTTP_PROTOCOL'] . '://' . $config['URLBASE'] . '/get_photo.php?type=resolution&token=' . urlencode($res_token);
+    $photo_url      = 'photo.php?type=resolution&token=' . urlencode($res_token);
     $form_id        = 'resolution-form-' . $res_id;
     $action_url     = $tab_url . '&resolutionid=' . $res_id . $urlsuffix;
 ?>

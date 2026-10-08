@@ -60,17 +60,6 @@ $query = mysqli_query($db, "UPDATE obs_list set obs_approved=" . $approved . " W
 /* Now remove the cache for this observation to remove blurring or add */
 delete_token_cache($token);
 
-if ($approved == 1) {
-	// on twitte l'observation
-	$r = tweetToken($token ) ;
-	if ( $r['success'] == true ) {
-		$i = 0 ; // do nothing
-	}
-	else {
-		jsonError($error_prefix, $r['error'] , "TWITTERERROR", 200, "NOTICE");
-	}
-}
-
 echo json_encode(array(
     'status' => '0'
 ));

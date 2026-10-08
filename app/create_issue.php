@@ -47,7 +47,6 @@ if (isset($_POST['token']) AND !empty($_POST['token'])) {
         $query_token = mysqli_query($db, "SELECT * FROM obs_list WHERE obs_token='" . $token . "' LIMIT 1");
         # If token exists and the request is from an admin : We consider it as an update
         if (mysqli_num_rows($query_token) == 1) {
-            delete_map_cache($token);
             delete_token_cache($token);
             $result_token = mysqli_fetch_array($query_token);
             $secretid     = $result_token['obs_secretid'];

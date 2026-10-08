@@ -24,14 +24,6 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 $saas_mode = isset($config['SAAS_MODE']) && $config['SAAS_MODE'];
 $messages  = array();
 
-/* Twitter accounts that can be selected */
-$twitterlist   = array(0 => "-- Pas de compte Twitter --");
-$query_twitter = mysqli_query($db, "SELECT ta_id FROM obs_twitteraccounts ORDER BY ta_id");
-while ($query_twitter && ($result_twitter = mysqli_fetch_array($query_twitter))) {
-    $twitter_id = intval($result_twitter['ta_id']);
-    $twitterlist[$twitter_id] = '#' . $twitter_id;
-}
-
 /*
  * Editable columns (allowlist): type and maximum length.
  * The POST keys are never used as SQL identifiers.
@@ -48,9 +40,6 @@ $scope_fields = array(
     'scope_map_zoom'             => array('type' => 'zoom'),
     'scope_contact_email'        => array('type' => 'string', 'max' => 255),
     'scope_sharing_content_text' => array('type' => 'string', 'max' => 255),
-    'scope_twitter'              => array('type' => 'string', 'max' => 20),
-    'scope_twitteraccountid'     => array('type' => 'twitter'),
-    'scope_twittercontent'       => array('type' => 'string', 'max' => 500),
     'scope_umap_url'             => array('type' => 'string', 'max' => 255),
     'scope_nominatim_urlbase'    => array('type' => 'string', 'max' => 255)
 );
@@ -69,8 +58,6 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                               scope_contact_email,
                                               scope_sharing_content_text,
                                               scope_twitter,
-                                              scope_twitteraccountid,
-                                              scope_twittercontent,
                                               scope_umap_url,
                                               scope_nominatim_urlbase)
                                      VALUES ('xx_scope',
@@ -84,8 +71,6 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
                                              '15',
                                              'email@domaine.com',
                                              '',
-                                             '',
-                                             '0',
                                              '',
                                              '',
                                              'https://nominatim.openstreetmap.org')");
@@ -137,13 +122,6 @@ if (isset($_POST['scope_id'])) {
                     $value = intval($raw);
                     if ($value < 1 || $value > 20) {
                         $errors[] = 'Le zoom doit être compris entre 1 et 20.';
-                        continue 2;
-                    }
-                    break;
-                case 'twitter':
-                    $value = intval($raw);
-                    if (!isset($twitterlist[$value])) {
-                        $errors[] = 'Compte Twitter inconnu.';
                         continue 2;
                     }
                     break;
@@ -288,42 +266,6 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
         </div>
       </div>
 
-      <h4 class="h6 text-body-secondary">Twitter</h4>
-      <div class="row g-3 mb-4">
-        <div class="col-md-6">
-          <label class="form-label" for="<?= $prefix ?>twitter">Compte Twitter affiché</label>
-          <input type="text" class="form-control" id="<?= $prefix ?>twitter" name="scope_twitter" value="<?= h($result_scopes['scope_twitter']) ?>" maxlength="20" />
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="<?= $prefix ?>twitteraccountid">Identifiant compte Twitter</label>
-          <select class="form-select" id="<?= $prefix ?>twitteraccountid" name="scope_twitteraccountid">
-<?php
-    $current_ta = intval($result_scopes['scope_twitteraccountid']);
-    if (!isset($twitterlist[$current_ta])) {
-        echo '<option value="0" selected>-- Compte #' . $current_ta . ' introuvable --</option>';
-    }
-    foreach ($twitterlist as $twitterid => $twittername) {
-        $selected = ($twitterid == $current_ta) ? ' selected' : '';
-        echo '<option value="' . intval($twitterid) . '"' . $selected . '>' . h($twittername) . '</option>';
-    }
-?>
-          </select>
-        </div>
-        <div class="col-12">
-          <label class="form-label" for="<?= $prefix ?>twittercontent">Contenu des tweets automatiques</label>
-          <textarea class="form-control" id="<?= $prefix ?>twittercontent" name="scope_twittercontent" rows="4" maxlength="500" aria-describedby="<?= $prefix ?>twittercontent_help"><?= h($result_scopes['scope_twittercontent']) ?></textarea>
-          <div class="form-text" id="<?= $prefix ?>twittercontent_help">
-            Variables disponibles :
-            <code>[COMMENT]</code> commentaire de l'observation,
-            <code>[TOKEN]</code> identifiant de l'observation,
-            <code>[COORDINATES_LON]</code> longitude,
-            <code>[COORDINATES_LAT]</code> latitude,
-            <code>[CATEGORY]</code> catégorie,
-            <code>[CITY]</code> nom de la ville,
-            <code>[CITYHASHTAG]</code> hashtag de la ville.
-          </div>
-        </div>
-      </div>
 
       <button class="btn btn-primary" type="submit"><i class="bi bi-check-lg"></i> Enregistrer</button>
     </form>

@@ -12,7 +12,7 @@ Quand une nouvelle version est publiée, le bouton **« Installer la version X �
    (et sa signature ed25519 si une clé publique est définie dans `app/includes/release_key.php`) ;
 2. vérifie la version de PHP et les extensions demandées par la nouvelle version ;
 3. sauvegarde le code et la base dans `caches/updates/` (les 3 dernières sauvegardes sont gardées) ;
-4. installe les fichiers (sans toucher à `config/config.php`, `images/`, `caches/` et `maps/`) ;
+4. installe les fichiers (sans toucher à `config/config.php`, `images/` et `caches/`) ;
 5. applique les migrations de la base ;
 6. vérifie que l'instance répond avec la nouvelle version ;
 7. en cas d'échec, restaure le code et la base.
@@ -58,24 +58,27 @@ Pour développer avec le code du dépôt :
 
 ### Passage à la 0.0.22 (dernière mise à jour manuelle)
 
-1. Sauvegardez la base et les répertoires `images/`, `caches/`, `maps/`.
+1. Sauvegardez la base et les répertoires `images/` et `caches/`.
 2. Mettez à jour le code :
    - Docker : remplacez `docker-compose.yml` par celui de la 0.0.22, puis `docker compose pull && docker compose up -d` ;
-   - installation classique : remplacez le contenu de `app` (sans écraser `config/config.php`, `images`, `caches`, `maps`).
+   - installation classique : remplacez le contenu de `app` (sans écraser `config/config.php`, `images`, `caches`).
 3. Appliquez les migrations (automatique avec Docker, sinon depuis l'admin « Mises à jour »).
-4. **Videz le répertoire `caches/`** : les versions précédentes pouvaient y écrire des panneaux non floutés
-   (les nouveaux fichiers de cache ont un nom différent).
+4. **Videz les répertoires `caches/` et `maps/`** : les versions précédentes pouvaient y écrire des panneaux non floutés
+   (les nouveaux fichiers de cache ont un nom différent) ; `maps/` (cartes MapQuest) et `panels/` ne servent plus et peuvent être supprimés.
 5. Ouvrez la page « Mises à jour » : la rubrique « Vérifications de sécurité » doit être au vert. En particulier,
    `images/` et `caches/` ne doivent pas être accessibles depuis le web. Sous nginx, les `.htaccess` ne
    sont pas lus, ajoutez :
 
    ```nginx
-   location ~ ^/(images|caches|migrations|maps/tiles)/ { deny all; return 403; }
+   location ~ ^/(images|caches|migrations)/ { deny all; return 403; }
    location = /install.php { deny all; return 403; }
    ```
 
 6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine.
-7. Nouveaux réglages (admin « Configuration ») : carte OpenStreetMap sans clé MapQuest, limite anti-spam,
+7. Fonctionnalités retirées : publication sur Twitter (les comptes Twitter enregistrés sont supprimés de la base),
+   génération des panneaux et cartes MapQuest. `generate_panel.php` reste disponible et renvoie la photo de l'observation
+   (pixelisée tant qu'elle n'est pas approuvée) : les applications existantes continuent de fonctionner.
+8. Nouveaux réglages (admin « Configuration ») : limite anti-spam,
    masquage des observations résolues anciennes, URL du service de floutage (sgblur).
 
 ### Publier une version (mainteneurs)

@@ -36,7 +36,6 @@ $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil"
         "cities" => array("icon" => "buildings", "name" => "Villes", "access" => array('admin')),
         "accounts" => array("icon" => "people", "name" => "Comptes", "access" => array('admin')),
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
-        "twitter" => array("icon" => "twitter-x", "name" => "Twitter", "access" => array('admin')),
         "settings" => array("icon" => "gear", "name" => "Configuration", "access" => array('admin')),
         "audit" => array("icon" => "journal-text", "name" => "Journal", "access" => array('admin')),
         "update" => array("icon" => "arrow-repeat", "name" => "Mises à jour", "access" => array('admin')));
