@@ -239,7 +239,7 @@ function getResolutionStatus($obsid)
                                                                                                                          ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
                                                                                                                          WHERE restok_observationid = '" . $obsid . "' LIMIT 1");
     $resolution_status_result = mysqli_fetch_array($resolution_status_query);
-    $resolution_status        = ($resolution_status_result['resolution_status'] != null) ? $resolution_status_result['resolution_status'] : 0;
+    $resolution_status        = (isset($resolution_status_result['resolution_status'])) ? $resolution_status_result['resolution_status'] : 0;
     return $resolution_status;
 }
 

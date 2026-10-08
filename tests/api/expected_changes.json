@@ -1,0 +1,16 @@
+{
+  "delete_bad_secret": {
+    "why": "delete.php used $config before loading it: on servers that display PHP notices, the JSON was prefixed with an HTML notice. The response is now plain JSON (same status and content).",
+    "now": {
+      "body": {"error": {"code": "TOKENNOTPROVIDED", "message": "Token : TOKA0008 and/or secretid : WRONG do not exist.", "status": 400}},
+      "body_text": null
+    }
+  },
+  "delete_ok": {
+    "why": "Same as delete_bad_secret: plain JSON without the PHP notice.",
+    "now": {
+      "body": {"status": 0},
+      "body_text": null
+    }
+  }
+}

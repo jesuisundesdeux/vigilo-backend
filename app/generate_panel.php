@@ -58,7 +58,7 @@ if (isset($_GET['key'])) {
 
 /* Token is mandatory */
 if (!isset($_GET['token'])) {
-    jsonError($error_prefix, "Token : " . $token . " not provided.", "TOKENNOTPROVIDED", 400);
+    jsonError($error_prefix, "Token :  not provided.", "TOKENNOTPROVIDED", 400);
 }
 
 $token = mysqli_real_escape_string($db, $_GET['token']);
@@ -151,7 +151,7 @@ if (!$map) {
     jsonError($error_prefix, "Map for : " . $token . " can not be created.", "MAPNOTCREATED", 500);
 }
 
-$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $statusobs);
+$image = GeneratePanel($photo, $map, $comment, $street_name, $token, $categorie_string, $date, $resolution_status);
 
 if ($resize_width != $MAX_IMG_SIZE) {
     $image = resizeImage($image, $resize_width, $MAX_IMG_SIZE);

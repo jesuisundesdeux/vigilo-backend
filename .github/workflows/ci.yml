@@ -103,14 +103,48 @@ jobs:
           php scripts/vigilo-migrate.php
           test $? -eq 2
 
-  docker:
+  # API contract: the web app and mobile apps must see the same API as with the last
+  # release (tests/api/snapshots.json), on the new image and on PHP 7.3 (shared hosting).
+  contract:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [image, php73]
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: vigilo
+          MARIADB_USER: vigilo
+          MARIADB_PASSWORD: vigilo
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_USER: vigilo
+      MYSQL_PASSWORD: vigilo
+      MYSQL_DATABASE: vigilo
+      MYSQL_ROOT_PASSWORD: root
     steps:
       - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli
+          tools: none
       - uses: docker/setup-buildx-action@v3
       - name: Build image
+        if: matrix.runtime == 'image'
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
+          load: true
           tags: vigilo-backend:ci
+      - name: Contract tests
+        run: |
+          if [ "${{ matrix.runtime }}" = "image" ]; then IMAGE=vigilo-backend:ci; else IMAGE=vigilobs/vigilo-backend:0.0.20; fi
+          tests/api/run.sh app "$IMAGE"

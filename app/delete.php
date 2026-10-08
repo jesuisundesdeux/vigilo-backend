@@ -18,10 +18,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 $cwd = dirname(__FILE__);
-$images_path     = "${cwd}" . '/' . $config['DATA_PATH'] . "images/";
 
-require_once("${cwd}/includes/common.php");
-require_once("${cwd}/includes/functions.php");
+require_once("{$cwd}/includes/common.php");
+require_once("{$cwd}/includes/functions.php");
+
+$images_path = "{$cwd}/" . $config['DATA_PATH'] . "images/";
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');

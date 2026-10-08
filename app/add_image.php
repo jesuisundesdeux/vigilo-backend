@@ -95,7 +95,7 @@ if ($image_written) {
     if (!hasAllowedType($filepath)) {        
         // deepcode ignore PT: $filename is sanitized with preg_replace
         unlink($filepath);
-        jsonError($error_prefix, 'File type not supported : ' . $detectedType, "FILETYPENOTSUPPORTED", 400);
+        jsonError($error_prefix, 'File type not supported : ', "FILETYPENOTSUPPORTED", 400);
     } elseif (!isGoodImage($filepath)) {
         jsonError($error_prefix, 'File is corrupted', 'FILECORRUPTED', 500);
     } else {

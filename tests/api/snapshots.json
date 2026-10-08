@@ -1,0 +1,1715 @@
+{
+  "acl_admin": {
+    "backend_version_header": true,
+    "body": {
+      "role": "admin"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "acl_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "KEYNOTPROVIDED",
+        "message": "Private key not provided",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "acl_moderator": {
+    "backend_version_header": true,
+    "body": {
+      "role": "moderator"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "acl_unknown": {
+    "backend_version_header": true,
+    "body": {
+      "role": false
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "add_image_bad_secret": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "TOKENNOTEXIST",
+        "message": "<masked>",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "add_image_base64": {
+    "backend_version_header": true,
+    "body": {
+      "status": 0
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "add_image_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "MISSINGARGUMENT",
+        "message": "Missing token and/or secretid parameters.",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "add_image_not_jpeg": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "FILETYPENOTSUPPORTED",
+        "message": "File type not supported : ",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "add_image_raw": {
+    "backend_version_header": true,
+    "body": {
+      "status": 0
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "approve_no_key": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "ACCESSDENIED",
+        "message": "Unauthorized access.",
+        "status": 403
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 403
+  },
+  "approve_ok": {
+    "backend_version_header": true,
+    "body": {
+      "status": "0"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "approve_unknown": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "TOKENNOTEXISTS",
+        "message": "Token : NOPE0000 does not exist.",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "create_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "PARAMNOTDEFINED",
+        "message": "Missing parameters",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "create_ok": {
+    "backend_version_header": true,
+    "body": {
+      "group": 0,
+      "secretid": "<masked>",
+      "status": 0,
+      "token": "<masked>"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "create_ok_cityname": {
+    "backend_version_header": true,
+    "body": {
+      "group": 0,
+      "secretid": "<masked>",
+      "status": 0,
+      "token": "<masked>"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "create_out_of_scope": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "COORDINATESNOTALLOWED",
+        "message": "Coordinates out of range and not located in the scope '99_testville'",
+        "status": 403
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 403
+  },
+  "create_unknown_scope": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "UNKNOWSCOPE",
+        "message": "Unknow scope",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "create_update_admin": {
+    "backend_version_header": true,
+    "body": {
+      "group": 0,
+      "secretid": "<masked>",
+      "status": 0,
+      "token": "<masked>"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "delete_bad_secret": {
+    "backend_version_header": true,
+    "body_text": "<br />\n<b>Notice</b>:  Undefined variable: config in <b>/var/www/html/delete.php</b> on line <b>21</b><br />\n{\n    \"error\": {\n        \"status\": 400,\n        \"code\": \"TOKENNOTPROVIDED\",\n        \"message\": \"Token : TOKA0008 and\\/or secretid : WRONG do not exist.\"\n    }\n}",
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "delete_ok": {
+    "backend_version_header": true,
+    "body_text": "<br />\n<b>Notice</b>:  Undefined variable: config in <b>/var/www/html/delete.php</b> on line <b>21</b><br />\n{\"status\":0}",
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "disapprove_ok": {
+    "backend_version_header": true,
+    "body": {
+      "status": "0"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "get_scope": {
+    "backend_version_header": true,
+    "body": {
+      "backend_version": "<masked>",
+      "cities": [
+        {
+          "area": "3.2",
+          "id": "2",
+          "name": "Saint-Exemple",
+          "population": "4000",
+          "postcode": "99100",
+          "website": ""
+        },
+        {
+          "area": "12.5",
+          "id": "1",
+          "name": "Testville",
+          "population": "25000",
+          "postcode": "99000",
+          "website": "https://testville.example"
+        }
+      ],
+      "contact_email": "contact@testville.example",
+      "coordinate_lat_max": "43.7",
+      "coordinate_lat_min": "43.5",
+      "coordinate_lon_max": "4.0",
+      "coordinate_lon_min": "3.8",
+      "department": "99",
+      "display_name": "Testville",
+      "map_center_string": "43.6, 3.9",
+      "map_url": "https://umap.example/testville",
+      "map_zoom": "14",
+      "nominatim_urlbase": "https://nominatim.openstreetmap.org",
+      "tweet_content": "Partagez [URL]",
+      "twitter": "testville"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "get_scope_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "PARAMNOTDEFINED",
+        "message": "Scope is not defined",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "get_scope_other": {
+    "backend_version_header": true,
+    "body": {
+      "backend_version": "<masked>",
+      "cities": [],
+      "contact_email": "",
+      "coordinate_lat_max": "44.2",
+      "coordinate_lat_min": "44.0",
+      "coordinate_lon_max": "4.2",
+      "coordinate_lon_min": "4.0",
+      "department": "98",
+      "display_name": "Autre",
+      "map_center_string": "44.1, 4.1",
+      "map_url": "",
+      "map_zoom": "13",
+      "nominatim_urlbase": "https://nominatim.openstreetmap.org",
+      "tweet_content": "",
+      "twitter": ""
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "get_scope_unknown": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "SCOPENOTEXIST",
+        "message": "Scope nope does not exist",
+        "status": 404
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 404
+  },
+  "get_version": {
+    "backend_version_header": true,
+    "body": {
+      "version": "<masked>"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": null,
+    "status": 200
+  },
+  "issues_after_create": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue Basse, Saint-Exemple",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Saint-Exemple",
+        "comment": "",
+        "coordinates_lat": "43.6020",
+        "coordinates_lon": "3.9020",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1700000100",
+        "token": "<masked>"
+      },
+      {
+        "address": "Rue Neuve, Testville",
+        "approved": "0",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Il y a un \"souci\" l'été",
+        "coordinates_lat": "43.6010",
+        "coordinates_lon": "3.9010",
+        "explanation": "Détails",
+        "group": 0,
+        "status": 0,
+        "time": "1700000000",
+        "token": "<masked>"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_after_delete": {
+    "backend_version_header": true,
+    "body": [],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_after_resolution": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 4,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_after_update": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue Neuve, Testville",
+        "approved": "1",
+        "categorie": "4",
+        "cityname": "Testville",
+        "comment": "Corrigé",
+        "coordinates_lat": "43.6011",
+        "coordinates_lon": "3.9011",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1700000000",
+        "token": "<masked>"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_all": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Chemin Vert, Ailleurs",
+        "approved": "1",
+        "categorie": "5",
+        "cityname": "Ailleurs",
+        "comment": "Autre scope",
+        "coordinates_lat": "44.1000",
+        "coordinates_lon": "4.1000",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1650000000",
+        "token": "TOKA0006"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_approved_0": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_approved_1": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Chemin Vert, Ailleurs",
+        "approved": "1",
+        "categorie": "5",
+        "cityname": "Ailleurs",
+        "comment": "Autre scope",
+        "coordinates_lat": "44.1000",
+        "coordinates_lon": "4.1000",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1650000000",
+        "token": "TOKA0006"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_approved_2_admin": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Place Centrale, Saint-Exemple",
+        "approved": "2",
+        "categorie": "4",
+        "cityname": "Saint-Exemple",
+        "comment": "Refusée",
+        "coordinates_lat": "43.6200",
+        "coordinates_lon": "3.9200",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1630000000",
+        "token": "TOKA0004"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_approved_2_public": {
+    "backend_version_header": true,
+    "body": [],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_categorie": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_categories": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_cityfield": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Rue des Lilas",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Avenue du Port",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_cityid": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_count": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_csv": {
+    "backend_version_header": true,
+    "body_text": "token,coordinates_lat,coordinates_lon,address,comment,explanation,time,status,group,categorie,approved,cityname\nTOKA0008,43.6500,3.9500,Impasse Ouest_ Testville,A supprimer,,1670000000,0,0,2,1,Testville\nTOKA0007,43.6400,3.9400,Boulevard Est_ Testville,Résolue,,1660000000,1,0,2,1,Testville\nTOKA0003,43.6003,3.9003,Rue des Lilas_ Bourgade,Proche de la gare,,1620000000,4,0,2,1,Bourgade\nTOKA0002,43.6100,3.9100,Avenue du Port_ Autreville,En attente,,1610000000,0,0,3,0,Autreville\nTOKA0001,43.6000,3.9000,Rue de la Gare_ Testville,Voiture \"garée\"_ trottoir é,Tous les matins,1600000000,0,0,2,1,Testville\n",
+    "content_type": "text/csv;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_geojson": {
+    "backend_version_header": true,
+    "body": {
+      "features": [
+        {
+          "geometry": {
+            "coordinates": [
+              3.95,
+              43.65
+            ],
+            "type": "Point"
+          },
+          "properties": {
+            "address": "Impasse Ouest, Testville",
+            "approved": "1",
+            "categorie": "2",
+            "comment": "A supprimer",
+            "description": "{{http://127.0.0.1:8089/generate_panel.php?token=TOKA0008}} ",
+            "explanation": "",
+            "group": 0,
+            "name": "TOKA0008 A supprimer",
+            "time": "1670000000",
+            "token": "TOKA0008"
+          },
+          "type": "Feature"
+        },
+        {
+          "geometry": {
+            "coordinates": [
+              3.94,
+              43.64
+            ],
+            "type": "Point"
+          },
+          "properties": {
+            "address": "Boulevard Est, Testville",
+            "approved": "1",
+            "categorie": "2",
+            "comment": "Résolue",
+            "description": "{{http://127.0.0.1:8089/generate_panel.php?token=TOKA0007}} ",
+            "explanation": "",
+            "group": 0,
+            "name": "TOKA0007 Résolue",
+            "time": "1660000000",
+            "token": "TOKA0007"
+          },
+          "type": "Feature"
+        },
+        {
+          "geometry": {
+            "coordinates": [
+              3.9003,
+              43.6003
+            ],
+            "type": "Point"
+          },
+          "properties": {
+            "address": "Rue des Lilas, Bourgade",
+            "approved": "1",
+            "categorie": "2",
+            "comment": "Proche de la gare",
+            "description": "{{http://127.0.0.1:8089/generate_panel.php?token=TOKA0003}} ",
+            "explanation": "",
+            "group": 0,
+            "name": "TOKA0003 Proche de la gare",
+            "time": "1620000000",
+            "token": "TOKA0003"
+          },
+          "type": "Feature"
+        },
+        {
+          "geometry": {
+            "coordinates": [
+              3.91,
+              43.61
+            ],
+            "type": "Point"
+          },
+          "properties": {
+            "address": "Avenue du Port, Autreville",
+            "approved": "0",
+            "categorie": "3",
+            "comment": "En attente",
+            "description": "{{http://127.0.0.1:8089/generate_panel.php?token=TOKA0002}} ",
+            "explanation": "",
+            "group": 0,
+            "name": "TOKA0002 En attente",
+            "time": "1610000000",
+            "token": "TOKA0002"
+          },
+          "type": "Feature"
+        },
+        {
+          "geometry": {
+            "coordinates": [
+              3.9,
+              43.6
+            ],
+            "type": "Point"
+          },
+          "properties": {
+            "address": "Rue de la Gare, Testville",
+            "approved": "1",
+            "categorie": "2",
+            "comment": "Voiture \"garée\", trottoir é",
+            "description": "{{http://127.0.0.1:8089/generate_panel.php?token=TOKA0001}} Tous les matins",
+            "explanation": "Tous les matins",
+            "group": 0,
+            "name": "TOKA0001 Voiture \"garée\", trottoir é",
+            "time": "1600000000",
+            "token": "TOKA0001"
+          },
+          "type": "Feature"
+        }
+      ],
+      "type": "FeatureCollection"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_radius": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "distance": 41.233016531180716,
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "distance": 0,
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_scope": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_scope_other": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Chemin Vert, Ailleurs",
+        "approved": "1",
+        "categorie": "5",
+        "cityname": "Ailleurs",
+        "comment": "Autre scope",
+        "coordinates_lat": "44.1000",
+        "coordinates_lon": "4.1000",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1650000000",
+        "token": "TOKA0006"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_since_all": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Chemin Vert, Ailleurs",
+        "approved": "1",
+        "categorie": "5",
+        "cityname": "Ailleurs",
+        "comment": "Autre scope",
+        "coordinates_lat": "44.1000",
+        "coordinates_lon": "4.1000",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1650000000",
+        "token": "TOKA0006"
+      },
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_since_none": {
+    "backend_version_header": true,
+    "body": [],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_status_new": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Avenue du Port, Autreville",
+        "approved": "0",
+        "categorie": "3",
+        "cityname": "Autreville",
+        "comment": "En attente",
+        "coordinates_lat": "43.6100",
+        "coordinates_lon": "3.9100",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1610000000",
+        "token": "TOKA0002"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_status_resolved": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_time": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Impasse Ouest, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "A supprimer",
+        "coordinates_lat": "43.6500",
+        "coordinates_lon": "3.9500",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1670000000",
+        "token": "TOKA0008"
+      },
+      {
+        "address": "Boulevard Est, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Résolue",
+        "coordinates_lat": "43.6400",
+        "coordinates_lon": "3.9400",
+        "explanation": "",
+        "group": 0,
+        "status": 1,
+        "time": "1660000000",
+        "token": "TOKA0007"
+      },
+      {
+        "address": "Chemin Vert, Ailleurs",
+        "approved": "1",
+        "categorie": "5",
+        "cityname": "Ailleurs",
+        "comment": "Autre scope",
+        "coordinates_lat": "44.1000",
+        "coordinates_lon": "4.1000",
+        "explanation": "",
+        "group": 0,
+        "status": 0,
+        "time": "1650000000",
+        "token": "TOKA0006"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_token": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "issues_token_filters": {
+    "backend_version_header": true,
+    "body": [
+      {
+        "address": "Rue des Lilas, Bourgade",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Bourgade",
+        "comment": "Proche de la gare",
+        "coordinates_lat": "43.6003",
+        "coordinates_lon": "3.9003",
+        "explanation": "",
+        "group": 0,
+        "status": 4,
+        "time": "1620000000",
+        "token": "TOKA0003"
+      },
+      {
+        "address": "Rue de la Gare, Testville",
+        "approved": "1",
+        "categorie": "2",
+        "cityname": "Testville",
+        "comment": "Voiture \"garée\", trottoir é",
+        "coordinates_lat": "43.6000",
+        "coordinates_lon": "3.9000",
+        "explanation": "Tous les matins",
+        "group": 0,
+        "status": 0,
+        "time": "1600000000",
+        "token": "TOKA0001"
+      }
+    ],
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "mosaic": {
+    "backend_version_header": false,
+    "content_type": "text/html;charset=utf-8",
+    "cors": null,
+    "status": 200
+  },
+  "panel_approved": {
+    "backend_version_header": true,
+    "body": {
+      "height": 786,
+      "image": "jpeg",
+      "width": 1273
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 200
+  },
+  "panel_approved_small": {
+    "backend_version_header": true,
+    "body": {
+      "height": 185,
+      "image": "jpeg",
+      "width": 300
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 200
+  },
+  "panel_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "TOKENNOTPROVIDED",
+        "message": "Token :  not provided.",
+        "status": 400
+      }
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 400
+  },
+  "panel_new": {
+    "backend_version_header": true,
+    "body": {
+      "height": 786,
+      "image": "jpeg",
+      "width": 1273
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 200
+  },
+  "panel_pending": {
+    "backend_version_header": true,
+    "body": {
+      "height": 494,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 200
+  },
+  "panel_unknown": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "TOKENNOTFOUND",
+        "message": "Token : NOPE0000 not found.",
+        "status": 404
+      }
+    },
+    "content_type": "image/jpeg",
+    "cors": null,
+    "status": 404
+  },
+  "photo_approved": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "MISSINGARGUMENT",
+        "message": "Missing token",
+        "status": 400
+      }
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 400
+  },
+  "photo_new_after_approve": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_new_author_key": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_new_public": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "NOTALLOWED",
+        "message": "Image display is not allowed",
+        "status": 403
+      }
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 403
+  },
+  "photo_pending": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "NOTALLOWED",
+        "message": "Image display is not allowed",
+        "status": 403
+      }
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 403
+  },
+  "photo_pending_admin": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_resolution": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_resolution_new": {
+    "backend_version_header": true,
+    "body": {
+      "height": 600,
+      "image": "jpeg",
+      "width": 800
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 200
+  },
+  "photo_unknown": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "TOKENNOTFOUND",
+        "message": "Token : NOPE0000 not found",
+        "status": 404
+      }
+    },
+    "content_type": "image/png",
+    "cors": "*",
+    "status": 404
+  },
+  "resolution_image": {
+    "backend_version_header": true,
+    "body": {
+      "status": 0
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  },
+  "resolution_missing": {
+    "backend_version_header": true,
+    "body": {
+      "error": {
+        "code": "PARAMNOTDEFINED",
+        "message": "Missing parameters",
+        "status": 400
+      }
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 400
+  },
+  "resolution_ok": {
+    "backend_version_header": true,
+    "body": {
+      "secretid": "<masked>",
+      "token": "<masked>"
+    },
+    "content_type": "application/json;charset=utf-8",
+    "cors": "*",
+    "status": 200
+  }
+}

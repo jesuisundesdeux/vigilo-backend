@@ -28,6 +28,7 @@ header("Content-type: image/png");
 header('Access-Control-Allow-Origin: *');
 
 $error_prefix = "GET_PHOTO";
+$approved     = 0;
 
 if (isset($_GET['type'])) {
     $type = $_GET['type'];
