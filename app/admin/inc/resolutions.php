@@ -330,7 +330,7 @@ $can_status = in_array($_SESSION['role'], $actions_acl['resolve']['access']);
 <div class="card shadow-sm mb-3">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle table-admin mb-0">
+      <table class="table table-hover align-middle table-admin table-stack-md mb-0">
         <thead class="table-light">
           <tr>
             <th scope="col">Token</th>
@@ -359,7 +359,7 @@ while ($query_resolution && $result_resolution = mysqli_fetch_array($query_resol
             <td><code><?= h($res_token) ?></code></td>
             <td>
 <?php if ($result_resolution['resolution_withphoto'] == 1) { ?>
-              <a href="<?= h($photo_url) ?>" target="_blank" rel="noopener"><img class="obs-thumb" src="<?= h($photo_url) ?>" alt="Photo de la résolution <?= h($res_token) ?>" loading="lazy" /></a>
+              <a href="<?= h($photo_url) ?>" data-photo data-photo-title="Résolution <?= h($res_token) ?>"><img class="obs-thumb" src="<?= h($photo_url) ?>" alt="Photo de la résolution <?= h($res_token) ?>" loading="lazy" /></a>
 <?php } else { ?>
               <span class="text-body-secondary"><i class="bi bi-image"></i> Pas de photo</span>
 <?php } ?>

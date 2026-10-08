@@ -7,6 +7,8 @@
     return;
   }
 
+  // Tiles requested with the origin as Referer: the admin pages send none (Referrer-Policy:
+  // same-origin) and the OSM tile servers block requests without it
   var TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   var ATTRIBUTION = '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
@@ -31,7 +33,7 @@
     var status = card.querySelector('[data-map-status]');
 
     var map = L.map(container, { zoomControl: true }).setView([46.6, 2.4], 5);
-    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(map);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
     var rect = null;
     var centerMarker = null;
 

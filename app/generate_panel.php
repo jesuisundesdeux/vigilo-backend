@@ -91,8 +91,10 @@ $AdminOrAuthor = ($privileged || ($secretid !== Null && $secretid === $result['o
 
 $filepath = $images_path . basename($token) . '.jpg';
 $found    = file_exists($filepath);
+// No photo (not sent yet, or deleted): 404, the applications show their own placeholder
 if (!$found) {
-    $filepath = "$cwd/style/image_404.jpg";
+    header('Content-Type: application/json; charset=utf-8');
+    jsonError($error_prefix, "Token : " . $token . " has no photo.", "PHOTONOTFOUND", 404);
 }
 
 # Photo is pixelated until approved by a moderator, whatever the requested size

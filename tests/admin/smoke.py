@@ -195,6 +195,20 @@ def main():
                        'scope_coordinate_lat_min': '43.5', 'scope_coordinate_lat_max': '43.7'})
     status, _, page = admin.request('index.php?page=scopes', scope_form)
     check('Identifiant invalide' not in page and 'alert-danger' not in page, 'unchanged legacy identifier accepted')
+    check('scope_sharing_content_text' not in page, 'no sharing text field (Twitter)')
+
+    # Scopes: creation window, refused values reopen it with what was typed
+    new_scope = {'csrf_token': admin.token(page), 'scope_create': '1', 'scope_name': '99 bad', 'scope_display_name': 'Nouveau <b>scope</b>',
+                 'scope_department': '34', 'scope_contact_email': 'contact@example.org'}
+    status, _, page = admin.request('index.php?page=scopes', new_scope)
+    clean('scope create refused', status, page)
+    check('Identifiant invalide' in page and 'data-reopen-modal="#scopeModal"' in page, 'invalid new scope refused, window reopened')
+    new_scope.update({'csrf_token': admin.token(page), 'scope_name': '34_nouveau'})
+    status, _, page = admin.request('index.php?page=scopes', new_scope)
+    clean('scope create', status, page)
+    check('Scope <strong>34_nouveau</strong> ajouté' in page and 'Nouveau &lt;b&gt;scope&lt;/b&gt;' in page, 'scope created from the window')
+    status, _, page = admin.request('index.php?page=scopes', dict(new_scope, csrf_token=admin.token(page)))
+    check('déjà utilisé' in page, 'duplicate scope identifier refused')
 
     # Cities: import of communes (data checked server side), duplicates skipped
     status, _, page = admin.request('index.php?page=cities&import_scope=1')
@@ -208,6 +222,34 @@ def main():
     clean('cities import result', status, page)
     check('2 villes importées' in page and '1 ignorée' in page, 'communes imported, existing one skipped')
     check('&lt;b&gt;X&lt;/b&gt;' in page and '<b>X</b>' not in page, 'imported names escaped')
+
+    # Cities: creation and edition windows
+    check('data-bs-target="#cityModal"' in page and 'action=add' not in page, 'city window, no empty city created')
+    city = {'csrf_token': admin.token(page), 'city_id': '0', 'city_name': '', 'city_scope': '1', 'city_postcode': '34170',
+            'city_area': '23,5', 'city_population': '1 000', 'city_website': ''}
+    status, _, page = admin.request('index.php?page=cities', city)
+    check('obligatoire' in page and 'data-reopen-modal="#cityModal"' in page, 'city without name refused, window reopened')
+    city.update({'csrf_token': admin.token(page), 'city_name': 'Castelnau-le-Lez'})
+    status, _, page = admin.request('index.php?page=cities', city)
+    clean('city create', status, page)
+    m = re.search(r'Ville <strong>Castelnau-le-Lez</strong> \(#(\d+)\) ajoutée', page)
+    check(m is not None and '34170' in page, 'city created from the window')
+    if m:
+        city.update({'csrf_token': admin.token(page), 'city_id': m.group(1), 'city_population': '22000'})
+        status, _, page = admin.request('index.php?page=cities', city)
+        check('mise à jour' in page and '22 000' in page, 'city edited from the window')
+
+    # Accounts: creation window
+    status, _, page = admin.request('index.php?page=accounts')
+    check('data-bs-target="#accountModal"' in page and 'action=add' not in page, 'account window, no empty account created')
+    account = {'csrf_token': admin.token(page), 'role_id': '0', 'role_name': 'citystaff', 'role_owner': 'Mairie', 'role_login': 'mairie2',
+               'role_password': '', 'role_city_present': '1', 'role_city[]': 'Testville'}
+    status, _, page = admin.request('index.php?page=accounts', account)
+    check('mot de passe est obligatoire' in page and 'data-reopen-modal="#accountModal"' in page, 'account with login and no password refused')
+    account.update({'csrf_token': admin.token(page), 'role_password': 'mot-de-passe-long'})
+    status, _, page = admin.request('index.php?page=accounts', account)
+    clean('account create', status, page)
+    check('(citystaff) ajouté' in page and 'mairie2' in page and 'Testville' in page, 'account created from the window')
 
     # Categories: national one disabled then enabled again, category of the instance added, edited, deleted
     status, _, page = admin.request('index.php?page=categories')
@@ -237,7 +279,7 @@ def main():
 
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'category_disable', 'category_create']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout

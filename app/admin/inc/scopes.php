@@ -23,6 +23,8 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 
 $saas_mode = isset($config['SAAS_MODE']) && $config['SAAS_MODE'];
 $messages  = array();
+$reopen    = null;
+$created   = 0;
 
 /*
  * Editable columns (allowlist): type and maximum length.
@@ -39,7 +41,6 @@ $scope_fields = array(
     'scope_map_center_string'    => array('type' => 'string', 'max' => 255),
     'scope_map_zoom'             => array('type' => 'zoom'),
     'scope_contact_email'        => array('type' => 'string', 'max' => 255),
-    'scope_sharing_content_text' => array('type' => 'string', 'max' => 255),
     'scope_umap_url'             => array('type' => 'string', 'max' => 255),
     'scope_nominatim_urlbase'    => array('type' => 'string', 'max' => 255)
 );
@@ -58,43 +59,7 @@ if (!function_exists('scope_name_valid')) {
 }
 
 if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
-    if ($_GET['action'] == 'add' && !$saas_mode) {
-        $ok = mysqli_query($db, "INSERT INTO obs_scopes (scope_name,
-                                              scope_display_name,
-                                              scope_department,
-                                              scope_coordinate_lat_min,
-                                              scope_coordinate_lat_max,
-                                              scope_coordinate_lon_min,
-                                              scope_coordinate_lon_max,
-                                              scope_map_center_string,
-                                              scope_map_zoom,
-                                              scope_contact_email,
-                                              scope_sharing_content_text,
-                                              scope_twitter,
-                                              scope_umap_url,
-                                              scope_nominatim_urlbase)
-                                     VALUES ('xx_scope',
-                                             'Nouveau Scope',
-                                             '00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00',
-                                             '0.00,0.00',
-                                             '15',
-                                             'email@domaine.com',
-                                             '',
-                                             '',
-                                             '',
-                                             'https://nominatim.openstreetmap.org')");
-        if ($ok) {
-            $new_id = intval(mysqli_insert_id($db));
-            audit_log('scope_create', 'scope:' . $new_id);
-            $messages[] = array('success', 'Scope <strong>#' . $new_id . '</strong> ajouté, merci de remplir les champs correspondants.');
-        } else {
-            $messages[] = array('danger', 'Impossible d\'ajouter le scope.');
-        }
-    } elseif ($_GET['action'] == 'delete' && isset($_GET['scopeid']) && is_numeric($_GET['scopeid']) && !$saas_mode) {
+    if ($_GET['action'] == 'delete' && isset($_GET['scopeid']) && is_numeric($_GET['scopeid']) && !$saas_mode) {
         $scopeid     = intval($_GET['scopeid']);
         $query_check = mysqli_query($db, "SELECT scope_name FROM obs_scopes WHERE scope_id = " . $scopeid . " LIMIT 1");
         $check       = $query_check ? mysqli_fetch_array($query_check) : null;
@@ -108,6 +73,51 @@ if (isset($_GET['action']) && !isset($_POST['scope_id'])) {
         }
     } elseif ($saas_mode) {
         $messages[] = array('warning', 'Cette fonctionnalité n\'est pas accessible en SaaS.');
+    }
+}
+
+/* Creation window: identifier, name, department and contact; the map is set afterwards on the card of the scope */
+if (isset($_POST['scope_create']) && !$saas_mode) {
+    $errors = array();
+    $new    = array();
+    foreach (array('scope_name', 'scope_display_name', 'scope_contact_email') as $column) {
+        $new[$column] = isset($_POST[$column]) && is_string($_POST[$column]) ? trim($_POST[$column]) : '';
+        if (strlen($new[$column]) > 255) {
+            $errors[] = 'Le champ <strong>' . h($column) . '</strong> est trop long (255 caractères maximum).';
+        }
+    }
+    $new['scope_department'] = isset($_POST['scope_department']) && is_scalar($_POST['scope_department']) ? intval($_POST['scope_department']) : 0;
+    if (!scope_name_valid($new['scope_name'])) {
+        $errors[] = 'Identifiant invalide : numéro de département (ex. 34, 2A, 974) ou code pays, « _ », puis le nom du territoire sans espace, accent ni caractère spécial (ex. 34_montpellier).';
+    } else {
+        $query_dup = mysqli_query($db, "SELECT scope_id FROM obs_scopes WHERE scope_name = '" . mysqli_real_escape_string($db, $new['scope_name']) . "' LIMIT 1");
+        if ($query_dup && mysqli_fetch_array($query_dup)) {
+            $errors[] = 'L\'identifiant <strong>' . h($new['scope_name']) . '</strong> est déjà utilisé.';
+        }
+    }
+    if ($new['scope_display_name'] === '') {
+        $errors[] = 'Le nom affiché est obligatoire.';
+    }
+    if ($new['scope_department'] < 0 || $new['scope_department'] > 127) {
+        $errors[] = 'Département invalide.';
+    }
+    if (!empty($errors)) {
+        foreach ($errors as $error) {
+            $messages[] = array('danger', $error);
+        }
+        $messages[] = array('warning', 'Le scope n\'a pas été ajouté.');
+        $reopen = $new;
+    } elseif (mysqli_query($db, "INSERT INTO obs_scopes (scope_name, scope_display_name, scope_department, scope_coordinate_lat_min,
+                                     scope_coordinate_lat_max, scope_coordinate_lon_min, scope_coordinate_lon_max, scope_map_center_string,
+                                     scope_map_zoom, scope_contact_email, scope_sharing_content_text, scope_twitter, scope_umap_url, scope_nominatim_urlbase)
+                                 VALUES ('" . mysqli_real_escape_string($db, $new['scope_name']) . "', '" . mysqli_real_escape_string($db, $new['scope_display_name']) . "', "
+                                 . $new['scope_department'] . ", '0', '0', '0', '0', '0.00,0.00', 13, '" . mysqli_real_escape_string($db, $new['scope_contact_email']) . "',
+                                 '', '', '', 'https://nominatim.openstreetmap.org')")) {
+        $created = intval(mysqli_insert_id($db));
+        audit_log('scope_create', 'scope:' . $created, $new);
+        $messages[] = array('success', 'Scope <strong>' . h($new['scope_name']) . '</strong> ajouté : <a href="#scope' . $created . '">tracer maintenant son territoire et le centre de ses cartes</a>, puis enregistrer.');
+    } else {
+        $messages[] = array('danger', 'Impossible d\'ajouter le scope.');
     }
 }
 
@@ -191,7 +201,7 @@ $self_url     = '?page=' . urlencode($page_name);
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h2 class="h5 mb-0"><i class="bi bi-compass"></i> Scopes</h2>
 <?php if (!$saas_mode) { ?>
-  <a class="btn btn-sm btn-primary" href="<?= h($self_url) ?>&amp;action=add<?= h(csrf_query()) ?>"><i class="bi bi-plus-lg"></i> Ajouter un scope</a>
+  <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#scopeModal"><i class="bi bi-plus-lg"></i> Ajouter un scope</button>
 <?php } ?>
 </div>
 
@@ -235,10 +245,6 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
         <div class="col-md-6">
           <label class="form-label" for="<?= $prefix ?>contact_email">Email contact</label>
           <input type="text" class="form-control" id="<?= $prefix ?>contact_email" name="scope_contact_email" value="<?= h($result_scopes['scope_contact_email']) ?>" maxlength="255" />
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="<?= $prefix ?>sharing">Texte de partage par défaut</label>
-          <textarea class="form-control" id="<?= $prefix ?>sharing" name="scope_sharing_content_text" rows="3" maxlength="255"><?= h($result_scopes['scope_sharing_content_text']) ?></textarea>
         </div>
       </div>
 
@@ -308,6 +314,54 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
 <?php
 }
 ?>
+
+<?php if (!$saas_mode) { ?>
+<div class="modal fade" id="scopeModal" tabindex="-1" aria-labelledby="scopeModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" action="<?= h($self_url) ?>">
+      <?= csrf_field() ?>
+      <input type="hidden" name="scope_create" value="1" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="scopeModalTitle">Ajouter un scope</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="new_scope_name">Identifiant</label>
+            <input type="text" class="form-control font-monospace" id="new_scope_name" name="scope_name" maxlength="255" required placeholder="34_montpellier"
+                   pattern="(0[1-9]|[1-8][0-9]|9[0-5]|2[AB]|97[1-6]|[a-z]{2})_[A-Za-z0-9]+" data-scope-name="new_scope_department" aria-describedby="new_scope_name_help" />
+            <div class="form-text" id="new_scope_name_help">N° de département (ou code pays), « _ », nom sans espace ni accent. Il ne doit plus changer ensuite : les applications l'utilisent.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="new_scope_display_name">Nom affiché</label>
+            <input type="text" class="form-control" id="new_scope_display_name" name="scope_display_name" maxlength="255" required placeholder="Montpellier Métropole" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="new_scope_department">Département</label>
+            <input type="number" class="form-control" id="new_scope_department" name="scope_department" min="0" max="127" />
+          </div>
+          <div class="col-md-8">
+            <label class="form-label" for="new_scope_contact_email">Email contact</label>
+            <input type="email" class="form-control" id="new_scope_contact_email" name="scope_contact_email" maxlength="255" />
+          </div>
+        </div>
+        <p class="small text-body-secondary mt-3 mb-0">Le territoire et le centre des cartes se choisissent ensuite sur la carte du scope.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Créer le scope</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php if ($reopen !== null) { ?>
+<div hidden data-reopen-modal="#scopeModal" data-fill="<?= h(json_encode($reopen)) ?>"></div>
+<?php } ?>
+<?php if ($created) { ?>
+<script>document.addEventListener('DOMContentLoaded', function () { var c = document.getElementById('scope<?= intval($created) ?>'); if (c) { c.scrollIntoView(); } });</script>
+<?php } ?>
+<?php } ?>
 
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>

@@ -56,8 +56,10 @@ if ($type == 'obs') {
     $path = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/resolutions/' . $token . '.jpg';
 }
 
+// No photo: 404 (the admin pages show a placeholder, see assets/admin.js)
 if (!file_exists($path)) {
-    $path = dirname(__FILE__) . '/../style/image_404.jpg';
+    http_response_code(404);
+    exit;
 }
 
 $image = @imagecreatefromjpeg($path);

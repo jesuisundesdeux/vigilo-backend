@@ -197,6 +197,21 @@ $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' 
       </div>
     </div>
 
+    <!-- Photos open in this window: links with data-photo (assets/admin.js) -->
+    <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h6" id="photoModalTitle">Photo</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+          </div>
+          <div class="modal-body text-center p-2">
+            <img src="" alt="" class="img-fluid rounded" id="photoModalImage" style="max-height: 80vh;">
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="assets/admin.js"></script>
   </body>

@@ -68,12 +68,12 @@ if (isset($_GET['key'])) {
     $key = NULL;
 }
 
-if (file_exists($filepath . $token . '.jpg')) {
-  $photo_path = $filepath . $token . '.jpg';
+// No photo (not sent yet, or deleted): 404, the applications show their own placeholder
+if (!file_exists($filepath . $token . '.jpg')) {
+    header('Content-Type: application/json; charset=utf-8');
+    jsonError($error_prefix, "Token : " . $token . " has no photo", "PHOTONOTFOUND", 404);
 }
-else {
-  $photo_path = 'style/image_404.jpg';
-}
+$photo_path = $filepath . $token . '.jpg';
 
 if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
     $photo = imagecreatefromjpeg($photo_path); // issue photo
