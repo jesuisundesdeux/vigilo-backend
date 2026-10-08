@@ -637,6 +637,145 @@ class T09RealBlurServer(unittest.TestCase):
         self.assertGreater(sharpness(after, *patch), sharpness(before, *patch) * 0.5, 'rest of the photo kept')
 
 
+class WebhookReceiver:
+    """HTTP endpoint recording the calls it gets; answers self.code."""
+
+    def __init__(self):
+        receiver = self
+        self.calls = []
+        self.code = 200
+
+        class Handler(BaseHTTPRequestHandler):
+            def handle_call(self):
+                length = int(self.headers.get('Content-Length') or 0)
+                receiver.calls.append({'method': self.command, 'path': self.path, 'headers': dict(self.headers),
+                                       'body': self.rfile.read(length).decode('utf-8')})
+                self.send_response(receiver.code)
+                self.send_header('Content-Length', '2')
+                self.end_headers()
+                self.wfile.write(b'ok')
+
+            do_POST = do_PUT = do_PATCH = do_GET = handle_call
+
+            def log_message(self, *args):
+                pass
+
+        self.httpd = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        self.base = 'http://127.0.0.1:%d' % self.httpd.server_address[1]
+        threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
+
+    def wait(self, count, timeout=10):
+        end = time.time() + timeout
+        while len(self.calls) < count and time.time() < end:
+            time.sleep(0.05)
+        return self.calls
+
+    def close(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1):
+    def q(v):
+        return "'" + v.replace('\\', '\\\\').replace("'", "\\'") + "'"
+    sql("INSERT INTO obs_webhooks (webhook_name, webhook_enabled, webhook_event, webhook_method, webhook_url, webhook_format, webhook_headers, webhook_body) "
+        "VALUES (%s, %d, 'observation.approved', %s, %s, %s, %s, %s)" % (q(name), enabled, q(method), q(url), q(fmt), q(headers), q(body)))
+    return sql("SELECT MAX(webhook_id) FROM obs_webhooks")
+
+
+class T10Webhooks(unittest.TestCase):
+    """Webhooks called when a moderator publishes an observation, with the templates of the admin."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.receiver = WebhookReceiver()
+        sql("DELETE FROM obs_webhooks")
+        sql("DELETE FROM obs_webhook_deliveries")
+        add_webhook('json', cls.receiver.base + '/hook/{{token}}?city={{cityname}}',
+                    body='{"token": "{{token}}", "comment": "{{comment}}", "lat": {{lat}}, "photo": "{{photo_url}}", "unknown": "{{nope}}", "date": "{{date}}"}',
+                    headers='Authorization: Bearer secret-{{scope}}\nX-Comment: {{comment}}')
+        add_webhook('form', cls.receiver.base + '/form', body='token={{token}}&comment={{comment}}', fmt='form', method='PUT')
+        add_webhook('disabled', cls.receiver.base + '/disabled', body='{}', enabled=0)
+
+    @classmethod
+    def tearDownClass(cls):
+        sql("DELETE FROM obs_webhooks")
+        cls.receiver.close()
+
+    def setUp(self):
+        self.receiver.calls = []
+        self.receiver.code = 200
+
+    def observation(self, comment):
+        r = create(comment=comment, address='Rue du Test, Testville')
+        token, secret = r.json()['token'], r.json()['secretid']
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        return token
+
+    def test_called_on_publication(self):
+        token = self.observation('Voiture "garée"\nsur la piste & le trottoir')
+        r = call('approve.php', {'token': token, 'key': MODO})
+        self.assertEqual((r.status, r.json()), (200, {'status': '0'}), 'answer of approve.php unchanged')
+        calls = {c['path'].split('?')[0].split('/')[1]: c for c in self.receiver.wait(2)}
+        self.assertEqual(sorted(calls), ['form', 'hook'], 'the enabled webhooks only')
+
+        hook = calls['hook']
+        self.assertEqual(hook['method'], 'POST')
+        self.assertEqual(hook['path'], '/hook/%s?city=Testville' % token)
+        self.assertEqual(hook['headers']['Authorization'], 'Bearer secret-99_testville')
+        # http.server reads the headers as latin-1, they are sent in UTF-8
+        self.assertEqual(hook['headers']['X-Comment'].encode('latin-1').decode('utf-8'), 'Voiture "garée" sur la piste & le trottoir', 'no line break in a header')
+        self.assertEqual(hook['headers']['Content-Type'], 'application/json')
+        body = json.loads(hook['body'])
+        self.assertEqual(body['token'], token)
+        self.assertEqual(body['comment'], 'Voiture "garée"\nsur la piste & le trottoir', 'JSON-escaped')
+        self.assertEqual(body['lat'], 43.605)
+        self.assertTrue(body['photo'].endswith('/get_photo.php?token=' + token))
+        self.assertEqual(body['unknown'], '')
+        self.assertRegex(body['date'], r'^\d{4}-\d\d-\d\dT')
+
+        form = calls['form']
+        self.assertEqual(form['method'], 'PUT')
+        self.assertEqual(form['headers']['Content-Type'], 'application/x-www-form-urlencoded')
+        self.assertEqual(urllib.parse.parse_qs(form['body']), {'token': [token], 'comment': ['Voiture "garée"\nsur la piste & le trottoir']})
+
+        self.assertEqual(sql("SELECT COUNT(*) FROM obs_webhook_deliveries WHERE delivery_token = '%s' AND delivery_http_code = 200 AND delivery_error = ''" % token), '2', 'deliveries logged')
+
+    def test_only_when_published(self):
+        token = self.observation('Pas publiée')
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '0'}).status, 200)
+        time.sleep(1)
+        self.assertEqual(self.receiver.calls, [], 'refused or back to moderation: no call')
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual(len(self.receiver.wait(2)), 2)
+        self.receiver.calls = []
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        time.sleep(1)
+        self.assertEqual(self.receiver.calls, [], 'already published: no second call')
+
+    def test_failing_endpoint_does_not_block(self):
+        token = self.observation('Endpoint en erreur')
+        self.receiver.code = 500
+        r = call('approve.php', {'token': token, 'key': MODO})
+        self.assertEqual(r.status, 200)
+        self.assertEqual(call('get_issues.php', {'token': token}).json()[0]['approved'], '1')
+        self.receiver.wait(2)
+        time.sleep(0.5)
+        self.assertEqual(sql("SELECT COUNT(*) FROM obs_webhook_deliveries WHERE delivery_token = '%s' AND delivery_error = 'HTTP 500'" % token), '2')
+
+    def test_unreachable_endpoint_does_not_delay_the_answer(self):
+        hook = add_webhook('down', 'http://10.255.255.1/hook', body='{}')
+        try:
+            token = self.observation('Endpoint injoignable')
+            start = time.time()
+            self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+            self.assertLess(time.time() - start, 2, 'answer sent before the webhooks')
+        finally:
+            time.sleep(4)
+            sql("DELETE FROM obs_webhooks WHERE webhook_id = %s" % hook)
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()

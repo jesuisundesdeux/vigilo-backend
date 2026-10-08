@@ -53,6 +53,34 @@ CREATE TABLE IF NOT EXISTS `obs_notes` (
   KEY `note_obsid` (`note_obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Webhooks: HTTP calls to external services when an observation is published
+CREATE TABLE IF NOT EXISTS `obs_webhooks` (
+  `webhook_id` int(11) NOT NULL AUTO_INCREMENT,
+  `webhook_name` varchar(100) NOT NULL DEFAULT '',
+  `webhook_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `webhook_event` varchar(50) NOT NULL DEFAULT 'observation.approved',
+  `webhook_method` varchar(10) NOT NULL DEFAULT 'POST',
+  `webhook_url` varchar(1000) NOT NULL DEFAULT '',
+  `webhook_format` varchar(10) NOT NULL DEFAULT 'json',
+  `webhook_headers` text NOT NULL,
+  `webhook_body` text NOT NULL,
+  PRIMARY KEY (`webhook_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `obs_webhook_deliveries` (
+  `delivery_id` int(11) NOT NULL AUTO_INCREMENT,
+  `delivery_webhookid` int(11) NOT NULL,
+  `delivery_time` bigint(20) NOT NULL,
+  `delivery_event` varchar(50) NOT NULL DEFAULT '',
+  `delivery_token` varchar(30) NOT NULL DEFAULT '',
+  `delivery_http_code` int(11) NOT NULL DEFAULT 0,
+  `delivery_error` varchar(255) NOT NULL DEFAULT '',
+  `delivery_duration_ms` int(11) NOT NULL DEFAULT 0,
+  `delivery_response` varchar(500) NOT NULL DEFAULT '',
+  PRIMARY KEY (`delivery_id`),
+  KEY `delivery_webhookid` (`delivery_webhookid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- New settings (all keep the previous behaviour by default)
 -- Observations created per IP and per 10 minutes (0: no limit)
 INSERT IGNORE INTO obs_config (`config_param`,`config_value`) VALUES ('vigilo_ratelimit_create','60');

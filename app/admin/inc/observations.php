@@ -97,8 +97,14 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
       }
 
       delete_token_cache($token);
+      $approved_before = webhook_approval_state($db, $token);
       mysqli_query($db, "UPDATE obs_list SET obs_approved='" . $approveto . "' WHERE obs_id='" . $obsid . "'");
       audit_log('observation_approve', $token, array('approved' => $approveto));
+      foreach (webhooks_on_approval($db, $token, $approved_before, $approveto) as $hook_id => $delivery) {
+        if ($delivery[1] !== '') {
+          obsadmin_message($messages, 'warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec : ' . h($delivery[1]) . ' (voir la page Webhooks).');
+        }
+      }
       obsadmin_message($messages, 'success', 'Observation <strong>' . h($token) . '</strong> ' . ($approveto == 1 ? 'approuvée' : ($approveto == 2 ? 'désapprouvée' : 'remise à qualifier')));
     }
     elseif ($action == 'cleancache' && in_array($current_role, $actions_acl['cleancache']['access'])) {

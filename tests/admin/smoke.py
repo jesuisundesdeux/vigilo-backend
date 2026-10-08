@@ -83,7 +83,7 @@ def main():
     check(url.endswith('index.php'), 'admin login redirects to the admin')
     clean('dashboard', status, page)
 
-    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'settings', 'audit', 'update']
+    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'settings', 'webhooks', 'audit', 'update']
     for name in pages:
         status, _, page = admin.request('index.php?page=' + name)
         clean('page ' + name, status, page)
@@ -144,9 +144,31 @@ def main():
     clean('settings save', status, page)
     check('alert-success' in page, 'settings saved')
 
+    # Webhooks: invalid JSON refused, creation with the test button (endpoint down), deletion
+    status, _, page = admin.request('index.php?page=webhooks&edit=new')
+    clean('webhook form', status, page)
+    check('{{observation_url}}' in page, 'webhook variables listed')
+    hook = {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Test <b>hook</b>', 'webhook_enabled': '1',
+            'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/hook?t={{token}}', 'webhook_format': 'json',
+            'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}'}
+    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1'))
+    clean('webhook invalid JSON', status, page)
+    check('JSON valide' in page, 'webhook with an invalid JSON body refused')
+    hook['webhook_body'] = '{"comment": "{{comment}}", "lat": {{lat}}}'
+    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_test='1'))
+    clean('webhook save and test', status, page)
+    check('Test &lt;b&gt;hook&lt;/b&gt;' in page and 'enregistré' in page, 'webhook saved and escaped')
+    check('Test avec l' in page and 'Requête envoyée' in page, 'webhook test reported')
+    delete = [l for l in links(page, 'action=delete') if 'webhookid=' in l]
+    check(len(delete) == 1, 'webhook delete link')
+    if delete:
+        status, _, page = admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
+        clean('webhook delete', status, page)
+        check('supprimé' in page, 'webhook deleted')
+
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
@@ -160,7 +182,7 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
-    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes']:
+    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
     status, _, page = staff.request('index.php?page=observations&approved=1')

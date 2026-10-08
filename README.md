@@ -27,7 +27,7 @@ Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-ba
 
 | Document | Contenu |
 |---|---|
-| [Fonctionnement](doc/FONCTIONNEMENT.md) | Cycle d'une observation, statuts, scopes, rôles, photos, pixelisation et floutage |
+| [Fonctionnement](doc/FONCTIONNEMENT.md) | Cycle d'une observation, statuts, scopes, rôles, photos, pixelisation, floutage, webhooks |
 | [Installation](https://vigilo.city/fr/documentation/installation/) (vigilo.city) | Docker ou hébergement mutualisé, initialisation |
 | [Configuration](https://vigilo.city/fr/documentation/configuration/) (vigilo.city) | Réglages de l'instance, scopes, villes, référencement |
 | [Administration](https://vigilo.city/fr/documentation/administration/) (vigilo.city) | Panneau d'administration, rôles, modération |

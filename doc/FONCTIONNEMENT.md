@@ -44,3 +44,28 @@ Panneau d'administration et ajout de modérateurs : [guide d'administration](htt
   [SGBlur](https://github.com/cquest/sgblur), convient.
 
 Voir aussi le [glossaire](GLOSSAIRE.md) et l'[API REST](REST_API.md).
+
+## Webhooks
+
+À la publication d'une observation (passage à `approved = 1`, depuis l'admin ou `approve.php`), le backend appelle
+les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux administrateurs) :
+
+- **appel** : méthode (POST, PUT, PATCH, GET), URL, en-têtes (`Nom: valeur`, un par ligne) et corps ;
+- **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `token`,
+  `observation_url` (lien vers l'application web), `photo_url`, `comment`, `explanation`, `categorie`,
+  `categorie_name`, `address`, `cityname`, `scope`, `lat`, `lon`, `time` (timestamp), `date` (ISO 8601), `status`,
+  `instance_name`, `instance_url` ;
+- **échappement** selon l'emplacement : encodées dans l'URL et un corps « formulaire », échappées JSON dans un corps
+  JSON (écrire `"{{comment}}"` entre guillemets ; le corps est vérifié à l'enregistrement), sans saut de ligne dans
+  les en-têtes, telles quelles dans un corps texte ;
+- **envoi** : une seule fois par observation (pas de nouvel appel si elle est déjà publiée), en parallèle, après la
+  réponse à l'application, avec un délai maximal de 5 secondes (`VIGILO_WEBHOOK_TIMEOUT`) ; pas de nouvel essai
+  automatique. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
+  « Enregistrer et tester » envoie la requête avec la dernière observation publiée.
+
+Exemple de corps JSON :
+
+```json
+{"token": "{{token}}", "url": "{{observation_url}}", "photo": "{{photo_url}}",
+ "categorie": "{{categorie_name}}", "comment": "{{comment}}", "lat": {{lat}}, "lon": {{lon}}}
+```
