@@ -1,6 +1,31 @@
 Présentation API Vigilo
 ============
 
+## Vue d'ensemble
+
+Toutes les routes sont à la racine de l'instance, répondent en JSON (sauf images) avec
+`Access-Control-Allow-Origin: *` et l'en-tête `BACKEND_VERSION`. Erreurs :
+`{"error": {"status", "code", "message"}}` avec le code HTTP correspondant. Le détail de chaque route suit.
+
+| Route | Rôle | Authentification |
+|---|---|---|
+| `GET get_version.php` | Version du backend | — |
+| `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, partage) | — |
+| `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` pour les non approuvées |
+| `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur |
+| `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` | `secretid` de l'auteur ou `key` pour la version nette |
+| `GET mosaic.php` | Page HTML en mosaïque des photos d'un scope | — |
+| `GET acl.php?key=` | Rôle associé à une clé | `key` |
+| `POST create_issue.php` | Crée une observation (ou la modifie avec `token` + `key`) | anti-spam par IP |
+| `POST add_image.php?token=&secretid=` | Photo de l'observation (corps brut, ou `method=base64` en formulaire/JSON) ; `type=resolution` pour une résolution | `secretid` |
+| `GET approve.php?token=&key=` | Approuve (`approved=1`) ou refuse (`approved=2`) | `key` admin/modérateur |
+| `GET delete.php?token=` | Supprime une observation | `secretid` ou `key` |
+| `POST create_resolution.php` | Déclare la résolution d'observations (`tokenlist`) | anti-spam par IP |
+
+Workflow type d'une application : `create_issue.php` → `add_image.php` → (modération) → `get_issues.php`
+et `get_photo.php`. La compatibilité de ces réponses avec les applications existantes est vérifiée en CI
+(tests de contrat, voir plus bas).
+
 ## Sommaire
 
  - Workflows
@@ -26,7 +51,6 @@ Présentation API Vigilo
    - [Catégories](#catégories)
    - [Observations](#observations)
    - [Scope](#scope)
-   - [Statut](#statut)
  
        
        
@@ -94,7 +118,7 @@ ___
 
 ###### Retour
 
-JSON : Retourne les informations des [Catégories](#categories).
+JSON : Retourne les informations des [Catégories](#catégories).
 
 ___
 
@@ -227,7 +251,7 @@ Version backend >= 0.0.1
 
 ###### Retour
 
-JSON : Retourne la liste des [observations](#observation).
+JSON : Retourne la liste des [observations](#observations-2).
 
 ___
 
@@ -314,7 +338,7 @@ JSON : Retourne les informations d'identification de l'observation
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| bool | status | Retourne le [statut](#statut) de l'appel  | >= 0.0.1 / < 0.0.10 |
+| bool | status | Retourne le statut de l'appel  | >= 0.0.1 / < 0.0.10 |
 
 ___
 

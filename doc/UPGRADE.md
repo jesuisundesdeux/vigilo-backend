@@ -89,12 +89,7 @@ Pour développer avec le code du dépôt :
 
 ### Publier une version (mainteneurs)
 
-1. Mettre à jour `app/includes/version.php` et ajouter `app/migrations/init-X.Y.Z.sql`.
-2. Pousser le tag `vX.Y.Z` : le workflow « Release image » publie la release GitHub avec l'archive de mise à jour
-   (`scripts/build-release.sh`) et l'image Docker.
-3. Signature (recommandé) : `php scripts/release-keygen.php`, clé secrète dans le secret GitHub
-   `VIGILO_RELEASE_SIGNING_KEY`, clé publique dans `app/includes/release_key.php` (publiée avec une version).
-4. Docker Hub : secrets `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (sinon seulement ghcr.io).
+Voir le [guide du contributeur](GUIDE_CONTRIBUTION.md#publier-une-version).
 
 ## Mise à jour des versions antérieures à 0.0.22
 
