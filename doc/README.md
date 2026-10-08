@@ -1,9 +1,15 @@
-### Documentation Vigilo
+# Documentation du backend Vigilo
 
-Vigilo-Backend necessite soit :
-* Un serveur dédié sur lequel est installé Docker avec un reverse proxy permettant d'accéder au service Vigilo et de Offloader le SSL.
-* Un hébergement PHP/MySQL
+Présentation et démarrage rapide : [README](../README.md).
 
-L'ensemble de la documentation est disponiblez sur [Vigilo.city](https://vigilo.city/fr/documentation/)
+- [Fonctionnement](FONCTIONNEMENT.md) : observations, statuts, scopes, rôles, photos et floutage
+- [Installation](INSTALLATION.md) : Docker ou hébergement classique, configuration
+- [Administration](ADMINISTRATION.md)
+- [API REST](REST_API.md)
+- [Mises à jour](UPGRADE.md)
+- [Architecture](ARCHITECTURE.md) : code et base de données
+- [Guide du contributeur](GUIDE_CONTRIBUTION.md) : développement, tests, publication
+- [Glossaire](GLOSSAIRE.md)
+- [Serveur de floutage](../blur-server/README.md)
 
-
+Documentation utilisateur de Vigilo : [vigilo.city](https://vigilo.city/fr/documentation/).

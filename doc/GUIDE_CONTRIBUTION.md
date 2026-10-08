@@ -1,59 +1,60 @@
-### Guide du contributeur
+# Guide du contributeur
 
-#### Pré-requis
+## Prérequis
 
-##### Connaissances
+Vigilo-backend est développé en PHP procédural (compatible PHP 7.3 à 8.3, sans framework ni Composer) avec
+une base MySQL/MariaDB. L'organisation du code et le schéma de la base sont décrits dans
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
-Vigilo-backend est developpé en PHP avec base de données MySQL.
+## Environnement de développement
 
-##### Environemenrt de developpement
+```sh
+cp .env_sample .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build   # code de ./app monté
+```
 
-L'installaton de l'environnement de developpement est semblable à celui de la production installable avec la procédure [INSTALLATION.md](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/INSTALLATION.md)
+L'image est construite depuis le dépôt et le code de `app/` est monté dans le conteneur : les modifications
+sont prises en compte sans reconstruire. Voir [INSTALLATION.md](INSTALLATION.md) pour la mise en route
+(`install.php`, configuration).
 
-#### Fonctionnement
+## Branches et pull requests
 
-##### SCM 
+- `master` est la branche de développement ; chaque version est publiée par un tag `vX.Y.Z`.
+- Contributions par pull request depuis une branche (nom de la fonctionnalité) ou un fork ; la CI doit être verte.
+- Toute évolution du schéma passe par une migration `app/migrations/init-X.Y.Z.sql` (rejouable) et la version
+  dans `app/includes/version.php`.
+- Compatibilité : les réponses de l'API ne doivent pas changer pour les applications existantes (tests de contrat) ;
+  un changement voulu est déclaré dans `tests/api/expected_changes.json` et documenté dans [REST_API.md](REST_API.md).
 
-Sur ce projet, la branche *master* est utilisée comme branche de developpement. 
-Dés qu'elle est stabilisée, une branche de version (X.X.X) est à créer
+## Tests
 
-L'ajout des contributions sur la branche master se fait via une Pull Request :
- * soit à partir d'une branche spécifique (avec le nom de la feature)
- * soit à partir d'un fork du repo git
- 
-##### Organisation des sources
+Les tests tournent en CI (`.github/workflows/ci.yml`) et en local ([tests/README.md](../tests/README.md)) :
 
-Le repo est organisé comme suit :
+| Suite | Vérifie |
+|---|---|
+| Lint | Syntaxe PHP 7.3 et 8.3 |
+| Migrations | Installation neuve, rejeu, montée depuis chaque version, refus du retour arrière |
+| Contrat de l'API (`tests/api/run.sh`) | 72 requêtes : réponses identiques à la version précédente (PHP 8.3 et 7.3) |
+| Fonctionnels (`--functional`) | Comportement de chaque appel, modération, pixelisation, floutage, anti-spam, injections SQL |
+| Admin (`ADMIN_SMOKE=1`) | Toutes les pages et actions, CSRF, rôles, aucune erreur PHP |
+| Mise à jour (`tests/update/run.sh`) | Version signée installée, archive altérée refusée, migration cassée annulée |
+| Floutage (`blur-server/tests`, `tests/blur/compose.sh`) | Visages et plaques masqués, docker-compose de bout en bout |
 
-###### Docker
+## Publier une version
 
-L'application est installable soit comme une application PHP/MySQL classique soit via Docker/Docker-compose grace à l'arborescence suivante :
+1. Mettre à jour `app/includes/version.php`, ajouter `app/migrations/init-X.Y.Z.sql` et compléter le `CHANGELOG.md`.
+2. Pousser le tag `vX.Y.Z` : le workflow « Release image » (`.github/workflows/release.yml`) publie :
+   - la release GitHub avec l'archive de mise à jour (`scripts/build-release.sh`), `SHA256SUMS` et sa signature ;
+   - les images `vigilo-backend` (`X.Y.Z`, `X.Y`, `stable`, `latest`) et `vigilo-blur` (`X.Y.Z`, `X.Y`, `latest`),
+     multi-architecture, signées avec cosign, sur ghcr.io.
+3. Signature (recommandé) : `php scripts/release-keygen.php`, clé secrète dans le secret GitHub
+   `VIGILO_RELEASE_SIGNING_KEY`, clé publique dans `app/includes/release_key.php` (publiée avec une version).
+4. Docker Hub : secrets `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (dépôts `vigilobs/vigilo-backend` et
+   `vigilobs/vigilo-blur`) ; sans eux, les images ne sont publiées que sur ghcr.io.
+5. Code retiré d'une version : le lister dans `scripts/obsolete-paths.txt` pour que la mise à jour depuis
+   l'admin le supprime des instances.
 
-* *backup* est un repertoire destiné aux backups lors des mises en production
-* *config* configure l'application avec un fichier poussé via docker
-* *docker_images* : source des images docker personnalisées
-* .env* : fichiers de variables d'environnement chargés par docker
-* docker-compose.yml
+## Suivi
 
-Une installation automatisée et des tests unitaires complètent également le modèle sous Docker avec Makefile et Travis
-
-###### Vigilo-Backend App
-
-
-* *app* contient l'ensemble du code PHP. La version du code (liée à la version figée) est renseignée dans app/includes/common.php avec la variable BACKEND_VERSION
-* *mysql* contient les évolutions mysql necessaires pour les nouvelles versions
-
-##### Tracker
-
-Les bugs, reflexions ou features requests sont regroupés dans le tracker github accessible [ici](https://github.com/jesuisundesdeux/vigilo-backend/issues)
-
-Un slack est également disponible pour échanger de manière réactive (me contacter pour une invitation).
-
-Si vous êtes sur Montpellier et que vous souhaitez contribuer, n'hesitez pas à nous contacter, une présentation autour d'une bière est envisageable.
-Pour les autres villes, c'est aussi possible selon les contributeurs locaux présents.
-
-##### Roadmap
-
-Le projet étant encore au stade de conception, il est actuellement codé en mode Quick&Dirty (mais pas trop quand même !).
-
-Lorsque les spécifications seront stabilisées, une refactorisation sera envisagée en POO from scratch ou alors via l'utilisation d'un framework existant.
+Les bugs, réflexions et demandes de fonctionnalités sont dans le
+[tracker GitHub](https://github.com/jesuisundesdeux/vigilo-backend/issues).
