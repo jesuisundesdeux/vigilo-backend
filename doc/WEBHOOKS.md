@@ -11,6 +11,9 @@ Rappels :
 - dans un corps **JSON**, les variables de texte s'écrivent entre guillemets (`"{{comment}}"`) : leur valeur est
   échappée automatiquement ; `{{lat}}` et `{{lon}}` peuvent s'écrire sans guillemets (nombres) ;
 - dans un corps **formulaire**, les valeurs sont encodées automatiquement ;
+- la **Correspondance des catégories** du formulaire associe à chaque catégorie un code de l'outil appelé
+  (`{{categorie_code}}`) ; avec « N'envoyer que les observations des catégories qui ont un code », le webhook ne part
+  que pour ces catégories (exemple : [Open311](#ticketing-de-collectivité-open311)) ;
 - un webhook fait **une seule requête** : un service qui demande d'abord d'ouvrir une session (Bluesky, GLPI…) passe
   par un relais (voir [Bluesky](#bluesky)) ;
 - les jetons et mots de passe sont enregistrés en clair dans la base : utiliser des jetons dédiés, limités au strict

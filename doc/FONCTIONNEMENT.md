@@ -16,19 +16,22 @@ une **observation** avec une photo, une position, une adresse, une **catégorie*
    ville) mettent à jour les observations de leurs villes.
 
 Une instance peut couvrir plusieurs zones géographiques : les **scopes** (une agglomération, un département…),
-chacun avec ses limites, son centre de carte et son contact. Les catégories sont communes à toutes les
-instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)).
+chacun avec ses limites (rectangle hors duquel les observations sont refusées), son centre de carte et son contact.
+Les catégories nationales sont communes à toutes les instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)) ;
+chaque instance peut en désactiver et ajouter les siennes (voir [Catégories](#catégories)).
 
 ## Rôles
 
 | Rôle | Accès |
 |---|---|
-| `admin` | Tout : observations, résolutions, villes, comptes, scopes, réglages, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
+| `admin` | Tout : observations, résolutions, villes, comptes, scopes, catégories, réglages, webhooks, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
 | `moderator` | Modération (approbation, modification, suppression) depuis l'application web (mode admin) et par l'API, avec sa clé ; pas d'accès au panneau d'administration. |
-| `citystaff` | Observations et résolutions des villes associées au compte uniquement (statuts « prise en compte », « en cours »). |
+| `citystaff` | Panneau d'administration limité à l'accueil, aux observations et aux résolutions des villes associées au compte (statuts « prise en compte », « en cours »). |
 | `guest` | Compte sans droit (en attente d'attribution). |
 
-Chaque compte a une **clé API** (régénérable dans l'admin) passée en paramètre `key` aux appels qui le demandent.
+Chaque compte a une **clé API**, générée à sa création et régénérable dans l'admin (page **Comptes**), passée en
+paramètre `key` aux appels qui le demandent : c'est la clé que le modérateur saisit dans l'application web. Un compte
+sans login ne sert qu'avec sa clé.
 Panneau d'administration et ajout de modérateurs : [guide d'administration](https://vigilo.city/fr/documentation/administration/) sur vigilo.city.
 
 ## Catégories
@@ -36,8 +39,9 @@ Panneau d'administration et ajout de modérateurs : [guide d'administration](htt
 Les catégories nationales sont communes à toutes les instances ([vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf)).
 Dans l'admin (page **Catégories**), chaque instance peut en désactiver (elles ne sont plus proposées, les observations
 existantes gardent leur catégorie) et ajouter les siennes (numéros à partir de 1000, nom, nom anglais, couleur,
-résolvable). La liste de l'instance est publiée sur `get_categories.php`, que l'application web utilise ; les
-applications qui ne la lisent pas utilisent la liste nationale.
+résolvable, active) ; une catégorie de l'instance utilisée par des observations ne peut pas être supprimée, seulement
+désactivée. La liste de l'instance est publiée sur `get_categories.php` (format de `categorielist.json`), que
+l'application web utilise ; les applications qui ne la lisent pas utilisent la liste nationale.
 
 ## Photos, pixelisation et floutage
 
@@ -45,6 +49,9 @@ applications qui ne la lisent pas utilisent la liste nationale.
   (`.htaccess`) : elles passent par `get_photo.php`, `generate_panel.php` ou `admin/photo.php`.
 - Une photo non approuvée n'est servie au public que **pixelisée** ; le cache (`caches/`) ne contient que des
   images pixelisées. Une photo approuvée ne peut plus être remplacée par son auteur.
+- Une observation sans photo répond 404 (`PHOTONOTFOUND`) sur `get_photo.php` et `generate_panel.php` ; les
+  applications et l'admin affichent alors une image par défaut. `generate_panel.php` ne compose plus de panneau
+  depuis la 0.0.22 : il renvoie la photo, comme `get_photo.php`.
 - **Serveur de floutage** (optionnel, [`blur-server/`](../blur-server/README.md)) : s'il est configuré, chaque
   photo reçue lui est envoyée et remplacée par sa version où visages et plaques d'immatriculation sont
   masqués. S'il échoue, la photo est gardée telle qu'envoyée (journalisé, en-tête `X-Vigilo-Blur: failed`) :
@@ -69,8 +76,11 @@ les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux adm
   les en-têtes, telles quelles dans un corps texte ;
 - **envoi** : une seule fois par observation (pas de nouvel appel si elle est déjà publiée), en parallèle, après la
   réponse à l'application, avec un délai maximal de 5 secondes (`VIGILO_WEBHOOK_TIMEOUT`) ; pas de nouvel essai
-  automatique. Un webhook peut être limité aux catégories qui ont un code dans sa correspondance. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
-  « Enregistrer et tester » envoie la requête avec la dernière observation publiée.
+  automatique. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
+  « Enregistrer et tester » envoie la requête avec la dernière observation publiée ;
+- **correspondance des catégories** : pour chaque catégorie, le code attendu par l'outil appelé (par exemple le
+  `service_code` Open311), disponible dans `{{categorie_code}}` ; avec l'option « N'envoyer que les observations des
+  catégories qui ont un code », les autres observations ne déclenchent pas ce webhook.
 
 Le menu **Modèle** du formulaire préremplit les champs pour Mastodon, Slack / Mattermost, Discord, Bluesky, Open311 et
 Redmine (détails dans [WEBHOOKS.md](WEBHOOKS.md)), ou les vide.
