@@ -213,7 +213,7 @@ quels dans le SQL** (code ancien) ; l'appelant doit les avoir échappés ou conv
 | `updateResolution($fields, $resid)` | Met à jour `resolution_comment`, `resolution_time`, `resolution_status` (seules clés retenues). Passer au statut 1 (résolue) lève une `Exception` si la date est 0 ou si une des observations figure dans plusieurs résolutions. Vide le cache des observations liées. |
 | `getResolutionObservations($resid)`, `getDuplicateObsIdsInResolutions()` | Observations d'une résolution ; observations présentes dans plusieurs résolutions. |
 | `flushImagesCacheResolution($resid)` | `delete_token_cache` de chaque observation de la résolution. |
-| `getResolutionStatus($obsid)` | Code mort. |
+| `getResolutionStatus($obsid)` | Statut le plus avancé des résolutions de l'observation (0 sans résolution) ; badge de la page Observations de l'admin (Résolue, Indiquée résolue, En cours de résolution, Prise en compte). |
 
 ### 2.4 `security.php`
 
@@ -365,8 +365,9 @@ Construction de la requête (`getQuery()`) :
 - `cityid` : `obs_city = …` ;
 - masquage des observations résolues depuis plus de `vigilo_resolved_hide_days` jours (sauf clé admin/modérateur),
   d'après `resolution_status = 1` et `resolution_time` ;
-- jointures `LEFT JOIN obs_cities`, `obs_resolutions_tokens`, `obs_resolutions` ; le **statut renvoyé est
-  `resolution_status`** (0 sans résolution), pas la colonne `obs_status` ;
+- jointures `LEFT JOIN obs_cities` et sous-requête `obs_res` (une ligne par observation : `MAX` du rang du statut
+  de ses résolutions, date de sa résolution résolue) ; le **statut renvoyé est le plus avancé de ses résolutions**
+  (0 sans résolution), pas la colonne `obs_status` ;
 - `ORDER BY obs_time DESC`, puis `LIMIT count` si `count` est fourni.
 
 `setApproved($value)` : avec une clé admin/modérateur, toute valeur ; sinon `0` seulement si
@@ -546,7 +547,10 @@ Trois notions indépendantes :
   `vigilo_shownonapproved`) et la pixelisation des photos ;
 - **statut de suivi** : il est porté par la **résolution** liée (`obs_resolutions.resolution_status`), et non par
   `obs_list.obs_status`, qui est écrit à 0 à la création et n'est plus jamais modifié. `get_issues.php` renvoie
-  `COALESCE(resolution_status, 0)`.
+  le statut le plus avancé des résolutions de l'observation (0 sans résolution) : une observation liée à plusieurs
+  résolutions (par exemple une résolution validée et une autre envoyée ensuite depuis l'application) n'apparaît
+  qu'une fois. Ordre : 1 résolue > 4 indiquée résolue > 3 en cours > 2 prise en compte (`resolution_rank_sql()`,
+  `resolution_status_from_rank()` de `functions.php`).
 
 Statuts (`$status_list` de `common.php`) :
 
@@ -1095,7 +1099,7 @@ compatibilité** (les tests de contrat les figent) ; les autres sont des défaut
   l'application).
 - `$acls` charge toute la table `obs_roles` à chaque requête ; `sameas()` et le contrôle « observations sans villes »
   de la page Observations parcourent toutes les observations en PHP. Acceptable pour la taille des instances actuelles.
-- Code mort : `generategroups()`, `get_data_from_gps_coordinates()`, `isScopeExists()`, `getResolutionStatus()` ;
+- Code mort : `generategroups()`, `get_data_from_gps_coordinates()`, `isScopeExists()` ;
   colonne `obs_list.obs_status` ; `$_POST['token']` de `create_resolution.php` (mise à jour non implémentée).
 - Répertoires et fichiers hors de `app/` non utilisés par l'image ni par la CI : `debug/`, `docker_backup/`,
   `scripts/umap/`, `config/montpellier.sh`, `mysql/populate/`. `mysql/pre_sql.sql` est utilisé par le job

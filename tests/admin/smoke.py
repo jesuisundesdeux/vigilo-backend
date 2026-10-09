@@ -127,6 +127,13 @@ def main():
         status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0002')
         check('TOKA0002' in page, 'TOKA0002 is approved')
 
+    # Resolution status of an observation (TOKA0007: resolved, TOKA0003: reported resolved, to validate)
+    status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
+    clean('observation TOKA0007', status, page)
+    check('Résolue</span>' in page and 'En résolution' not in page, 'resolved observation shown as resolved')
+    status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0003')
+    check('Indiquée résolue</span>' in page, 'observation reported resolved shown as such')
+
     # Moderator note on TOKA0001 (#266)
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0001')
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0001',

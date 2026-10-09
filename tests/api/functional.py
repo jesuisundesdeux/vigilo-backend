@@ -432,6 +432,21 @@ class T06Resolutions(unittest.TestCase):
                      "WHERE r.resolution_token = '%s'" % res['token'])
         self.assertEqual(linked, '1', 'unknown tokens are not linked')
 
+    def test_observation_in_several_resolutions(self):
+        # TOKA0007 is resolved (resolution R_RES00001, status 1); a new resolution from the application (status 4)
+        # must neither duplicate it in get_issues.php nor hide its resolved status
+        r = call('create_resolution.php', form={'tokenlist': 'TOKA0007', 'time': '1700000400000', 'comment': 'Encore ?'})
+        self.assertEqual(r.status, 200, r.text)
+        try:
+            issues = [i for i in call('get_issues.php').json() if i['token'] == 'TOKA0007']
+            self.assertEqual([i['status'] for i in issues], [1], 'one row, most advanced status')
+            self.assertEqual([i['token'] for i in call('get_issues.php', {'status': '1'}).json()].count('TOKA0007'), 1)
+            self.assertNotIn('TOKA0007', [i['token'] for i in call('get_issues.php', {'status': '4'}).json()])
+        finally:
+            sql("DELETE t FROM obs_resolutions_tokens t JOIN obs_resolutions r ON r.resolution_id = t.restok_resolutionid "
+                "WHERE r.resolution_token = '%s'" % r.json()['token'])
+            sql("DELETE FROM obs_resolutions WHERE resolution_token = '%s'" % r.json()['token'])
+
     def test_resolution_validation(self):
         r = call('create_resolution.php', form={'comment': 'x'})
         self.assertEqual((r.status, r.json()['error']['code']), (400, 'PARAMNOTDEFINED'))

@@ -262,14 +262,14 @@ function isResolutionTokenExists($resolution_token)
 function getResolutionStatus($obsid)
 {
     global $db;
-    $resolution_status_query  = mysqli_query($db, "SELECT resolution_status 
-                                                                                                                         FROM obs_resolutions 
-                                                                                                                         LEFT JOIN obs_resolutions_tokens 
-                                                                                                                         ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
-                                                                                                                         WHERE restok_observationid = '" . $obsid . "' LIMIT 1");
-    $resolution_status_result = mysqli_fetch_array($resolution_status_query);
-    $resolution_status        = (isset($resolution_status_result['resolution_status'])) ? $resolution_status_result['resolution_status'] : 0;
-    return $resolution_status;
+    // Most advanced status among the resolutions of the observation (see resolution_rank_sql())
+    $resolution_status_query  = mysqli_query($db, "SELECT MAX(" . resolution_rank_sql('resolution_status') . ") resolution_rank
+                                                   FROM obs_resolutions
+                                                   INNER JOIN obs_resolutions_tokens
+                                                   ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid
+                                                   WHERE restok_observationid = '" . intval($obsid) . "'");
+    $resolution_status_result = $resolution_status_query ? mysqli_fetch_array($resolution_status_query) : null;
+    return resolution_status_from_rank($resolution_status_result ? $resolution_status_result['resolution_rank'] : 0);
 }
 
 function getResolutionObservations($resolutionid) {

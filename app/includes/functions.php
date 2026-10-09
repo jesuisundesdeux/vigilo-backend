@@ -64,6 +64,22 @@ function get_data_from_gps_coordinates($lat, $lon)
     return $resp;
 }
 
+/*
+ * Status of an observation linked to several resolutions: the most advanced one wins
+ * (1 resolved > 4 reported resolved > 3 in progress > 2 taken into account; 0 without resolution).
+ * resolution_rank_sql() ranks a resolution status (to aggregate with MAX()), resolution_status_from_rank() decodes it.
+ */
+function resolution_rank_sql($column)
+{
+    return "CASE " . $column . " WHEN 1 THEN 4 WHEN 4 THEN 3 WHEN 3 THEN 2 WHEN 2 THEN 1 ELSE 0 END";
+}
+
+function resolution_status_from_rank($rank)
+{
+    $statuses = array(0 => 0, 1 => 2, 2 => 3, 3 => 4, 4 => 1);
+    return isset($statuses[intval($rank)]) ? $statuses[intval($rank)] : 0;
+}
+
 function delete_token_cache($token)
 {
     global $config;

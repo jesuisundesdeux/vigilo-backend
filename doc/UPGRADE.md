@@ -115,6 +115,8 @@ Aucune action manuelle ni migration de base :
 - nouvelles variables de webhook `{{photo_full_url}}` (lien signé vers la photo d'origine pour les modérateurs),
   `{{event_label}}` et `{{event_description}}` (description de l'action), voir le CHANGELOG ;
 - `{{photo_url}}` change à l'approbation (paramètre `v`) : Slack n'affiche plus la photo pixelisée gardée en cache ;
+- une observation liée à plusieurs résolutions n'apparaît plus qu'une fois dans `get_issues.php`, avec le statut le
+  plus avancé (une observation résolue n'est plus affichée « en résolution ») ;
 - `mosaic.php` est supprimée (la mise à jour depuis l'admin retire le fichier) : l'application web affiche elle-même
   les observations similaires.
 

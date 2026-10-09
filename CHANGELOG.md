@@ -7,6 +7,14 @@
   l'application web (1.14.0) affiche elle-même les observations similaires dans la fiche d'une observation (mêmes
   règles : même catégorie, à moins de 300 m ou à la même adresse). La recherche « Similaires » de l'admin est inchangée.
 
+### Observations liées à plusieurs résolutions
+- `get_issues.php` renvoyait une entrée par résolution : une observation résolue qui figurait aussi dans une
+  résolution plus récente (envoyée depuis l'application, « indiquée résolue ») apparaissait en double et pouvait être
+  affichée « en résolution ». Une seule entrée, avec le statut le plus avancé (résolue > indiquée résolue > en cours >
+  prise en compte) ; le masquage des anciennes observations résolues (`vigilo_resolved_hide_days`) suit la même règle.
+- Admin, page Observations : le badge « En résolution » affiche l'état réel (Résolue, Indiquée résolue, En cours de
+  résolution, Prise en compte).
+
 ### Webhooks : description de l'action
 - Variables `{{event_label}}` (nom de l'événement, comme dans l'admin) et `{{event_description}}` (l'action en une
   phrase : « Observation ABCD1234 publiée : Véhicule ou objet gênant, Rue de la Gare (Montpellier). », « Résolution
