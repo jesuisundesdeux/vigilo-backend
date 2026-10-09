@@ -800,8 +800,9 @@ foreach ($observations as $result_obs) {
     $highlight_city = "table-info";
   }
 
-  $obsinresolution_query = mysqli_query($db, "SELECT restok_observationid FROM obs_resolutions_tokens WHERE restok_observationid='" . $obs_id . "' LIMIT 1");
-  $in_resolution = ($obsinresolution_query && mysqli_num_rows($obsinresolution_query) > 0);
+  // Most advanced status among the resolutions of the observation (0: in none)
+  $resolution_status = intval(getResolutionStatus($obs_id));
+  $in_resolution = ($resolution_status > 0);
 
   // Photos through the admin: never pixelated for moderators
   $panel_base = 'photo.php';
@@ -817,7 +818,15 @@ foreach ($observations as $result_obs) {
           <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
           <?php } ?>
           <code><?= h($obs_token) ?></code>
-          <?php if ($in_resolution) { ?><br /><span class="badge text-bg-success mt-1"><i class="bi bi-check2-circle"></i> En résolution</span><?php } ?>
+          <?php if ($in_resolution) {
+            $resolution_badges = array(
+              1 => array('text-bg-success', 'bi-check2-all', 'Résolue'),
+              4 => array('text-bg-info', 'bi-check2-circle', 'Indiquée résolue'),
+              3 => array('text-bg-warning', 'bi-hourglass-split', 'En cours de résolution'),
+              2 => array('text-bg-secondary', 'bi-info-circle', 'Prise en compte'),
+            );
+            $badge = isset($resolution_badges[$resolution_status]) ? $resolution_badges[$resolution_status] : $resolution_badges[2];
+          ?><br /><span class="badge <?= h($badge[0]) ?> mt-1"><i class="bi <?= h($badge[1]) ?>"></i> <?= h($badge[2]) ?></span><?php } ?>
         </td>
         <td>
           <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" data-photo data-photo-title="Observation <?= h($obs_token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>

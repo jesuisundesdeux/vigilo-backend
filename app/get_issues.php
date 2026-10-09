@@ -273,10 +273,12 @@ class GetIssues
 
     $hide_days = $this->resolvedHideDays();
     if ($hide_days > 0) {
-      $where .= " AND NOT (COALESCE(obs_resolutions.resolution_status,0) = 1 AND obs_resolutions.resolution_time > 0 AND obs_resolutions.resolution_time < " . (time() - $hide_days * 86400) . ")";
+      $where .= " AND NOT (COALESCE(obs_res.resolution_rank,0) = 4 AND obs_res.resolved_time > 0 AND obs_res.resolved_time < " . (time() - $hide_days * 86400) . ")";
     }
     $limit = $this->getLimitQuery($this->count, $this->offset);
 
+    // obs_res: one row per observation, even when it is linked to several resolutions (the most advanced status
+    // wins, see resolution_rank_sql()); resolved_time: date of its resolved resolution, to hide the old ones
     $query = "SELECT obs_id,
     obs_token,
     obs_city,
@@ -291,11 +293,17 @@ class GetIssues
     obs_status,
     obs_categorie,
     obs_approved,
-    COALESCE(obs_resolutions.resolution_status,0) resolution_status
+    COALESCE(obs_res.resolution_rank,0) resolution_rank
     FROM obs_list
      LEFT JOIN obs_cities ON obs_list.obs_city = obs_cities.city_id 
-     LEFT JOIN obs_resolutions_tokens ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid 
-     LEFT JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid 
+     LEFT JOIN (
+       SELECT obs_resolutions_tokens.restok_observationid,
+              MAX(" . resolution_rank_sql('obs_resolutions.resolution_status') . ") resolution_rank,
+              MAX(CASE WHEN obs_resolutions.resolution_status = 1 THEN obs_resolutions.resolution_time ELSE 0 END) resolved_time
+       FROM obs_resolutions_tokens
+       INNER JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid
+       GROUP BY obs_resolutions_tokens.restok_observationid
+     ) obs_res ON obs_list.obs_id = obs_res.restok_observationid
     WHERE obs_complete=1
 " . $where . "
 ORDER BY obs_time DESC
@@ -318,7 +326,7 @@ ORDER BY obs_time DESC
       $rquery = mysqli_query($this->db, $this->getQuery());
       if (mysqli_num_rows($rquery) > 0) {
         while ($result = mysqli_fetch_array($rquery)) {
-          $resolution_status = (int) $result['resolution_status'];
+          $resolution_status = resolution_status_from_rank($result['resolution_rank']);
           if ($this->status > -1 && $this->status != $resolution_status) {
             continue;
           }		  
