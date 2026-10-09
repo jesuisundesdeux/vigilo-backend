@@ -151,7 +151,10 @@ def main():
     check('{{observation_url}}' in page, 'webhook variables listed')
     hook = {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Test <b>hook</b>', 'webhook_enabled': '1',
             'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/hook?t={{token}}', 'webhook_format': 'json',
-            'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}'}
+            'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}',
+            'webhook_events[]': ['observation.approved', 'resolution.status_changed']}
+    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1', **{'webhook_events[]': []}))
+    check('au moins un événement' in page, 'webhook without event refused')
     status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1'))
     clean('webhook invalid JSON', status, page)
     check('JSON valide' in page, 'webhook with an invalid JSON body refused')
@@ -159,7 +162,8 @@ def main():
     status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_test='1'))
     clean('webhook save and test', status, page)
     check('Test &lt;b&gt;hook&lt;/b&gt;' in page and 'enregistré' in page, 'webhook saved and escaped')
-    check('Test avec l' in page and 'Requête envoyée' in page, 'webhook test reported')
+    check("Test de l'événement <code>observation.approved</code>" in page and 'Requête envoyée' in page, 'webhook test reported')
+    check('resolution.status_changed</span>' in page, 'events of the webhook listed')
     delete = [l for l in links(page, 'action=delete') if 'webhookid=' in l]
     check(len(delete) == 1, 'webhook delete link')
     if delete:
@@ -181,8 +185,9 @@ def main():
             'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': name, 'webhook_enabled': '1',
             'webhook_method': template['method'], 'webhook_url': template['url'] or 'https://example.org/hook',
             'webhook_format': template['format'], 'webhook_headers': template['headers'], 'webhook_body': template['body'],
-            'webhook_save': '1'})
-        check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted' % key)
+            'webhook_save': '1', 'webhook_events[]': ['observation.created', 'observation.approved', 'observation.disapproved',
+                                                       'resolution.created', 'resolution.status_changed']})
+        check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted for every event' % key)
 
     # Scopes: identifier checked when it changes, legacy identifier still editable
     status, _, page = admin.request('index.php?page=scopes')

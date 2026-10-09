@@ -58,7 +58,7 @@ $webhook_templates = array(
                 . "    \"description\": \"{{comment}}\\n\\n{{explanation}}\\n\\nAdresse : {{address}}, {{cityname}}\\nPosition : {{lat}}, {{lon}}\\nDate : {{date}}\\n\\nObservation : {{observation_url}}\\nPhoto : {{photo_url}}\"\n  }\n}"),
 );
 
-$empty_hook = array('webhook_id' => 0, 'webhook_name' => '', 'webhook_enabled' => 1, 'webhook_method' => 'POST',
+$empty_hook = array('webhook_id' => 0, 'webhook_name' => '', 'webhook_enabled' => 1, 'webhook_event' => VIGILO_WEBHOOK_EVENT_APPROVED, 'webhook_method' => 'POST',
                     'webhook_url' => '', 'webhook_format' => 'json', 'webhook_headers' => '', 'webhook_body' => $webhook_templates['json']['body']);
 
 function webhook_admin_load($db, $id)
@@ -67,18 +67,30 @@ function webhook_admin_load($db, $id)
     return $query ? mysqli_fetch_assoc($query) : null;
 }
 
-/* Values used to test a webhook: the last published observation, or an example */
-function webhook_admin_test_values($db)
+/*
+ * Values used to test a webhook for an event: the last resolution for the resolution
+ * events, else the last published observation, or an example
+ */
+function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
 {
-    $query = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_approved = 1 AND obs_complete = 1 ORDER BY obs_time DESC LIMIT 1");
-    $row   = $query ? mysqli_fetch_assoc($query) : null;
-    $values = $row ? webhook_observation_values($db, $row['obs_token']) : null;
+    $values = null;
+    if (strpos($event, 'resolution.') === 0) {
+        $query  = mysqli_query($db, "SELECT resolution_id, resolution_status FROM obs_resolutions ORDER BY resolution_id DESC LIMIT 1");
+        $row    = $query ? mysqli_fetch_assoc($query) : null;
+        $values = $row ? webhook_resolution_values($db, $row['resolution_id'], $event, $event == VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS ? 2 : null) : null;
+    }
     if (!$values) {
-        $values = array('event' => VIGILO_WEBHOOK_EVENT_APPROVED, 'token' => 'EXEMPLE1', 'observation_url' => 'https://app.vigilo.city/?token=EXEMPLE1',
+        $query  = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_approved = 1 AND obs_complete = 1 ORDER BY obs_time DESC LIMIT 1");
+        $row    = $query ? mysqli_fetch_assoc($query) : null;
+        $values = $row ? webhook_observation_values($db, $row['obs_token'], $event) : null;
+    }
+    if (!$values) {
+        $values = array_fill_keys(array_keys(webhook_variables()), '');
+        $values = array_merge($values, array('event' => $event, 'token' => 'EXEMPLE1', 'observation_url' => 'https://app.vigilo.city/?token=EXEMPLE1',
                         'photo_url' => '', 'comment' => 'Voiture "garée" sur la piste', 'explanation' => '', 'categorie' => '2',
                         'categorie_name' => 'Stationnement', 'address' => '1 rue de l\'Exemple', 'cityname' => 'Exempleville', 'scope' => '',
                         'lat' => '43.6', 'lon' => '3.88', 'time' => (string) time(), 'date' => date('c'), 'status' => '0',
-                        'instance_name' => '', 'instance_url' => '');
+                        'approved' => '1', 'instance_name' => '', 'instance_url' => ''));
     }
     return $values;
 }
@@ -108,6 +120,16 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         'webhook_body'    => isset($_POST['webhook_body']) ? str_replace("\r\n", "\n", (string) $_POST['webhook_body']) : '',
         'webhook_category_only' => !empty($_POST['webhook_category_only']) ? 1 : 0,
     );
+    // Events: only the known ones
+    $events = array();
+    if (isset($_POST['webhook_events']) && is_array($_POST['webhook_events'])) {
+        foreach (array_keys(webhook_events()) as $event) {
+            if (in_array($event, $_POST['webhook_events'], true)) {
+                $events[] = $event;
+            }
+        }
+    }
+    $edit['webhook_event'] = implode(',', $events);
     // Correspondence of the categories: only the filled codes are kept
     $map = array();
     if (isset($_POST['category_map']) && is_array($_POST['category_map'])) {
@@ -119,6 +141,9 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
     }
     $edit['webhook_category_map'] = json_encode($map, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT);
     $errors = array();
+    if (empty($events)) {
+        $errors[] = 'Choisir au moins un événement.';
+    }
     if ($edit['webhook_name'] === '' || strlen($edit['webhook_name']) > 100) {
         $errors[] = 'Le nom est obligatoire (100 caractères au plus).';
     }
@@ -129,9 +154,13 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         $errors[] = 'En-têtes ou corps trop longs.';
     }
     if ($edit['webhook_format'] == 'json' && $edit['webhook_method'] != 'GET' && trim($edit['webhook_body']) !== '') {
-        $sample = webhook_admin_test_values($db);
-        json_decode(webhook_render($edit['webhook_body'], $sample, 'json'));
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        $invalid = false;
+        foreach ($events ? $events : array(VIGILO_WEBHOOK_EVENT_APPROVED) as $event) {
+            $sample = webhook_admin_test_values($db, $event);
+            json_decode(webhook_render($edit['webhook_body'], $sample, 'json'));
+            $invalid = $invalid || json_last_error() !== JSON_ERROR_NONE;
+        }
+        if ($invalid) {
             $errors[] = 'Le corps ne donne pas un JSON valide une fois les variables remplacées (mettre les variables de texte entre guillemets : "{{comment}}").';
         }
     }
@@ -140,7 +169,7 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         $messages[] = array('danger', 'Webhook non enregistré :<ul class="mb-0"><li>' . implode('</li><li>', array_map('h', $errors)) . '</li></ul>');
     } else {
         $fields = array();
-        foreach (array('webhook_name', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body', 'webhook_category_map') as $field) {
+        foreach (array('webhook_name', 'webhook_event', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body', 'webhook_category_map') as $field) {
             $fields[$field] = "'" . mysqli_real_escape_string($db, $edit[$field]) . "'";
         }
         $fields['webhook_enabled'] = intval($edit['webhook_enabled']);
@@ -151,22 +180,23 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
                 $sets[] = $field . ' = ' . $value;
             }
             $ok = mysqli_query($db, "UPDATE obs_webhooks SET " . implode(', ', $sets) . " WHERE webhook_id = " . intval($edit['webhook_id']));
-            audit_log('webhook_edit', 'webhook:' . intval($edit['webhook_id']), array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'enabled' => $edit['webhook_enabled']));
+            audit_log('webhook_edit', 'webhook:' . intval($edit['webhook_id']), array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'enabled' => $edit['webhook_enabled'], 'events' => $edit['webhook_event']));
         } else {
-            $ok = mysqli_query($db, "INSERT INTO obs_webhooks (" . implode(', ', array_keys($fields)) . ", webhook_event) VALUES (" . implode(', ', $fields) . ", '" . VIGILO_WEBHOOK_EVENT_APPROVED . "')");
+            $ok = mysqli_query($db, "INSERT INTO obs_webhooks (" . implode(', ', array_keys($fields)) . ") VALUES (" . implode(', ', $fields) . ")");
             $edit['webhook_id'] = intval(mysqli_insert_id($db));
-            audit_log('webhook_create', 'webhook:' . $edit['webhook_id'], array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url']));
+            audit_log('webhook_create', 'webhook:' . $edit['webhook_id'], array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'events' => $edit['webhook_event']));
         }
         if ($ok) {
             $messages[] = array('success', 'Webhook <strong>' . h($edit['webhook_name']) . '</strong> enregistré.');
             if (isset($_POST['webhook_test'])) {
-                $values  = webhook_admin_test_values($db);
+                $values  = webhook_admin_test_values($db, $events[0]);
                 $request = webhook_build_request($edit, $values);
                 $hook    = webhook_admin_load($db, $edit['webhook_id']);
                 $result  = webhooks_deliver($db, array($hook), $values);
                 $result  = isset($result[$edit['webhook_id']]) ? $result[$edit['webhook_id']] : array(0, 'non envoyé', 0, '');
                 $level   = $result[1] === '' ? 'success' : 'danger';
-                $messages[] = array($level, 'Test avec l\'observation <strong>' . h($values['token']) . '</strong> : '
+                $messages[] = array($level, 'Test de l\'événement <code>' . h($values['event']) . '</code> avec '
+                    . ($values['resolution_token'] !== '' ? 'la résolution <strong>' . h($values['resolution_token']) . '</strong>' : 'l\'observation <strong>' . h($values['token']) . '</strong>') . ' : '
                     . ($result[1] === '' ? 'HTTP ' . intval($result[0]) : h($result[1])) . ' en ' . intval($result[2]) . ' ms.'
                     . '<details class="mt-2"><summary>Requête envoyée</summary><pre class="small mb-0 mt-2">'
                     . h($request['method'] . ' ' . $request['url'] . "\n" . implode("\n", $request['headers']) . "\n\n" . $request['body'])
@@ -205,9 +235,9 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
   </div>
   <div class="card-body pb-0">
     <p class="small text-body-secondary">
-      À chaque publication d'une observation (validation par un modérateur, depuis l'admin ou l'application), chaque webhook
-      actif appelle son adresse avec les en-têtes et le corps définis ci-dessous, où les <code>{{variables}}</code> sont
-      remplacées par les champs de l'observation. Les appels sont faits en parallèle (5 secondes au plus) ; un échec
+      À chaque événement choisi (nouvelle observation, publication ou refus d'une observation, nouvelle résolution,
+      changement d'état d'une résolution), chaque webhook actif appelle son adresse avec les en-têtes et le corps définis,
+      où les <code>{{variables}}</code> sont remplacées par les champs de l'observation ou de la résolution. Les appels sont faits en parallèle (5 secondes au plus) ; un échec
       n'empêche pas la publication et apparaît dans le journal ci-dessous.
       <a href="https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/WEBHOOKS.md" target="_blank" rel="noopener noreferrer">Exemples : Mastodon, Slack, Bluesky, ticketing de collectivité <i class="bi bi-box-arrow-up-right"></i></a>
     </p>
@@ -218,13 +248,14 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin mb-0">
       <thead>
-        <tr><th scope="col">Nom</th><th scope="col">Appel</th><th scope="col">État</th><th scope="col">Dernier envoi</th><th scope="col"></th></tr>
+        <tr><th scope="col">Nom</th><th scope="col">Événements</th><th scope="col">Appel</th><th scope="col">État</th><th scope="col">Dernier envoi</th><th scope="col"></th></tr>
       </thead>
       <tbody>
       <?php foreach ($hooks as $hook) {
         $last = $hook['last_delivery'] ? explode('|', $hook['last_delivery'], 3) : null; ?>
         <tr>
           <td class="fw-semibold"><?= h($hook['webhook_name']) ?></td>
+          <td class="small"><?php foreach (webhook_hook_events($hook) as $event) { ?><span class="badge text-bg-light border me-1" title="<?= h(webhook_events()[$event]) ?>"><?= h($event) ?></span><?php } ?></td>
           <td class="text-break small"><span class="badge text-bg-secondary"><?= h($hook['webhook_method']) ?></span> <?= h($hook['webhook_url']) ?></td>
           <td><?= $hook['webhook_enabled'] ? '<span class="badge text-bg-success">Actif</span>' : '<span class="badge text-bg-secondary">Désactivé</span>' ?></td>
           <td class="small">
@@ -276,6 +307,18 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
               <input class="form-check-input" type="checkbox" role="switch" id="webhook_enabled" name="webhook_enabled" value="1"<?= $edit['webhook_enabled'] ? ' checked' : '' ?>>
               <label class="form-check-label" for="webhook_enabled">Actif</label>
             </div>
+          </div>
+          <div class="col-12">
+            <fieldset>
+              <legend class="form-label fs-6 mb-1">Événements</legend>
+              <?php $hook_events = webhook_hook_events($edit);
+              foreach (webhook_events() as $event => $label) { ?>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="webhook_events[]" id="event_<?= h(str_replace('.', '_', $event)) ?>" value="<?= h($event) ?>"<?= in_array($event, $hook_events, true) ? ' checked' : '' ?>>
+                <label class="form-check-label" for="event_<?= h(str_replace('.', '_', $event)) ?>"><?= h($label) ?> <code class="small"><?= h($event) ?></code></label>
+              </div>
+              <?php } ?>
+            </fieldset>
           </div>
           <div class="col-md-3">
             <label class="form-label" for="webhook_method">Méthode</label>
@@ -355,8 +398,9 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
         </table>
       </div>
       <div class="card-body small text-body-secondary">
-        Utilisables dans l'URL, les en-têtes et le corps. « Enregistrer et tester » envoie la requête avec la dernière
-        observation publiée.
+        Utilisables dans l'URL, les en-têtes et le corps. Pour les événements de résolution, les variables de
+        l'observation sont celles de sa première observation. « Enregistrer et tester » envoie la requête du premier
+        événement coché avec la dernière observation publiée (ou la dernière résolution).
       </div>
     </div>
   </div>
@@ -404,12 +448,13 @@ if ($deliveries) { ?>
   <div class="card-header fw-semibold"><i class="bi bi-journal-text"></i> Derniers envois</div>
   <div class="table-responsive">
     <table class="table table-sm table-hover align-middle mb-0 small">
-      <thead><tr><th scope="col">Date</th><th scope="col">Webhook</th><th scope="col">Observation</th><th scope="col">Résultat</th><th scope="col">Durée</th><th scope="col">Réponse</th></tr></thead>
+      <thead><tr><th scope="col">Date</th><th scope="col">Webhook</th><th scope="col">Événement</th><th scope="col">Observation / résolution</th><th scope="col">Résultat</th><th scope="col">Durée</th><th scope="col">Réponse</th></tr></thead>
       <tbody>
       <?php foreach ($deliveries as $delivery) { ?>
         <tr>
           <td class="text-nowrap"><?= h(date('d/m/Y H:i:s', intval($delivery['delivery_time']))) ?></td>
           <td><?= h($delivery['webhook_name'] !== null ? $delivery['webhook_name'] : '#' . $delivery['delivery_webhookid']) ?></td>
+          <td class="font-monospace"><?= h($delivery['delivery_event']) ?></td>
           <td class="font-monospace"><?= h($delivery['delivery_token']) ?></td>
           <td><?= $delivery['delivery_error'] === '' ? '<span class="badge text-bg-success">HTTP ' . h($delivery['delivery_http_code']) . '</span>' : '<span class="badge text-bg-danger">' . h($delivery['delivery_error']) . '</span>' ?></td>
           <td class="text-nowrap"><?= intval($delivery['delivery_duration_ms']) ?> ms</td>

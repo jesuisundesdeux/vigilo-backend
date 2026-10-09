@@ -128,7 +128,19 @@ function resolutionSetStatus($resolutionid, $new_status)
         return $e->getMessage();
     }
     audit_log('resolution_status', 'resolution:' . intval($resolutionid), 'new_status:' . intval($new_status));
+    resolutionStatusWebhooks($resolutionid, $current, $new_status);
     return '';
+}
+
+/* Webhooks of a change of status (resolution.status_changed); failures are shown */
+function resolutionStatusWebhooks($resolutionid, $before, $after)
+{
+    global $db;
+    foreach (webhooks_on_resolution_status($db, $resolutionid, $before, $after) as $hook_id => $delivery) {
+        if ($delivery[1] !== '') {
+            echo '<div class="alert alert-warning" role="alert">Webhook <strong>#' . intval($hook_id) . '</strong> en échec pour la résolution <strong>' . intval($resolutionid) . '</strong> : ' . h($delivery[1]) . ' (voir la page Webhooks).</div>';
+        }
+    }
 }
 
 $urlsuffix = "";
@@ -196,8 +208,12 @@ if (isset($_POST['resolution_id']) && in_array($_SESSION['role'], $actions_acl['
 
             if (!empty($resolution_updatefields)) {
                 try {
+                    $status_before = webhook_resolution_state($db, $resolutionid);
                     updateResolution($resolution_updatefields, $resolutionid);
                     audit_log('resolution_edit', 'resolution:' . $resolutionid, implode(',', array_keys($resolution_updatefields)));
+                    if (isset($resolution_updatefields['resolution_status'])) {
+                        resolutionStatusWebhooks($resolutionid, $status_before, $resolution_updatefields['resolution_status']);
+                    }
                     echo '<div class="alert alert-success" role="alert">Résolution <strong>' . intval($resolutionid) . '</strong> mise à jour</div>';
                 } catch (Exception $e) {
                     echo '<div class="alert alert-danger" role="alert">' . h($e->getMessage()) . '</div>';

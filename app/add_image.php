@@ -24,6 +24,7 @@ require_once("{$cwd}/includes/functions.php");
 require_once("{$cwd}/includes/images.php");
 require_once("{$cwd}/includes/blur.php");
 require_once("{$cwd}/includes/handle.php");
+require_once("{$cwd}/includes/webhooks.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -136,6 +137,10 @@ if ($image_written) {
         if ($type == "obs") {
             delete_token_cache($token);
             $obsid = getObsIdByToken($token);
+            // First photo of the observation: it becomes visible to the moderators (observation.created)
+            $complete_query = mysqli_query($db, "SELECT obs_complete FROM obs_list WHERE obs_id='" . $obsid . "' LIMIT 1");
+            $complete_row   = $complete_query ? mysqli_fetch_array($complete_query) : null;
+            $obs_created    = $complete_row && intval($complete_row['obs_complete']) == 0;
             mysqli_query($db, "UPDATE obs_list SET obs_complete=1 WHERE obs_id='" . $obsid . "'");
         } elseif ($type == "resolution") {
             $resolutionid = getResolutionIdByResolutionToken($token);
@@ -144,9 +149,16 @@ if ($image_written) {
     }
 }
 
-echo json_encode(array(
+// status deprecated and replaced by http code (stays here for old apps)
+$response = json_encode(array(
     'status' => 0
 ));
-// status deprecated and replaced by http code (stays here for old apps)
+if (!empty($obs_created) && webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_CREATED)) {
+    /* The application gets its answer now, the webhooks run after */
+    vigilo_send_response_and_continue($response);
+    webhooks_for_observation($db, VIGILO_WEBHOOK_EVENT_CREATED, $token);
+} else {
+    echo $response;
+}
 
 ?>

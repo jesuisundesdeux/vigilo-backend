@@ -84,6 +84,20 @@ function obsadmin_approve($db, $obs, $approveto, &$messages)
   }
 }
 
+/* Webhooks of a resolution created in the admin */
+function obsadmin_resolution_created($db, $resolution_token, &$messages)
+{
+  $resolutionid = getResolutionIdByResolutionToken(mysqli_real_escape_string($db, $resolution_token));
+  if ($resolutionid === False) {
+    return;
+  }
+  foreach (webhooks_for_resolution($db, VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED, $resolutionid) as $hook_id => $delivery) {
+    if ($delivery[1] !== '') {
+      obsadmin_message($messages, 'warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec pour <strong>' . h($resolution_token) . '</strong> : ' . h($delivery[1]) . ' (voir la page Webhooks).');
+    }
+  }
+}
+
 /* Actions links */
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $action = (string) $_GET['action'];
@@ -129,6 +143,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
       $obsidlist = array($obsid);
       if (addResolution($fields, $obsidlist)) {
         audit_log('resolution_create', $fields['resolution_token'], array('obs_id' => $obsid, 'obs_token' => $token));
+        obsadmin_resolution_created($db, $fields['resolution_token'], $messages);
         obsadmin_message($messages, 'success', 'Résolution <strong>' . h($fields['resolution_token']) . '</strong> ajoutée, et modifiable <a href="?page=resolutions" class="alert-link">ici</a>');
       }
     }
@@ -426,6 +441,7 @@ if (isset($_POST['bulk_action'])) {
                       "resolution_status" => 2);
       if (addResolution($fields, array_keys($done))) {
         audit_log('resolution_create', $fields['resolution_token'], array('obs_tokens' => array_values($done)));
+        obsadmin_resolution_created($db, $fields['resolution_token'], $messages);
         obsadmin_message($messages, 'success', 'Résolution <strong>' . h($fields['resolution_token']) . '</strong> créée avec ' . count($done) . ' observation(s), modifiable <a href="?page=resolutions" class="alert-link">ici</a>');
       }
     } elseif ($bulk_key == 'resolution_add' && count($done) > 0) {

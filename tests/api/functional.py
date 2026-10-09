@@ -21,8 +21,10 @@ import argparse
 import base64
 import email.parser
 import email.policy
+import http.cookiejar
 import json
 import os
+import re
 import struct
 import subprocess
 import sys
@@ -691,12 +693,12 @@ class WebhookReceiver:
         self.httpd.server_close()
 
 
-def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1, category_map='{}', category_only=0):
+def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1, category_map='{}', category_only=0, events='observation.approved'):
     def q(v):
         return "'" + v.replace('\\', '\\\\').replace("'", "\\'") + "'"
     sql("INSERT INTO obs_webhooks (webhook_name, webhook_enabled, webhook_event, webhook_method, webhook_url, webhook_format, webhook_headers, webhook_body, "
-        "webhook_category_map, webhook_category_only) VALUES (%s, %d, 'observation.approved', %s, %s, %s, %s, %s, %s, %d)"
-        % (q(name), enabled, q(method), q(url), q(fmt), q(headers), q(body), q(category_map), category_only))
+        "webhook_category_map, webhook_category_only) VALUES (%s, %d, %s, %s, %s, %s, %s, %s, %s, %d)"
+        % (q(name), enabled, q(events), q(method), q(url), q(fmt), q(headers), q(body), q(category_map), category_only))
     return sql("SELECT MAX(webhook_id) FROM obs_webhooks")
 
 
@@ -791,6 +793,101 @@ class T10Webhooks(unittest.TestCase):
         finally:
             time.sleep(4)
             sql("DELETE FROM obs_webhooks WHERE webhook_id = %s" % hook)
+
+
+class T13WebhookEvents(unittest.TestCase):
+    """Other events of the workflow (#198): new observation, refused observation, new resolution,
+    change of status of a resolution (admin); a webhook can subscribe to several events."""
+
+    BODY = ('{"event": "{{event}}", "token": "{{token}}", "approved": "{{approved}}", "resolution": "{{resolution_token}}", '
+            '"status": "{{resolution_status}}", "status_name": "{{resolution_status_name}}", "previous": "{{resolution_previous_status}}", '
+            '"observations": "{{resolution_observations}}", "address": "{{address}}"}')
+
+    @classmethod
+    def setUpClass(cls):
+        cls.receiver = WebhookReceiver()
+        sql("DELETE FROM obs_webhooks")
+        add_webhook('all', cls.receiver.base + '/all', body=cls.BODY,
+                    events='observation.created,observation.approved,observation.disapproved,resolution.created,resolution.status_changed')
+        add_webhook('created', cls.receiver.base + '/created', body='{"token": "{{token}}"}', events='observation.created')
+
+    @classmethod
+    def tearDownClass(cls):
+        sql("DELETE FROM obs_webhooks")
+        cls.receiver.close()
+
+    def setUp(self):
+        self.receiver.calls = []
+
+    def bodies(self, count, path='/all'):
+        calls = [c for c in self.receiver.wait(count) if c['path'] == path]
+        return [json.loads(c['body']) for c in calls]
+
+    def observation(self):
+        r = create(comment='Événements', address='Rue des Événements, Testville')
+        token, secret = r.json()['token'], r.json()['secretid']
+        r = call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
+        self.assertEqual((r.status, r.json()), (200, {'status': 0}), 'answer of add_image.php unchanged')
+        return token, secret
+
+    def test_observation_created_once(self):
+        token, secret = self.observation()
+        calls = self.receiver.wait(2)
+        self.assertEqual(sorted(c['path'] for c in calls), ['/all', '/created'])
+        body = [json.loads(c['body']) for c in calls if c['path'] == '/all'][0]
+        self.assertEqual((body['event'], body['token'], body['approved'], body['resolution']), ('observation.created', token, '0', ''))
+        self.receiver.calls = []
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        time.sleep(1)
+        self.assertEqual(self.receiver.calls, [], 'new photo of the same observation: no second call')
+
+    def test_disapproved_then_approved(self):
+        token, _ = self.observation()
+        self.receiver.wait(2)
+        self.receiver.calls = []
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
+        self.assertEqual([(b['event'], b['approved']) for b in self.bodies(1)], [('observation.disapproved', '2')])
+        self.receiver.calls = []
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
+        time.sleep(1)
+        self.assertEqual(self.receiver.calls, [], 'already refused: no second call')
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual([b['event'] for b in self.bodies(1)], ['observation.approved'])
+
+    def test_resolution_created_and_status_changed(self):
+        token, _ = self.observation()
+        self.receiver.wait(2)
+        self.receiver.calls = []
+        r = call('create_resolution.php', form={'tokenlist': token, 'time': '1700000300000', 'comment': 'Réparé'})
+        self.assertEqual(r.status, 200, r.text)
+        self.assertEqual(sorted(r.json()), ['secretid', 'token'], 'answer of create_resolution.php unchanged')
+        resolution = r.json()['token']
+        body = self.bodies(1)[0]
+        self.assertEqual((body['event'], body['resolution'], body['status'], body['observations'], body['token'], body['address']),
+                         ('resolution.created', resolution, '4', token, token, 'Rue des Événements'))
+        self.assertEqual(sql("SELECT delivery_token FROM obs_webhook_deliveries WHERE delivery_event = 'resolution.created' ORDER BY delivery_id DESC LIMIT 1"),
+                         resolution, 'delivery logged with the resolution token')
+
+        # Validation of the resolution in the admin (bulk action)
+        self.receiver.calls = []
+        resolution_id = sql("SELECT resolution_id FROM obs_resolutions WHERE resolution_token = '%s'" % resolution)
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def admin(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+        def csrf(page):
+            return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': csrf(page)})
+        page = admin('index.php?page=resolutions&resolved=4')
+        page = admin('index.php?page=resolutions&resolved=4', {'csrf_token': csrf(page), 'bulk_action': 'status_1', 'bulk_ids[]': [resolution_id]})
+        self.assertIn('<strong>1</strong> résolution(s)', page)
+        body = self.bodies(1)[0]
+        self.assertEqual((body['event'], body['resolution'], body['status'], body['status_name'], body['previous']),
+                         ('resolution.status_changed', resolution, '1', 'Résolue', '4'))
 
 
 class T11Categories(unittest.TestCase):

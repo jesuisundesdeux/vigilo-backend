@@ -8,6 +8,16 @@
   Reprendre le `docker-compose.yml` (ou `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), voir doc/UPGRADE.md.
 - Le bouton de l'admin appelle l'API de Watchtower en POST (seule méthode acceptée par la nouvelle image).
 
+### Webhooks
+- Nouveaux événements (#198) : nouvelle observation (`observation.created`, à la réception de sa photo, par exemple pour
+  prévenir les modérateurs, #239), observation refusée (`observation.disapproved`), nouvelle résolution
+  (`resolution.created`) et changement d'état d'une résolution (`resolution.status_changed`), en plus de la publication.
+  Un webhook peut s'abonner à plusieurs événements (cases à cocher ; les webhooks existants gardent la publication).
+- Nouvelles variables : `approved` et, pour les résolutions, `resolution_token`, `resolution_status`,
+  `resolution_status_name`, `resolution_previous_status`, `resolution_comment`, `resolution_date`,
+  `resolution_photo_url`, `resolution_observations`. Le journal des envois indique l'événement.
+- Migration `init-0.0.24.sql` : colonne `webhook_event` élargie (liste d'événements).
+
 ### Administration
 - Suppression d'une catégorie de l'instance utilisée par des observations : les observations sont déplacées vers une
   autre catégorie active ou supprimées (avec leurs photos), au choix, dans la fenêtre de suppression.
