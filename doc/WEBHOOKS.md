@@ -17,6 +17,9 @@ Rappels :
   que pour ces catégories (exemple : [Open311](#ticketing-de-collectivité-open311)) ;
 - un webhook fait **une seule requête** : un service qui demande d'abord d'ouvrir une session (Bluesky, GLPI…) passe
   par un relais (voir [Bluesky](#bluesky)) ;
+- `{{event_description}}` décrit l'action en une phrase (nouvelle observation à modérer, observation publiée ou
+  refusée, nouvelle résolution, changement d'état d'une résolution avec l'ancien et le nouvel état) : pratique pour un
+  webhook abonné à plusieurs événements ; `{{event_label}}` donne le nom de l'événement ;
 - les jetons et mots de passe sont enregistrés en clair dans la base : utiliser des jetons dédiés, limités au strict
   nécessaire (publication seule), et les révoquer s'ils fuitent.
 

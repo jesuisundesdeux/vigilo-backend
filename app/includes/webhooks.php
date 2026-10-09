@@ -68,6 +68,39 @@ function webhook_hook_events($hook)
     return $events;
 }
 
+/* Name of an event, as listed in the admin */
+function webhook_event_label($event)
+{
+    $events = webhook_events();
+    return isset($events[$event]) ? $events[$event] : (string) $event;
+}
+
+/* One sentence describing the action of the event (variable event_description) */
+function webhook_event_description(&$values)
+{
+    $event = $values['event'];
+    if (strpos($event, 'resolution.') === 0) {
+        $count = $values['resolution_observations'] === '' ? 0 : count(explode(',', $values['resolution_observations']));
+        $observations = $count . ' observation' . ($count > 1 ? 's' : '');
+        if ($event == VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS) {
+            $previous = $values['resolution_previous_status'] === '' ? '' : webhook_resolution_status_name($values['resolution_previous_status']);
+            return 'Résolution ' . $values['resolution_token'] . ' : ' . ($previous !== '' ? $previous . ' → ' : '')
+                . $values['resolution_status_name'] . ' (' . $observations . ').';
+        }
+        return 'Nouvelle résolution ' . $values['resolution_token'] . ' (' . $values['resolution_status_name'] . ') pour '
+            . $observations . ($values['resolution_observations'] !== '' ? ' : ' . str_replace(',', ', ', $values['resolution_observations']) : '') . '.';
+    }
+    $verbs = array(
+        VIGILO_WEBHOOK_EVENT_CREATED     => 'Nouvelle observation %s à modérer',
+        VIGILO_WEBHOOK_EVENT_APPROVED    => 'Observation %s publiée',
+        VIGILO_WEBHOOK_EVENT_DISAPPROVED => 'Observation %s refusée',
+    );
+    $sentence = sprintf(isset($verbs[$event]) ? $verbs[$event] : 'Observation %s', $values['token']);
+    $where    = trim($values['address']) . ($values['cityname'] !== '' ? ' (' . $values['cityname'] . ')' : '');
+    $details  = array_filter(array(webhook_value($values, 'categorie_name'), trim($where)), 'strlen');
+    return $sentence . ($details ? ' : ' . implode(', ', $details) : '') . '.';
+}
+
 /* Name of a resolution status */
 function webhook_resolution_status_name($status)
 {
@@ -80,6 +113,8 @@ function webhook_variables()
 {
     return array(
         'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed)',
+        'event_label'     => 'Nom de l\'événement (ex. « Observation publiée (approuvée) »)',
+        'event_description' => 'Description de l\'action en une phrase (ex. « Observation ABCD1234 publiée : Véhicule ou objet gênant, Rue de la Gare (Montpellier). »)',
         'token'           => 'Identifiant de l\'observation',
         'observation_url' => 'Lien vers l\'observation dans l\'application web',
         'photo_url'       => 'Lien vers la photo (pixelisée tant que l\'observation n\'est pas approuvée ; le lien change à l\'approbation)',
@@ -132,6 +167,8 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
     $photo_version = intval($obs['obs_approved']) . '-' . (file_exists($photo_file) ? filemtime($photo_file) : 0);
     return array(
         'event'           => $event,
+        'event_label'     => webhook_event_label($event),
+        'event_description' => null, // computed only when used (category name)
         'token'           => (string) $obs['obs_token'],
         'observation_url' => null, // computed only when used (remote list of the instances)
         // Public for every state (pixelated until approved): get_photo.php refuses the photos not approved yet
@@ -187,6 +224,8 @@ function webhook_resolution_values($db, $resolutionid, $event, $previous_status 
         $proto        = (isset($config['HTTP_PROTOCOL']) && $config['HTTP_PROTOCOL'] !== '') ? $config['HTTP_PROTOCOL'] : 'https';
         $values = array_fill_keys(array_keys(webhook_variables()), '');
         $values['event']         = $event;
+        $values['event_label']   = webhook_event_label($event);
+        $values['event_description'] = null;
         $values['instance_name'] = isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '';
         $values['instance_url']  = $proto . '://' . (isset($config['URLBASE']) ? $config['URLBASE'] : '');
     }
@@ -216,6 +255,8 @@ function webhook_value(&$values, $name)
                     $values[$name] = (string) $categorie['catname'];
                 }
             }
+        } elseif ($name == 'event_description') {
+            $values[$name] = webhook_event_description($values);
         } elseif ($name == 'photo_full_url') {
             global $db;
             $values[$name] = $values['instance_url'] . '/get_photo.php?' . photo_signed_query($db, $values['token']);

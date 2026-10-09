@@ -681,7 +681,9 @@ Déroulement :
 
 1. `webhooks_for_event()` : webhooks actifs abonnés à l'évènement.
 2. `webhook_observation_values()` : valeurs des variables (liste et description dans `webhook_variables()`, affichée
-   dans l'admin). `cityname` suit la même règle que `get_issues.php`. `photo_url` =
+   dans l'admin). `cityname` suit la même règle que `get_issues.php`. `event_label` = libellé de `webhook_events()`
+   (`webhook_event_label()`) ; `event_description` (phrase de `webhook_event_description()`, selon l'événement : jeton,
+   catégorie, adresse, ou états de la résolution) est calculée à la première utilisation (nom de la catégorie). `photo_url` =
    `generate_panel.php?token=…&v=<obs_approved>-<date de la photo>` : `v`, ignoré par `generate_panel.php`, change le
    lien à l'approbation ou au remplacement de la photo (Slack garde les images en cache par adresse). `observation_url` et `categorie_name` valent
    `null` et ne sont calculées qu'à la première utilisation (`webhook_value()`), car elles demandent la liste distante
