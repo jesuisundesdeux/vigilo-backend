@@ -108,6 +108,12 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
+### Passage à la 0.0.25
+
+Aucune action manuelle ni migration de base : correctif des webhooks (lien de la photo `{{photo_url}}` accessible
+avant modération, voir le CHANGELOG). Depuis la 0.0.24, le bouton de mise à jour de l'admin fonctionne avec Docker et
+Watchtower.
+
 ### Publier une version (mainteneurs)
 
 Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).

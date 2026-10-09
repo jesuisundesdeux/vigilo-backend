@@ -178,7 +178,7 @@ JSON : Retourne la version du backend (sans en-tête `Access-Control-Allow-Origi
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| str | version | Version du backend, par exemple `0.0.24` | >= 0.0.1 |
+| str | version | Version du backend, par exemple `0.0.25` | >= 0.0.1 |
 
 ___
 

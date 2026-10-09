@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## 0.0.25
 
 ### Webhooks
 - `{{photo_url}}` pointe vers `generate_panel.php`, public dans tous les états (photo pixelisée tant que l'observation
