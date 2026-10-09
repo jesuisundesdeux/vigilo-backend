@@ -1,5 +1,13 @@
 # Changelog
 
+## Non publié
+
+### Webhooks
+- `{{photo_url}}` pointe vers `generate_panel.php`, public dans tous les états (photo pixelisée tant que l'observation
+  n'est pas approuvée) : `get_photo.php` refusait les photos non approuvées et Slack rejetait le message
+  (`invalid_blocks`) pour une nouvelle observation. « Enregistrer et tester » utilise une observation dans l'état de
+  l'événement (nouvelle, refusée).
+
 ## 0.0.24
 
 ### Docker
@@ -17,10 +25,6 @@
   `resolution_status_name`, `resolution_previous_status`, `resolution_comment`, `resolution_date`,
   `resolution_photo_url`, `resolution_observations`. Le journal des envois indique l'événement.
 - Migration `init-0.0.24.sql` : colonne `webhook_event` élargie (liste d'événements).
-- `{{photo_url}}` pointe vers `generate_panel.php`, public dans tous les états (photo pixelisée tant que l'observation
-  n'est pas approuvée) : `get_photo.php` refusait les photos non approuvées et Slack rejetait le message
-  (`invalid_blocks`) pour une nouvelle observation. « Enregistrer et tester » utilise une observation dans l'état de
-  l'événement (nouvelle, refusée).
 
 ### Administration
 - Suppression d'une catégorie de l'instance utilisée par des observations : les observations sont déplacées vers une
