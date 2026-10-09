@@ -178,7 +178,7 @@ JSON : Retourne la version du backend (sans en-tête `Access-Control-Allow-Origi
 
 | Type | Nom | Description | Compatibilité |
 | ---- | ----|------------ | ------------- | 
-| str | version | Version du backend, par exemple `0.0.26` | >= 0.0.1 |
+| str | version | Version du backend, par exemple `0.0.27` | >= 0.0.1 |
 
 ___
 
@@ -600,7 +600,7 @@ Valeurs de la base renvoyées en chaînes, sauf `status`, `group` et `distance`.
 | str | comment | Remarque de l'observation | >= 0.0.1 |
 | str | explanation | Explications de l'observation  | >= 0.0.1 |
 | str | time | Timestamp (en secondes) de l'observation | >= 0.0.1 |
-| int | status | Statut de résolution de l'observation (voir "Status des observations") ; une observation liée à plusieurs résolutions n'apparaît qu'une fois, avec le statut le plus avancé (résolue > indiquée résolue > en cours > prise en compte ; avant 0.0.26 : une entrée par résolution) | >= 0.0.6 |
+| int | status | Statut de résolution de l'observation (voir "Status des observations") ; une observation liée à plusieurs résolutions n'apparaît qu'une fois, avec le statut le plus avancé (résolue > indiquée résolue > en cours > prise en compte ; avant 0.0.27 : une entrée par résolution) | >= 0.0.6 |
 | int | group | Toujours 0 | LEGACY |
 | str | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | str | approved | Etat d'approbation : 0 à modérer, 1 approuvée, 2 refusée | >= 0.0.1 |
