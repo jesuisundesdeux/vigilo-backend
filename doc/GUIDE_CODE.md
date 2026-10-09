@@ -412,7 +412,7 @@ inconnus sont ignorés ; si aucun n'est valide, `FUNCTIONERROR` 500. La résolut
 ### 3.8 `get_photo.php` — photo originale
 
 `type=obs` : 404 `TOKENNOTFOUND` si le token n'existe pas ; photo servie si l'observation est approuvée ou si la clé
-est admin/modérateur, ou avec un lien signé valide (`exp`, `sig` : `photo_signed_valid()` de `functions.php`, depuis 0.0.25), sinon `NOTALLOWED` 403. `type=resolution` : toujours considérée comme approuvée. Photo absente :
+est admin/modérateur, ou avec un lien signé valide (`exp`, `sig` : `photo_signed_valid()` de `functions.php`, depuis 0.0.26), sinon `NOTALLOWED` 403. `type=resolution` : toujours considérée comme approuvée. Photo absente :
 `PHOTONOTFOUND` 404 en JSON. L'image est relue et réencodée par GD (`imagejpeg`) mais l'en-tête annonce `image/png`
 (comportement figé par les tests de contrat).
 
@@ -706,7 +706,7 @@ de résolution), la dernière observation dans l'état de l'événement (nouvell
 corps rendu avec les valeurs de chaque événement coché doit être un JSON valide ; au moins un événement est requis. Les modèles du menu « Modèle » sont dans
 `$webhook_templates` de `inc/webhooks.php` (même contenu que [WEBHOOKS.md](WEBHOOKS.md)).
 
-Liens signés vers la photo d'origine (`{{photo_full_url}}`, 0.0.25) : `photo_signed_query()` de `functions.php` produit
+Liens signés vers la photo d'origine (`{{photo_full_url}}`, 0.0.26) : `photo_signed_query()` de `functions.php` produit
 `token=…&exp=…&sig=…`, avec `exp` = maintenant + `VIGILO_PHOTO_LINK_DAYS` (7 jours) et `sig` = HMAC-SHA256 de
 `token|exp` par le secret `vigilo_photo_link_secret` d'`obs_config` (créé au premier usage par `photo_link_secret()`,
 jamais affiché dans l'admin). `get_photo.php` vérifie avec `photo_signed_valid()` (`hash_equals`, expiration).
