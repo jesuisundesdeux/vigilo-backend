@@ -41,6 +41,7 @@ $scope_fields = array(
     'scope_map_center_string'    => array('type' => 'string', 'max' => 255),
     'scope_map_zoom'             => array('type' => 'zoom'),
     'scope_contact_email'        => array('type' => 'string', 'max' => 255),
+    'scope_association_url'      => array('type' => 'url', 'max' => 255),
     'scope_umap_url'             => array('type' => 'string', 'max' => 255),
     'scope_nominatim_urlbase'    => array('type' => 'string', 'max' => 255)
 );
@@ -140,6 +141,14 @@ if (isset($_POST['scope_id'])) {
             switch ($field['type']) {
                 case 'int':
                     $value = intval($raw);
+                    break;
+                case 'url':
+                    // website of the association: empty, or an absolute http(s) address
+                    $value = $raw;
+                    if ($value !== '' && (strlen($value) > $field['max'] || !preg_match('#^https?://#i', $value) || filter_var($value, FILTER_VALIDATE_URL) === false)) {
+                        $errors[] = 'Site de l\'association : adresse invalide (ex. https://association.example).';
+                        continue 2;
+                    }
                     break;
                 case 'zoom':
                     $value = intval($raw);
@@ -245,6 +254,11 @@ while ($query_scopes && ($result_scopes = mysqli_fetch_array($query_scopes))) {
         <div class="col-md-6">
           <label class="form-label" for="<?= $prefix ?>contact_email">Email contact</label>
           <input type="text" class="form-control" id="<?= $prefix ?>contact_email" name="scope_contact_email" value="<?= h($result_scopes['scope_contact_email']) ?>" maxlength="255" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="<?= $prefix ?>association_url">Site de l'association</label>
+          <input type="url" class="form-control" id="<?= $prefix ?>association_url" name="scope_association_url" value="<?= h(isset($result_scopes['scope_association_url']) ? $result_scopes['scope_association_url'] : '') ?>" maxlength="255" placeholder="https://" aria-describedby="<?= $prefix ?>association_url_help" />
+          <div class="form-text" id="<?= $prefix ?>association_url_help">Affiché sur la page du territoire sur vigilo.city.</div>
         </div>
       </div>
 

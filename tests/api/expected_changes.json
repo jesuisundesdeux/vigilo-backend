@@ -67,5 +67,68 @@
       "status": 404,
       "content_type": "__any__"
     }
+  },
+  "get_scope": {
+    "why": "New field association_url (0.0.28): website of the association that runs the territory, empty when not set. Added field only.",
+    "now": {
+      "body": {
+        "backend_version": "<masked>",
+        "cities": [
+          {
+            "area": "3.2",
+            "id": "2",
+            "name": "Saint-Exemple",
+            "population": "4000",
+            "postcode": "99100",
+            "website": ""
+          },
+          {
+            "area": "12.5",
+            "id": "1",
+            "name": "Testville",
+            "population": "25000",
+            "postcode": "99000",
+            "website": "https://testville.example"
+          }
+        ],
+        "contact_email": "contact@testville.example",
+        "coordinate_lat_max": "43.7",
+        "coordinate_lat_min": "43.5",
+        "coordinate_lon_max": "4.0",
+        "coordinate_lon_min": "3.8",
+        "department": "99",
+        "display_name": "Testville",
+        "map_center_string": "43.6, 3.9",
+        "map_url": "https://umap.example/testville",
+        "map_zoom": "14",
+        "nominatim_urlbase": "https://nominatim.openstreetmap.org",
+        "tweet_content": "Partagez [URL]",
+        "twitter": "testville",
+        "association_url": ""
+      }
+    }
+  },
+  "get_scope_other": {
+    "why": "New field association_url (0.0.28): website of the association that runs the territory, empty when not set. Added field only.",
+    "now": {
+      "body": {
+        "backend_version": "<masked>",
+        "cities": [],
+        "contact_email": "",
+        "coordinate_lat_max": "44.2",
+        "coordinate_lat_min": "44.0",
+        "coordinate_lon_max": "4.2",
+        "coordinate_lon_min": "4.0",
+        "department": "98",
+        "display_name": "Autre",
+        "map_center_string": "44.1, 4.1",
+        "map_url": "",
+        "map_zoom": "13",
+        "nominatim_urlbase": "https://nominatim.openstreetmap.org",
+        "tweet_content": "",
+        "twitter": "",
+        "association_url": ""
+      }
+    }
   }
 }

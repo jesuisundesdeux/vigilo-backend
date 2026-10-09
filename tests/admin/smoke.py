@@ -208,6 +208,17 @@ def main():
     status, _, page = admin.request('index.php?page=scopes', scope_form)
     check('Identifiant invalide' not in page and 'alert-danger' not in page, 'unchanged legacy identifier accepted')
     check('scope_sharing_content_text' not in page, 'no sharing text field (Twitter)')
+    # Website of the association (0.0.28): http(s) address only, then exposed by get_scope.php
+    scope_form.update({'csrf_token': admin.token(page), 'scope_association_url': 'javascript:alert(1)'})
+    status, _, page = admin.request('index.php?page=scopes', scope_form)
+    check('Site de l&#039;association : adresse invalide' in page or "Site de l'association : adresse invalide" in page, 'invalid association url refused')
+    scope_form.update({'csrf_token': admin.token(page), 'scope_association_url': 'https://asso.example/velo'})
+    status, _, page = admin.request('index.php?page=scopes', scope_form)
+    check('alert-danger' not in page and 'value="https://asso.example/velo"' in page, 'association url saved')
+    scope = json.loads(urllib.request.urlopen(args.base.rstrip('/') + '/get_scope.php?scope=99_testville', timeout=30).read().decode())
+    check(scope.get('association_url') == 'https://asso.example/velo', 'association url in get_scope.php')
+    scope_form.update({'csrf_token': admin.token(page), 'scope_association_url': ''})
+    status, _, page = admin.request('index.php?page=scopes', scope_form)
 
     # Scopes: creation window, refused values reopen it with what was typed
     new_scope = {'csrf_token': admin.token(page), 'scope_create': '1', 'scope_name': '99 bad', 'scope_display_name': 'Nouveau <b>scope</b>',
