@@ -1,5 +1,13 @@
 # Changelog
 
+## Non publié
+
+### Webhooks
+- `{{photo_url}}` pointe vers `generate_panel.php`, public dans tous les états (photo pixelisée tant que l'observation
+  n'est pas approuvée) : `get_photo.php` refusait les photos non approuvées et Slack rejetait le message
+  (`invalid_blocks`) pour une nouvelle observation. « Enregistrer et tester » utilise une observation dans l'état de
+  l'événement (nouvelle, refusée).
+
 ## 0.0.24
 
 ### Docker

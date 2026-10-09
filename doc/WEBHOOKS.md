@@ -93,7 +93,10 @@ Corps :
 ```
 
 - `text` sert aux notifications ; `blocks` à l'affichage dans le canal.
-- La photo est récupérée par Slack depuis l'instance : l'instance doit être accessible publiquement en HTTPS.
+- La photo est récupérée par Slack depuis l'instance : l'instance doit être accessible publiquement en HTTPS. Si Slack
+  ne peut pas la télécharger (instance injoignable, observation sans photo), il refuse tout le message avec
+  `invalid_blocks` (visible dans le journal des envois) : retirer alors le bloc `image`. Pour une observation pas encore
+  approuvée, `{{photo_url}}` donne la photo pixelisée.
 - Slack interprète `<`, `>` et `&` dans le texte : un commentaire qui en contient peut s'afficher tronqué.
 
 Discord : **Paramètres du salon > Intégrations > Webhooks**, copier l'URL, et le corps JSON :
