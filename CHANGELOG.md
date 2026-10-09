@@ -2,6 +2,10 @@
 
 ## 0.0.25
 
+### Administration
+- Création d'une catégorie de l'instance : rappel qu'une catégorie utile à d'autres instances peut être proposée
+  dans la liste nationale par une pull request sur vigilo-conf (`main/categorielist.json`).
+
 ### Webhooks
 - `{{photo_url}}` pointe vers `generate_panel.php`, public dans tous les états (photo pixelisée tant que l'observation
   n'est pas approuvée) : `get_photo.php` refusait les photos non approuvées et Slack rejetait le message

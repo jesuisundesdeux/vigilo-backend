@@ -265,6 +265,8 @@ $custom = array_filter($local, function ($row) { return (bool) $row['cat_custom'
     Les catégories de l'instance sont numérotées à partir de <?= VIGILO_CUSTOM_CATEGORY_FIRST_ID ?> (numéros jamais utilisés par la liste nationale).
     « Résolvable » : les citoyens peuvent déclarer l'observation résolue. À la suppression d'une catégorie utilisée, ses
     observations sont déplacées vers une autre catégorie ou supprimées ; pour seulement ne plus la proposer, la désactiver.
+    Une catégorie utile à d'autres instances peut être proposée dans la liste nationale par une pull request sur
+    <a href="https://github.com/jesuisundesdeux/vigilo-conf/blob/main/main/categorielist.json" target="_blank" rel="noopener noreferrer">vigilo-conf</a>.
   </div>
 </div>
 
@@ -279,6 +281,12 @@ $custom = array_filter($local, function ($row) { return (bool) $row['cat_custom'
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
+        <div class="alert alert-info small py-2" role="note">
+          <i class="bi bi-share"></i> Cette catégorie pourrait servir à d'autres instances ? Proposez-la aussi dans la
+          liste nationale en ouvrant une pull request sur
+          <a href="https://github.com/jesuisundesdeux/vigilo-conf/blob/main/main/categorielist.json" target="_blank" rel="noopener noreferrer">vigilo-conf (<code>main/categorielist.json</code>)</a> :
+          elle sera alors proposée par toutes les instances et comptée dans les statistiques communes.
+        </div>
         <div class="mb-3">
           <label class="form-label" for="cat_name">Nom</label>
           <input class="form-control" id="cat_name" name="cat_name" maxlength="100" required />

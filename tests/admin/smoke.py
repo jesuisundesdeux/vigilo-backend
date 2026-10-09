@@ -259,6 +259,7 @@ def main():
     # Categories: national one disabled then enabled again, category of the instance added, edited, deleted
     status, _, page = admin.request('index.php?page=categories')
     check('Véhicule ou objet gênant' in page, 'national categories listed')
+    check('vigilo-conf/blob/main/main/categorielist.json' in page and 'pull request' in page, 'suggestion to share a category in vigilo-conf')
     disable = [l for l in links(page, 'action=disable') if 'catid=2&' in l or l.endswith('catid=2')]
     check(len(disable) == 1, 'disable link of a national category')
     if disable:
