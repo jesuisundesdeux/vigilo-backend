@@ -33,6 +33,10 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
 
 ## Règles à respecter
 
+- **Documentation** : toute modification du code s'accompagne, dans la même PR, de la mise à jour de la documentation
+  concernée dans `doc/` : `GUIDE_CODE.md` (modules, routes, admin, tables), `REST_API.md` (API), `FONCTIONNEMENT.md`,
+  `WEBHOOKS.md`, `ARCHITECTURE.md`, `UPGRADE.md` selon le sujet, ainsi que `CHANGELOG.md` ; et, si besoin, la
+  documentation utilisateur et la spécification OpenAPI du site (voir « Documentation à tenir à jour »).
 - **PHP 7.3 à 8.3** : PHP procédural, sans framework ni Composer, extension `mysqli`. Pas de syntaxe postérieure à
   PHP 7.3 (pas de types union, `match`, arguments nommés, propriétés typées, fonctions fléchées `fn`, `str_contains`…).
   La CI vérifie la syntaxe sur 7.3 et 8.3 ; des hébergements mutualisés tournent encore en 7.3.
