@@ -83,6 +83,7 @@ function webhook_variables()
         'token'           => 'Identifiant de l\'observation',
         'observation_url' => 'Lien vers l\'observation dans l\'application web',
         'photo_url'       => 'Lien vers la photo (pixelisée tant que l\'observation n\'est pas approuvée)',
+        'photo_full_url'  => 'Lien vers la photo d\'origine, jamais pixelisée, même avant modération : lien signé valable ' . VIGILO_PHOTO_LINK_DAYS . ' jours, à n\'envoyer qu\'à des destinataires de confiance (modérateurs)',
         'comment'         => 'Commentaire',
         'explanation'     => 'Explication',
         'categorie'       => 'Numéro de la catégorie',
@@ -131,6 +132,7 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'observation_url' => null, // computed only when used (remote list of the instances)
         // Public for every state (pixelated until approved): get_photo.php refuses the photos not approved yet
         'photo_url'       => $instance_url . '/generate_panel.php?token=' . rawurlencode($obs['obs_token']),
+        'photo_full_url'  => null, // signed link, computed only when used
         'comment'         => (string) $obs['obs_comment'],
         'explanation'     => (string) $obs['obs_explanation'],
         'categorie'       => (string) $obs['obs_categorie'],
@@ -210,6 +212,9 @@ function webhook_value(&$values, $name)
                     $values[$name] = (string) $categorie['catname'];
                 }
             }
+        } elseif ($name == 'photo_full_url') {
+            global $db;
+            $values[$name] = $values['instance_url'] . '/get_photo.php?' . photo_signed_query($db, $values['token']);
         } elseif ($name == 'observation_url') {
             $instance = getInstanceNameFromFirebase($values['scope']);
             $values[$name] = 'https://app.vigilo.city/?' . ($instance ? 'instance=' . rawurlencode($instance) . '&' : '') . 'token=' . rawurlencode($values['token']);

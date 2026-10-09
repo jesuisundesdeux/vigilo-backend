@@ -82,7 +82,8 @@ celles de la première observation liée ; elles sont vides pour les événement
 - **appel** : méthode (POST, PUT, PATCH, GET), URL, en-têtes (`Nom: valeur`, un par ligne) et corps ;
 - **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `token`,
   `observation_url` (lien vers l'application web), `photo_url` (`generate_panel.php`, public, pixelisée tant que
-  l'observation n'est pas approuvée), `comment`, `explanation`, `categorie`,
+  l'observation n'est pas approuvée), `photo_full_url` (photo d'origine même avant modération, lien signé valable
+  7 jours, pour les modérateurs), `comment`, `explanation`, `categorie`,
   `categorie_name`, `categorie_code` (code de la catégorie dans l'outil appelé, défini dans la **correspondance des
   catégories** du webhook), `address`, `cityname`, `scope`, `lat`, `lon`, `time` (timestamp), `date` (ISO 8601), `status`,
   `approved`, `instance_name`, `instance_url`, et les variables `resolution_*` ci-dessus ;

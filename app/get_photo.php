@@ -75,7 +75,9 @@ if (!file_exists($filepath . $token . '.jpg')) {
 }
 $photo_path = $filepath . $token . '.jpg';
 
-if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1) {
+// Signed link (webhooks to the moderators): the original photo until its expiry
+$signed = $type == "obs" && isset($_GET['exp'], $_GET['sig']) && photo_signed_valid($db, $token, $_GET['exp'], $_GET['sig']);
+if (getrole($key, $acls) == "admin" || getrole($key, $acls) == "moderator" || $approved == 1 || $signed) {
     $photo = imagecreatefromjpeg($photo_path); // issue photo
     imagejpeg($photo);
 } else {

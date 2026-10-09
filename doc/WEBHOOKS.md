@@ -220,7 +220,9 @@ ou un outil d'automatisation.
 
 Prévenir les modérateurs dans leur canal (Slack, Mattermost, Discord) dès qu'une observation arrive. Événement :
 **Nouvelle observation** (`observation.created`). La photo n'est pas encore modérée : `{{photo_url}}` donne la version
-pixelisée ; le lien vers l'admin permet de la voir.
+pixelisée ; `{{photo_full_url}}` donne la photo d'origine (floutée par le serveur de floutage s'il est configuré, mais
+pas pixelisée), par un lien signé valable 7 jours. Ce lien ne demande aucune clé : ne l'envoyer que dans un canal privé
+des modérateurs.
 
 | Champ | Valeur |
 |---|---|
@@ -232,7 +234,11 @@ pixelisée ; le lien vers l'admin permet de la voir.
 Corps (Slack / Mattermost ; pour Discord, remplacer `text` par `content`) :
 
 ```json
-{"text": "🕵️ Observation {{token}} à modérer : {{categorie_name}} à {{cityname}}\n« {{comment}} »\n{{instance_url}}/admin/index.php?page=observations&approved=0"}
+{"text": "🕵️ Observation {{token}} à modérer : {{categorie_name}} à {{cityname}}\n« {{comment}} »\n{{instance_url}}/admin/index.php?page=observations&approved=0",
+ "blocks": [
+   {"type": "section", "text": {"type": "mrkdwn", "text": "🕵️ *{{categorie_name}}* à {{cityname}} : « {{comment}} »\n<{{instance_url}}/admin/index.php?page=observations&approved=0|Modérer l'observation {{token}}>"}},
+   {"type": "image", "image_url": "{{photo_full_url}}", "alt_text": "Photo de l'observation {{token}}"}
+ ]}
 ```
 
 ## Suivi des résolutions

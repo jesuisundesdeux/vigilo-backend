@@ -345,3 +345,46 @@ function getWebContent($url) {
   }
   return $data;
 }
+
+/*
+ * Signed links to the original photo of an observation (not pixelated, even before
+ * moderation), for the webhooks sent to the moderators: get_photo.php?token=&exp=&sig=,
+ * sig = HMAC-SHA256(token|exp) with a secret of the instance (obs_config
+ * vigilo_photo_link_secret, created on first use). A link stops working at "exp"
+ * (Unix time) or when the secret is deleted.
+ */
+define('VIGILO_PHOTO_LINK_DAYS', 7);
+
+function photo_link_secret($db)
+{
+    $query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param = 'vigilo_photo_link_secret' ORDER BY config_id LIMIT 1");
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    if ($row && strlen((string) $row['config_value']) >= 32) {
+        return (string) $row['config_value'];
+    }
+    $secret = bin2hex(random_bytes(32));
+    mysqli_query($db, "DELETE FROM obs_config WHERE config_param = 'vigilo_photo_link_secret'");
+    mysqli_query($db, "INSERT INTO obs_config (config_param, config_value) VALUES ('vigilo_photo_link_secret', '" . $secret . "')");
+    return $secret;
+}
+
+function photo_link_signature($db, $token, $exp)
+{
+    return hash_hmac('sha256', (string) $token . '|' . intval($exp), photo_link_secret($db));
+}
+
+/* Query string of a signed link to the original photo, valid VIGILO_PHOTO_LINK_DAYS days */
+function photo_signed_query($db, $token)
+{
+    $exp = time() + VIGILO_PHOTO_LINK_DAYS * 86400;
+    return 'token=' . rawurlencode($token) . '&exp=' . $exp . '&sig=' . photo_link_signature($db, $token, $exp);
+}
+
+/* Is this signed link valid (right signature, not expired)? */
+function photo_signed_valid($db, $token, $exp, $sig)
+{
+    if (!is_string($sig) || !preg_match('/^[0-9a-f]{64}$/', $sig) || !is_numeric($exp) || intval($exp) < time()) {
+        return false;
+    }
+    return hash_equals(photo_link_signature($db, $token, $exp), $sig);
+}
