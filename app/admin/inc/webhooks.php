@@ -69,7 +69,8 @@ function webhook_admin_load($db, $id)
 
 /*
  * Values used to test a webhook for an event: the last resolution for the resolution
- * events, else the last published observation, or an example
+ * events, the last observation in the state of the event (new, refused), else the last
+ * published observation, or an example
  */
 function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
 {
@@ -78,6 +79,13 @@ function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
         $query  = mysqli_query($db, "SELECT resolution_id, resolution_status FROM obs_resolutions ORDER BY resolution_id DESC LIMIT 1");
         $row    = $query ? mysqli_fetch_assoc($query) : null;
         $values = $row ? webhook_resolution_values($db, $row['resolution_id'], $event, $event == VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS ? 2 : null) : null;
+    }
+    // New or refused observation: the last one in this state, as in a real call (photo not public yet)
+    $states = array(VIGILO_WEBHOOK_EVENT_CREATED => 0, VIGILO_WEBHOOK_EVENT_DISAPPROVED => 2);
+    if (!$values && isset($states[$event])) {
+        $query  = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_approved = " . $states[$event] . " AND obs_complete = 1 ORDER BY obs_time DESC LIMIT 1");
+        $row    = $query ? mysqli_fetch_assoc($query) : null;
+        $values = $row ? webhook_observation_values($db, $row['obs_token'], $event) : null;
     }
     if (!$values) {
         $query  = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_approved = 1 AND obs_complete = 1 ORDER BY obs_time DESC LIMIT 1");

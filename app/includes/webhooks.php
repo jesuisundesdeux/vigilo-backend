@@ -82,7 +82,7 @@ function webhook_variables()
         'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed)',
         'token'           => 'Identifiant de l\'observation',
         'observation_url' => 'Lien vers l\'observation dans l\'application web',
-        'photo_url'       => 'Lien vers la photo',
+        'photo_url'       => 'Lien vers la photo (pixelisée tant que l\'observation n\'est pas approuvée)',
         'comment'         => 'Commentaire',
         'explanation'     => 'Explication',
         'categorie'       => 'Numéro de la catégorie',
@@ -129,7 +129,8 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'event'           => $event,
         'token'           => (string) $obs['obs_token'],
         'observation_url' => null, // computed only when used (remote list of the instances)
-        'photo_url'       => $instance_url . '/get_photo.php?token=' . rawurlencode($obs['obs_token']),
+        // Public for every state (pixelated until approved): get_photo.php refuses the photos not approved yet
+        'photo_url'       => $instance_url . '/generate_panel.php?token=' . rawurlencode($obs['obs_token']),
         'comment'         => (string) $obs['obs_comment'],
         'explanation'     => (string) $obs['obs_explanation'],
         'categorie'       => (string) $obs['obs_categorie'],

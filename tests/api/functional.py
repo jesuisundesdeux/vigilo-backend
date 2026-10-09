@@ -749,7 +749,7 @@ class T10Webhooks(unittest.TestCase):
         self.assertEqual(body['token'], token)
         self.assertEqual(body['comment'], 'Voiture "garée"\nsur la piste & le trottoir', 'JSON-escaped')
         self.assertEqual(body['lat'], 43.605)
-        self.assertTrue(body['photo'].endswith('/get_photo.php?token=' + token))
+        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
         self.assertEqual(body['unknown'], '')
         self.assertRegex(body['date'], r'^\d{4}-\d\d-\d\dT')
 
@@ -799,7 +799,7 @@ class T13WebhookEvents(unittest.TestCase):
     """Other events of the workflow (#198): new observation, refused observation, new resolution,
     change of status of a resolution (admin); a webhook can subscribe to several events."""
 
-    BODY = ('{"event": "{{event}}", "token": "{{token}}", "approved": "{{approved}}", "resolution": "{{resolution_token}}", '
+    BODY = ('{"event": "{{event}}", "token": "{{token}}", "approved": "{{approved}}", "photo": "{{photo_url}}", "resolution": "{{resolution_token}}", '
             '"status": "{{resolution_status}}", "status_name": "{{resolution_status_name}}", "previous": "{{resolution_previous_status}}", '
             '"observations": "{{resolution_observations}}", "address": "{{address}}"}')
 
@@ -836,6 +836,10 @@ class T13WebhookEvents(unittest.TestCase):
         self.assertEqual(sorted(c['path'] for c in calls), ['/all', '/created'])
         body = [json.loads(c['body']) for c in calls if c['path'] == '/all'][0]
         self.assertEqual((body['event'], body['token'], body['approved'], body['resolution']), ('observation.created', token, '0', ''))
+        # The photo link must be public before moderation (Slack image block downloads it)
+        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
+        photo = call('generate_panel.php', {'token': token})
+        self.assertEqual((photo.status, photo.header('Content-Type')), (200, 'image/jpeg'), 'photo of a new observation reachable (pixelated)')
         self.receiver.calls = []
         self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
         time.sleep(1)

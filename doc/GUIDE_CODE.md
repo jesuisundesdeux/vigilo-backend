@@ -702,7 +702,7 @@ Déroulement :
    cas.
 
 Le bouton « Enregistrer et tester » (page Webhooks) envoie le premier événement coché avec la dernière résolution (événements
-de résolution) ou la dernière observation publiée, ou des valeurs d'exemple (`webhook_admin_test_values()`), et enregistre aussi l'envoi dans le journal des envois. À l'enregistrement d'un webhook au format JSON, le
+de résolution), la dernière observation dans l'état de l'événement (nouvelle, refusée) ou la dernière observation publiée, ou des valeurs d'exemple (`webhook_admin_test_values()`), et enregistre aussi l'envoi dans le journal des envois. À l'enregistrement d'un webhook au format JSON, le
 corps rendu avec les valeurs de chaque événement coché doit être un JSON valide ; au moins un événement est requis. Les modèles du menu « Modèle » sont dans
 `$webhook_templates` de `inc/webhooks.php` (même contenu que [WEBHOOKS.md](WEBHOOKS.md)).
 
