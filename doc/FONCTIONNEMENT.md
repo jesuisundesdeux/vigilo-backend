@@ -62,22 +62,36 @@ Voir aussi le [glossaire](GLOSSAIRE.md) et l'[API REST](REST_API.md).
 
 ## Webhooks
 
-À la publication d'une observation (passage à `approved = 1`, depuis l'admin ou `approve.php`), le backend appelle
-les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux administrateurs) :
+Le backend appelle les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux administrateurs) à chaque
+**événement** auquel ils sont abonnés (un webhook peut en cocher plusieurs ; `{{event}}` indique lequel) :
+
+| Événement | Quand | Variables |
+|---|---|---|
+| `observation.created` | Nouvelle observation, à la réception de sa photo (`add_image.php`), avant modération : par exemple pour prévenir les modérateurs | observation (`approved` = 0 ; `photo_url` pixelisée) |
+| `observation.approved` | Publication (passage à `approved = 1`, admin ou `approve.php`) | observation |
+| `observation.disapproved` | Refus (passage à `approved = 2`, admin ou `approve.php`) | observation |
+| `resolution.created` | Résolution déclarée dans l'application (`create_resolution.php`, état 4 ; la photo arrive ensuite) ou créée dans l'admin (état 2) | résolution + sa première observation |
+| `resolution.status_changed` | Changement d'état d'une résolution dans l'admin (unitaire, groupé ou formulaire) | résolution + sa première observation, `resolution_previous_status` |
+
+Chaque événement n'est envoyé qu'au changement d'état (pas de nouvel appel si l'observation est déjà publiée ou
+refusée, ni pour une nouvelle photo de la même observation). Pour une résolution, `resolution_token`,
+`resolution_status` (et `resolution_status_name`), `resolution_comment`, `resolution_date`, `resolution_photo_url` et
+`resolution_observations` (identifiants des observations liées) s'ajoutent aux variables de l'observation, qui sont
+celles de la première observation liée ; elles sont vides pour les événements d'observation.
 
 - **appel** : méthode (POST, PUT, PATCH, GET), URL, en-têtes (`Nom: valeur`, un par ligne) et corps ;
 - **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `token`,
   `observation_url` (lien vers l'application web), `photo_url`, `comment`, `explanation`, `categorie`,
   `categorie_name`, `categorie_code` (code de la catégorie dans l'outil appelé, défini dans la **correspondance des
   catégories** du webhook), `address`, `cityname`, `scope`, `lat`, `lon`, `time` (timestamp), `date` (ISO 8601), `status`,
-  `instance_name`, `instance_url` ;
+  `approved`, `instance_name`, `instance_url`, et les variables `resolution_*` ci-dessus ;
 - **échappement** selon l'emplacement : encodées dans l'URL et un corps « formulaire », échappées JSON dans un corps
   JSON (écrire `"{{comment}}"` entre guillemets ; le corps est vérifié à l'enregistrement), sans saut de ligne dans
   les en-têtes, telles quelles dans un corps texte ;
-- **envoi** : une seule fois par observation (pas de nouvel appel si elle est déjà publiée), en parallèle, après la
-  réponse à l'application, avec un délai maximal de 5 secondes (`VIGILO_WEBHOOK_TIMEOUT`) ; pas de nouvel essai
+- **envoi** : en parallèle, après la réponse à l'application (dans l'admin, les échecs sont affichés), avec un délai maximal de 5 secondes (`VIGILO_WEBHOOK_TIMEOUT`) ; pas de nouvel essai
   automatique. Les 500 derniers envois (code HTTP, erreur, durée, début de la réponse) sont visibles dans l'admin ;
-  « Enregistrer et tester » envoie la requête avec la dernière observation publiée ;
+  « Enregistrer et tester » envoie la requête du premier événement coché avec la dernière observation publiée (ou la
+  dernière résolution) ;
 - **correspondance des catégories** : pour chaque catégorie, le code attendu par l'outil appelé (par exemple le
   `service_code` Open311), disponible dans `{{categorie_code}}` ; avec l'option « N'envoyer que les observations des
   catégories qui ont un code », les autres observations ne déclenchent pas ce webhook.

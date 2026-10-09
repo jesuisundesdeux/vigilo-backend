@@ -18,8 +18,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
- * Webhooks: when a moderator publishes an observation (approved = 1, from the admin
- * or approve.php), every enabled webhook of the admin (page "Webhooks") is called.
+ * Webhooks: on the events of the workflow (webhook_events()), every enabled webhook of
+ * the admin (page "Webhooks") subscribed to the event is called:
+ * - observation.created: new observation, once its photo is received (add_image.php);
+ * - observation.approved / observation.disapproved: moderation (admin or approve.php);
+ * - resolution.created: resolution declared in the application or created in the admin;
+ * - resolution.status_changed: status of a resolution changed in the admin.
+ * A webhook stores its events as a comma-separated list (webhook_event).
  *
  * The URL, the headers and the body are templates: {{variable}} is replaced by the
  * value of the observation (see webhook_variables()), escaped for where it is used:
@@ -32,14 +37,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * prevents the publication.
  */
 
+define('VIGILO_WEBHOOK_EVENT_CREATED', 'observation.created');
 define('VIGILO_WEBHOOK_EVENT_APPROVED', 'observation.approved');
+define('VIGILO_WEBHOOK_EVENT_DISAPPROVED', 'observation.disapproved');
+define('VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED', 'resolution.created');
+define('VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS', 'resolution.status_changed');
 define('VIGILO_WEBHOOK_LOG_KEEP', 500);
+
+/* Events a webhook can subscribe to, with their description (admin page) */
+function webhook_events()
+{
+    return array(
+        VIGILO_WEBHOOK_EVENT_CREATED           => 'Nouvelle observation (avant modération)',
+        VIGILO_WEBHOOK_EVENT_APPROVED          => 'Observation publiée (approuvée)',
+        VIGILO_WEBHOOK_EVENT_DISAPPROVED       => 'Observation refusée (désapprouvée)',
+        VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED => 'Nouvelle résolution',
+        VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS => 'Changement d\'état d\'une résolution',
+    );
+}
+
+/* Events of a webhook (column webhook_event, comma-separated) */
+function webhook_hook_events($hook)
+{
+    $events = array();
+    foreach (explode(',', isset($hook['webhook_event']) ? (string) $hook['webhook_event'] : '') as $event) {
+        if (isset(webhook_events()[trim($event)])) {
+            $events[] = trim($event);
+        }
+    }
+    return $events;
+}
+
+/* Name of a resolution status */
+function webhook_resolution_status_name($status)
+{
+    $names = array(0 => 'Nouvelle', 1 => 'Résolue', 2 => 'Prise en compte', 3 => 'En cours de résolution', 4 => 'Indiquée résolue (à valider)');
+    return isset($names[intval($status)]) ? $names[intval($status)] : '';
+}
 
 /* Variables available in the templates, with their description (admin page) */
 function webhook_variables()
 {
     return array(
-        'event'           => 'Événement (observation.approved)',
+        'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed)',
         'token'           => 'Identifiant de l\'observation',
         'observation_url' => 'Lien vers l\'observation dans l\'application web',
         'photo_url'       => 'Lien vers la photo',
@@ -56,6 +96,15 @@ function webhook_variables()
         'time'            => 'Date de l\'observation (timestamp Unix)',
         'date'            => 'Date de l\'observation (ISO 8601)',
         'status'          => 'Statut (0 nouvelle, 1 résolue, 2 prise en compte, 3 en cours, 4 indiquée résolue)',
+        'approved'        => 'Modération (0 à qualifier, 1 approuvée, 2 refusée)',
+        'resolution_token'           => 'Résolution : identifiant (événements resolution.*)',
+        'resolution_status'          => 'Résolution : état (1 résolue, 2 prise en compte, 3 en cours, 4 indiquée résolue)',
+        'resolution_status_name'     => 'Résolution : nom de l\'état',
+        'resolution_previous_status' => 'Résolution : état précédent (resolution.status_changed)',
+        'resolution_comment'         => 'Résolution : commentaire',
+        'resolution_date'            => 'Résolution : date (ISO 8601)',
+        'resolution_photo_url'       => 'Résolution : lien vers la photo (vide sans photo)',
+        'resolution_observations'    => 'Résolution : identifiants des observations liées, séparés par des virgules ; les variables de l\'observation sont celles de la première',
         'instance_name'   => 'Nom de l\'instance',
         'instance_url'    => 'Adresse de l\'instance',
     );
@@ -94,9 +143,56 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'time'            => (string) $time,
         'date'            => date('c', $time),
         'status'          => (string) $obs['obs_status'],
+        'approved'        => (string) $obs['obs_approved'],
+        'resolution_token'           => '',
+        'resolution_status'          => '',
+        'resolution_status_name'     => '',
+        'resolution_previous_status' => '',
+        'resolution_comment'         => '',
+        'resolution_date'            => '',
+        'resolution_photo_url'       => '',
+        'resolution_observations'    => '',
         'instance_name'   => isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '',
         'instance_url'    => $instance_url,
     );
+}
+
+/*
+ * Values of the variables for a resolution: those of its first observation, plus the
+ * resolution_* ones. Null if the resolution does not exist.
+ */
+function webhook_resolution_values($db, $resolutionid, $event, $previous_status = null)
+{
+    global $config;
+    $query = mysqli_query($db, "SELECT * FROM obs_resolutions WHERE resolution_id = " . intval($resolutionid) . " LIMIT 1");
+    $res   = $query ? mysqli_fetch_assoc($query) : null;
+    if (!$res) {
+        return null;
+    }
+    $tokens = array();
+    $query  = mysqli_query($db, "SELECT obs_list.obs_token FROM obs_resolutions_tokens INNER JOIN obs_list ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid
+                                 WHERE obs_resolutions_tokens.restok_resolutionid = " . intval($resolutionid) . " ORDER BY obs_list.obs_id");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $tokens[] = (string) $row['obs_token'];
+    }
+    $values = $tokens ? webhook_observation_values($db, $tokens[0], $event) : null;
+    if (!$values) {
+        $proto        = (isset($config['HTTP_PROTOCOL']) && $config['HTTP_PROTOCOL'] !== '') ? $config['HTTP_PROTOCOL'] : 'https';
+        $values = array_fill_keys(array_keys(webhook_variables()), '');
+        $values['event']         = $event;
+        $values['instance_name'] = isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '';
+        $values['instance_url']  = $proto . '://' . (isset($config['URLBASE']) ? $config['URLBASE'] : '');
+    }
+    $time = intval($res['resolution_time']);
+    $values['resolution_token']           = (string) $res['resolution_token'];
+    $values['resolution_status']          = (string) $res['resolution_status'];
+    $values['resolution_status_name']     = webhook_resolution_status_name($res['resolution_status']);
+    $values['resolution_previous_status'] = $previous_status === null ? '' : (string) intval($previous_status);
+    $values['resolution_comment']         = (string) $res['resolution_comment'];
+    $values['resolution_date']            = $time > 0 ? date('c', $time) : '';
+    $values['resolution_photo_url']       = !empty($res['resolution_withphoto']) ? $values['instance_url'] . '/get_photo.php?type=resolution&token=' . rawurlencode($res['resolution_token']) : '';
+    $values['resolution_observations']    = implode(',', $tokens);
+    return $values;
 }
 
 /* Value of a variable, computing the remote ones on first use */
@@ -198,7 +294,7 @@ function webhook_build_request($hook, &$values)
 function webhooks_for_event($db, $event)
 {
     $hooks = array();
-    $query = mysqli_query($db, "SELECT * FROM obs_webhooks WHERE webhook_enabled = 1 AND webhook_event = '" . mysqli_real_escape_string($db, $event) . "' ORDER BY webhook_id");
+    $query = mysqli_query($db, "SELECT * FROM obs_webhooks WHERE webhook_enabled = 1 AND FIND_IN_SET('" . mysqli_real_escape_string($db, $event) . "', REPLACE(webhook_event, ' ', '')) > 0 ORDER BY webhook_id");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $hooks[] = $row;
     }
@@ -264,13 +360,15 @@ function webhooks_deliver($db, $hooks, $values)
     }
     curl_multi_close($multi);
 
+    // Logged token: the resolution for its events, else the observation
+    $log_token = (strpos($values['event'], 'resolution.') === 0 && !empty($values['resolution_token'])) ? $values['resolution_token'] : $values['token'];
     foreach ($results as $id => $result) {
         list($code, $error, $duration, $response) = $result;
         mysqli_query($db, "INSERT INTO obs_webhook_deliveries (delivery_webhookid, delivery_time, delivery_event, delivery_token, delivery_http_code, delivery_error, delivery_duration_ms, delivery_response)
-                           VALUES (" . intval($id) . ", " . time() . ", '" . mysqli_real_escape_string($db, $values['event']) . "', '" . mysqli_real_escape_string($db, $values['token']) . "', "
+                           VALUES (" . intval($id) . ", " . time() . ", '" . mysqli_real_escape_string($db, $values['event']) . "', '" . mysqli_real_escape_string($db, $log_token) . "', "
                            . intval($code) . ", '" . mysqli_real_escape_string($db, substr($error, 0, 255)) . "', " . intval($duration) . ", '" . mysqli_real_escape_string($db, mb_substr($response, 0, 500)) . "')");
         if ($error !== '') {
-            error_log('[WARNING] WEBHOOK: webhook #' . $id . ' for ' . $values['token'] . ' - ' . $error);
+            error_log('[WARNING] WEBHOOK: webhook #' . $id . ' for ' . $log_token . ' (' . $values['event'] . ') - ' . $error);
         }
     }
     // Only the last deliveries are kept
@@ -289,18 +387,58 @@ function webhook_approval_state($db, $token)
     return $row ? intval($row['obs_approved']) : null;
 }
 
-/* To call after a change of approval: the webhooks run when the observation becomes published */
-function webhooks_on_approval($db, $token, $before, $after)
+/* Calls the webhooks of an event for an observation */
+function webhooks_for_observation($db, $event, $token)
 {
-    if (intval($after) !== 1 || $before === null || intval($before) === 1) {
-        return array();
-    }
-    $hooks = webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_APPROVED);
+    $hooks = webhooks_for_event($db, $event);
     if (empty($hooks)) {
         return array();
     }
-    $values = webhook_observation_values($db, $token);
+    $values = webhook_observation_values($db, $token, $event);
     return $values ? webhooks_deliver($db, $hooks, $values) : array();
+}
+
+/* To call after a change of approval: observation.approved when it becomes published, observation.disapproved when refused */
+function webhooks_on_approval($db, $token, $before, $after)
+{
+    if ($before === null || intval($before) === intval($after)) {
+        return array();
+    }
+    if (intval($after) === 1) {
+        return webhooks_for_observation($db, VIGILO_WEBHOOK_EVENT_APPROVED, $token);
+    }
+    if (intval($after) === 2) {
+        return webhooks_for_observation($db, VIGILO_WEBHOOK_EVENT_DISAPPROVED, $token);
+    }
+    return array();
+}
+
+/* Calls the webhooks of an event for a resolution */
+function webhooks_for_resolution($db, $event, $resolutionid, $previous_status = null)
+{
+    $hooks = webhooks_for_event($db, $event);
+    if (empty($hooks)) {
+        return array();
+    }
+    $values = webhook_resolution_values($db, $resolutionid, $event, $previous_status);
+    return $values ? webhooks_deliver($db, $hooks, $values) : array();
+}
+
+/* To call after a change of status of a resolution */
+function webhooks_on_resolution_status($db, $resolutionid, $before, $after)
+{
+    if ($before === null || intval($before) === intval($after)) {
+        return array();
+    }
+    return webhooks_for_resolution($db, VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS, $resolutionid, $before);
+}
+
+/* Status of a resolution (null if it does not exist) */
+function webhook_resolution_state($db, $resolutionid)
+{
+    $query = mysqli_query($db, "SELECT resolution_status FROM obs_resolutions WHERE resolution_id = " . intval($resolutionid) . " LIMIT 1");
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    return $row ? intval($row['resolution_status']) : null;
 }
 
 /*

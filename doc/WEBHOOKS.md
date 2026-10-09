@@ -1,6 +1,7 @@
 # Webhooks : exemples
 
-Les webhooks appellent un service externe à chaque publication d'une observation. Leur fonctionnement (variables,
+Les webhooks appellent un service externe aux événements choisis : nouvelle observation, publication ou refus d'une
+observation, nouvelle résolution, changement d'état d'une résolution. Leur fonctionnement (événements, variables,
 échappement, envoi) est décrit dans [FONCTIONNEMENT.md](FONCTIONNEMENT.md#webhooks). Cette page donne des réglages
 prêts à l'emploi pour la page **Webhooks** de l'admin. Ils sont aussi proposés dans le menu **Modèle** du formulaire,
 qui préremplit les champs : il reste à remplacer les valeurs en `MAJUSCULES`, puis à cliquer sur **Enregistrer et
@@ -19,8 +20,14 @@ Rappels :
 - les jetons et mots de passe sont enregistrés en clair dans la base : utiliser des jetons dédiés, limités au strict
   nécessaire (publication seule), et les révoquer s'ils fuitent.
 
+Les exemples ci-dessous sont prévus pour l'événement « Observation publiée ». Pour prévenir les modérateurs d'une
+observation à modérer, cocher « Nouvelle observation » sur un webhook Slack, Mattermost ou Discord (voir
+[l'exemple](#modérateurs-observation-à-modérer)) ; pour suivre les résolutions, cocher les événements de résolution et
+utiliser les variables `resolution_*`.
+
 Sommaire : [Mastodon](#mastodon) · [Slack, Mattermost, Discord](#slack-mattermost-discord) · [Bluesky](#bluesky) ·
-[Ticketing de collectivité (Open311)](#ticketing-de-collectivité-open311) · [Redmine](#redmine)
+[Ticketing de collectivité (Open311)](#ticketing-de-collectivité-open311) · [Redmine](#redmine) ·
+[Modérateurs : observation à modérer](#modérateurs-observation-à-modérer) · [Suivi des résolutions](#suivi-des-résolutions)
 
 ## Mastodon
 
@@ -205,3 +212,46 @@ Corps :
 
 GLPI demande d'ouvrir une session avant de créer un ticket (`initSession`) : comme pour Bluesky, passer par un relais
 ou un outil d'automatisation.
+
+## Modérateurs : observation à modérer
+
+Prévenir les modérateurs dans leur canal (Slack, Mattermost, Discord) dès qu'une observation arrive. Événement :
+**Nouvelle observation** (`observation.created`). La photo n'est pas encore modérée : `{{photo_url}}` donne la version
+pixelisée ; le lien vers l'admin permet de la voir.
+
+| Champ | Valeur |
+|---|---|
+| Événements | Nouvelle observation |
+| Méthode | `POST` |
+| URL | URL du webhook entrant du canal des modérateurs |
+| Format | JSON |
+
+Corps (Slack / Mattermost ; pour Discord, remplacer `text` par `content`) :
+
+```json
+{"text": "🕵️ Observation {{token}} à modérer : {{categorie_name}} à {{cityname}}\n« {{comment}} »\n{{instance_url}}/admin/index.php?page=observations&approved=0"}
+```
+
+## Suivi des résolutions
+
+Informer un canal ou mettre à jour un ticket quand une résolution est déclarée ou change d'état. Événements :
+**Nouvelle résolution** et **Changement d'état d'une résolution**.
+
+```json
+{
+  "event": "{{event}}",
+  "resolution": "{{resolution_token}}",
+  "status": {{resolution_status}},
+  "status_name": "{{resolution_status_name}}",
+  "previous_status": "{{resolution_previous_status}}",
+  "comment": "{{resolution_comment}}",
+  "photo": "{{resolution_photo_url}}",
+  "observations": "{{resolution_observations}}",
+  "address": "{{address}}",
+  "city": "{{cityname}}"
+}
+```
+
+Les variables de l'observation (`{{token}}`, `{{address}}`, `{{categorie_code}}`…) sont celles de la première
+observation liée ; `{{resolution_observations}}` donne la liste de toutes. Une résolution déclarée dans l'application
+est envoyée à sa création, avant sa photo (`{{resolution_photo_url}}` vide).

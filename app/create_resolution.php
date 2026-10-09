@@ -22,6 +22,7 @@ $cwd = dirname(__FILE__);
 require_once("{$cwd}/includes/common.php");
 require_once("{$cwd}/includes/functions.php");
 require_once("{$cwd}/includes/handle.php");
+require_once("{$cwd}/includes/webhooks.php");
 require_once("{$cwd}/includes/security.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
@@ -136,5 +137,11 @@ if ($mysqlerror = mysqli_error($db)) {
     jsonError($error_prefix, "Could not insert field", "MYSQLERROR", 500);
 }
 
-echo json_encode($json);
+if (!$update && webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED)) {
+    /* The application gets its answer now, the webhooks run after (the photo is sent later by add_image.php) */
+    vigilo_send_response_and_continue(json_encode($json));
+    webhooks_for_resolution($db, VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED, getResolutionIdByResolutionToken($token));
+} else {
+    echo json_encode($json);
+}
 ?>

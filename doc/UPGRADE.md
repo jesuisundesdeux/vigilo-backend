@@ -105,7 +105,8 @@ Pour développer avec le code du dépôt :
 Aucune action manuelle pour l'instance : la migration `init-0.0.23.sql` est appliquée automatiquement (Docker) ou
 depuis la page « Mises à jour ». Elle ajoute la page **Catégories** de l'admin et la correspondance des catégories des
 webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il servait à Twitter). En 0.0.24, avec Docker
-et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus.
+et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
+permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
 ### Publier une version (mainteneurs)
 
