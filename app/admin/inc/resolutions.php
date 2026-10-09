@@ -111,6 +111,26 @@ function resolutionNotAllowedAlert()
     echo '<div class="alert alert-danger" role="alert"><i class="bi bi-shield-x"></i> Action non autorisée sur cette résolution</div>';
 }
 
+/* Moves a resolution to a new status if the role and the transition allow it. Returns '' or the reason of the refusal */
+function resolutionSetStatus($resolutionid, $new_status)
+{
+    global $db, $status_list;
+    $query   = mysqli_query($db, "SELECT resolution_status FROM obs_resolutions WHERE resolution_id = " . intval($resolutionid) . " LIMIT 1");
+    $row     = $query ? mysqli_fetch_array($query) : null;
+    $current = $row ? intval($row['resolution_status']) : -1;
+    if (!isset($status_list[$new_status]) || !in_array($_SESSION['role'], $status_list[$new_status]['roles'])
+        || !isset($status_list[$current]) || ($new_status != $current && !in_array($new_status, $status_list[$current]['nextstatus']))) {
+        return 'changement d\'état non autorisé';
+    }
+    try {
+        updateResolution(array('resolution_status' => $new_status), $resolutionid);
+    } catch (Exception $e) {
+        return $e->getMessage();
+    }
+    audit_log('resolution_status', 'resolution:' . intval($resolutionid), 'new_status:' . intval($new_status));
+    return '';
+}
+
 $urlsuffix = "";
 
 /* Forms handling */
@@ -227,18 +247,66 @@ if (isset($_GET['action']) && isset($_GET['resolutionid']) && is_numeric($_GET['
         audit_log('resolution_delete', 'resolution:' . $resolutionid);
         echo '<div class="alert alert-success" role="alert">Résolution <strong>' . intval($resolutionid) . '</strong> supprimée</div>';
     } elseif ($action == 'resolve' && isset($_GET['new_status']) && is_numeric($_GET['new_status']) && in_array($_SESSION['role'], $actions_acl['resolve']['access'])) {
-        $new_status = intval($_GET['new_status']);
-        if (isset($status_list[$new_status]) && in_array($_SESSION['role'], $status_list[$new_status]['roles'])) {
-            try {
-                if (updateResolution(array('resolution_status' => $new_status), $resolutionid)) {
-                    audit_log('resolution_status', 'resolution:' . $resolutionid, 'new_status:' . $new_status);
-                    echo '<div class="alert alert-success" role="alert">Résolution <strong>' . intval($resolutionid) . '</strong> mise à jour</div>';
-                }
-            } catch (Exception $e) {
-                echo '<div class="alert alert-danger" role="alert">' . h($e->getMessage()) . '</div>';
-            }
+        $error = resolutionSetStatus($resolutionid, intval($_GET['new_status']));
+        if ($error === '') {
+            echo '<div class="alert alert-success" role="alert">Résolution <strong>' . intval($resolutionid) . '</strong> mise à jour</div>';
         } else {
-            exit('Not allowed');
+            echo '<div class="alert alert-danger" role="alert">' . h($error) . '</div>';
+        }
+    }
+}
+
+/* Bulk actions on the checked resolutions (bulk_ids[]): status_<n> or delete */
+$bulk_actions = array();
+if (in_array($_SESSION['role'], $actions_acl['resolve']['access'])) {
+    foreach (array(2 => 'Problème pris en compte', 3 => 'En cours de résolution', 4 => 'Résolution à valider', 1 => 'Résolution validée') as $bulk_status => $bulk_label) {
+        if (in_array($_SESSION['role'], $status_list[$bulk_status]['roles'])) {
+            $bulk_actions['status_' . $bulk_status] = 'Passer à « ' . $bulk_label . ' »';
+        }
+    }
+}
+if (in_array($_SESSION['role'], $actions_acl['delete']['access'])) {
+    $bulk_actions['delete'] = 'Supprimer';
+}
+if (isset($_POST['bulk_action'])) {
+    $bulk_key = (string) $_POST['bulk_action'];
+    $bulk_ids = array();
+    if (isset($_POST['bulk_ids']) && is_array($_POST['bulk_ids'])) {
+        $bulk_ids = array_slice(array_unique(array_map('intval', $_POST['bulk_ids'])), 0, 1000);
+    }
+    if (!isset($bulk_actions[$bulk_key])) {
+        echo '<div class="alert alert-danger" role="alert">Action non autorisée</div>';
+    } else {
+        $done   = 0;
+        $errors = array();
+        foreach ($bulk_ids as $bulk_id) {
+            if (!resolutionAllowedForRole($bulk_id)) {
+                $errors[] = '#' . $bulk_id . ' : hors de vos villes';
+                continue;
+            }
+            if ($bulk_key == 'delete') {
+                flushImagesCacheResolution($bulk_id);
+                delResolution($bulk_id);
+                audit_log('resolution_delete', 'resolution:' . $bulk_id);
+                $done++;
+            } else {
+                $error = resolutionSetStatus($bulk_id, intval(substr($bulk_key, 7)));
+                if ($error === '') {
+                    $done++;
+                } else {
+                    $token = mysqli_query($db, "SELECT resolution_token FROM obs_resolutions WHERE resolution_id = " . $bulk_id . " LIMIT 1");
+                    $token = $token ? mysqli_fetch_array($token) : null;
+                    $errors[] = ($token ? $token['resolution_token'] : '#' . $bulk_id) . ' : ' . $error;
+                }
+            }
+        }
+        echo '<div class="alert alert-success" role="alert">' . h($bulk_actions[$bulk_key]) . ' : <strong>' . intval($done) . '</strong> résolution(s)</div>';
+        if (!empty($errors)) {
+            echo '<div class="alert alert-warning" role="alert">Non modifiée(s) :<ul class="mb-0">';
+            foreach ($errors as $error) {
+                echo '<li>' . h($error) . '</li>';
+            }
+            echo '</ul></div>';
         }
     }
 }
@@ -327,6 +395,27 @@ $can_status = in_array($_SESSION['role'], $actions_acl['resolve']['access']);
 <?php } ?>
 </ul>
 
+<?php if (!empty($bulk_actions) && $nbrows > 0) { ?>
+<form method="POST" action="<?= h($tab_url . ($pagenb > 1 ? '&pagenb=' . $pagenb : '') . $urlsuffix) ?>" id="bulk-form" class="card card-body shadow-sm mb-3 py-2" data-bulk>
+  <?= csrf_field() ?>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="form-check mb-0 me-2">
+      <input class="form-check-input" type="checkbox" id="bulk-all" data-bulk-all />
+      <label class="form-check-label" for="bulk-all">Tout sélectionner</label>
+    </div>
+    <span class="text-body-secondary small me-2"><strong data-bulk-count>0</strong> sélectionnée(s)</span>
+    <label class="visually-hidden" for="bulk-action">Action sur la sélection</label>
+    <select class="form-select form-select-sm w-auto" name="bulk_action" id="bulk-action">
+      <option value="">Action sur la sélection…</option>
+      <?php foreach ($bulk_actions as $bulk_key => $bulk_label) { ?>
+      <option value="<?= h($bulk_key) ?>"<?= $bulk_key == 'delete' ? ' data-confirm="Supprimer %n résolution(s) ?"' : '' ?>><?= h($bulk_label) ?></option>
+      <?php } ?>
+    </select>
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2-all"></i> Appliquer</button>
+  </div>
+</form>
+<?php } ?>
+
 <div class="card shadow-sm mb-3">
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -356,7 +445,12 @@ while ($query_resolution && $result_resolution = mysqli_fetch_array($query_resol
     $action_url     = $tab_url . '&resolutionid=' . $res_id . $urlsuffix;
 ?>
           <tr>
-            <td><code><?= h($res_token) ?></code></td>
+            <td>
+<?php if (!empty($bulk_actions)) { ?>
+              <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $res_id ?>" form="bulk-form" aria-label="Sélectionner <?= h($res_token) ?>" />
+<?php } ?>
+              <code><?= h($res_token) ?></code>
+            </td>
             <td>
 <?php if ($result_resolution['resolution_withphoto'] == 1) { ?>
               <a href="<?= h($photo_url) ?>" data-photo data-photo-title="Résolution <?= h($res_token) ?>"><img class="obs-thumb" src="<?= h($photo_url) ?>" alt="Photo de la résolution <?= h($res_token) ?>" loading="lazy" /></a>

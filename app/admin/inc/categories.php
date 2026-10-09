@@ -68,19 +68,57 @@ if (isset($_GET['action']) && in_array($_GET['action'], array('disable', 'enable
     }
 }
 
-/* Delete a category of the instance (only if no observation uses it) */
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['catid'])) {
-    $catid = intval($_GET['catid']);
-    $count = mysqli_query($db, "SELECT COUNT(*) FROM obs_list WHERE obs_categorie = " . $catid);
-    $used  = $count ? intval(mysqli_fetch_array($count)[0]) : 0;
+/*
+ * Delete a category of the instance. Its observations are first moved to another category
+ * (obs_action=move, target_catid) or deleted with their photos (obs_action=delete).
+ */
+if (isset($_POST['category_delete'])) {
+    $catid   = isset($_POST['cat_id']) ? intval($_POST['cat_id']) : 0;
+    $mode    = isset($_POST['obs_action']) && in_array($_POST['obs_action'], array('move', 'delete'), true) ? $_POST['obs_action'] : '';
+    $target  = isset($_POST['target_catid']) ? intval($_POST['target_catid']) : 0;
+    $targets = array();
+    foreach (getCategoriesList() as $category) {
+        if (isset($category['catid']) && empty($category['catdisable'])) {
+            $targets[intval($category['catid'])] = (string) $category['catname'];
+        }
+    }
+    $obs   = array();
+    $query = mysqli_query($db, "SELECT obs_id, obs_token FROM obs_list WHERE obs_categorie = " . $catid);
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $obs[intval($row['obs_id'])] = (string) $row['obs_token'];
+    }
     if (!isset($local[$catid]) || !$local[$catid]['cat_custom']) {
         $messages[] = array('warning', 'Catégorie <strong>#' . $catid . '</strong> introuvable.');
-    } elseif ($used > 0) {
-        $messages[] = array('warning', 'La catégorie <strong>' . h($local[$catid]['cat_name']) . '</strong> est utilisée par ' . $used . ' observation(s) : la désactiver plutôt que la supprimer.');
-    } elseif (mysqli_query($db, "DELETE FROM obs_categories WHERE cat_id = " . $catid . " AND cat_custom = 1")) {
-        audit_log('category_delete', 'category:' . $catid, array('name' => $local[$catid]['cat_name']));
-        $messages[] = array('success', 'Catégorie <strong>' . h($local[$catid]['cat_name']) . '</strong> supprimée.');
-        unset($local[$catid]);
+    } elseif (count($obs) > 0 && $mode === '') {
+        $messages[] = array('warning', 'La catégorie <strong>' . h($local[$catid]['cat_name']) . '</strong> est utilisée par ' . count($obs) . ' observation(s) : choisir de les déplacer ou de les supprimer.');
+    } elseif (count($obs) > 0 && $mode === 'move' && ($target == $catid || !isset($targets[$target]))) {
+        $messages[] = array('warning', 'Choisir une catégorie active vers laquelle déplacer les observations.');
+    } else {
+        $details = array('name' => $local[$catid]['cat_name'], 'observations' => count($obs));
+        if (count($obs) > 0 && $mode === 'move') {
+            mysqli_query($db, "UPDATE obs_list SET obs_categorie = " . $target . " WHERE obs_categorie = " . $catid);
+            foreach ($obs as $token) {
+                delete_token_cache($token);
+            }
+            $details['moved_to'] = $target;
+        } elseif (count($obs) > 0) {
+            foreach ($obs as $obsid => $token) {
+                deleteObs($obsid);
+                audit_log('observation_delete', $token, array('obs_id' => $obsid, 'category' => $catid));
+            }
+            $details['deleted_observations'] = array_values($obs);
+        }
+        if (mysqli_query($db, "DELETE FROM obs_categories WHERE cat_id = " . $catid . " AND cat_custom = 1")) {
+            audit_log('category_delete', 'category:' . $catid, $details);
+            $done = '';
+            if (isset($details['moved_to'])) {
+                $done = ' ; ' . count($obs) . ' observation(s) déplacée(s) vers <strong>' . h($targets[$target]) . '</strong>';
+            } elseif (isset($details['deleted_observations'])) {
+                $done = ' ; ' . count($obs) . ' observation(s) supprimée(s)';
+            }
+            $messages[] = array('success', 'Catégorie <strong>' . h($local[$catid]['cat_name']) . '</strong> supprimée' . $done . '.');
+            unset($local[$catid]);
+        }
     }
 }
 
@@ -213,7 +251,9 @@ $custom = array_filter($local, function ($row) { return (bool) $row['cat_custom'
           <td class="text-end text-nowrap">
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#categoryModal"
                     data-title="Modifier la catégorie n° <?= intval($catid) ?>" data-fill="<?= h(json_encode($fill)) ?>"><i class="bi bi-pencil"></i><span class="d-none d-lg-inline"> Modifier</span></button>
-            <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;catid=<?= intval($catid) ?><?= h(csrf_query()) ?>" data-confirm="Supprimer la catégorie « <?= h($row['cat_name']) ?> » ?" title="Supprimer"><i class="bi bi-trash"></i></a>
+            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#categoryDeleteModal" title="Supprimer"
+                    data-title="Supprimer la catégorie « <?= h($row['cat_name']) ?> »"
+                    data-fill="<?= h(json_encode(array('cat_id' => intval($catid), 'obs_count' => isset($counts[$catid]) ? intval($counts[$catid]) : 0, 'obs_action' => 'move', 'target_catid' => ''))) ?>"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer</span></button>
           </td>
         </tr>
       <?php } ?>
@@ -223,8 +263,8 @@ $custom = array_filter($local, function ($row) { return (bool) $row['cat_custom'
   <?php } ?>
   <div class="card-body small text-body-secondary">
     Les catégories de l'instance sont numérotées à partir de <?= VIGILO_CUSTOM_CATEGORY_FIRST_ID ?> (numéros jamais utilisés par la liste nationale).
-    « Résolvable » : les citoyens peuvent déclarer l'observation résolue. Une catégorie utilisée par des observations ne peut
-    pas être supprimée : la désactiver.
+    « Résolvable » : les citoyens peuvent déclarer l'observation résolue. À la suppression d'une catégorie utilisée, ses
+    observations sont déplacées vers une autre catégorie ou supprimées ; pour seulement ne plus la proposer, la désactiver.
   </div>
 </div>
 
@@ -263,6 +303,47 @@ $custom = array_filter($local, function ($row) { return (bool) $row['cat_custom'
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
         <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal fade" id="categoryDeleteModal" tabindex="-1" aria-labelledby="categoryDeleteModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="POST" action="<?= h($self_url) ?>" data-category-delete>
+      <?= csrf_field() ?>
+      <input type="hidden" name="category_delete" value="1" />
+      <input type="hidden" name="cat_id" value="0" />
+      <input type="hidden" name="obs_count" value="0" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="categoryDeleteModalTitle">Supprimer la catégorie</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <p data-when-unused>Aucune observation n'utilise cette catégorie.</p>
+        <div data-when-used>
+          <p>Cette catégorie est utilisée par <strong data-obs-count>0</strong> observation(s). Que faire de ces observations ?</p>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="obs_action" id="obs_action_move" value="move" checked />
+            <label class="form-check-label" for="obs_action_move">Les déplacer vers la catégorie</label>
+            <select class="form-select form-select-sm mt-1" name="target_catid" aria-label="Catégorie de destination">
+              <option value="">— choisir —</option>
+              <?php foreach (getCategoriesList() as $category) {
+                  if (!isset($category['catid']) || !empty($category['catdisable'])) {
+                      continue;
+                  } ?>
+              <option value="<?= intval($category['catid']) ?>"><?= h($category['catname']) ?></option>
+              <?php } ?>
+            </select>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="obs_action" id="obs_action_delete" value="delete" />
+            <label class="form-check-label" for="obs_action_delete">Les supprimer, avec leurs photos <span class="text-danger">(irréversible)</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Supprimer la catégorie</button>
       </div>
     </form>
   </div>

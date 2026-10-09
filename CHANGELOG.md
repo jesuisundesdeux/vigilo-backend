@@ -8,6 +8,14 @@
   Reprendre le `docker-compose.yml` (ou `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), voir doc/UPGRADE.md.
 - Le bouton de l'admin appelle l'API de Watchtower en POST (seule méthode acceptée par la nouvelle image).
 
+### Administration
+- Suppression d'une catégorie de l'instance utilisée par des observations : les observations sont déplacées vers une
+  autre catégorie active ou supprimées (avec leurs photos), au choix, dans la fenêtre de suppression.
+- Actions groupées sur les observations (approuver, désapprouver, remettre à qualifier, changer la catégorie ou la
+  ville, nouvelle résolution regroupant la sélection, ajout à une résolution, effacer le cache, supprimer) et sur les
+  résolutions (changer l'état, supprimer) : cocher les éléments puis choisir l'action. Mêmes droits que les actions
+  unitaires (un citystaff seulement sur ses villes) ; les transitions d'état des résolutions sont contrôlées.
+
 ### Floutage des photos
 - Serveur de floutage (`blur-server/`) plus fiable : détection des visages et des plaques par le modèle YOLO11s
   entraîné par Panoramax pour son service de floutage (SGBlur), exécuté sur CPU avec ONNX Runtime, complété par

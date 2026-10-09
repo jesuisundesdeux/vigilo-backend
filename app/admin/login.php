@@ -83,7 +83,7 @@ $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' 
     <title>Connexion · <?= h($instance_name) ?> admin</title>
     <link rel="icon" href="vigilo.png">
     <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/admin.css" rel="stylesheet">
+    <link href="assets/admin.css?v=<?= intval(@filemtime(__DIR__ . '/assets/admin.css')) ?>" rel="stylesheet">
     <script>
       (function () {
         var stored = null;

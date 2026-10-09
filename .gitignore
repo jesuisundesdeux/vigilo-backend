@@ -35,3 +35,4 @@ scripts/umap/vigilo.umap
 
 # Dev folders
 dev/
+__pycache__/

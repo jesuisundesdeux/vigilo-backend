@@ -95,7 +95,7 @@ $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' 
     <link rel="icon" href="vigilo.png">
     <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="assets/admin.css" rel="stylesheet">
+    <link href="assets/admin.css?v=<?= intval(@filemtime(__DIR__ . '/assets/admin.css')) ?>" rel="stylesheet">
     <script>
       // Dark mode follows the system unless chosen in the menu
       (function () {
@@ -213,6 +213,6 @@ $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' 
     </div>
 
     <script src="assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="assets/admin.js"></script>
+    <script src="assets/admin.js?v=<?= intval(@filemtime(__DIR__ . '/assets/admin.js')) ?>"></script>
   </body>
 </html>
