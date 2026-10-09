@@ -3,8 +3,8 @@ Présentation API Vigilo
 
 ## Vue d'ensemble
 
-Toutes les routes sont à la racine de l'instance et répondent en JSON (sauf images et `mosaic.php`) avec l'en-tête
-`BACKEND_VERSION` et `Access-Control-Allow-Origin: *` (sauf `get_version.php`, `generate_panel.php` et `mosaic.php`).
+Toutes les routes sont à la racine de l'instance et répondent en JSON (sauf images) avec l'en-tête
+`BACKEND_VERSION` et `Access-Control-Allow-Origin: *` (sauf `get_version.php` et `generate_panel.php`).
 Erreurs : `{"error": {"status", "code", "message"}}` avec le code HTTP correspondant. Le détail de chaque route suit.
 
 Authentification :
@@ -21,7 +21,7 @@ Authentification :
 | `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`/`fdistance`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` admin/modérateur pour les non approuvées et les résolues masquées |
 | `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur, ou lien signé `exp` + `sig` (0.0.26) |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` (1024 max.) | `secretid` de l'auteur ou `key` admin/modérateur pour la version nette |
-| `GET mosaic.php` | Page HTML en mosaïque des photos (`scope`, `c`, `t`) | — |
+| ~~`GET mosaic.php`~~ | Supprimée en 0.0.26 (404) : l'application web affiche elle-même les observations similaires | — |
 | `GET acl.php?key=` | Rôle associé à une clé | `key` |
 | `POST create_issue.php` | Crée une observation (ou la modifie avec `token` + `key`) | anti-spam par IP, sauf `key` admin/modérateur |
 | `POST add_image.php?token=&secretid=` | Photo de l'observation (corps brut, ou `method=base64` en formulaire/JSON) ; `type=resolution` pour une résolution | `secretid` (+ `key` admin/modérateur si approuvée) |
@@ -323,26 +323,9 @@ ___
 
 ##### Mosaïque
 
-###### Compatibilité
-
-Version backend >= 0.0.1
-
-######  Requête
-
-    GET /mosaic.php?
-
-###### Arguments
-
-| Localisation | Type | Nom | Obligatoire ? | Description | Compatibilité |
-| ------------ | ---- | ----|------------ | ------------- | --------------|
-| URL | str | scope | | Scope : si l'instance est dans `citylist.json`, chaque photo renvoie vers l'application web, sinon vers l'image | |
-| URL | int | c | | Catégorie à afficher | |
-| URL | str | t | | Token : affiche les observations similaires (300 m, même catégorie, même adresse) | |
-
-###### Retour
-
-Page HTML : images `generate_panel.php` (`s=400`) des observations publiques (mêmes règles que `get_issues.php` sans
-paramètre, toutes les observations de l'instance).
+**Supprimée en 0.0.26** (réponse 404 du serveur web). Elle affichait une page HTML en mosaïque des photos
+(paramètres `scope`, `c`, `t` pour les observations similaires). L'application web calcule désormais elle-même
+les observations similaires (même catégorie, à moins de 300 m ou à la même adresse) à partir de `get_issues.php`.
 
 ___
 
@@ -665,5 +648,5 @@ clé admin ou modérateur ; sur `create_resolution.php`, celles avec une clé ad
 ## Observations résolues anciennes (depuis 0.0.22)
 
 Si le réglage « Masquer les observations résolues depuis plus de N jours » (`vigilo_resolved_hide_days`) est
-supérieur à 0 (0 par défaut), `get_issues.php` (et donc `mosaic.php`) ne renvoie plus les observations dont la
+supérieur à 0 (0 par défaut), `get_issues.php` ne renvoie plus les observations dont la
 résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou modérateur.

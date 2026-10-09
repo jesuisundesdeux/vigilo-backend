@@ -299,12 +299,9 @@ class T03Images(unittest.TestCase):
             self.assertEqual(r.status, 404, path)
             self.assertEqual(r.json()['error']['code'], 'PHOTONOTFOUND', path)
 
-    def test_mosaic(self):
-        r = call('mosaic.php')
-        self.assertEqual(r.status, 200)
-        self.assertIn('TOKA0001', r.text)
-        self.assertNotIn('TOKA0004', r.text)
-        self.assertNotIn('<script src=', r.text, 'no third-party script')
+    def test_mosaic_removed(self):
+        # 0.0.26: the web app shows the similar observations itself
+        self.assertEqual(call('mosaic.php').status, 404)
 
 
 class T04ObservationWorkflow(unittest.TestCase):
@@ -441,12 +438,6 @@ class T06Resolutions(unittest.TestCase):
 
 
 class T07Security(unittest.TestCase):
-    def test_mosaic_sql_injection(self):
-        start = time.time()
-        r = call('mosaic.php', {'t': "' OR SLEEP(3) -- "})
-        self.assertEqual(r.status, 200)
-        self.assertLess(time.time() - start, 2.5, 'token not injected in SQL')
-
     def test_issues_sql_injection(self):
         start = time.time()
         r = call('get_issues.php', {'token': "' OR SLEEP(3) -- ", 'c': "2') OR SLEEP(3) -- "})

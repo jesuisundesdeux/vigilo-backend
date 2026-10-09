@@ -2,6 +2,11 @@
 
 ## 0.0.26
 
+### API
+- `mosaic.php` (page HTML des photos en mosaïque, observations similaires) est supprimée, avec `style/mosaic.css` :
+  l'application web (1.14.0) affiche elle-même les observations similaires dans la fiche d'une observation (mêmes
+  règles : même catégorie, à moins de 300 m ou à la même adresse). La recherche « Similaires » de l'admin est inchangée.
+
 ### Webhooks : photo d'origine pour les modérateurs
 - Variable `{{photo_full_url}}` : lien vers la photo d'origine (non pixelisée, même avant modération), signé et valable
   7 jours, par exemple pour l'afficher dans le canal des modérateurs avec l'événement « Nouvelle observation ».
