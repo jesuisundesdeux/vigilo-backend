@@ -71,6 +71,8 @@ $json = array(
     'map_center_string' => $result['scope_map_center_string'],
     'map_zoom' => $result['scope_map_zoom'],
     'contact_email' => $result['scope_contact_email'],
+    // website of the association that runs the territory (0.0.28; empty if not set)
+    'association_url' => isset($result['scope_association_url']) ? (string) $result['scope_association_url'] : '',
     'tweet_content' => $result['scope_sharing_content_text'],
     'twitter' => $result['scope_twitter'],
     'map_url' => $result['scope_umap_url'],

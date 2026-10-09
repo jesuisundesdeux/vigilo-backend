@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.28
+
+### Scopes : site de l'association
+- Nouveau champ « Site de l'association » sur la carte de chaque scope (page Scopes de l'admin) : adresse
+  `http(s)://` du site de l'association qui gère le territoire. Renvoyé par `get_scope.php` dans le nouveau champ
+  `association_url` (vide s'il n'est pas renseigné) et affiché sur la page du territoire sur vigilo.city.
+- Migration `init-0.0.28.sql` : colonne `obs_scopes.scope_association_url`.
+
 ## 0.0.27
 
 ### Observations liées à plusieurs résolutions

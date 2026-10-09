@@ -622,6 +622,7 @@ Valeurs de la base renvoyées en chaînes.
 | str | map_center_string | Latitude + "," + Longitude du centre de la carte qui doit être affichée | >= 0.0.5 |
 | str | map_zoom | Zoom de la carte à afficher | >= 0.0.5 |
 | str | contact_email | Adresse mail de contact du scope  | >= 0.0.5 |
+| str | association_url | Site web de l'association qui gère le territoire (vide s'il n'est pas renseigné) ; ajout, absent avant 0.0.28 | >= 0.0.28 |
 | str | tweet_content | Texte de partage par défaut (valeur existante, plus modifiable depuis 0.0.23) | >= 0.0.5 |
 | str | twitter | Compte Twitter (valeur existante, plus modifiable depuis 0.0.22) | >= 0.0.8 |
 | str | map_url | Adresse de la carte où sont affichées les observations| >= 0.0.5 |

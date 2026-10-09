@@ -108,6 +108,12 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
+### Passage à la 0.0.28
+
+Migration de base automatique (`init-0.0.28.sql` : colonne `scope_association_url`), appliquée par la mise à jour
+depuis l'admin ou au démarrage du conteneur. Ensuite, renseigner le **site de l'association** sur la carte du scope
+(page Scopes de l'admin) : il s'affiche sur la page du territoire sur vigilo.city.
+
 ### Passage à la 0.0.27
 
 Aucune action manuelle ni migration de base :
