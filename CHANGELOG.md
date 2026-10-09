@@ -1,11 +1,6 @@
 # Changelog
 
-## 0.0.26
-
-### API
-- `mosaic.php` (page HTML des photos en mosaïque, observations similaires) est supprimée, avec `style/mosaic.css` :
-  l'application web (1.14.0) affiche elle-même les observations similaires dans la fiche d'une observation (mêmes
-  règles : même catégorie, à moins de 300 m ou à la même adresse). La recherche « Similaires » de l'admin est inchangée.
+## 0.0.27
 
 ### Observations liées à plusieurs résolutions
 - `get_issues.php` renvoyait une entrée par résolution : une observation résolue qui figurait aussi dans une
@@ -19,11 +14,20 @@
 - Variables `{{event_label}}` (nom de l'événement, comme dans l'admin) et `{{event_description}}` (l'action en une
   phrase : « Observation ABCD1234 publiée : Véhicule ou objet gênant, Rue de la Gare (Montpellier). », « Résolution
   R123 : En cours de résolution → Résolue (2 observations). »…), utiles pour un webhook abonné à plusieurs événements.
+- Admin, « Enregistrer et tester » sans observation : `{{event_label}}` est rempli dans les valeurs d'exemple. Modèles
+  « JSON générique » et « Slack / Mattermost » : `{{event_label}}` et `{{event_description}}`.
 
 ### Webhooks : photo pixelisée dans Slack après approbation
 - `{{photo_url}}` porte un paramètre `v` (état de modération et date de la photo, ignoré par `generate_panel.php`) :
   le lien d'une observation approuvée diffère de celui de la photo pixelisée envoyé à sa création. Slack garde en cache
   les images par adresse et affichait encore la version pixelisée au message « Observation approuvée ».
+
+## 0.0.26
+
+### API
+- `mosaic.php` (page HTML des photos en mosaïque, observations similaires) est supprimée, avec `style/mosaic.css` :
+  l'application web (1.14.0) affiche elle-même les observations similaires dans la fiche d'une observation (mêmes
+  règles : même catégorie, à moins de 300 m ou à la même adresse). La recherche « Similaires » de l'admin est inchangée.
 
 ### Webhooks : photo d'origine pour les modérateurs
 - Variable `{{photo_full_url}}` : lien vers la photo d'origine (non pixelisée, même avant modération), signé et valable

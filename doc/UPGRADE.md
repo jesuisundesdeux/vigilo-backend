@@ -108,19 +108,24 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
-### Passage à la 0.0.26
+### Passage à la 0.0.27
 
 Aucune action manuelle ni migration de base :
 
-- nouvelles variables de webhook `{{photo_full_url}}` (lien signé vers la photo d'origine pour les modérateurs),
-  `{{event_label}}` et `{{event_description}}` (description de l'action), voir le CHANGELOG ;
+- nouvelles variables de webhook `{{event_label}}` (nom de l'événement) et `{{event_description}}` (l'action en une
+  phrase), voir le CHANGELOG ;
 - `{{photo_url}}` change à l'approbation (paramètre `v`) : Slack n'affiche plus la photo pixelisée gardée en cache ;
 - une observation liée à plusieurs résolutions n'apparaît plus qu'une fois dans `get_issues.php`, avec le statut le
-  plus avancé (une observation résolue n'est plus affichée « en résolution ») ;
-- `mosaic.php` est supprimée (la mise à jour depuis l'admin retire le fichier) : l'application web affiche elle-même
-  les observations similaires.
+  plus avancé (une observation résolue n'est plus affichée « en résolution ») ; l'admin affiche l'état réel.
 
 Mise à jour depuis le bouton de l'admin.
+
+### Passage à la 0.0.26
+
+Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
+photo d'origine pour les modérateurs, voir le CHANGELOG). `mosaic.php` est supprimée (la mise à jour depuis l'admin
+retire le fichier) : l'application web affiche elle-même les observations similaires. Mise à jour depuis le bouton
+de l'admin.
 
 ### Passage à la 0.0.25
 

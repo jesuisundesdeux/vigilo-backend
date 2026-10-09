@@ -33,7 +33,7 @@ $methods  = array('POST', 'PUT', 'PATCH', 'GET');
 $webhook_templates = array(
     'empty' => array('label' => 'Vide', 'name' => '', 'method' => 'POST', 'url' => '', 'format' => 'json', 'headers' => '', 'body' => ''),
     'json' => array('label' => 'JSON générique', 'name' => '', 'method' => 'POST', 'url' => '', 'format' => 'json', 'headers' => '',
-        'body' => "{\n  \"event\": \"{{event}}\",\n  \"token\": \"{{token}}\",\n  \"url\": \"{{observation_url}}\",\n  \"photo\": \"{{photo_url}}\",\n"
+        'body' => "{\n  \"event\": \"{{event}}\",\n  \"event_label\": \"{{event_label}}\",\n  \"description\": \"{{event_description}}\",\n  \"token\": \"{{token}}\",\n  \"url\": \"{{observation_url}}\",\n  \"photo\": \"{{photo_url}}\",\n"
                 . "  \"categorie\": \"{{categorie_name}}\",\n  \"comment\": \"{{comment}}\",\n  \"address\": \"{{address}}\",\n"
                 . "  \"city\": \"{{cityname}}\",\n  \"lat\": {{lat}},\n  \"lon\": {{lon}},\n  \"date\": \"{{date}}\"\n}"),
     'mastodon' => array('label' => 'Mastodon', 'name' => 'Mastodon', 'method' => 'POST', 'url' => 'https://MASTODON.EXEMPLE/api/v1/statuses', 'format' => 'json',
@@ -41,8 +41,8 @@ $webhook_templates = array(
         'body' => "{\n  \"status\": \"📍 Nouvelle observation à {{cityname}} : {{categorie_name}}\\n« {{comment}} »\\n{{address}}\\n\\n{{observation_url}}\\n\\n#Vigilo #vélo\",\n"
                 . "  \"visibility\": \"public\",\n  \"language\": \"fr\"\n}"),
     'slack' => array('label' => 'Slack / Mattermost', 'name' => 'Slack', 'method' => 'POST', 'url' => 'https://hooks.slack.com/services/T000/B000/XXXX', 'format' => 'json', 'headers' => '',
-        'body' => "{\n  \"text\": \"Nouvelle observation à {{cityname}} : {{categorie_name}}\",\n  \"blocks\": [\n"
-                . "    {\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\",\n      \"text\": \"*{{categorie_name}}* à {{cityname}}\\n{{comment}}\\n_{{address}}_\\n<{{observation_url}}|Voir l'observation {{token}}>\"}},\n"
+        'body' => "{\n  \"text\": \"{{event_description}}\",\n  \"blocks\": [\n"
+                . "    {\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\",\n      \"text\": \"*{{event_label}}* : {{categorie_name}} à {{cityname}}\\n{{comment}}\\n_{{address}}_\\n<{{observation_url}}|Voir l'observation {{token}}>\"}},\n"
                 . "    {\"type\": \"image\", \"image_url\": \"{{photo_url}}\", \"alt_text\": \"Photo de l'observation {{token}}\"}\n  ]\n}"),
     'discord' => array('label' => 'Discord', 'name' => 'Discord', 'method' => 'POST', 'url' => 'https://discord.com/api/webhooks/ID/JETON', 'format' => 'json', 'headers' => '',
         'body' => "{\"content\": \"📍 {{categorie_name}} à {{cityname}} : {{comment}}\\n{{observation_url}}\"}"),
@@ -98,7 +98,8 @@ function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
                         'photo_url' => '', 'comment' => 'Voiture "garée" sur la piste', 'explanation' => '', 'categorie' => '2',
                         'categorie_name' => 'Stationnement', 'address' => '1 rue de l\'Exemple', 'cityname' => 'Exempleville', 'scope' => '',
                         'lat' => '43.6', 'lon' => '3.88', 'time' => (string) time(), 'date' => date('c'), 'status' => '0',
-                        'approved' => '1', 'instance_name' => '', 'instance_url' => ''));
+                        'approved' => '1', 'instance_name' => '', 'instance_url' => '',
+                        'event_label' => webhook_event_label($event), 'event_description' => null));
     }
     return $values;
 }

@@ -86,10 +86,10 @@ Corps :
 
 ```json
 {
-  "text": "Nouvelle observation à {{cityname}} : {{categorie_name}}",
+  "text": "{{event_description}}",
   "blocks": [
     {"type": "section", "text": {"type": "mrkdwn",
-      "text": "*{{categorie_name}}* à {{cityname}}\n{{comment}}\n_{{address}}_\n<{{observation_url}}|Voir l'observation {{token}}>"}},
+      "text": "*{{event_label}}* : {{categorie_name}} à {{cityname}}\n{{comment}}\n_{{address}}_\n<{{observation_url}}|Voir l'observation {{token}}>"}},
     {"type": "image", "image_url": "{{photo_url}}", "alt_text": "Photo de l'observation {{token}}"}
   ]
 }
