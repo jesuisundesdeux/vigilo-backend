@@ -58,7 +58,8 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
   - pas de ressource externe (CDN) : les bibliothèques sont copiées dans `app/admin/assets/vendor/` ; en-têtes de
     sécurité (CSP, `Referrer-Policy: same-origin`).
 - **Photos** : les photos non approuvées sont pixelisées pour le public (`generate_panel.php`, `get_photo.php`) ;
-  ne jamais servir une photo non floutée / non pixelisée sans clé admin/modérateur.
+  ne jamais servir une photo non floutée / non pixelisée sans clé admin/modérateur ou lien signé (`exp` + `sig`,
+  `photo_signed_valid()`, variable `{{photo_full_url}}` des webhooks).
 - **Migrations** (`app/migrations/init-X.Y.Z.sql`) :
   - un fichier par version, **rejouable** (`CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`…) ;
   - MySQL ne connaît pas `ADD COLUMN IF NOT EXISTS` ni `DROP COLUMN IF EXISTS` : utiliser le motif conditionnel

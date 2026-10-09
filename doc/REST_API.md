@@ -19,7 +19,7 @@ Authentification :
 | `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, villes) | — |
 | `GET get_categories.php` | Catégories de l'instance (depuis 0.0.23, voir [Catégories](#catégories)) | — |
 | `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`/`fdistance`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` admin/modérateur pour les non approuvées et les résolues masquées |
-| `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur |
+| `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur, ou lien signé `exp` + `sig` (0.0.25) |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` (1024 max.) | `secretid` de l'auteur ou `key` admin/modérateur pour la version nette |
 | `GET mosaic.php` | Page HTML en mosaïque des photos (`scope`, `c`, `t`) | — |
 | `GET acl.php?key=` | Rôle associé à une clé | `key` |
@@ -296,6 +296,8 @@ Version backend >= 0.0.1
 | URL | str | token | X | Token de l'observation (ou de la résolution avec `type=resolution`) | >= 0.0.1 |
 | URL | str | key |  | Clé admin/modérateur, nécessaire si l'observation n'est pas approuvée | >= 0.0.1 |
 | URL | str | type |  | Type d'image (`obs` par défaut, `resolution`) | >= 0.0.14 |
+| URL | int | exp |  | Lien signé (variable `{{photo_full_url}}` des webhooks) : date d'expiration (timestamp Unix) | >= 0.0.25 |
+| URL | str | sig |  | Lien signé : signature HMAC-SHA256 de `token\|exp` par un secret de l'instance ; photo d'origine servie même non approuvée tant que le lien n'a pas expiré | >= 0.0.25 |
 
 Les photos de résolution et des observations approuvées sont publiques ; une observation non approuvée n'est
 servie qu'avec une clé admin/modérateur (pas de version pixelisée : utiliser `generate_panel.php`).
