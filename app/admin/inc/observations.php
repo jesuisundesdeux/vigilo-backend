@@ -69,6 +69,21 @@ function obsadmin_get_obs($db, $obsid)
   return $row ? $row : null;
 }
 
+/* Approval state of an observation (0 to qualify, 1 approved, 2 disapproved), with the webhooks */
+function obsadmin_approve($db, $obs, $approveto, &$messages)
+{
+  $token = (string) $obs['obs_token'];
+  delete_token_cache($token);
+  $approved_before = webhook_approval_state($db, $token);
+  mysqli_query($db, "UPDATE obs_list SET obs_approved='" . intval($approveto) . "' WHERE obs_id='" . intval($obs['obs_id']) . "'");
+  audit_log('observation_approve', $token, array('approved' => intval($approveto)));
+  foreach (webhooks_on_approval($db, $token, $approved_before, $approveto) as $hook_id => $delivery) {
+    if ($delivery[1] !== '') {
+      obsadmin_message($messages, 'warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec pour <strong>' . h($token) . '</strong> : ' . h($delivery[1]) . ' (voir la page Webhooks).');
+    }
+  }
+}
+
 /* Actions links */
 if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']) && !isset($_POST['obs_id'])) {
   $action = (string) $_GET['action'];
@@ -96,15 +111,7 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
         $approveto = intval($_GET['approveto']);
       }
 
-      delete_token_cache($token);
-      $approved_before = webhook_approval_state($db, $token);
-      mysqli_query($db, "UPDATE obs_list SET obs_approved='" . $approveto . "' WHERE obs_id='" . $obsid . "'");
-      audit_log('observation_approve', $token, array('approved' => $approveto));
-      foreach (webhooks_on_approval($db, $token, $approved_before, $approveto) as $hook_id => $delivery) {
-        if ($delivery[1] !== '') {
-          obsadmin_message($messages, 'warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec : ' . h($delivery[1]) . ' (voir la page Webhooks).');
-        }
-      }
+      obsadmin_approve($db, $obs, $approveto, $messages);
       obsadmin_message($messages, 'success', 'Observation <strong>' . h($token) . '</strong> ' . ($approveto == 1 ? 'approuvée' : ($approveto == 2 ? 'désapprouvée' : 'remise à qualifier')));
     }
     elseif ($action == 'cleancache' && in_array($current_role, $actions_acl['cleancache']['access'])) {
@@ -316,6 +323,124 @@ else {
   $input_enabled = 'disabled';
   $input_class = 'form-control-plaintext';
   $select_class = 'form-select form-select-sm';
+}
+
+/*
+ * Bulk actions on the checked observations (bulk_ids[]): each observation is checked like a
+ * single action (role, cities of a citystaff).
+ */
+$bulk_actions = array('approve' => array('acl' => 'approve', 'label' => 'Approuver'),
+                      'disapprove' => array('acl' => 'approve', 'label' => 'Désapprouver'),
+                      'pending' => array('acl' => 'approve', 'label' => 'Remettre à qualifier'),
+                      'category' => array('acl' => 'edit', 'label' => 'Changer la catégorie'),
+                      'city' => array('acl' => 'edit', 'label' => 'Changer la ville'),
+                      'resolution_new' => array('acl' => 'resolve', 'label' => 'Nouvelle résolution regroupant la sélection'),
+                      'resolution_add' => array('acl' => 'edit', 'label' => 'Ajouter à une résolution existante'),
+                      'cleancache' => array('acl' => 'cleancache', 'label' => 'Effacer le cache'),
+                      'delete' => array('acl' => 'delete', 'label' => 'Supprimer'));
+foreach ($bulk_actions as $bulk_key => $bulk_action) {
+  if (!in_array($current_role, $actions_acl[$bulk_action['acl']]['access'])) {
+    unset($bulk_actions[$bulk_key]);
+  }
+}
+$bulk_categories = array();
+foreach (getCategoriesList() as $categorie) {
+  if (isset($categorie['catid']) && empty($categorie['catdisable'])) {
+    $bulk_categories[intval($categorie['catid'])] = (string) $categorie['catname'];
+  }
+}
+
+if (isset($_POST['bulk_action'])) {
+  $bulk_key = (string) $_POST['bulk_action'];
+  $bulk_ids = array();
+  if (isset($_POST['bulk_ids']) && is_array($_POST['bulk_ids'])) {
+    $bulk_ids = array_slice(array_unique(array_map('intval', $_POST['bulk_ids'])), 0, 1000);
+  }
+  $bulk_value = isset($_POST['bulk_value_' . $bulk_key]) && is_scalar($_POST['bulk_value_' . $bulk_key]) ? intval($_POST['bulk_value_' . $bulk_key]) : 0;
+  $bulk_check = mysqli_query($db, "SELECT resolution_id FROM obs_resolutions WHERE resolution_id='" . $bulk_value . "' LIMIT 1");
+  $bulk_resolution_ok = $bulk_check && mysqli_num_rows($bulk_check) == 1;
+  $bulk_obs = array();
+  $refused  = 0;
+  foreach ($bulk_ids as $bulk_id) {
+    $obs = obsadmin_get_obs($db, $bulk_id);
+    if ($obs === null) {
+      continue;
+    }
+    if (obsadmin_can_act($obs, $current_role, $role_cityIds)) {
+      $bulk_obs[] = $obs;
+    } else {
+      $refused++;
+    }
+  }
+
+  if (!isset($bulk_actions[$bulk_key])) {
+    obsadmin_message($messages, 'danger', 'Action non autorisée');
+  } elseif (count($bulk_obs) == 0) {
+    obsadmin_message($messages, 'warning', 'Aucune observation sélectionnée' . ($refused ? ' dans vos villes' : ''));
+  } elseif ($bulk_key == 'category' && !isset($bulk_categories[$bulk_value])) {
+    obsadmin_message($messages, 'warning', 'Choisir une catégorie active.');
+  } elseif ($bulk_key == 'city' && !isset($citylistname[$bulk_value])) {
+    obsadmin_message($messages, 'warning', 'Choisir une ville.');
+  } elseif ($bulk_key == 'resolution_add' && !$bulk_resolution_ok) {
+    obsadmin_message($messages, 'warning', 'Choisir une résolution.');
+  } else {
+    $done    = array();
+    $skipped = 0;
+    foreach ($bulk_obs as $obs) {
+      $obsid = intval($obs['obs_id']);
+      $token = (string) $obs['obs_token'];
+      if ($bulk_key == 'approve' || $bulk_key == 'disapprove' || $bulk_key == 'pending') {
+        obsadmin_approve($db, $obs, $bulk_key == 'approve' ? 1 : ($bulk_key == 'disapprove' ? 2 : 0), $messages);
+      } elseif ($bulk_key == 'category') {
+        mysqli_query($db, "UPDATE obs_list SET obs_categorie='" . $bulk_value . "' WHERE obs_id='" . $obsid . "'");
+        delete_token_cache($token);
+        audit_log('observation_edit', $token, array('obs_categorie' => $bulk_value));
+      } elseif ($bulk_key == 'city') {
+        mysqli_query($db, "UPDATE obs_list SET obs_city='" . $bulk_value . "', obs_cityname='' WHERE obs_id='" . $obsid . "'");
+        audit_log('observation_edit', $token, array('obs_city' => $bulk_value));
+      } elseif ($bulk_key == 'resolution_add' || $bulk_key == 'resolution_new') {
+        $in_resolution = mysqli_query($db, "SELECT restok_observationid FROM obs_resolutions_tokens WHERE restok_observationid='" . $obsid . "' LIMIT 1");
+        if ($in_resolution && mysqli_num_rows($in_resolution) > 0) {
+          $skipped++;
+          continue;
+        }
+        if ($bulk_key == 'resolution_add') {
+          addObsToResolution($obsid, $bulk_value);
+          audit_log('resolution_add_observation', 'resolution:' . $bulk_value, 'obs:' . $token);
+        }
+      } elseif ($bulk_key == 'cleancache') {
+        delete_token_cache($token);
+        audit_log('observation_cleancache', $token);
+      } elseif ($bulk_key == 'delete') {
+        deleteObs($obsid);
+        audit_log('observation_delete', $token, array('obs_id' => $obsid));
+      }
+      $done[$obsid] = $token;
+    }
+    if ($bulk_key == 'resolution_new' && count($done) > 0) {
+      $fields = array("resolution_token" => 'R_' . tokenGenerator(4),
+                      "resolution_secretid" => str_replace('.', '', uniqid('', true)),
+                      "resolution_app_version" => 'admin',
+                      "resolution_comment" => '',
+                      "resolution_time" => 0,
+                      "resolution_status" => 2);
+      if (addResolution($fields, array_keys($done))) {
+        audit_log('resolution_create', $fields['resolution_token'], array('obs_tokens' => array_values($done)));
+        obsadmin_message($messages, 'success', 'Résolution <strong>' . h($fields['resolution_token']) . '</strong> créée avec ' . count($done) . ' observation(s), modifiable <a href="?page=resolutions" class="alert-link">ici</a>');
+      }
+    } elseif ($bulk_key == 'resolution_add' && count($done) > 0) {
+      flushImagesCacheResolution($bulk_value);
+    }
+    if ($bulk_key != 'resolution_new') {
+      obsadmin_message($messages, 'success', h($bulk_actions[$bulk_key]['label']) . ' : <strong>' . count($done) . '</strong> observation(s)');
+    }
+    if ($skipped > 0) {
+      obsadmin_message($messages, 'warning', $skipped . ' observation(s) déjà dans une résolution ignorée(s)');
+    }
+  }
+  if ($refused > 0) {
+    obsadmin_message($messages, 'danger', $refused . ' observation(s) hors de vos villes ignorée(s)');
+  }
 }
 
 /* Messages of the actions */
@@ -564,6 +689,67 @@ $listurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagen
 </ul>
 <?php } ?>
 
+<?php if (!empty($bulk_actions) && count($observations) > 0) { ?>
+<form method="POST" action="<?= h($listurl) ?>" id="bulk-form" class="card card-body shadow-sm mb-3 py-2" data-bulk>
+  <?= csrf_field() ?>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="form-check mb-0 me-2">
+      <input class="form-check-input" type="checkbox" id="bulk-all" data-bulk-all />
+      <label class="form-check-label" for="bulk-all">Tout sélectionner</label>
+    </div>
+    <span class="text-body-secondary small me-2"><strong data-bulk-count>0</strong> sélectionnée(s)</span>
+    <label class="visually-hidden" for="bulk-action">Action sur la sélection</label>
+    <select class="form-select form-select-sm w-auto" name="bulk_action" id="bulk-action">
+      <option value="">Action sur la sélection…</option>
+      <?php foreach ($bulk_actions as $bulk_key => $bulk_action) {
+        $bulk_attr = '';
+        if (in_array($bulk_key, array('category', 'city', 'resolution_add'), true)) {
+          $bulk_attr = ' data-field="' . h($bulk_key) . '"';
+        }
+        if ($bulk_key == 'delete') {
+          $bulk_attr = ' data-confirm="Supprimer définitivement %n observation(s) et leurs photos ?"';
+        } ?>
+      <option value="<?= h($bulk_key) ?>"<?= $bulk_attr ?>><?= h($bulk_action['label']) ?></option>
+      <?php } ?>
+    </select>
+    <?php if (isset($bulk_actions['category'])) { ?>
+    <span data-bulk-field="category" hidden>
+      <label class="visually-hidden" for="bulk-category">Nouvelle catégorie</label>
+      <select class="form-select form-select-sm w-auto" name="bulk_value_category" id="bulk-category">
+        <option value="">— catégorie —</option>
+        <?php foreach ($bulk_categories as $bulk_catid => $bulk_catname) { ?>
+        <option value="<?= intval($bulk_catid) ?>"><?= h($bulk_catname) ?></option>
+        <?php } ?>
+      </select>
+    </span>
+    <?php } ?>
+    <?php if (isset($bulk_actions['city'])) { ?>
+    <span data-bulk-field="city" hidden>
+      <label class="visually-hidden" for="bulk-city">Nouvelle ville</label>
+      <select class="form-select form-select-sm w-auto" name="bulk_value_city" id="bulk-city">
+        <option value="">— ville —</option>
+        <?php foreach ($citylistname as $bulk_cityid => $bulk_cityname) { ?>
+        <option value="<?= intval($bulk_cityid) ?>"><?= h($bulk_cityname) ?></option>
+        <?php } ?>
+      </select>
+    </span>
+    <?php } ?>
+    <?php if (isset($bulk_actions['resolution_add'])) { ?>
+    <span data-bulk-field="resolution_add" hidden>
+      <label class="visually-hidden" for="bulk-resolution">Résolution</label>
+      <select class="form-select form-select-sm w-auto" name="bulk_value_resolution_add" id="bulk-resolution">
+        <option value="">— résolution —</option>
+        <?php foreach ($resolutionslist as $resolutionid => $resolutiontoken) { ?>
+        <option value="<?= intval($resolutionid) ?>"><?= h($resolutiontoken) ?></option>
+        <?php } ?>
+      </select>
+    </span>
+    <?php } ?>
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-check2-all"></i> Appliquer</button>
+  </div>
+</form>
+<?php } ?>
+
 <div class="card shadow-sm mb-3">
 <div class="table-responsive">
   <table class="table table-hover align-middle table-admin table-stack mb-0">
@@ -611,6 +797,9 @@ foreach ($observations as $result_obs) {
 ?>
       <tr class="<?= h($highlight_city) ?>">
         <td>
+          <?php if ($can_act && !empty($bulk_actions)) { ?>
+          <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
+          <?php } ?>
           <code><?= h($obs_token) ?></code>
           <?php if ($in_resolution) { ?><br /><span class="badge text-bg-success mt-1"><i class="bi bi-check2-circle"></i> En résolution</span><?php } ?>
         </td>

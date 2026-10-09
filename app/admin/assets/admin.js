@@ -60,6 +60,8 @@
         var value = values[name];
         if (el.type === 'checkbox') {
           el.checked = value === true || value === 1 || value === '1';
+        } else if (el.type === 'radio') {
+          el.checked = el.value === String(value);
         } else if (el.multiple) {
           var list = Array.isArray(value) ? value.map(String) : [];
           Array.prototype.forEach.call(el.options, function (o) { o.selected = list.indexOf(o.value) !== -1; });
@@ -88,6 +90,83 @@
       fillForm(modal, JSON.parse(el.getAttribute('data-fill') || '{}'), el.getAttribute('data-title'));
       window.bootstrap.Modal.getOrCreateInstance(modal).show();
     }
+  });
+
+  // Deletion of a category: what to do with its observations (shown only when it is used)
+  document.querySelectorAll('form[data-category-delete]').forEach(function (form) {
+    function update() {
+      var count = parseInt(form.elements.obs_count.value, 10) || 0;
+      var move = form.querySelector('#obs_action_move').checked;
+      form.querySelector('[data-when-used]').hidden = count === 0;
+      form.querySelector('[data-when-unused]').hidden = count !== 0;
+      form.querySelector('[data-obs-count]').textContent = count;
+      form.elements.target_catid.required = count > 0 && move;
+      form.elements.target_catid.disabled = count === 0 || !move;
+    }
+    form.addEventListener('vigilo:filled', function () {
+      Array.prototype.forEach.call(form.elements.target_catid.options, function (o) {
+        o.disabled = o.value !== '' && o.value === form.elements.cat_id.value;
+      });
+      update();
+    });
+    form.addEventListener('change', update);
+    form.addEventListener('submit', function (event) {
+      if (form.querySelector('#obs_action_delete').checked && parseInt(form.elements.obs_count.value, 10) > 0
+          && !window.confirm('Supprimer définitivement ' + form.elements.obs_count.value + ' observation(s) et leurs photos ?')) {
+        event.preventDefault();
+      }
+    });
+  });
+
+  /*
+   * Bulk actions: <form data-bulk> with a select[name="bulk_action"]; the items are checkboxes
+   * name="bulk_ids[]" form="<form id>" in the list. An option can have data-field="x" (shows the
+   * [data-bulk-field="x"] elements) and data-confirm. [data-bulk-all] selects every item,
+   * [data-bulk-count] shows the number of selected items.
+   */
+  document.querySelectorAll('form[data-bulk]').forEach(function (form) {
+    var items = function () { return document.querySelectorAll('input[name="bulk_ids[]"][form="' + form.id + '"]'); };
+    var all = form.querySelector('[data-bulk-all]');
+    var action = form.elements.bulk_action;
+    function update() {
+      var list = items();
+      var checked = Array.prototype.filter.call(list, function (el) { return el.checked; }).length;
+      form.querySelectorAll('[data-bulk-count]').forEach(function (el) { el.textContent = checked; });
+      if (all) {
+        all.checked = checked > 0 && checked === list.length;
+        all.indeterminate = checked > 0 && checked < list.length;
+        all.disabled = list.length === 0;
+      }
+      var option = action.options[action.selectedIndex];
+      var field = option ? option.getAttribute('data-field') : null;
+      form.querySelectorAll('[data-bulk-field]').forEach(function (el) {
+        var shown = el.getAttribute('data-bulk-field') === field;
+        el.hidden = !shown;
+        el.querySelectorAll('select, input').forEach(function (input) { input.disabled = !shown; input.required = shown; });
+      });
+      form.querySelector('[type="submit"]').disabled = checked === 0 || !action.value;
+    }
+    if (all) {
+      all.addEventListener('change', function () {
+        items().forEach(function (el) { el.checked = all.checked; });
+        update();
+      });
+    }
+    document.addEventListener('change', function (event) {
+      if (event.target.matches && event.target.matches('input[name="bulk_ids[]"]')) {
+        update();
+      }
+    });
+    action.addEventListener('change', update);
+    form.addEventListener('submit', function (event) {
+      var option = action.options[action.selectedIndex];
+      var message = option && option.getAttribute('data-confirm');
+      var count = form.querySelector('[data-bulk-count]');
+      if (message && !window.confirm(message.replace('%n', count ? count.textContent : ''))) {
+        event.preventDefault();
+      }
+    });
+    update();
   });
 
   // Bootstrap tooltips

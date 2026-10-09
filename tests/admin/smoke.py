@@ -271,15 +271,75 @@ def main():
     check('ajoutée (n° 1000)' in page and 'Trottinette &lt;b&gt;gênante&lt;/b&gt;' in page, 'category of the instance added')
     status, _, page = admin.request('index.php?page=webhooks&edit=new')
     check('category_map[1000]' in page and '{{categorie_code}}' in page, 'category correspondence in the webhook form')
+
+    # Bulk actions on observations: category 1000 given to TOKA0007, disapprove / approve again
+    def bulk(path, action, ids, **values):
+        _, _, page = admin.request(path)
+        data = {'csrf_token': admin.token(page), 'bulk_action': action, 'bulk_ids[]': [str(i) for i in ids]}
+        data.update(values)
+        return admin.request(path, data)
+    status, _, page = admin.request('index.php?page=observations&approved=1')
+    check('data-bulk' in page and 'name="bulk_ids[]" value="7"' in page, 'bulk selection on the observations')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'category', [7], bulk_value_category='1000')
+    clean('bulk category', status, page)
+    check('Changer la catégorie : <strong>1</strong>' in page, 'bulk category change')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'category', [7], bulk_value_category='99999')
+    check('Choisir une catégorie active' in page, 'bulk category change to an unknown category refused')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'disapprove', [1, 3])
+    clean('bulk disapprove', status, page)
+    check('Désapprouver : <strong>2</strong>' in page, 'bulk disapprove')
+    status, _, page = admin.request('index.php?page=observations&approved=2')
+    check('TOKA0001' in page and 'TOKA0003' in page, 'observations disapproved in bulk')
+    status, _, page = bulk('index.php?page=observations&approved=2', 'approve', [1, 3])
+    check('Approuver : <strong>2</strong>' in page, 'bulk approve')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'resolution_new', [2, 3])
+    clean('bulk new resolution', status, page)
+    check('créée avec 1 observation(s)' in page and 'déjà dans une résolution' in page, 'bulk new resolution (observation already in a resolution skipped)')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'nothing', [1])
+    check('Action non autorisée' in page, 'unknown bulk action refused')
+
+    # Category of the instance deleted, its observations moved to category 2
     status, _, page = admin.request('index.php?page=categories')
-    delete = [l for l in links(page, 'action=delete') if 'catid=1000' in l]
-    if delete:
-        status, _, page = admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
-        check('supprimée' in page, 'unused category of the instance deleted')
+    check('categoryDeleteModal' in page and '&quot;obs_count&quot;:1' in page, 'delete window with the number of observations')
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_delete': '1', 'cat_id': '1000'})
+    check('choisir de les déplacer ou de les supprimer' in page, 'used category not deleted without a choice')
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_delete': '1', 'cat_id': '1000',
+                                                                   'obs_action': 'move', 'target_catid': '1000'})
+    check('Choisir une catégorie active' in page, 'observations not moved to the deleted category')
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_delete': '1', 'cat_id': '1000',
+                                                                   'obs_action': 'move', 'target_catid': '2'})
+    clean('category delete and move', status, page)
+    check('supprimée ; 1 observation(s) déplacée(s) vers' in page, 'category deleted, observations moved')
+    status, _, page = admin.request('index.php?page=observations&approved=1&searchcategory=2&filtertype=uniq&filtertoken=TOKA0007')
+    check('TOKA0007' in page, 'moved observation in category 2')
+
+    # Category deleted with its observations
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_save': '1', 'cat_id': '0',
+                                                                   'cat_name': 'Temporaire', 'cat_color': '#123456', 'cat_active': '1'})
+    check('ajoutée (n° 1000)' in page, 'second category of the instance added')
+    bulk('index.php?page=observations&approved=1', 'category', [6], bulk_value_category='1000')
+    status, _, page = admin.request('index.php?page=categories')
+    status, _, page = admin.request('index.php?page=categories', {'csrf_token': admin.token(page), 'category_delete': '1', 'cat_id': '1000',
+                                                                   'obs_action': 'delete'})
+    clean('category delete with observations', status, page)
+    check('1 observation(s) supprimée(s)' in page, 'category deleted with its observations')
+    status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0006')
+    check('Aucune observation' in page, 'observation of the deleted category deleted')
+
+    # Bulk actions on resolutions: transition refused, then allowed
+    status, _, page = admin.request('index.php?page=resolutions&resolved=4')
+    check('name="bulk_ids[]" value="2"' in page, 'bulk selection on the resolutions')
+    status, _, page = bulk('index.php?page=resolutions&resolved=4', 'status_3', [2])
+    clean('bulk resolution status refused', status, page)
+    check('<strong>0</strong> résolution(s)' in page and 'non autorisé' in page, 'bulk status change refused for a forbidden transition')
+    status, _, page = bulk('index.php?page=resolutions&resolved=4', 'status_1', [2])
+    check('<strong>1</strong> résolution(s)' in page, 'bulk status change')
+    status, _, page = admin.request('index.php?page=resolutions&resolved=1')
+    check('R_RES00002' in page, 'resolution validated in bulk')
 
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
@@ -299,6 +359,11 @@ def main():
     status, _, page = staff.request('index.php?page=observations&approved=1')
     clean('citystaff observations', status, page)
     check('TOKA0001' in page and 'TOKA0003' not in page, 'citystaff only sees the observations of Testville')
+    check('value="resolution_new"' in page and '>Supprimer</option>' not in page, 'citystaff bulk actions limited to the resolutions')
+    status, _, page = staff.request('index.php?page=observations&approved=1', {'csrf_token': staff.token(page), 'bulk_action': 'delete', 'bulk_ids[]': ['1']})
+    check('Action non autorisée' in page, 'citystaff bulk delete refused')
+    status, _, page = staff.request('index.php?page=observations&approved=1', {'csrf_token': staff.token(page), 'bulk_action': 'resolution_new', 'bulk_ids[]': ['3']})
+    check('hors de vos villes' in page, 'citystaff bulk action outside their cities refused')
 
     # Direct access to the page files is refused
     status, _, page = admin.request('inc/settings.php')
