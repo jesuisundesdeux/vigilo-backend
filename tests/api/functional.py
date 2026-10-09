@@ -740,7 +740,7 @@ class T10Webhooks(unittest.TestCase):
         self.assertEqual(body['token'], token)
         self.assertEqual(body['comment'], 'Voiture "garée"\nsur la piste & le trottoir', 'JSON-escaped')
         self.assertEqual(body['lat'], 43.605)
-        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
+        self.assertRegex(body['photo'], r'/generate_panel\.php\?token=' + token + r'&v=\d-\d+$')
         self.assertEqual(body['unknown'], '')
         self.assertRegex(body['date'], r'^\d{4}-\d\d-\d\dT')
 
@@ -792,7 +792,7 @@ class T13WebhookEvents(unittest.TestCase):
 
     BODY = ('{"event": "{{event}}", "token": "{{token}}", "approved": "{{approved}}", "photo": "{{photo_url}}", "photo_full": "{{photo_full_url}}", "resolution": "{{resolution_token}}", '
             '"status": "{{resolution_status}}", "status_name": "{{resolution_status_name}}", "previous": "{{resolution_previous_status}}", '
-            '"observations": "{{resolution_observations}}", "address": "{{address}}"}')
+            '"observations": "{{resolution_observations}}", "address": "{{address}}", "label": "{{event_label}}", "description": "{{event_description}}"}')
 
     @classmethod
     def setUpClass(cls):
@@ -827,9 +827,11 @@ class T13WebhookEvents(unittest.TestCase):
         self.assertEqual(sorted(c['path'] for c in calls), ['/all', '/created'])
         body = [json.loads(c['body']) for c in calls if c['path'] == '/all'][0]
         self.assertEqual((body['event'], body['token'], body['approved'], body['resolution']), ('observation.created', token, '0', ''))
+        self.assertEqual(body['label'], 'Nouvelle observation (avant modération)')
+        self.assertRegex(body['description'], r'^Nouvelle observation ' + token + r' à modérer : .*Rue des Événements.*\.$')
         # The photo link must be public before moderation (Slack image block downloads it)
-        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
-        photo = call('generate_panel.php', {'token': token})
+        self.assertRegex(body['photo'], r'/generate_panel\.php\?token=' + token + r'&v=0-\d+$')
+        photo = call('generate_panel.php', dict(urllib.parse.parse_qsl(body['photo'].split('?', 1)[1])))
         self.assertEqual((photo.status, photo.header('Content-Type')), (200, 'image/jpeg'), 'photo of a new observation reachable (pixelated)')
         # Signed link to the original photo, for the moderators: valid, then refused if altered or expired
         query = dict(urllib.parse.parse_qsl(body['photo_full'].split('?', 1)[1]))
@@ -849,13 +851,22 @@ class T13WebhookEvents(unittest.TestCase):
         self.receiver.wait(2)
         self.receiver.calls = []
         self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
-        self.assertEqual([(b['event'], b['approved']) for b in self.bodies(1)], [('observation.disapproved', '2')])
+        refused = self.bodies(1)
+        self.assertEqual([(b['event'], b['approved']) for b in refused], [('observation.disapproved', '2')])
+        self.assertTrue(refused[0]['description'].startswith('Observation ' + token + ' refusée'), refused[0]['description'])
         self.receiver.calls = []
         self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
         time.sleep(1)
         self.assertEqual(self.receiver.calls, [], 'already refused: no second call')
         self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
-        self.assertEqual([b['event'] for b in self.bodies(1)], ['observation.approved'])
+        approved = self.bodies(1)
+        self.assertEqual([b['event'] for b in approved], ['observation.approved'])
+        # The photo link changes once approved: Slack caches images by URL and would keep the pixelated one
+        self.assertRegex(approved[0]['photo'], r'&v=1-\d+$')
+        self.assertEqual(approved[0]['label'], 'Observation publiée (approuvée)')
+        self.assertTrue(approved[0]['description'].startswith('Observation ' + token + ' publiée'), approved[0]['description'])
+        query = dict(urllib.parse.parse_qsl(approved[0]['photo'].split('?', 1)[1]))
+        self.assertEqual(call('generate_panel.php', query).status, 200, 'extra parameter ignored by generate_panel.php')
 
     def test_resolution_created_and_status_changed(self):
         token, _ = self.observation()
@@ -868,6 +879,7 @@ class T13WebhookEvents(unittest.TestCase):
         body = self.bodies(1)[0]
         self.assertEqual((body['event'], body['resolution'], body['status'], body['observations'], body['token'], body['address']),
                          ('resolution.created', resolution, '4', token, token, 'Rue des Événements'))
+        self.assertEqual(body['description'], 'Nouvelle résolution %s (Indiquée résolue (à valider)) pour 1 observation : %s.' % (resolution, token))
         self.assertEqual(sql("SELECT delivery_token FROM obs_webhook_deliveries WHERE delivery_event = 'resolution.created' ORDER BY delivery_id DESC LIMIT 1"),
                          resolution, 'delivery logged with the resolution token')
 
@@ -891,6 +903,7 @@ class T13WebhookEvents(unittest.TestCase):
         body = self.bodies(1)[0]
         self.assertEqual((body['event'], body['resolution'], body['status'], body['status_name'], body['previous']),
                          ('resolution.status_changed', resolution, '1', 'Résolue', '4'))
+        self.assertEqual(body['description'], 'Résolution %s : Indiquée résolue (à valider) → Résolue (1 observation).' % resolution)
 
 
 class T11Categories(unittest.TestCase):

@@ -80,7 +80,10 @@ refusée, ni pour une nouvelle photo de la même observation). Pour une résolut
 celles de la première observation liée ; elles sont vides pour les événements d'observation.
 
 - **appel** : méthode (POST, PUT, PATCH, GET), URL, en-têtes (`Nom: valeur`, un par ligne) et corps ;
-- **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `token`,
+- **variables** `{{nom}}` utilisables partout, remplacées par les champs de l'observation : `event`, `event_label`
+  (nom de l'événement, comme dans l'admin), `event_description` (l'action en une phrase, par exemple « Observation
+  ABCD1234 publiée : Véhicule ou objet gênant, Rue de la Gare (Montpellier). » ou « Résolution R123 : En cours de
+  résolution → Résolue (2 observations). »), `token`,
   `observation_url` (lien vers l'application web), `photo_url` (`generate_panel.php`, public, pixelisée tant que
   l'observation n'est pas approuvée), `photo_full_url` (photo d'origine même avant modération, lien signé valable
   7 jours, pour les modérateurs), `comment`, `explanation`, `categorie`,
