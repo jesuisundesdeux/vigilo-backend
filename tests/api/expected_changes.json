@@ -60,5 +60,12 @@
         "width": 800
       }
     }
+  },
+  "mosaic": {
+    "why": "mosaic.php is removed in 0.0.26: the web app shows the similar observations itself (same category, within 300 m or at the same address). The route now answers the web server's 404 page.",
+    "now": {
+      "status": 404,
+      "content_type": "__any__"
+    }
   }
 }

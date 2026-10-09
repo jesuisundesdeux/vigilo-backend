@@ -184,13 +184,13 @@ Voir 1.1. Pas de fonction ; définit `$db`, `$config`, `$acls`, `$status_list`.
 | `parseAdminDateTime($date, $time)` | Timestamp depuis `jj/mm/aaaa` et `hh:mm`, `False` si invalide (format strict, avertissements de `DateTime` refusés). | admin (observations, résolutions) |
 | `getrole($privatekey, $acls)` | Nom du rôle de la clé, `False` si clé vide ou inconnue. | toutes les routes à clé |
 | `flatstring($string)` | Minuscules, sans espaces ni tirets : comparaison souple des noms de villes et des adresses. | `create_issue`, `sameas`, admin |
-| `sameas($token, $filter)` | Tokens des observations « similaires » à `$token` : même catégorie (`fcategorie`), même ville (`faddress`), puis même adresse aplatie **ou** distance < `$filter['distance']` m (`fdistance`). Parcourt toutes les observations correspondantes en PHP. | `mosaic.php`, recherche « Similaires » de l'admin |
+| `sameas($token, $filter)` | Tokens des observations « similaires » à `$token` : même catégorie (`fcategorie`), même ville (`faddress`), puis même adresse aplatie **ou** distance < `$filter['distance']` m (`fdistance`). Parcourt toutes les observations correspondantes en PHP. | recherche « Similaires » de l'admin (l'application web applique les mêmes règles, `similar-issues.js`) |
 | `removeEmoji($text)` | Supprime quatre plages d'émojis (les colonnes de `obs_list` sont en `utf8` sur 3 octets et ne peuvent pas stocker les caractères de 4 octets). | `create_issue`, `create_resolution` |
 | `jsonError(...)` | Voir 1.1. | partout |
 | `getCachedRemoteJson($url, $cache_name, $ttl = 86400)` | JSON distant mis en cache dans `caches/remote_<nom>.json` ; si la source est injoignable, la dernière copie est utilisée même périmée ; sinon `array()`. | catégories, citylist |
 | `getNationalCategoriesList()` | `categorielist.json` de vigilo-conf, cache `remote_categories.json`, 1 heure. | catégories |
 | `getCategoriesList()` | Catégories de l'instance (section 7.2). | `get_categories.php`, webhooks, admin |
-| `getInstanceNameFromFirebase($scope)` | Nom de l'instance dans `citylist.json` de vigilo-conf (cache `remote_citylist.json`, 24 h) dont le `scope` correspond ; sert à construire les liens `https://app.vigilo.city/?instance=…`. Le nom rappelle l'ancien hébergement de la liste (Firebase). | `mosaic.php`, webhooks |
+| `getInstanceNameFromFirebase($scope)` | Nom de l'instance dans `citylist.json` de vigilo-conf (cache `remote_citylist.json`, 24 h) dont le `scope` correspond ; sert à construire les liens `https://app.vigilo.city/?instance=…`. Le nom rappelle l'ancien hébergement de la liste (Firebase). | webhooks |
 | `getWebContent($url)` | GET avec curl (agent `Vigilo-Backend/<version>`, connexion 5 s, total 10 s, 3 redirections), `false` si erreur ou HTTP ≥ 400. | tous les appels sortants simples |
 | `generategroups()`, `get_data_from_gps_coordinates()` | Code mort (plus appelé). | — |
 
@@ -292,7 +292,6 @@ Paramètres et formats de réponse : [REST_API.md](REST_API.md). Ce qui suit dé
 | `create_resolution.php` | POST | `handle`, `security` | oui | JSON | public (anti-spam) |
 | `get_photo.php` | GET | `handle` | oui | `image/png` (contenu JPEG) | public si approuvée, clé sinon |
 | `generate_panel.php` | GET | `images`, `handle` | **non** | `image/jpeg` | public (pixelisée), `secretid` ou clé |
-| `mosaic.php` | GET | `security`, `get_issues.php` | non | HTML | public |
 | `index.php` | GET | — | — | redirection vers https://vigilo.city | — |
 
 `install.php` n'est pas dans `app/` : `install_app/install.php` est copié dans `app/` par l'entrypoint Docker sur une
@@ -349,7 +348,8 @@ Le commentaire et l'explication sont aussi écrits dans le journal PHP (`error_l
 ### 3.4 `get_issues.php` — liste des observations
 
 Le fichier définit une **classe `GetIssues`** et, à la fin, ne l'exécute que s'il est appelé directement
-(`if (!debug_backtrace())`) : `mosaic.php` l'inclut pour réutiliser la classe sans relancer la sortie. Les
+(`if (!debug_backtrace())`) : on peut l'inclure pour réutiliser la classe sans relancer la sortie (c'était le cas de
+`mosaic.php`, supprimée en 0.0.26). Les
 `setX()` valident les paramètres et lèvent une `Exception` (non interceptée : erreur PHP, HTTP 500) pour une valeur
 non numérique ou un format inconnu.
 
@@ -421,7 +421,7 @@ est admin/modérateur, ou avec un lien signé valide (`exp`, `sig` : `photo_sign
 Ancienne route des « panneaux » (photo + carte + textes, retirés en 0.0.22) : elle sert désormais la photo seule, avec
 les mêmes paramètres. Voir section 6.4 pour la logique de pixelisation et de cache.
 
-### 3.10 `get_scope.php`, `get_categories.php`, `get_version.php`, `acl.php`, `mosaic.php`
+### 3.10 `get_scope.php`, `get_categories.php`, `get_version.php`, `acl.php`
 
 - `get_scope.php` : ligne de `obs_scopes` par `scope_name` (400 sans `scope`, 404 inconnu), ses villes
   (`city_scope = scope_id`, triées par nom) et `backend_version`. Les noms des champs JSON diffèrent des colonnes
@@ -430,9 +430,8 @@ les mêmes paramètres. Voir section 6.4 pour la logique de pixelisation et de c
 - `get_version.php` : `{"version": BACKEND_VERSION}` ; utilisée aussi par le contrôle de santé de la mise à jour.
 - `acl.php` : `{"role": <rôle ou false>}` ; 400 `KEYNOTPROVIDED` sans `key`. Utilisée par l'application web pour
   activer le mode modérateur.
-- `mosaic.php` : page HTML (grille d'images `generate_panel.php?s=400`) des observations publiques, filtrées par
-  catégorie `c` et par similarité au token `t` (`sameas`, 300 m) ; avec `scope`, les liens pointent vers l'application
-  web. Elle retire les en-têtes d'API posés par `get_issues.php` (`header_remove`).
+- `mosaic.php` : supprimée en 0.0.26 (listée dans `scripts/obsolete-paths.txt` avec `style/mosaic.css`) ; les
+  observations similaires sont calculées par l'application web.
 
 ---
 

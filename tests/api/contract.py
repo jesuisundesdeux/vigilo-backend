@@ -281,6 +281,9 @@ def main():
             want.update(expected[name]['now'])
             # "__removed__": the key does not exist anymore in the response
             want = {k: v for k, v in want.items() if v != '__removed__'}
+            # "__any__": the value depends on the web server (e.g. its own 404 page)
+            got = {k: v for k, v in got.items() if want.get(k) != '__any__'}
+            want = {k: v for k, v in want.items() if v != '__any__'}
         if got != want:
             failures += 1
             print('FAIL %s' % name)

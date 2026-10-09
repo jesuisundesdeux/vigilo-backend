@@ -111,7 +111,9 @@ permet d'abonner un webhook à plusieurs événements, les webhooks existants re
 ### Passage à la 0.0.26
 
 Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
-photo d'origine pour les modérateurs, voir le CHANGELOG). Mise à jour depuis le bouton de l'admin.
+photo d'origine pour les modérateurs, voir le CHANGELOG). `mosaic.php` est supprimée (la mise à jour depuis l'admin
+retire le fichier) : l'application web affiche elle-même les observations similaires. Mise à jour depuis le bouton
+de l'admin.
 
 ### Passage à la 0.0.25
 
