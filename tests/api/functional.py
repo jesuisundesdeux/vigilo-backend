@@ -740,7 +740,7 @@ class T10Webhooks(unittest.TestCase):
         self.assertEqual(body['token'], token)
         self.assertEqual(body['comment'], 'Voiture "garée"\nsur la piste & le trottoir', 'JSON-escaped')
         self.assertEqual(body['lat'], 43.605)
-        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
+        self.assertRegex(body['photo'], r'/generate_panel\.php\?token=' + token + r'&v=\d-\d+$')
         self.assertEqual(body['unknown'], '')
         self.assertRegex(body['date'], r'^\d{4}-\d\d-\d\dT')
 
@@ -828,8 +828,8 @@ class T13WebhookEvents(unittest.TestCase):
         body = [json.loads(c['body']) for c in calls if c['path'] == '/all'][0]
         self.assertEqual((body['event'], body['token'], body['approved'], body['resolution']), ('observation.created', token, '0', ''))
         # The photo link must be public before moderation (Slack image block downloads it)
-        self.assertTrue(body['photo'].endswith('/generate_panel.php?token=' + token))
-        photo = call('generate_panel.php', {'token': token})
+        self.assertRegex(body['photo'], r'/generate_panel\.php\?token=' + token + r'&v=0-\d+$')
+        photo = call('generate_panel.php', dict(urllib.parse.parse_qsl(body['photo'].split('?', 1)[1])))
         self.assertEqual((photo.status, photo.header('Content-Type')), (200, 'image/jpeg'), 'photo of a new observation reachable (pixelated)')
         # Signed link to the original photo, for the moderators: valid, then refused if altered or expired
         query = dict(urllib.parse.parse_qsl(body['photo_full'].split('?', 1)[1]))
@@ -855,7 +855,12 @@ class T13WebhookEvents(unittest.TestCase):
         time.sleep(1)
         self.assertEqual(self.receiver.calls, [], 'already refused: no second call')
         self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
-        self.assertEqual([b['event'] for b in self.bodies(1)], ['observation.approved'])
+        approved = self.bodies(1)
+        self.assertEqual([b['event'] for b in approved], ['observation.approved'])
+        # The photo link changes once approved: Slack caches images by URL and would keep the pixelated one
+        self.assertRegex(approved[0]['photo'], r'&v=1-\d+$')
+        query = dict(urllib.parse.parse_qsl(approved[0]['photo'].split('?', 1)[1]))
+        self.assertEqual(call('generate_panel.php', query).status, 200, 'extra parameter ignored by generate_panel.php')
 
     def test_resolution_created_and_status_changed(self):
         token, _ = self.observation()

@@ -7,6 +7,11 @@
   l'application web (1.14.0) affiche elle-même les observations similaires dans la fiche d'une observation (mêmes
   règles : même catégorie, à moins de 300 m ou à la même adresse). La recherche « Similaires » de l'admin est inchangée.
 
+### Webhooks : photo pixelisée dans Slack après approbation
+- `{{photo_url}}` porte un paramètre `v` (état de modération et date de la photo, ignoré par `generate_panel.php`) :
+  le lien d'une observation approuvée diffère de celui de la photo pixelisée envoyé à sa création. Slack garde en cache
+  les images par adresse et affichait encore la version pixelisée au message « Observation approuvée ».
+
 ### Webhooks : photo d'origine pour les modérateurs
 - Variable `{{photo_full_url}}` : lien vers la photo d'origine (non pixelisée, même avant modération), signé et valable
   7 jours, par exemple pour l'afficher dans le canal des modérateurs avec l'événement « Nouvelle observation ».

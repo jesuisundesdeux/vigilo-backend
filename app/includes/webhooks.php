@@ -82,7 +82,7 @@ function webhook_variables()
         'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed)',
         'token'           => 'Identifiant de l\'observation',
         'observation_url' => 'Lien vers l\'observation dans l\'application web',
-        'photo_url'       => 'Lien vers la photo (pixelisée tant que l\'observation n\'est pas approuvée)',
+        'photo_url'       => 'Lien vers la photo (pixelisée tant que l\'observation n\'est pas approuvée ; le lien change à l\'approbation)',
         'photo_full_url'  => 'Lien vers la photo d\'origine, jamais pixelisée, même avant modération : lien signé valable ' . VIGILO_PHOTO_LINK_DAYS . ' jours, à n\'envoyer qu\'à des destinataires de confiance (modérateurs)',
         'comment'         => 'Commentaire',
         'explanation'     => 'Explication',
@@ -126,12 +126,16 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
     $proto        = (isset($config['HTTP_PROTOCOL']) && $config['HTTP_PROTOCOL'] !== '') ? $config['HTTP_PROTOCOL'] : 'https';
     $instance_url = $proto . '://' . (isset($config['URLBASE']) ? $config['URLBASE'] : '');
     $time         = intval($obs['obs_time']);
+    // "v" changes with the moderation state and the photo: the link of an approved observation differs from the
+    // pixelated one sent before, so that Slack (which caches images by URL) downloads it again
+    $photo_file    = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename($obs['obs_token']) . '.jpg';
+    $photo_version = intval($obs['obs_approved']) . '-' . (file_exists($photo_file) ? filemtime($photo_file) : 0);
     return array(
         'event'           => $event,
         'token'           => (string) $obs['obs_token'],
         'observation_url' => null, // computed only when used (remote list of the instances)
         // Public for every state (pixelated until approved): get_photo.php refuses the photos not approved yet
-        'photo_url'       => $instance_url . '/generate_panel.php?token=' . rawurlencode($obs['obs_token']),
+        'photo_url'       => $instance_url . '/generate_panel.php?token=' . rawurlencode($obs['obs_token']) . '&v=' . $photo_version,
         'photo_full_url'  => null, // signed link, computed only when used
         'comment'         => (string) $obs['obs_comment'],
         'explanation'     => (string) $obs['obs_explanation'],

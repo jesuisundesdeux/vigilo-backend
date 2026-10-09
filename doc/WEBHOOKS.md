@@ -96,7 +96,9 @@ Corps :
 - La photo est récupérée par Slack depuis l'instance : l'instance doit être accessible publiquement en HTTPS. Si Slack
   ne peut pas la télécharger (instance injoignable, observation sans photo), il refuse tout le message avec
   `invalid_blocks` (visible dans le journal des envois) : retirer alors le bloc `image`. Pour une observation pas encore
-  approuvée, `{{photo_url}}` donne la photo pixelisée.
+  approuvée, `{{photo_url}}` donne la photo pixelisée. Le lien change à l'approbation (paramètre `v` : état de
+  modération et date de la photo) : Slack, qui garde les images en cache par adresse, télécharge alors la photo nette au
+  lieu de réafficher la version pixelisée reçue à la création.
 - Slack interprète `<`, `>` et `&` dans le texte : un commentaire qui en contient peut s'afficher tronqué.
 
 Discord : **Paramètres du salon > Intégrations > Webhooks**, copier l'URL, et le corps JSON :
