@@ -108,6 +108,11 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
+### Passage à la 0.0.26
+
+Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
+photo d'origine pour les modérateurs, voir le CHANGELOG). Mise à jour depuis le bouton de l'admin.
+
 ### Passage à la 0.0.25
 
 Aucune action manuelle ni migration de base : correctif des webhooks (lien de la photo `{{photo_url}}` accessible

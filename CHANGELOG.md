@@ -1,12 +1,14 @@
 # Changelog
 
-## 0.0.25
+## 0.0.26
 
 ### Webhooks : photo d'origine pour les modérateurs
 - Variable `{{photo_full_url}}` : lien vers la photo d'origine (non pixelisée, même avant modération), signé et valable
   7 jours, par exemple pour l'afficher dans le canal des modérateurs avec l'événement « Nouvelle observation ».
   `get_photo.php` accepte ce lien signé (`exp`, `sig`) ; le secret de signature est créé automatiquement
   (`vigilo_photo_link_secret` dans `obs_config`, supprimer cette ligne invalide les liens envoyés).
+
+## 0.0.25
 
 ### Administration
 - Création d'une catégorie de l'instance : rappel qu'une catégorie utile à d'autres instances peut être proposée
