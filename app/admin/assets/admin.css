@@ -100,3 +100,9 @@ body {
   max-width: 360px;
   padding: 1rem;
 }
+
+/* Report form (page Rapports): long lists of cities and categories scroll */
+.report-checks {
+  max-height: 260px;
+  overflow-y: auto;
+}

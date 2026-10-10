@@ -2,6 +2,16 @@
 
 ## 0.0.29
 
+### Rapport pour une collectivité
+- Nouvelle page **Rapports** de l'admin (administrateurs et comptes citystaff, limités à leurs villes) : rapport des
+  observations publiées d'une période, de villes et de types d'observation choisis, en **document** (A4) ou en
+  **diaporama** (16:9, mode présentation), enregistrable en PDF par l'impression du navigateur.
+- Chiffres clés (nombre, moyenne par mois, évolution par rapport à la période précédente, pour 10 000 habitants, taux
+  de résolution et de prise en charge, délai médian de résolution, lieux et lieux récurrents), graphiques (mois, types,
+  état de traitement, villes, rues, jours, heures), carte des lieux et **observations similaires regroupées** (même
+  catégorie, à moins de 25 à 200 m ou dans la même rue) avec photo, dates et états.
+- Sans nouvelle dépendance : graphiques en SVG générés en PHP, carte Leaflet déjà présente dans l'admin.
+
 ### Archivage des observations
 - Page Observations de l'admin (administrateurs) : une observation peut être **archivée** (bouton « Archiver » de sa
   ligne, ou actions groupées « Archiver » / « Désarchiver » sur la sélection), et toutes les observations d'une
