@@ -54,6 +54,8 @@ class GetIssues
   protected $cityid = -1;
   protected $authkey = -1;
   protected $returnempty = False;
+  // 0: archived observations left out (default), 1: included, with their "archived" field (statistics)
+  protected $archived = 0;
   protected $token_filter_distance = 0;
   protected $db;
   protected $acls;
@@ -193,6 +195,11 @@ class GetIssues
     $this->cityid = intval($value);
   }
 
+  public function setArchived($value) : void
+  {
+    $this->archived = ((string) $value === '1') ? 1 : 0;
+  }
+
   public function setAuthKey($value) : void
   {
     $this->authkey = mysqli_real_escape_string($this->db, $value);
@@ -248,6 +255,10 @@ class GetIssues
     if ($this->token != "" && !$this->token_filter_enabled) {
       $where .= " AND obs_token = '" . $this->token . "'";
     }
+    elseif ($this->archived == 0) {
+      // archived observations stay reachable by their token (links), but are no longer listed
+      $where .= " AND obs_archived = 0";
+    }
 
     if ($this->scope != "") {
       if ($this->scope != '34_montpellier') {
@@ -293,6 +304,7 @@ class GetIssues
     obs_status,
     obs_categorie,
     obs_approved,
+    obs_archived,
     COALESCE(obs_res.resolution_rank,0) resolution_rank
     FROM obs_list
      LEFT JOIN obs_cities ON obs_list.obs_city = obs_cities.city_id 
@@ -343,6 +355,9 @@ ORDER BY obs_time DESC
             "categorie" => $result['obs_categorie'],
             "approved" => $result['obs_approved']
           );
+          if ($this->archived == 1) {
+            $issue['archived'] = intval($result['obs_archived']);
+          }
 
           if (!empty($result['obs_city']) && $result['obs_city'] != 0) {
             $issue['cityname'] = $result['city_name'];
@@ -519,6 +534,10 @@ if (!debug_backtrace()) {
 
   if (isset($_GET['cityid'])) {
     $export->setCityid($_GET['cityid']);
+  }
+
+  if (isset($_GET['archived'])) {
+    $export->setArchived($_GET['archived']);
   }
 
   # Export datas

@@ -988,6 +988,42 @@ class T12WebhookCategories(unittest.TestCase):
         self.assertEqual(self.receiver.calls[0]['body'], 'service_code=', 'no code: empty value')
 
 
+class T14Archives(unittest.TestCase):
+    """Archived observations: left out of get_issues.php, kept with archived=1 (statistics) and by token."""
+
+    def setUp(self):
+        r = create(comment='A archiver')
+        self.token = r.json()['token']
+        self.assertEqual(call('add_image.php', {'token': self.token, 'secretid': r.json()['secretid']}, raw=PHOTO).status, 200)
+        self.assertEqual(call('approve.php', {'token': self.token, 'key': MODO}).status, 200)
+        sql("UPDATE obs_list SET obs_archived=1 WHERE obs_token='%s'" % self.token)
+
+    def tearDown(self):
+        sql("DELETE FROM obs_list WHERE obs_token='%s'" % self.token)
+
+    def tokens(self, **query):
+        query.setdefault('scope', '99_testville')
+        r = call('get_issues.php', query)
+        self.assertEqual(r.status, 200)
+        return {i['token']: i for i in r.json()}
+
+    def test_not_listed(self):
+        self.assertNotIn(self.token, self.tokens())
+        self.assertNotIn(self.token, self.tokens(c='2'))
+        self.assertNotIn(self.token, self.tokens(key=ADMIN), 'not listed for the moderators either')
+
+    def test_statistics(self):
+        issues = self.tokens(archived='1')
+        self.assertEqual(issues[self.token]['archived'], 1)
+        self.assertTrue(all(i['archived'] in (0, 1) for i in issues.values()))
+        self.assertNotIn('archived', next(iter(self.tokens().values())), 'no new field without archived=1')
+
+    def test_link(self):
+        self.assertIn(self.token, self.tokens(token=self.token), 'still reachable by its token')
+        self.assertNotIn(self.token, self.tokens(token=self.token, tokenfilters='distance', fdistance='100'),
+                         'not offered as a similar observation')
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()

@@ -26,6 +26,7 @@ $actions_acl = array("delete" => array("access" => array('admin')),
                      "resolve" => array("access" => array('admin','citystaff')),
                      "approve" => array("access" => array('admin')),
                      "cleancache" => array("access" => array('admin')),
+                     "archive" => array("access" => array('admin')),
                      "edit" => array("access" => array('admin')),
                      "notes" => array("access" => array('admin','citystaff')));
 
@@ -84,6 +85,22 @@ function obsadmin_approve($db, $obs, $approveto, &$messages)
   }
 }
 
+/* Archived observations (#archive): kept for the statistics, no longer listed by get_issues.php */
+function obsadmin_archive($db, $obs, $archiveto)
+{
+  mysqli_query($db, "UPDATE obs_list SET obs_archived='" . ($archiveto ? 1 : 0) . "' WHERE obs_id='" . intval($obs['obs_id']) . "'");
+  audit_log($archiveto ? 'observation_archive' : 'observation_unarchive', (string) $obs['obs_token']);
+}
+
+/* Day of a date field (YYYY-MM-DD) as a timestamp (start or end of the day), False if invalid */
+function obsadmin_day($value, $end)
+{
+  if (!is_string($value) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m) || !checkdate(intval($m[2]), intval($m[3]), intval($m[1]))) {
+    return False;
+  }
+  return strtotime($value . ($end ? ' 23:59:59' : ' 00:00:00'));
+}
+
 /* Webhooks of a resolution created in the admin */
 function obsadmin_resolution_created($db, $resolution_token, &$messages)
 {
@@ -127,6 +144,11 @@ if (isset($_GET['action']) && isset($_GET['obsid']) && is_numeric($_GET['obsid']
 
       obsadmin_approve($db, $obs, $approveto, $messages);
       obsadmin_message($messages, 'success', 'Observation <strong>' . h($token) . '</strong> ' . ($approveto == 1 ? 'approuvée' : ($approveto == 2 ? 'désapprouvée' : 'remise à qualifier')));
+    }
+    elseif ($action == 'archive' && in_array($current_role, $actions_acl['archive']['access'])) {
+      $archiveto = (isset($_GET['archiveto']) && (string) $_GET['archiveto'] === '0') ? 0 : 1;
+      obsadmin_archive($db, $obs, $archiveto);
+      obsadmin_message($messages, 'success', 'Observation <strong>' . h($token) . '</strong> ' . ($archiveto ? 'archivée' : 'désarchivée'));
     }
     elseif ($action == 'cleancache' && in_array($current_role, $actions_acl['cleancache']['access'])) {
       delete_token_cache($token);
@@ -351,6 +373,8 @@ $bulk_actions = array('approve' => array('acl' => 'approve', 'label' => 'Approuv
                       'city' => array('acl' => 'edit', 'label' => 'Changer la ville'),
                       'resolution_new' => array('acl' => 'resolve', 'label' => 'Nouvelle résolution regroupant la sélection'),
                       'resolution_add' => array('acl' => 'edit', 'label' => 'Ajouter à une résolution existante'),
+                      'archive' => array('acl' => 'archive', 'label' => 'Archiver'),
+                      'unarchive' => array('acl' => 'archive', 'label' => 'Désarchiver'),
                       'cleancache' => array('acl' => 'cleancache', 'label' => 'Effacer le cache'),
                       'delete' => array('acl' => 'delete', 'label' => 'Supprimer'));
 foreach ($bulk_actions as $bulk_key => $bulk_action) {
@@ -423,6 +447,8 @@ if (isset($_POST['bulk_action'])) {
           addObsToResolution($obsid, $bulk_value);
           audit_log('resolution_add_observation', 'resolution:' . $bulk_value, 'obs:' . $token);
         }
+      } elseif ($bulk_key == 'archive' || $bulk_key == 'unarchive') {
+        obsadmin_archive($db, $obs, $bulk_key == 'archive' ? 1 : 0);
       } elseif ($bulk_key == 'cleancache') {
         delete_token_cache($token);
         audit_log('observation_cleancache', $token);
@@ -456,6 +482,60 @@ if (isset($_POST['bulk_action'])) {
   }
   if ($refused > 0) {
     obsadmin_message($messages, 'danger', $refused . ' observation(s) hors de vos villes ignorée(s)');
+  }
+}
+
+/*
+ * Archiving by period: the observations of a period (date of the observation), optionally of one
+ * category, are archived after a preview of their number (archive_step: preview, then confirm).
+ */
+$archive_categories = array();
+foreach (getCategoriesList() as $categorie) {
+  if (isset($categorie['catid'])) {
+    $archive_categories[intval($categorie['catid'])] = (string) $categorie['catname'];
+  }
+}
+$archive_form = array('from' => '', 'to' => '', 'category' => 0);
+if (isset($_POST['archive_step']) && in_array($current_role, $actions_acl['archive']['access'])) {
+  $archive_form['from'] = isset($_POST['archive_from']) && is_scalar($_POST['archive_from']) ? trim((string) $_POST['archive_from']) : '';
+  $archive_form['to'] = isset($_POST['archive_to']) && is_scalar($_POST['archive_to']) ? trim((string) $_POST['archive_to']) : '';
+  $archive_form['category'] = isset($_POST['archive_category']) && is_scalar($_POST['archive_category']) ? intval($_POST['archive_category']) : 0;
+  $archive_from = ($archive_form['from'] === '') ? 0 : obsadmin_day($archive_form['from'], false);
+  $archive_to = obsadmin_day($archive_form['to'], true);
+
+  if ($archive_from === False || $archive_to === False) {
+    obsadmin_message($messages, 'warning', 'Archivage : indiquer une date de fin valide (et une date de début valide si elle est renseignée).');
+  } elseif ($archive_from > $archive_to) {
+    obsadmin_message($messages, 'warning', 'Archivage : la date de début est après la date de fin.');
+  } elseif ($archive_form['category'] != 0 && !isset($archive_categories[$archive_form['category']])) {
+    obsadmin_message($messages, 'warning', 'Archivage : catégorie inconnue.');
+  } else {
+    $archive_where = "obs_complete=1 AND obs_archived=0 AND obs_time >= " . intval($archive_from) . " AND obs_time <= " . intval($archive_to)
+                   . ($archive_form['category'] != 0 ? " AND obs_categorie='" . intval($archive_form['category']) . "'" : '');
+    $archive_count_query = mysqli_query($db, "SELECT COUNT(*) FROM obs_list WHERE " . $archive_where);
+    $archive_count = $archive_count_query ? intval(mysqli_fetch_array($archive_count_query)[0]) : 0;
+    $archive_what = ($archive_form['from'] !== '' ? 'du ' . h(date('d/m/Y', $archive_from)) . ' ' : 'jusqu\'') . 'au ' . h(date('d/m/Y', $archive_to))
+                  . ($archive_form['category'] != 0 ? ', catégorie <strong>' . h($archive_categories[$archive_form['category']]) . '</strong>' : ', toutes catégories');
+
+    if ($archive_count == 0) {
+      obsadmin_message($messages, 'info', 'Archivage : aucune observation à archiver ' . $archive_what . '.');
+    } elseif ((string) $_POST['archive_step'] === 'confirm') {
+      mysqli_query($db, "UPDATE obs_list SET obs_archived=1 WHERE " . $archive_where);
+      $archived_count = intval(mysqli_affected_rows($db));
+      audit_log('observation_archive_period', '', array('from' => $archive_form['from'], 'to' => $archive_form['to'],
+                                                         'category' => $archive_form['category'], 'count' => $archived_count));
+      obsadmin_message($messages, 'success', '<strong>' . $archived_count . '</strong> observation(s) archivée(s) ' . $archive_what . '.');
+      $archive_form = array('from' => '', 'to' => '', 'category' => 0);
+    } else {
+      // Preview: the number of observations, and a button to confirm
+      obsadmin_message($messages, 'warning', '<strong>' . $archive_count . '</strong> observation(s) à archiver ' . $archive_what . '.'
+        . '<form method="POST" action="" class="mt-2 mb-0">' . csrf_field()
+        . '<input type="hidden" name="archive_step" value="confirm" />'
+        . '<input type="hidden" name="archive_from" value="' . h($archive_form['from']) . '" />'
+        . '<input type="hidden" name="archive_to" value="' . h($archive_form['to']) . '" />'
+        . '<input type="hidden" name="archive_category" value="' . intval($archive_form['category']) . '" />'
+        . '<button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-archive"></i> Archiver ces ' . $archive_count . ' observation(s)</button></form>');
+    }
   }
 }
 
@@ -542,6 +622,15 @@ elseif (isset($_GET['filtercityunknown']) && $_GET['filtercityunknown'] == "1") 
   $urlsuffix .= "&filtercityunknown=1";
 }
 
+/* Archived observations: hidden by default, or only them, or all */
+$searcharchived = (isset($_GET['searcharchived']) && in_array((string) $_GET['searcharchived'], array('0', '1', 'all'), true)) ? (string) $_GET['searcharchived'] : '0';
+if ($searcharchived !== 'all') {
+  $querysearch .= " AND obs_archived='" . intval($searcharchived) . "'";
+}
+if ($searcharchived !== '0') {
+  $urlsuffix .= "&searcharchived=" . urlencode($searcharchived);
+}
+
 if (isset($_GET['searchcategory']) && is_numeric($_GET['searchcategory']) && intval($_GET['searchcategory']) != 0) {
   $searchcategory = intval($_GET['searchcategory']);
   $querysearch .= " AND obs_categorie='" . $searchcategory . "'";
@@ -585,7 +674,7 @@ if (!is_array($categorielist)) {
 }
 $categorielist[] = array("catid" => 0, "catname" => "---");
 
-$searchopen = ($filtertoken !== '' || $filteraddress !== '' || $searchcity != 0 || $searchcategory != 0);
+$searchopen = ($filtertoken !== '' || $filteraddress !== '' || $searchcity != 0 || $searchcategory != 0 || $searcharchived !== '0');
 ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex align-items-center">
@@ -639,6 +728,14 @@ $searchopen = ($filtertoken !== '' || $filteraddress !== '' || $searchcity != 0 
           ?>
           </select>
         </div>
+        <div class="col-md-6 col-lg-2">
+          <label for="searcharchived" class="form-label">Archives</label>
+          <select class="form-select" name="searcharchived" id="searcharchived">
+            <option value="0"<?= $searcharchived === '0' ? ' selected' : '' ?>>Non archivées</option>
+            <option value="1"<?= $searcharchived === '1' ? ' selected' : '' ?>>Archivées</option>
+            <option value="all"<?= $searcharchived === 'all' ? ' selected' : '' ?>>Toutes</option>
+          </select>
+        </div>
       </div>
       <div class="mt-3 d-flex gap-2">
         <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Rechercher</button>
@@ -649,6 +746,43 @@ $searchopen = ($filtertoken !== '' || $filteraddress !== '' || $searchcity != 0 
     </form>
   </div>
 </div>
+
+<?php if (in_array($current_role, $actions_acl['archive']['access'])) { ?>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex align-items-center">
+    <i class="bi bi-archive me-2"></i><strong>Archiver par période</strong>
+  </div>
+  <div class="card-body">
+    <p class="small text-body-secondary">Les observations archivées ne sont plus listées dans l'application ni sur la carte, mais restent comptées dans les statistiques. Elles restent visibles ici (filtre « Archives ») et peuvent être désarchivées.</p>
+    <form method="POST" action="">
+      <?= csrf_field() ?>
+      <input type="hidden" name="archive_step" value="preview" />
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_from" class="form-label">Du <span class="text-body-secondary small">(facultatif)</span></label>
+          <input type="date" class="form-control" name="archive_from" id="archive_from" value="<?= h($archive_form['from']) ?>" />
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_to" class="form-label">Au</label>
+          <input type="date" class="form-control" name="archive_to" id="archive_to" value="<?= h($archive_form['to']) ?>" required />
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_category" class="form-label">Catégorie</label>
+          <select class="form-select" name="archive_category" id="archive_category">
+            <option value="0">Toutes</option>
+            <?php foreach ($archive_categories as $archive_catid => $archive_catname) { ?>
+            <option value="<?= intval($archive_catid) ?>"<?= $archive_form['category'] == $archive_catid ? ' selected' : '' ?>><?= h($archive_catname) ?></option>
+            <?php } ?>
+          </select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <button type="submit" class="btn btn-outline-warning w-100"><i class="bi bi-search"></i> Compter les observations</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<?php } ?>
 
 <?php
 /* Pagination */
@@ -818,6 +952,7 @@ foreach ($observations as $result_obs) {
           <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
           <?php } ?>
           <code><?= h($obs_token) ?></code>
+          <?php if (!empty($result_obs['obs_archived'])) { ?><br /><span class="badge text-bg-dark mt-1"><i class="bi bi-archive"></i> Archivée</span><?php } ?>
           <?php if ($in_resolution) {
             $resolution_badges = array(
               1 => array('text-bg-success', 'bi-check2-all', 'Résolue'),
@@ -957,6 +1092,13 @@ foreach ($observations as $result_obs) {
             </div>
             <a class="btn btn-sm btn-outline-warning" href="<?= h($actionurl . '&action=approve&approveto=2' . csrf_query()) ?>"><i class="bi bi-x-lg"></i> Désapprouver</a>
           <?php }
+          if ($can_act && in_array($current_role, $actions_acl['archive']['access'])) {
+            if (empty($result_obs['obs_archived'])) { ?>
+            <a class="btn btn-sm btn-outline-dark" href="<?= h($actionurl . '&action=archive&archiveto=1' . csrf_query()) ?>"><i class="bi bi-archive"></i> Archiver</a>
+          <?php } else { ?>
+            <a class="btn btn-sm btn-outline-dark" href="<?= h($actionurl . '&action=archive&archiveto=0' . csrf_query()) ?>"><i class="bi bi-box-arrow-up"></i> Désarchiver</a>
+          <?php }
+          }
           if ($can_act && in_array($current_role, $actions_acl['cleancache']['access'])) { ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=cleancache' . csrf_query()) ?>"><i class="bi bi-hdd"></i> Effacer le cache</a>
           <?php }
