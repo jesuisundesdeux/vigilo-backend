@@ -342,6 +342,9 @@ def main():
     def action(query):
         _, _, page = admin.request('index.php?page=observations&approved=1')
         return admin.request('index.php?page=observations&approved=1' + query + '&csrf_token=' + admin.token(page))
+    status, _, page = admin.request('index.php?page=observations&approved=1')
+    check('token=TOKA0001&amp;obsid=1&amp;action=archive&amp;archiveto=1' in page, 'archive button on each row of the list')
+    check(page.index('Archiver par période') > page.index('TOKA0001</code>'), 'archiving by period after the list')
     status, _, page = action('&action=archive&archiveto=1&token=TOKA0001&obsid=1')
     clean('archive observation', status, page)
     check('<strong>TOKA0001</strong> archivée' in page and 'TOKA0001</code>' not in page, 'observation archived, no longer in the default list')

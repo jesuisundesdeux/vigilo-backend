@@ -747,43 +747,6 @@ $searchopen = ($filtertoken !== '' || $filteraddress !== '' || $searchcity != 0 
   </div>
 </div>
 
-<?php if (in_array($current_role, $actions_acl['archive']['access'])) { ?>
-<div class="card shadow-sm mb-4">
-  <div class="card-header d-flex align-items-center">
-    <i class="bi bi-archive me-2"></i><strong>Archiver par période</strong>
-  </div>
-  <div class="card-body">
-    <p class="small text-body-secondary">Les observations archivées ne sont plus listées dans l'application ni sur la carte, mais restent comptées dans les statistiques. Elles restent visibles ici (filtre « Archives ») et peuvent être désarchivées.</p>
-    <form method="POST" action="">
-      <?= csrf_field() ?>
-      <input type="hidden" name="archive_step" value="preview" />
-      <div class="row g-3 align-items-end">
-        <div class="col-sm-6 col-lg-3">
-          <label for="archive_from" class="form-label">Du <span class="text-body-secondary small">(facultatif)</span></label>
-          <input type="date" class="form-control" name="archive_from" id="archive_from" value="<?= h($archive_form['from']) ?>" />
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <label for="archive_to" class="form-label">Au</label>
-          <input type="date" class="form-control" name="archive_to" id="archive_to" value="<?= h($archive_form['to']) ?>" required />
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <label for="archive_category" class="form-label">Catégorie</label>
-          <select class="form-select" name="archive_category" id="archive_category">
-            <option value="0">Toutes</option>
-            <?php foreach ($archive_categories as $archive_catid => $archive_catname) { ?>
-            <option value="<?= intval($archive_catid) ?>"<?= $archive_form['category'] == $archive_catid ? ' selected' : '' ?>><?= h($archive_catname) ?></option>
-            <?php } ?>
-          </select>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-          <button type="submit" class="btn btn-outline-warning w-100"><i class="bi bi-search"></i> Compter les observations</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-<?php } ?>
-
 <?php
 /* Pagination */
 $pagenb = 1;
@@ -952,7 +915,7 @@ foreach ($observations as $result_obs) {
           <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
           <?php } ?>
           <code><?= h($obs_token) ?></code>
-          <?php if (!empty($result_obs['obs_archived'])) { ?><br /><span class="badge text-bg-dark mt-1"><i class="bi bi-archive"></i> Archivée</span><?php } ?>
+          <?php if (!empty($result_obs['obs_archived'])) { ?><br /><span class="badge text-bg-secondary mt-1"><i class="bi bi-archive"></i> Archivée</span><?php } ?>
           <?php if ($in_resolution) {
             $resolution_badges = array(
               1 => array('text-bg-success', 'bi-check2-all', 'Résolue'),
@@ -1094,9 +1057,9 @@ foreach ($observations as $result_obs) {
           <?php }
           if ($can_act && in_array($current_role, $actions_acl['archive']['access'])) {
             if (empty($result_obs['obs_archived'])) { ?>
-            <a class="btn btn-sm btn-outline-dark" href="<?= h($actionurl . '&action=archive&archiveto=1' . csrf_query()) ?>"><i class="bi bi-archive"></i> Archiver</a>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=archive&archiveto=1' . csrf_query()) ?>"><i class="bi bi-archive"></i> Archiver</a>
           <?php } else { ?>
-            <a class="btn btn-sm btn-outline-dark" href="<?= h($actionurl . '&action=archive&archiveto=0' . csrf_query()) ?>"><i class="bi bi-box-arrow-up"></i> Désarchiver</a>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=archive&archiveto=0' . csrf_query()) ?>"><i class="bi bi-box-arrow-up"></i> Désarchiver</a>
           <?php }
           }
           if ($can_act && in_array($current_role, $actions_acl['cleancache']['access'])) { ?>
@@ -1146,3 +1109,40 @@ if ($nbpages > 1) {
 <?php
 }
 ?>
+
+<?php if (in_array($current_role, $actions_acl['archive']['access'])) { ?>
+<div class="card shadow-sm mt-4 mb-4">
+  <div class="card-header d-flex align-items-center">
+    <i class="bi bi-archive me-2"></i><strong>Archiver par période</strong>
+  </div>
+  <div class="card-body">
+    <p class="small text-body-secondary">Les observations archivées ne sont plus listées dans l'application ni sur la carte, mais restent comptées dans les statistiques. Elles restent visibles ici (filtre « Archives ») et peuvent être désarchivées.</p>
+    <form method="POST" action="">
+      <?= csrf_field() ?>
+      <input type="hidden" name="archive_step" value="preview" />
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_from" class="form-label">Du <span class="text-body-secondary small">(facultatif)</span></label>
+          <input type="date" class="form-control" name="archive_from" id="archive_from" value="<?= h($archive_form['from']) ?>" />
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_to" class="form-label">Au</label>
+          <input type="date" class="form-control" name="archive_to" id="archive_to" value="<?= h($archive_form['to']) ?>" required />
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label for="archive_category" class="form-label">Catégorie</label>
+          <select class="form-select" name="archive_category" id="archive_category">
+            <option value="0">Toutes</option>
+            <?php foreach ($archive_categories as $archive_catid => $archive_catname) { ?>
+            <option value="<?= intval($archive_catid) ?>"<?= $archive_form['category'] == $archive_catid ? ' selected' : '' ?>><?= h($archive_catname) ?></option>
+            <?php } ?>
+          </select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <button type="submit" class="btn btn-outline-warning w-100"><i class="bi bi-search"></i> Compter les observations</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<?php } ?>
