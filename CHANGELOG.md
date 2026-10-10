@@ -15,7 +15,7 @@
 ### Archivage des observations
 - Page Observations de l'admin (administrateurs) : une observation peut être **archivée** (bouton « Archiver » de sa
   ligne, ou actions groupées « Archiver » / « Désarchiver » sur la sélection), et toutes les observations d'une
-  **période** (date de l'observation), d'une catégorie ou de toutes, avec le cadre « Archiver par période » (aperçu du
+  **période** (date de l'observation), d'une catégorie ou de toutes, avec le cadre « Archiver par période » sous la liste (aperçu du
   nombre d'observations, puis confirmation). Filtre « Archives » (non archivées par défaut, archivées, toutes) et
   badge « Archivée ». Actions journalisées (`observation_archive`, `observation_unarchive`,
   `observation_archive_period`).
