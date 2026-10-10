@@ -169,6 +169,35 @@
     update();
   });
 
+  // Report form (page Rapports): quick periods
+  document.querySelectorAll('[data-report-form]').forEach(function (form) {
+    function day(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    form.querySelectorAll('[data-report-period]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var now = new Date();
+        var from = new Date(now);
+        var to = new Date(now);
+        var period = button.getAttribute('data-report-period');
+        if (period === '3m') {
+          from.setMonth(from.getMonth() - 3);
+          from.setDate(from.getDate() + 1);
+        } else if (period === '12m') {
+          from.setFullYear(from.getFullYear() - 1);
+          from.setDate(from.getDate() + 1);
+        } else if (period === 'year') {
+          from = new Date(now.getFullYear(), 0, 1);
+        } else if (period === 'lastyear') {
+          from = new Date(now.getFullYear() - 1, 0, 1);
+          to = new Date(now.getFullYear() - 1, 11, 31);
+        }
+        form.querySelector('[name="from"]').value = day(from);
+        form.querySelector('[name="to"]').value = day(to);
+      });
+    });
+  });
+
   // Bootstrap tooltips
   if (window.bootstrap) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {

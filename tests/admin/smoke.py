@@ -296,6 +296,19 @@ def main():
     status, _, page = admin.request('index.php?page=webhooks&edit=new')
     check('category_map[1000]' in page and '{{categorie_code}}' in page, 'category correspondence in the webhook form')
 
+    # Report for a local authority (page Rapports, report.php): document and slides, filters
+    status, _, page = admin.request('index.php?page=reports')
+    clean('reports page', status, page)
+    check('action="report.php"' in page and 'name="cities[]"' in page and 'name="categories[]"' in page, 'report form')
+    status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&radius=50&format=document')
+    clean('report document', status, page)
+    check('Chiffres clés' in page and 'Lieux récurrents' in page and 'report-map' in page, 'report document sections')
+    check('class="count">2</span>' in page and 'TOKA0001 TOKA0003' in page, 'similar observations grouped (TOKA0001 and TOKA0003, 42 m apart)')
+    status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&categories[]=4&format=slides&title=%3Cb%3EBilan%3C%2Fb%3E')
+    clean('report slides', status, page)
+    check('class="slide title-slide"' in page and '&lt;b&gt;Bilan&lt;/b&gt;' in page, 'report slides, title escaped')
+    check('Aucune observation' in page, 'report filtered by category: no published observation of category 4 (TOKA0004 refused)')
+
     # Bulk actions on observations: category 1000 given to TOKA0007, disapprove / approve again
     def bulk(path, action, ids, **values):
         _, _, page = admin.request(path)
@@ -426,6 +439,10 @@ def main():
     for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
+    status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&cities[]=2')
+    check('Aucune observation' in page, 'citystaff report limited to their cities')
+    status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31')
+    check('Villes : Testville' in page and 'Saint-Exemple' not in page, 'citystaff report of their cities')
     status, _, page = staff.request('index.php?page=observations&approved=1')
     clean('citystaff observations', status, page)
     check('TOKA0001' in page and 'TOKA0003' not in page, 'citystaff only sees the observations of Testville')
