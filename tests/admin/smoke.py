@@ -322,6 +322,52 @@ def main():
     status, _, page = bulk('index.php?page=observations&approved=1', 'nothing', [1])
     check('Action non autorisée' in page, 'unknown bulk action refused')
 
+    # Archives: one observation, a selection, a period (preview then confirm); hidden from get_issues.php
+    def api_tokens(query=''):
+        with urllib.request.urlopen(args.base.rstrip('/') + '/get_issues.php?scope=99_testville' + query, timeout=30) as r:
+            return {i['token']: i for i in json.loads(r.read().decode('utf-8'))}
+    def action(query):
+        _, _, page = admin.request('index.php?page=observations&approved=1')
+        return admin.request('index.php?page=observations&approved=1' + query + '&csrf_token=' + admin.token(page))
+    status, _, page = action('&action=archive&archiveto=1&token=TOKA0001&obsid=1')
+    clean('archive observation', status, page)
+    check('<strong>TOKA0001</strong> archivée' in page and 'TOKA0001</code>' not in page, 'observation archived, no longer in the default list')
+    status, _, page = admin.request('index.php?page=observations&approved=1&searcharchived=1')
+    clean('archived observations filter', status, page)
+    check('TOKA0001</code>' in page and 'Archivée' in page and 'TOKA0003</code>' not in page, 'archived observations shown by the Archives filter')
+    check('TOKA0001' not in api_tokens(), 'archived observation left out of get_issues.php')
+    check(api_tokens('&archived=1').get('TOKA0001', {}).get('archived') == 1, 'archived observation in get_issues.php?archived=1')
+    check(api_tokens('&archived=1').get('TOKA0003', {}).get('archived') == 0, 'archived field 0 for the others with archived=1')
+    check('archived' not in api_tokens()['TOKA0003'], 'no archived field without archived=1')
+    check('TOKA0001' in api_tokens('&token=TOKA0001'), 'archived observation still reachable by its token')
+    status, _, page = action('&searcharchived=1&action=archive&archiveto=0&token=TOKA0001&obsid=1')
+    check('<strong>TOKA0001</strong> désarchivée' in page, 'observation unarchived')
+    status, _, page = bulk('index.php?page=observations&approved=1', 'archive', [1, 3])
+    clean('bulk archive', status, page)
+    check('Archiver : <strong>2</strong>' in page, 'bulk archive')
+    status, _, page = bulk('index.php?page=observations&approved=1&searcharchived=1', 'unarchive', [1, 3])
+    check('Désarchiver : <strong>2</strong>' in page, 'bulk unarchive')
+    def period(step, **values):
+        _, _, page = admin.request('index.php?page=observations&approved=1')
+        data = {'csrf_token': admin.token(page), 'archive_step': step}
+        data.update(values)
+        return admin.request('index.php?page=observations&approved=1', data)
+    status, _, page = period('preview', archive_from='', archive_to='', archive_category='0')
+    check('indiquer une date de fin valide' in page, 'archiving by period without end date refused')
+    status, _, page = period('preview', archive_from='2021-01-01', archive_to='2020-01-01', archive_category='0')
+    check('date de début est après la date de fin' in page, 'archiving by period with dates inverted refused')
+    status, _, page = period('preview', archive_from='', archive_to='2020-12-31', archive_category='3')
+    check('aucune observation à archiver' in page, 'archiving by period: nothing in this category')
+    status, _, page = period('preview', archive_from='', archive_to='2020-12-31', archive_category='2')
+    clean('archive by period preview', status, page)
+    check('<strong>1</strong> observation(s) à archiver' in page and 'name="archive_step" value="confirm"' in page, 'archiving by period: preview')
+    check('TOKA0001' in api_tokens(), 'nothing archived by the preview')
+    status, _, page = period('confirm', archive_from='', archive_to='2020-12-31', archive_category='2')
+    check('<strong>1</strong> observation(s) archivée(s)' in page, 'archiving by period: confirmed')
+    check('TOKA0001' not in api_tokens(), 'observation of the period archived')
+    status, _, page = bulk('index.php?page=observations&approved=1&searcharchived=1', 'unarchive', [1])
+    check('Désarchiver : <strong>1</strong>' in page, 'observation of the period unarchived')
+
     # Category of the instance deleted, its observations moved to category 2
     status, _, page = admin.request('index.php?page=categories')
     check('categoryDeleteModal' in page and '&quot;obs_count&quot;:1' in page, 'delete window with the number of observations')
@@ -363,7 +409,7 @@ def main():
 
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
@@ -383,7 +429,7 @@ def main():
     status, _, page = staff.request('index.php?page=observations&approved=1')
     clean('citystaff observations', status, page)
     check('TOKA0001' in page and 'TOKA0003' not in page, 'citystaff only sees the observations of Testville')
-    check('value="resolution_new"' in page and '>Supprimer</option>' not in page, 'citystaff bulk actions limited to the resolutions')
+    check('value="resolution_new"' in page and '>Supprimer</option>' not in page and 'value="archive"' not in page and 'Archiver par période' not in page, 'citystaff bulk actions limited to the resolutions (no archiving)')
     status, _, page = staff.request('index.php?page=observations&approved=1', {'csrf_token': staff.token(page), 'bulk_action': 'delete', 'bulk_ids[]': ['1']})
     check('Action non autorisée' in page, 'citystaff bulk delete refused')
     status, _, page = staff.request('index.php?page=observations&approved=1', {'csrf_token': staff.token(page), 'bulk_action': 'resolution_new', 'bulk_ids[]': ['3']})

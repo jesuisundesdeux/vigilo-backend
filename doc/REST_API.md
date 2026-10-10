@@ -18,7 +18,7 @@ Authentification :
 | `GET get_version.php` | Version du backend | — |
 | `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, villes) | — |
 | `GET get_categories.php` | Catégories de l'instance (depuis 0.0.23, voir [Catégories](#catégories)) | — |
-| `GET get_issues.php` | Liste des observations ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`/`fdistance`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` admin/modérateur pour les non approuvées et les résolues masquées |
+| `GET get_issues.php` | Liste des observations (sans les archivées, sauf `archived=1`) ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`/`fdistance`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` admin/modérateur pour les non approuvées et les résolues masquées |
 | `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur, ou lien signé `exp` + `sig` (0.0.26) |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` (1024 max.) | `secretid` de l'auteur ou `key` admin/modérateur pour la version nette |
 | ~~`GET mosaic.php`~~ | Supprimée en 0.0.26 (404) : l'application web affiche elle-même les observations similaires | — |
@@ -258,11 +258,13 @@ Version backend >= 0.0.1
 | URL | str | key | | Clé admin/modérateur : observations non approuvées (0) en plus des approuvées, et observations résolues masquées | >= 0.0.13 |
 | URL | int | since | | nombre d'unités pour le filtre relatif sur la date (avec `since_unit`) | >= 0.0.19 |
 | URL | str | since_unit | | unité pour le filtre relatif sur la date, valeur parmi : day, week, month, year  | >= 0.0.19 |
+| URL | int | archived | | `1` : inclut les observations archivées (statistiques), avec le champ `archived` sur chaque observation. Sans ce paramètre, elles ne sont pas listées (sauf avec `token` seul, pour qu'un lien vers une observation archivée fonctionne) | >= 0.0.29 |
 
 Sans `approved`, la liste contient les observations approuvées, plus celles à modérer si le réglage « Afficher les
 observations non modérées » est activé ou avec une clé admin/modérateur ; les observations refusées (2) ne sont listées
 qu'avec `approved=2` et une clé. Seules les observations dont la photo a été envoyée sont listées, les plus récentes
-d'abord. Voir aussi [Observations résolues anciennes](#observations-résolues-anciennes-depuis-0022).
+d'abord. Les observations archivées depuis l'admin ne sont pas listées, sauf avec `archived=1` ou par leur `token`
+(sans `tokenfilters`). Voir aussi [Observations résolues anciennes](#observations-résolues-anciennes-depuis-0022).
 
 Un paramètre invalide (`format` inconnu, valeur non numérique pour `count`, `status`, `t`, `since`, `approved`,
 `cityid`, ou `since_unit` inconnue) donne une erreur HTTP 500 sans corps JSON.
@@ -605,6 +607,7 @@ Valeurs de la base renvoyées en chaînes, sauf `status`, `group` et `distance`.
 | str | categorie | Identifiant de catégorie de l'obseration | >= 0.0.1 |
 | str | approved | Etat d'approbation : 0 à modérer, 1 approuvée, 2 refusée | >= 0.0.1 |
 | str | cityname | Nom de la ville (absent si inconnu) | >= 0.0.13 |
+| int | archived | 1 si l'observation est archivée, sinon 0 (uniquement avec `archived=1`) | >= 0.0.29 |
 | float | distance | Distance en mètres au point `lat`/`lon` (uniquement avec `lat`/`lon`/`radius`) | >= 0.0.1 |
 
 ### Scope
