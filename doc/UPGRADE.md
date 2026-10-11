@@ -108,6 +108,12 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
+### Passage à la 0.0.30
+
+Migration de base automatique (`init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` des webhooks),
+appliquée par la mise à jour depuis l'admin ou au démarrage du conteneur. Les webhooks existants restent envoyés pour
+toutes les catégories et toutes les villes ; les filtres se choisissent ensuite dans la page Webhooks de l'admin.
+
 ### Passage à la 0.0.29
 
 Migration de base automatique (`init-0.0.29.sql` : colonne `obs_archived` des observations), appliquée par la mise à

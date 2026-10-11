@@ -104,6 +104,50 @@ function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
     return $values;
 }
 
+/* Choices of the filters: categories (id => name, disabled ones included) and cities (0 = no known city) */
+$filter_categories = array();
+foreach ((array) getCategoriesList() as $category) {
+    if (isset($category['catid'], $category['catname'])) {
+        $filter_categories[intval($category['catid'])] = array((string) $category['catname'], !empty($category['catdisable']));
+    }
+}
+$filter_cities = array(0 => 'Sans ville référencée');
+$query = mysqli_query($db, "SELECT city_id, city_name FROM obs_cities ORDER BY city_name");
+while ($query && ($row = mysqli_fetch_assoc($query))) {
+    $filter_cities[intval($row['city_id'])] = (string) $row['city_name'];
+}
+
+/* Ids of a filter posted by the form, among the known ones (comma-separated) */
+function webhook_admin_posted_ids($name, $known)
+{
+    $ids = array();
+    if (isset($_POST[$name]) && is_array($_POST[$name])) {
+        foreach ($_POST[$name] as $id) {
+            if (is_scalar($id) && ctype_digit((string) $id) && array_key_exists(intval($id), $known)) {
+                $ids[] = intval($id);
+            }
+        }
+    }
+    return implode(',', array_unique($ids));
+}
+
+/* Summary of the filters of a webhook (list of the webhooks) */
+function webhook_admin_filter_summary($hook, $filter_categories, $filter_cities)
+{
+    $parts = array();
+    foreach (array('webhook_categories' => $filter_categories, 'webhook_cities' => $filter_cities) as $field => $known) {
+        $names = array();
+        foreach (webhook_filter_ids($hook, $field) as $id) {
+            $name    = isset($known[$id]) ? $known[$id] : '#' . $id;
+            $names[] = is_array($name) ? $name[0] : $name;
+        }
+        if ($names) {
+            $parts[] = implode(', ', $names);
+        }
+    }
+    return $parts;
+}
+
 $edit = null;
 
 /* Delete */
@@ -128,6 +172,8 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         'webhook_headers' => isset($_POST['webhook_headers']) ? str_replace("\r\n", "\n", (string) $_POST['webhook_headers']) : '',
         'webhook_body'    => isset($_POST['webhook_body']) ? str_replace("\r\n", "\n", (string) $_POST['webhook_body']) : '',
         'webhook_category_only' => !empty($_POST['webhook_category_only']) ? 1 : 0,
+        'webhook_categories'    => webhook_admin_posted_ids('webhook_categories', $filter_categories),
+        'webhook_cities'        => webhook_admin_posted_ids('webhook_cities', $filter_cities),
     );
     // Events: only the known ones
     $events = array();
@@ -178,7 +224,7 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         $messages[] = array('danger', 'Webhook non enregistré :<ul class="mb-0"><li>' . implode('</li><li>', array_map('h', $errors)) . '</li></ul>');
     } else {
         $fields = array();
-        foreach (array('webhook_name', 'webhook_event', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body', 'webhook_category_map') as $field) {
+        foreach (array('webhook_name', 'webhook_event', 'webhook_method', 'webhook_url', 'webhook_format', 'webhook_headers', 'webhook_body', 'webhook_category_map', 'webhook_categories', 'webhook_cities') as $field) {
             $fields[$field] = "'" . mysqli_real_escape_string($db, $edit[$field]) . "'";
         }
         $fields['webhook_enabled'] = intval($edit['webhook_enabled']);
@@ -189,11 +235,13 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
                 $sets[] = $field . ' = ' . $value;
             }
             $ok = mysqli_query($db, "UPDATE obs_webhooks SET " . implode(', ', $sets) . " WHERE webhook_id = " . intval($edit['webhook_id']));
-            audit_log('webhook_edit', 'webhook:' . intval($edit['webhook_id']), array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'enabled' => $edit['webhook_enabled'], 'events' => $edit['webhook_event']));
+            audit_log('webhook_edit', 'webhook:' . intval($edit['webhook_id']), array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'enabled' => $edit['webhook_enabled'], 'events' => $edit['webhook_event'],
+                                                                          'categories' => $edit['webhook_categories'], 'cities' => $edit['webhook_cities']));
         } else {
             $ok = mysqli_query($db, "INSERT INTO obs_webhooks (" . implode(', ', array_keys($fields)) . ") VALUES (" . implode(', ', $fields) . ")");
             $edit['webhook_id'] = intval(mysqli_insert_id($db));
-            audit_log('webhook_create', 'webhook:' . $edit['webhook_id'], array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'events' => $edit['webhook_event']));
+            audit_log('webhook_create', 'webhook:' . $edit['webhook_id'], array('name' => $edit['webhook_name'], 'url' => $edit['webhook_url'], 'events' => $edit['webhook_event'],
+                                                                         'categories' => $edit['webhook_categories'], 'cities' => $edit['webhook_cities']));
         }
         if ($ok) {
             $messages[] = array('success', 'Webhook <strong>' . h($edit['webhook_name']) . '</strong> enregistré.');
@@ -202,7 +250,8 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
                 $request = webhook_build_request($edit, $values);
                 $hook    = webhook_admin_load($db, $edit['webhook_id']);
                 $result  = webhooks_deliver($db, array($hook), $values);
-                $result  = isset($result[$edit['webhook_id']]) ? $result[$edit['webhook_id']] : array(0, 'non envoyé', 0, '');
+                $result  = isset($result[$edit['webhook_id']]) ? $result[$edit['webhook_id']]
+                    : array(0, webhook_matches($hook, $values) ? 'non envoyé' : 'non envoyé, hors des filtres du webhook (catégories, villes ou catégories avec un code)', 0, '');
                 $level   = $result[1] === '' ? 'success' : 'danger';
                 $messages[] = array($level, 'Test de l\'événement <code>' . h($values['event']) . '</code> avec '
                     . ($values['resolution_token'] !== '' ? 'la résolution <strong>' . h($values['resolution_token']) . '</strong>' : 'l\'observation <strong>' . h($values['token']) . '</strong>') . ' : '
@@ -264,7 +313,8 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
         $last = $hook['last_delivery'] ? explode('|', $hook['last_delivery'], 3) : null; ?>
         <tr>
           <td class="fw-semibold"><?= h($hook['webhook_name']) ?></td>
-          <td class="small"><?php foreach (webhook_hook_events($hook) as $event) { ?><span class="badge text-bg-light border me-1" title="<?= h(webhook_events()[$event]) ?>"><?= h($event) ?></span><?php } ?></td>
+          <td class="small"><?php foreach (webhook_hook_events($hook) as $event) { ?><span class="badge text-bg-light border me-1" title="<?= h(webhook_events()[$event]) ?>"><?= h($event) ?></span><?php } ?>
+            <?php foreach (webhook_admin_filter_summary($hook, $filter_categories, $filter_cities) as $summary) { ?><div class="text-body-secondary mt-1"><i class="bi bi-funnel"></i> <?= h($summary) ?></div><?php } ?></td>
           <td class="text-break small"><span class="badge text-bg-secondary"><?= h($hook['webhook_method']) ?></span> <?= h($hook['webhook_url']) ?></td>
           <td><?= $hook['webhook_enabled'] ? '<span class="badge text-bg-success">Actif</span>' : '<span class="badge text-bg-secondary">Désactivé</span>' ?></td>
           <td class="small">
@@ -328,6 +378,32 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
               </div>
               <?php } ?>
             </fieldset>
+          </div>
+          <?php
+          $selected_filters = array('webhook_categories' => webhook_filter_ids($edit, 'webhook_categories'), 'webhook_cities' => webhook_filter_ids($edit, 'webhook_cities'));
+          $filter_boxes     = array('webhook_categories' => array('Catégories', $filter_categories), 'webhook_cities' => array('Villes', $filter_cities));
+          foreach ($filter_boxes as $field => $box) { ?>
+          <div class="col-md-6">
+            <fieldset>
+              <legend class="form-label fs-6 mb-1"><?= h($box[0]) ?> <span class="text-body-secondary small">(aucune cochée : toutes)</span></legend>
+              <div class="border rounded px-2 py-1 overflow-auto" style="max-height: 12rem;">
+              <?php foreach ($box[1] as $id => $label) {
+                  $checked = in_array($id, $selected_filters[$field], true);
+                  $name    = is_array($label) ? $label[0] : $label;
+                  // Disabled categories: only listed when already chosen
+                  if (is_array($label) && $label[1] && !$checked) { continue; } ?>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="<?= h($field) ?>[]" id="<?= h($field . '_' . $id) ?>" value="<?= intval($id) ?>"<?= $checked ? ' checked' : '' ?>>
+                  <label class="form-check-label<?= $id === 0 && $field == 'webhook_cities' ? ' fst-italic' : '' ?>" for="<?= h($field . '_' . $id) ?>"><?= h($name) ?><?= is_array($label) && $label[1] ? ' <span class="text-body-secondary">(désactivée)</span>' : '' ?></label>
+                </div>
+              <?php } ?>
+              </div>
+            </fieldset>
+          </div>
+          <?php } ?>
+          <div class="col-12 form-text mt-1">
+            Seules les observations d'une catégorie et d'une ville cochées sont envoyées (pour une résolution : si l'une de ses
+            observations correspond).
           </div>
           <div class="col-md-3">
             <label class="form-label" for="webhook_method">Méthode</label>

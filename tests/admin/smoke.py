@@ -159,7 +159,8 @@ def main():
     hook = {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Test <b>hook</b>', 'webhook_enabled': '1',
             'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/hook?t={{token}}', 'webhook_format': 'json',
             'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}',
-            'webhook_events[]': ['observation.approved', 'resolution.status_changed']}
+            'webhook_events[]': ['observation.approved', 'resolution.status_changed'],
+            'webhook_categories[]': ['2', '99999'], 'webhook_cities[]': ['1', '0', 'x']}
     status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1', **{'webhook_events[]': []}))
     check('au moins un événement' in page, 'webhook without event refused')
     status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1'))
@@ -171,6 +172,9 @@ def main():
     check('Test &lt;b&gt;hook&lt;/b&gt;' in page and 'enregistré' in page, 'webhook saved and escaped')
     check("Test de l'événement <code>observation.approved</code>" in page and 'Requête envoyée' in page, 'webhook test reported')
     check('resolution.status_changed</span>' in page, 'events of the webhook listed')
+    check('<i class="bi bi-funnel"></i> Véhicule ou objet gênant</div>' in page and '<i class="bi bi-funnel"></i> Testville, Sans ville référencée</div>' in page,
+          'filters of the webhook listed (unknown ids left out)')
+    check('non envoyé, hors des filtres' in page, 'webhook test out of the filters reported')
     delete = [l for l in links(page, 'action=delete') if 'webhookid=' in l]
     check(len(delete) == 1, 'webhook delete link')
     if delete:
@@ -295,6 +299,7 @@ def main():
     check('ajoutée (n° 1000)' in page and 'Trottinette &lt;b&gt;gênante&lt;/b&gt;' in page, 'category of the instance added')
     status, _, page = admin.request('index.php?page=webhooks&edit=new')
     check('category_map[1000]' in page and '{{categorie_code}}' in page, 'category correspondence in the webhook form')
+    check('name="webhook_categories[]"' in page and 'name="webhook_cities[]"' in page, 'category and city filters in the webhook form')
 
     # Report for a local authority (page Rapports, report.php): document and slides, filters
     status, _, page = admin.request('index.php?page=reports')

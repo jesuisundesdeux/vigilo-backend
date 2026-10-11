@@ -99,7 +99,10 @@ celles de la première observation liée ; elles sont vides pour les événement
   dernière résolution) ;
 - **correspondance des catégories** : pour chaque catégorie, le code attendu par l'outil appelé (par exemple le
   `service_code` Open311), disponible dans `{{categorie_code}}` ; avec l'option « N'envoyer que les observations des
-  catégories qui ont un code », les autres observations ne déclenchent pas ce webhook.
+  catégories qui ont un code », les autres observations ne déclenchent pas ce webhook ;
+- **filtres par catégorie et par ville** : un webhook peut être limité à certaines catégories et à certaines villes
+  (ou aux observations sans ville référencée) ; aucune case cochée : toutes. Une résolution déclenche le webhook si
+  l'une de ses observations correspond.
 
 Le menu **Modèle** du formulaire préremplit les champs pour Mastodon, Slack / Mattermost, Discord, Bluesky, Open311 et
 Redmine (détails dans [WEBHOOKS.md](WEBHOOKS.md)), ou les vide.

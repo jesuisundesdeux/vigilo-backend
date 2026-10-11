@@ -250,7 +250,8 @@ quels dans le SQL** (code ancien) ; l'appelant doit les avoir échappés ou conv
 ### 2.7 `webhooks.php`
 
 Voir section 7.1. Fonctions : `webhook_variables()`, `webhook_observation_values()`, `webhook_value()`,
-`webhook_escape()`, `webhook_render()`, `webhook_category_map()`, `webhook_category_code()`,
+`webhook_escape()`, `webhook_render()`, `webhook_category_map()`, `webhook_category_code()`, `webhook_filter_ids()`,
+`webhook_matches()`,
 `webhook_build_request()`, `webhooks_for_event()`, `webhooks_deliver()`, `webhook_approval_state()`,
 `webhooks_on_approval()`, `webhook_events()`, `webhook_hook_events()`, `webhook_resolution_values()`,
 `webhook_resolution_state()`, `webhooks_for_observation()`, `webhooks_for_resolution()`,
@@ -468,7 +469,7 @@ Toutes les actions sont protégées par le jeton CSRF (1.3) ; les liens d'action
 | `scopes.php` | admin | Une carte par scope (Leaflet : rectangle, centre, zoom, recherche Nominatim), fenêtre de création. Création et suppression désactivées si `SAAS_MODE`. | POST `scope_create` + `scope_name`, `scope_display_name`, `scope_department`, `scope_contact_email` ; POST `scope_id` + colonnes de `$scope_fields` ; GET `action=delete&scopeid=`. Identifiant vérifié par `scope_name_valid()` (seulement s'il change). Site de l'association (`scope_association_url`, type `url`) : vide ou adresse `http(s)://` valide. | `scope_create`, `scope_edit`, `scope_delete` |
 | `categories.php` | admin | Catégories nationales (désactivables) et catégories de l'instance (≥ 1000) ; la fenêtre de création rappelle qu'une catégorie utile à d'autres instances peut être proposée par pull request dans vigilo-conf. | GET `action=disable\|enable&catid=` (nationale) ; POST `category_delete` + `cat_id` (instance) et, si elle est utilisée, `obs_action=move` + `target_catid` (catégorie active, observations déplacées) ou `obs_action=delete` (observations supprimées par `deleteObs`, journalisées une à une) ; POST `category_save` + `cat_id` (0 = création), `cat_name`, `cat_name_en`, `cat_color` (`#rrggbb` ou nom CSS), `cat_resolvable`, `cat_active`. | `category_disable`, `category_enable`, `category_delete`, `category_create`, `category_edit` |
 | `settings.php` | admin | Réglages de `obs_config` décrits dans `$settings_fields` (cartes Instance, Publication, Photos, Anti-spam). Indisponible si `SAAS_MODE`. | POST `settings_save` + `cfg[<param>]`. Seuls les paramètres de `$settings_fields` sont écrits (`INSERT … ON DUPLICATE KEY UPDATE`). | `settings_edit` |
-| `webhooks.php` | admin | Liste avec le dernier envoi de chaque webhook, formulaire (modèles, correspondance des catégories), 30 derniers envois (la table en conserve 500). | GET `edit=new\|<id>` (affiche le formulaire) ; POST `webhook_save` ou `webhook_test` + `webhook_id`, `webhook_name`, `webhook_enabled`, `webhook_events[]`, `webhook_method`, `webhook_url`, `webhook_format`, `webhook_headers`, `webhook_body`, `webhook_category_only`, `category_map[<catid>]` ; GET `action=delete&webhookid=`. | `webhook_create`, `webhook_edit`, `webhook_delete` |
+| `webhooks.php` | admin | Liste avec le dernier envoi et les filtres de chaque webhook (`webhook_admin_filter_summary()`), formulaire (modèles, filtres par catégorie et par ville, correspondance des catégories), 30 derniers envois (la table en conserve 500). | GET `edit=new\|<id>` (affiche le formulaire) ; POST `webhook_save` ou `webhook_test` + `webhook_id`, `webhook_name`, `webhook_enabled`, `webhook_events[]`, `webhook_categories[]` (catégories connues, désactivées comprises), `webhook_cities[]` (villes de `obs_cities`, `0` : sans ville), `webhook_method`, `webhook_url`, `webhook_format`, `webhook_headers`, `webhook_body`, `webhook_category_only`, `category_map[<catid>]` ; GET `action=delete&webhookid=`. | `webhook_create`, `webhook_edit`, `webhook_delete` |
 | `audit.php` | admin | Journal paginé (50 par page, `p`), filtres `f_login`, `f_action` (pas `action`, réservé aux liens d'action). | — | — |
 | `update.php` | admin | Versions (code, base, image Docker `VIGILO_IMAGE_VERSION`, dernière release), migrations en attente, contrôles de sécurité (`vigilo_security_checks()`), installation. Indisponible si `SAAS_MODE`. | POST `apply_migrations` ; POST `install_release` + `version` + `password` (mot de passe de l'admin redemandé) ; POST `watchtower_update` ; POST `refresh` (relit la dernière release). | `update_migrations`, `update_install`, `update_failed`, `update_docker_watchtower` |
 
@@ -553,7 +554,7 @@ colonnes de `obs_roles` et `obs_cities` en `latin1`, tables créées depuis 0.0.
 | `obs_config` | `config_param` (unique), `config_value` (varchar 255) | Voir 5.3. |
 | `obs_categories` | `cat_id`, `cat_custom` (0 nationale surchargée, 1 propre à l'instance), `cat_disabled`, `cat_name`, `cat_name_en`, `cat_color`, `cat_resolvable` | Une ligne n'existe pour une catégorie nationale que si l'admin l'a désactivée / réactivée. |
 | `obs_notes` | `note_obsid`, `note_time`, `note_login`, `note_text` | Notes privées, jamais exposées par l'API. |
-| `obs_webhooks` | `webhook_name`, `webhook_enabled`, `webhook_event` (événements séparés par des virgules, varchar 255 depuis 0.0.24), `webhook_method`, `webhook_url`, `webhook_format` (`json`, `form`, `text`), `webhook_headers`, `webhook_body`, `webhook_category_map` (JSON `catid => code`), `webhook_category_only` | |
+| `obs_webhooks` | `webhook_name`, `webhook_enabled`, `webhook_event` (événements séparés par des virgules, varchar 255 depuis 0.0.24), `webhook_method`, `webhook_url`, `webhook_format` (`json`, `form`, `text`), `webhook_headers`, `webhook_body`, `webhook_category_map` (JSON `catid => code`), `webhook_category_only`, `webhook_categories` et `webhook_cities` (filtres : identifiants séparés par des virgules, vide = toutes, ville 0 = sans ville ; 0.0.30) | |
 | `obs_webhook_deliveries` | `delivery_webhookid`, `delivery_time`, `delivery_event`, `delivery_token`, `delivery_http_code`, `delivery_error`, `delivery_duration_ms`, `delivery_response` (500 car.) | 500 lignes conservées. |
 | `obs_audit_log` | `audit_time`, `audit_login`, `audit_role`, `audit_ip`, `audit_action`, `audit_target`, `audit_details` | |
 | `obs_login_attempts`, `obs_rate_limit` | tentatives de connexion ; requêtes de l'API par type et IP | Purgées après 24 h. |
@@ -702,8 +703,15 @@ cherchée avec `FIND_IN_SET`) :
 
 Pour les événements de résolution, `webhook_resolution_values()` prend les valeurs de la **première** observation liée
 (`webhook_observation_values()`) et ajoute les variables `resolution_*` ; la catégorie (correspondance, option
-« catégories correspondantes seulement ») est donc celle de cette observation. Le journal des envois enregistre le
-token de la résolution pour ses événements.
+« catégories correspondantes seulement ») est donc celle de cette observation. Pour les filtres par catégorie et par
+ville, en revanche, une résolution correspond si **l'une** de ses observations correspond (clé interne `_filter` des
+valeurs : paires catégorie / ville de chaque observation ; une clé commençant par `_` n'est pas une variable). Le
+journal des envois enregistre le token de la résolution pour ses événements.
+
+Filtres d'un webhook (0.0.30) : `webhook_categories` et `webhook_cities` (identifiants séparés par des virgules, vide =
+toutes ; ville `0` = observations sans ville référencée, `obs_city = 0`), lus par `webhook_filter_ids()`.
+`webhook_matches($hook, $values)` applique ces filtres (une observation doit être à la fois dans une catégorie et une
+ville choisies) et l'option « catégories correspondantes seulement ».
 
 Déroulement :
 
@@ -724,7 +732,8 @@ Déroulement :
    `json` → `json_encode` sans les guillemets extérieurs (d'où `"{{comment}}"` dans les modèles), `form`/`url` →
    `rawurlencode`, `header` → sauts de ligne remplacés par des espaces, `text` → tel quel. Variable inconnue → chaîne
    vide.
-5. `webhooks_deliver()` : webhooks « catégories correspondantes seulement » ignorés si la catégorie n'a pas de code ;
+5. `webhooks_deliver()` : webhooks ignorés si `webhook_matches()` est faux (filtres de catégories et de villes,
+   « catégories correspondantes seulement » sans code pour la catégorie) ;
    URL non HTTP(S) → erreur sans appel ; appels **en parallèle** (`curl_multi`), délai `VIGILO_WEBHOOK_TIMEOUT`
    (5 s par défaut), connexion ≤ 3 s, pas de redirection suivie ; un code hors 2xx est une erreur ; chaque envoi est
    enregistré dans `obs_webhook_deliveries` puis la table est réduite aux 500 derniers. Aucun nouvel essai.
@@ -733,7 +742,8 @@ Déroulement :
    cas.
 
 Le bouton « Enregistrer et tester » (page Webhooks) envoie le premier événement coché avec la dernière résolution (événements
-de résolution), la dernière observation dans l'état de l'événement (nouvelle, refusée) ou la dernière observation publiée, ou des valeurs d'exemple (`webhook_admin_test_values()`), et enregistre aussi l'envoi dans le journal des envois. À l'enregistrement d'un webhook au format JSON, le
+de résolution), la dernière observation dans l'état de l'événement (nouvelle, refusée) ou la dernière observation publiée, ou des valeurs d'exemple (`webhook_admin_test_values()`), et enregistre aussi l'envoi dans le journal des envois ; si
+cette observation est hors des filtres du webhook, rien n'est envoyé et le message l'indique. À l'enregistrement d'un webhook au format JSON, le
 corps rendu avec les valeurs de chaque événement coché doit être un JSON valide ; au moins un événement est requis. Les modèles du menu « Modèle » sont dans
 `$webhook_templates` de `inc/webhooks.php` (même contenu que [WEBHOOKS.md](WEBHOOKS.md)).
 
