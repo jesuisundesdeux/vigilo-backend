@@ -10,6 +10,11 @@
 - Migration `init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` de `obs_webhooks` (vides : les
   webhooks existants restent inchangés).
 
+### Clé modérateur fournie par la personne
+- Page Comptes de l'admin : champ facultatif **Clé fournie par la personne**, pour enregistrer comme clé API du compte
+  la clé qu'une personne a générée dans l'application web (« Devenir modérateur ») et transmise à l'association
+  (20 à 64 lettres ou chiffres, unique). Sans clé fournie, la clé reste générée par l'instance.
+
 ### Correctifs
 - Page Observations de l'admin : le cadre « Archiver par période » est placé sous la liste des observations ; le
   bouton « Archiver » / « Désarchiver » de chaque ligne et le badge « Archivée », illisibles en thème sombre, sont
