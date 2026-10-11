@@ -24,7 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * - observation.approved / observation.disapproved: moderation (admin or approve.php);
  * - resolution.created: resolution declared in the application or created in the admin;
  * - resolution.status_changed: status of a resolution changed in the admin.
- * A webhook stores its events as a comma-separated list (webhook_event).
+ * A webhook stores its events as a comma-separated list (webhook_event), and can be
+ * limited to some categories (webhook_categories) and cities (webhook_cities, 0 = no
+ * known city): comma-separated ids, empty = all (webhook_matches()).
  *
  * The URL, the headers and the body are templates: {{variable}} is replaced by the
  * value of the observation (see webhook_variables()), escaped for where it is used:
@@ -198,6 +200,8 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'resolution_observations'    => '',
         'instance_name'   => isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '',
         'instance_url'    => $instance_url,
+        // Not a variable: category and city of the observation(s), for the filters of the webhooks
+        '_filter'         => array(array(intval($obs['obs_categorie']), intval($obs['obs_city']))),
     );
 }
 
@@ -214,10 +218,12 @@ function webhook_resolution_values($db, $resolutionid, $event, $previous_status 
         return null;
     }
     $tokens = array();
-    $query  = mysqli_query($db, "SELECT obs_list.obs_token FROM obs_resolutions_tokens INNER JOIN obs_list ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid
+    $filter = array();
+    $query  = mysqli_query($db, "SELECT obs_list.obs_token, obs_list.obs_categorie, obs_list.obs_city FROM obs_resolutions_tokens INNER JOIN obs_list ON obs_list.obs_id = obs_resolutions_tokens.restok_observationid
                                  WHERE obs_resolutions_tokens.restok_resolutionid = " . intval($resolutionid) . " ORDER BY obs_list.obs_id");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $tokens[] = (string) $row['obs_token'];
+        $filter[] = array(intval($row['obs_categorie']), intval($row['obs_city']));
     }
     $values = $tokens ? webhook_observation_values($db, $tokens[0], $event) : null;
     if (!$values) {
@@ -238,13 +244,15 @@ function webhook_resolution_values($db, $resolutionid, $event, $previous_status 
     $values['resolution_date']            = $time > 0 ? date('c', $time) : '';
     $values['resolution_photo_url']       = !empty($res['resolution_withphoto']) ? $values['instance_url'] . '/get_photo.php?type=resolution&token=' . rawurlencode($res['resolution_token']) : '';
     $values['resolution_observations']    = implode(',', $tokens);
+    // A resolution matches the filters of a webhook when one of its observations does
+    $values['_filter']                    = $filter;
     return $values;
 }
 
 /* Value of a variable, computing the remote ones on first use */
 function webhook_value(&$values, $name)
 {
-    if (!array_key_exists($name, $values)) {
+    if (!array_key_exists($name, $values) || $name[0] === '_') {
         return '';
     }
     if ($values[$name] === null) {
@@ -304,6 +312,42 @@ function webhook_category_code($hook, $values)
 {
     $map = webhook_category_map($hook);
     return (isset($values['categorie']) && isset($map[$values['categorie']]) && (string) $map[$values['categorie']] !== '') ? (string) $map[$values['categorie']] : null;
+}
+
+/* Ids of a filter of a webhook (webhook_categories, webhook_cities), empty array = all */
+function webhook_filter_ids($hook, $field)
+{
+    $ids = array();
+    foreach (explode(',', isset($hook[$field]) ? (string) $hook[$field] : '') as $id) {
+        if (trim($id) !== '' && ctype_digit(trim($id))) {
+            $ids[] = intval($id);
+        }
+    }
+    return array_values(array_unique($ids));
+}
+
+/*
+ * Is this webhook called for these values? Filters on the categories and the cities (an
+ * observation matching both, any of them for a resolution), and "only the mapped categories".
+ */
+function webhook_matches($hook, $values)
+{
+    if (!empty($hook['webhook_category_only']) && webhook_category_code($hook, $values) === null) {
+        return false;
+    }
+    $categories = webhook_filter_ids($hook, 'webhook_categories');
+    $cities     = webhook_filter_ids($hook, 'webhook_cities');
+    if (!$categories && !$cities) {
+        return true;
+    }
+    // Example values of the admin test: the category only, no city
+    $items = isset($values['_filter']) ? $values['_filter'] : array(array(intval($values['categorie']), null));
+    foreach ($items as $item) {
+        if ((!$categories || in_array($item[0], $categories, true)) && (!$cities || ($item[1] !== null && in_array($item[1], $cities, true)))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* The HTTP request of a webhook for these values: url, method, headers, body */
@@ -367,8 +411,8 @@ function webhooks_deliver($db, $hooks, $values)
     $multi   = curl_multi_init();
     $handles = array();
     foreach ($hooks as $hook) {
-        // "Only the mapped categories": the other observations are not sent to this webhook
-        if (!empty($hook['webhook_category_only']) && webhook_category_code($hook, $values) === null) {
+        // Filters (categories, cities, only the mapped categories): the other observations are not sent
+        if (!webhook_matches($hook, $values)) {
             continue;
         }
         $request = webhook_build_request($hook, $values);

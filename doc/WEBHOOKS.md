@@ -12,6 +12,10 @@ Rappels :
 - dans un corps **JSON**, les variables de texte s'écrivent entre guillemets (`"{{comment}}"`) : leur valeur est
   échappée automatiquement ; `{{lat}}` et `{{lon}}` peuvent s'écrire sans guillemets (nombres) ;
 - dans un corps **formulaire**, les valeurs sont encodées automatiquement ;
+- les **Catégories** et **Villes** cochées limitent le webhook aux observations de ces catégories et de ces villes
+  (aucune case cochée : toutes ; « Sans ville référencée » : observations hors des villes de l'admin) ; une
+  résolution est envoyée si l'une de ses observations correspond. Exemple : un webhook par service de la
+  collectivité, ou un webhook par commune ;
 - la **Correspondance des catégories** du formulaire associe à chaque catégorie un code de l'outil appelé
   (`{{categorie_code}}`) ; avec « N'envoyer que les observations des catégories qui ont un code », le webhook ne part
   que pour ces catégories (exemple : [Open311](#ticketing-de-collectivité-open311)) ;

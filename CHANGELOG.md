@@ -2,6 +2,14 @@
 
 ## 0.0.30
 
+### Webhooks : filtres par catégorie et par ville
+- Un webhook peut être limité à une ou plusieurs **catégories** et à une ou plusieurs **villes** (ou aux observations
+  sans ville référencée) : cases à cocher du formulaire de la page Webhooks, aucune case cochée = toutes. Une
+  résolution déclenche le webhook si l'une de ses observations correspond. Les filtres sont rappelés dans la liste
+  des webhooks ; « Enregistrer et tester » indique quand l'observation de test est hors des filtres.
+- Migration `init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` de `obs_webhooks` (vides : les
+  webhooks existants restent inchangés).
+
 ### Correctifs
 - Page Observations de l'admin : le cadre « Archiver par période » est placé sous la liste des observations ; le
   bouton « Archiver » / « Désarchiver » de chaque ligne et le badge « Archivée », illisibles en thème sombre, sont

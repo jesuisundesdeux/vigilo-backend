@@ -699,12 +699,13 @@ class WebhookReceiver:
         self.httpd.server_close()
 
 
-def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1, category_map='{}', category_only=0, events='observation.approved'):
+def add_webhook(name, url, body='', headers='', fmt='json', method='POST', enabled=1, category_map='{}', category_only=0, events='observation.approved',
+                categories='', cities=''):
     def q(v):
         return "'" + v.replace('\\', '\\\\').replace("'", "\\'") + "'"
     sql("INSERT INTO obs_webhooks (webhook_name, webhook_enabled, webhook_event, webhook_method, webhook_url, webhook_format, webhook_headers, webhook_body, "
-        "webhook_category_map, webhook_category_only) VALUES (%s, %d, %s, %s, %s, %s, %s, %s, %s, %d)"
-        % (q(name), enabled, q(events), q(method), q(url), q(fmt), q(headers), q(body), q(category_map), category_only))
+        "webhook_category_map, webhook_category_only, webhook_categories, webhook_cities) VALUES (%s, %d, %s, %s, %s, %s, %s, %s, %s, %d, %s, %s)"
+        % (q(name), enabled, q(events), q(method), q(url), q(fmt), q(headers), q(body), q(category_map), category_only, q(categories), q(cities)))
     return sql("SELECT MAX(webhook_id) FROM obs_webhooks")
 
 
@@ -986,6 +987,63 @@ class T12WebhookCategories(unittest.TestCase):
         paths = [c['path'] for c in self.receiver.calls]
         self.assertEqual(paths, ['/all'], 'not sent to the webhook limited to the mapped categories')
         self.assertEqual(self.receiver.calls[0]['body'], 'service_code=', 'no code: empty value')
+
+
+class T15WebhookFilters(unittest.TestCase):
+    """Filters of a webhook on the categories and the cities (0: no known city); a resolution
+    matches when one of its observations does."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.receiver = WebhookReceiver()
+        sql("DELETE FROM obs_webhooks")
+        add_webhook('cat', cls.receiver.base + '/cat', body='{}', categories='2,3')
+        add_webhook('city', cls.receiver.base + '/city', body='{}', cities='2')
+        add_webhook('nocity', cls.receiver.base + '/nocity', body='{}', cities='0')
+        add_webhook('both', cls.receiver.base + '/both', body='{}', categories='2', cities='1')
+        add_webhook('res', cls.receiver.base + '/res', body='{}', cities='2', events='resolution.created')
+
+    @classmethod
+    def tearDownClass(cls):
+        sql("DELETE FROM obs_webhooks")
+        cls.receiver.close()
+
+    def publish(self, categorie, city):
+        r = create(categorie=categorie)
+        token, secret = r.json()['token'], r.json()['secretid']
+        sql("UPDATE obs_list SET obs_city = %d WHERE obs_token = '%s'" % (city, token))
+        self.assertEqual(call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO).status, 200)
+        self.receiver.calls = []
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        return token
+
+    def paths(self, count):
+        self.receiver.wait(count)
+        time.sleep(1)
+        return sorted(c['path'] for c in self.receiver.calls)
+
+    def test_category_and_city(self):
+        self.publish('2', 1)
+        self.assertEqual(self.paths(2), ['/both', '/cat'])
+
+    def test_city(self):
+        self.publish('5', 2)
+        self.assertEqual(self.paths(1), ['/city'])
+
+    def test_no_known_city(self):
+        self.publish('3', 0)
+        self.assertEqual(self.paths(2), ['/cat', '/nocity'])
+
+    def test_resolution(self):
+        first = self.publish('5', 1)
+        self.paths(0)
+        second = self.publish('5', 2)
+        self.assertEqual(self.paths(1), ['/city'])
+        self.receiver.calls = []
+        self.assertEqual(call('create_resolution.php', form={'tokenlist': first, 'time': '1700000300000'}).status, 200)
+        self.assertEqual(self.paths(0), [], 'no observation of the resolution in the cities of the webhook')
+        self.assertEqual(call('create_resolution.php', form={'tokenlist': first + ',' + second, 'time': '1700000300000'}).status, 200)
+        self.assertEqual(self.paths(1), ['/res'], 'one observation of the resolution in the cities of the webhook')
 
 
 class T14Archives(unittest.TestCase):
