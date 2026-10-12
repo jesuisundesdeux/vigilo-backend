@@ -13,7 +13,7 @@ Prérequis : une MariaDB accessible (`MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD
 | Serveur de floutage | `python3 -m unittest discover -s blur-server/tests` | Visages et plaques détectés et masqués, reste de la photo intact, appels HTTP. |
 | docker-compose + floutage | `tests/blur/compose.sh <image backend> <image blur>` | Profil `blur` de bout en bout : photo envoyée au backend, enregistrée visage et plaques masqués. |
 | Migrations | job `migrations` de la CI | Installation neuve, rejeu, montée depuis chaque version, refus du retour arrière. |
-| Assistant d'installation | `tests/setup/run.sh` | Installation classique de bout en bout : code d'installation, test et écriture de `config/config.php`, migrations, compte admin et URL de l'instance, assistant fermé ensuite, guide de première configuration. |
+| Assistant d'installation | `tests/setup/run.sh` | Installation classique de bout en bout : code d'installation, test et écriture de `config/config.php`, migrations, compte admin et URL de l'instance, assistant fermé ensuite, guide de première configuration ; code d'installation fixé par l'hébergeur (`VIGILO_SETUP_CODE`). |
 | Mise à jour depuis l'admin | `tests/update/run.sh` | Version signée installée, code obsolète supprimé, archive altérée refusée, migration cassée annulée. |
 
 `<image>` : l'image construite depuis ce dépôt (`docker build -t vigilo-backend:dev .`),

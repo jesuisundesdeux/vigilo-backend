@@ -74,6 +74,7 @@ function webhook_admin_load($db, $id)
  */
 function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
 {
+    global $config;
     $values = null;
     if (strpos($event, 'resolution.') === 0) {
         $query  = mysqli_query($db, "SELECT resolution_id, resolution_status FROM obs_resolutions ORDER BY resolution_id DESC LIMIT 1");
@@ -94,7 +95,7 @@ function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
     }
     if (!$values) {
         $values = array_fill_keys(array_keys(webhook_variables()), '');
-        $values = array_merge($values, array('event' => $event, 'token' => 'EXEMPLE1', 'observation_url' => 'https://app.vigilo.city/?token=EXEMPLE1',
+        $values = array_merge($values, array('event' => $event, 'token' => 'EXEMPLE1', 'observation_url' => $config['VIGILO_WEBAPP_URL'] . '?token=EXEMPLE1',
                         'photo_url' => '', 'comment' => 'Voiture "garée" sur la piste', 'explanation' => '', 'categorie' => '2',
                         'categorie_name' => 'Stationnement', 'address' => '1 rue de l\'Exemple', 'cityname' => 'Exempleville', 'scope' => '',
                         'lat' => '43.6', 'lon' => '3.88', 'time' => (string) time(), 'date' => date('c'), 'status' => '0',

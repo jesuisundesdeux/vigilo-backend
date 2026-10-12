@@ -270,7 +270,8 @@ function webhook_value(&$values, $name)
             $values[$name] = $values['instance_url'] . '/get_photo.php?' . photo_signed_query($db, $values['token']);
         } elseif ($name == 'observation_url') {
             $instance = getInstanceNameFromFirebase($values['scope']);
-            $values[$name] = 'https://app.vigilo.city/?' . ($instance ? 'instance=' . rawurlencode($instance) . '&' : '') . 'token=' . rawurlencode($values['token']);
+            global $config;
+            $values[$name] = $config['VIGILO_WEBAPP_URL'] . '?' . ($instance ? 'instance=' . rawurlencode($instance) . '&' : '') . 'token=' . rawurlencode($values['token']);
         }
     }
     return (string) $values[$name];

@@ -49,6 +49,13 @@ services:
       # Blur server (profile "blur"); empty: photos published as sent. The admin
       # setting "Serveur de floutage" takes precedence when filled in.
       - VIGILO_BLUR_URL=${VIGILO_BLUR_URL:-}
+      # Closed set of instances (demo): shared configuration (citylist.json,
+      # categorielist.json) and web app other than vigilo-conf and app.vigilo.city
+      - VIGILO_CONF_URL=${VIGILO_CONF_URL:-}
+      - VIGILO_WEBAPP_URL=${VIGILO_WEBAPP_URL:-}
+      # Install code of the setup assistant chosen by the host (12+ letters or digits)
+      # instead of the one written in caches/setup-code.php
+      - VIGILO_SETUP_CODE=${VIGILO_SETUP_CODE:-}
     labels:
       # Only this container is updated by Watchtower
       - com.centurylinklabs.watchtower.enable=true

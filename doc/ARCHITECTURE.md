@@ -44,6 +44,17 @@ d'une ville).
 Lues par le backend : `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`
 (`config/config.php.docker`), `VIGILO_BLUR_URL`, `VIGILO_BLUR_TIMEOUT`, `VIGILO_WEBHOOK_TIMEOUT`, `VIGILO_WATCHTOWER_URL`,
 `VIGILO_WATCHTOWER_TOKEN`, `VIGILO_RELEASE_API` (tests).
+
+Écosystème fermé (instances de démonstration, [vigilo-demo](https://github.com/jesuisundesdeux/vigilo-demo)) :
+
+| Variable | Rôle | Par défaut |
+|---|---|---|
+| `VIGILO_CONF_URL` | Dossier où lire `citylist.json` (nom de l'instance pour les liens, guide de première configuration) et `categorielist.json` (catégories nationales) | `https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main` |
+| `VIGILO_WEBAPP_URL` | Application web des liens `observation_url` des webhooks | `https://app.vigilo.city/` |
+| `VIGILO_SETUP_CODE` | Code d'installation de l'assistant fixé par l'hébergeur (12 à 64 lettres ou chiffres), au lieu de celui écrit dans `caches/setup-code.php` | — |
+
+Sur un hébergement mutualisé, les deux premières peuvent aussi être définies dans `config/config.php`
+(`$config['VIGILO_CONF_URL'] = '…';`).
 Les réglages de l'instance (table `obs_config`) sont décrits sur [vigilo.city](https://vigilo.city/fr/documentation/configuration/global/).
 
 ## Base de données

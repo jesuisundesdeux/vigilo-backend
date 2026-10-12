@@ -9,8 +9,10 @@ set -euo pipefail
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=${SETUP_TEST_PORT:-8093}
 WORK=$(mktemp -d)
+ENV_PORT=$((PORT + 1))
 cleanup() {
   pkill -f "^php -d display_errors=stderr -S 127.0.0.1:$PORT" > /dev/null 2>&1 || true
+  pkill -f "^php -d display_errors=stderr -S 127.0.0.1:$ENV_PORT" > /dev/null 2>&1 || true
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -26,13 +28,15 @@ mkdir -p "$WORK/app/images/resolutions" "$WORK/app/caches"
 chmod -R a+rwX "$WORK/app"
 
 (cd "$WORK/app" && php -d display_errors=stderr -S "127.0.0.1:$PORT" > "$WORK/php.log" 2>&1 &)
+# Same code, install code set by the host (VIGILO_SETUP_CODE, demo farms)
+(cd "$WORK/app" && VIGILO_SETUP_CODE=demo-code-1234-abcd php -d display_errors=stderr -S "127.0.0.1:$ENV_PORT" >> "$WORK/php.log" 2>&1 &)
 for i in $(seq 1 30); do
-  curl -s -o /dev/null "http://127.0.0.1:$PORT/admin/setup.php" && break
+  curl -s -o /dev/null "http://127.0.0.1:$PORT/admin/setup.php" && curl -s -o /dev/null "http://127.0.0.1:$ENV_PORT/admin/setup.php" && break
   sleep 1
 done
 
 status=0
-python3 "$REPO/tests/setup/setup.py" --base "http://127.0.0.1:$PORT" --app "$WORK/app" --repo "$REPO" || status=$?
+python3 "$REPO/tests/setup/setup.py" --base "http://127.0.0.1:$PORT" --app "$WORK/app" --repo "$REPO" --env-base "http://127.0.0.1:$ENV_PORT" || status=$?
 # PHP warnings of the code under test only (not those of the PHP setup, "in Unknown on line 0")
 if [ $status -ne 0 ] || grep -i "warning\|fatal\|deprecated" "$WORK/php.log" | grep -q "$WORK/app"; then
   echo "--- PHP log"

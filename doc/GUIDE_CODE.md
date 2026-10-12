@@ -81,7 +81,9 @@ echo json_encode(array('status' => '0'));
    - lit toute la table `obs_config` et copie six réglages dans `$config` : `vigilo_urlbase` → `URLBASE`,
      `vigilo_http_proto` → `HTTP_PROTOCOL`, `vigilo_name` → `VIGILO_NAME`, `vigilo_language` → `VIGILO_LANGUAGE`,
      `mysql_charset` → `MYSQL_CHARSET`, `vigilo_timezone` → `VIGILO_TIMEZONE` ;
-   - définit `$config['CATEGORIES_NATIONAL_URL']` (fichier `categorielist.json` de vigilo-conf) ;
+   - définit `$config['VIGILO_CONF_URL']` (configuration partagée : vigilo-conf, ou variable `VIGILO_CONF_URL`),
+     `$config['VIGILO_WEBAPP_URL']` (`https://app.vigilo.city/`, ou variable `VIGILO_WEBAPP_URL`) et
+     `$config['CATEGORIES_NATIONAL_URL']` (`categorielist.json` de cette configuration) ;
    - applique le fuseau horaire et le jeu de caractères de la connexion ;
    - construit **`$acls`** : `role_name => liste des role_key` à partir de **toute** la table `obs_roles` (une requête
      par appel de route) ;
@@ -108,7 +110,7 @@ echo json_encode(array('status' => '0'));
 | Variable | Défini dans | Contenu |
 |---|---|---|
 | `$db` | `common.php` | Connexion mysqli. Les fonctions des includes y accèdent par `global $db` ou la reçoivent en paramètre (code récent). |
-| `$config` | `config/config.php` puis `common.php` | Connexion MySQL, `DATA_PATH`, `SAAS_MODE`, les six réglages copiés depuis `obs_config`, `CATEGORIES_NATIONAL_URL`. |
+| `$config` | `config/config.php` puis `common.php` | Connexion MySQL, `DATA_PATH`, `SAAS_MODE`, les six réglages copiés depuis `obs_config`, `VIGILO_CONF_URL`, `VIGILO_WEBAPP_URL`, `CATEGORIES_NATIONAL_URL`. |
 | `$acls` | `common.php` | `array('admin' => array(clé, …), 'moderator' => …)`. |
 | `$status_list` | `common.php` | Statuts d'observation (voir section 5.2). |
 | `BACKEND_VERSION` | `includes/version.php` | Seule source de la version (lue aussi par l'entrypoint Docker, la CI et `build-release.sh`). |
@@ -190,7 +192,7 @@ Voir 1.1. Pas de fonction ; définit `$db`, `$config`, `$acls`, `$status_list`.
 | `getCachedRemoteJson($url, $cache_name, $ttl = 86400)` | JSON distant mis en cache dans `caches/remote_<nom>.json` ; si la source est injoignable, la dernière copie est utilisée même périmée ; sinon `array()`. | catégories, citylist |
 | `getNationalCategoriesList()` | `categorielist.json` de vigilo-conf, cache `remote_categories.json`, 1 heure. | catégories |
 | `getCategoriesList()` | Catégories de l'instance (section 7.2). | `get_categories.php`, webhooks, admin |
-| `getInstanceNameFromFirebase($scope)` | Nom de l'instance dans `citylist.json` de vigilo-conf (cache `remote_citylist.json`, 24 h) dont le `scope` correspond ; sert à construire les liens `https://app.vigilo.city/?instance=…`. Le nom rappelle l'ancien hébergement de la liste (Firebase). | webhooks |
+| `getInstanceNameFromFirebase($scope)` | Nom de l'instance dans `citylist.json` de la configuration partagée (`VIGILO_CONF_URL`, cache `remote_citylist.json`, 24 h ; 5 min pour une configuration autre que vigilo-conf, `vigilo_conf_is_custom()`) dont le `scope` correspond ; sert à construire les liens `<VIGILO_WEBAPP_URL>?instance=…`. Le nom rappelle l'ancien hébergement de la liste (Firebase). | webhooks |
 | `getWebContent($url)` | GET avec curl (agent `Vigilo-Backend/<version>`, connexion 5 s, total 10 s, 3 redirections), `false` si erreur ou HTTP ≥ 400. | tous les appels sortants simples |
 | `generategroups()`, `get_data_from_gps_coordinates()` | Code mort (plus appelé). | — |
 
@@ -459,7 +461,7 @@ Toutes les actions sont protégées par le jeton CSRF (1.3) ; les liens d'action
 
 | Page (`inc/`) | Rôles | Contenu | Actions (paramètres) | Journal |
 |---|---|---|---|---|
-| `dashboard.php` | admin, citystaff | Compteurs (total, complètes, approuvées, refusées, en attente), 5 dernières observations en attente, résolutions à valider (statut 4), version. Pour un citystaff, limité à ses villes. Un ancien `install.php` (versions antérieures à 0.0.31) est supprimé (`unlink`), alerte s'il ne peut pas l'être. Admins : cadre **Première configuration** tant qu'une étape requise reste à faire (`admin_setup_checklist($db, $config, true)` de `inc/setup_checklist.php` : nom et URL de l'instance, scope, villes, référencement d'un scope dans `citylist.json` de vigilo-conf (liste en cache 24 h, « non vérifié » sans réseau) ; facultatif : comptes moderator), avec barre d'avancement et lien vers chaque page. | — | — |
+| `dashboard.php` | admin, citystaff | Compteurs (total, complètes, approuvées, refusées, en attente), 5 dernières observations en attente, résolutions à valider (statut 4), version. Pour un citystaff, limité à ses villes. Un ancien `install.php` (versions antérieures à 0.0.31) est supprimé (`unlink`), alerte s'il ne peut pas l'être. Admins : cadre **Première configuration** tant qu'une étape requise reste à faire (`admin_setup_checklist($db, $config, true)` de `inc/setup_checklist.php` : nom et URL de l'instance, scope, villes, référencement d'un scope dans `citylist.json` de vigilo-conf ou de `VIGILO_CONF_URL` (liste en cache 24 h, 5 min pour `VIGILO_CONF_URL`, « non vérifié » sans réseau) ; facultatif : comptes moderator), avec barre d'avancement et lien vers chaque page. | — | — |
 | `observations.php` | admin, citystaff | Recherche (token unique ou similaires, rue, ville, catégorie, archives : `searcharchived` = 0 non archivées par défaut, 1 archivées, `all`), badge « Archivée », cadre « Archiver par période » sous la liste (admin), bouton « Archiver » / « Désarchiver » sur chaque ligne (admin), onglets Approuvées / À qualifier / Refusées (`approved` = 1, 0, 2), 100 observations par page (`pagenb`), notes, alerte « observations sans villes ». Un citystaff ne voit que ses villes. | GET `action=approve&obsid=&approveto=0\|1\|2` (admin) ; `action=archive&archiveto=1\|0` (admin, `obsadmin_archive()`) ; POST `archive_step=preview\|confirm` + `archive_from` (facultatif) / `archive_to` (`aaaa-mm-jj`, `obsadmin_day()`) + `archive_category` (0 : toutes) : archivage des observations non archivées de la période (date de l'observation), aperçu du nombre puis confirmation (admin) ; `action=delete` (admin, `deleteObs`) ; `action=cleancache` (admin) ; `action=resolve` (admin, citystaff : crée une résolution au statut 2 « prise en compte ») ; POST `obs_id` + `obs_comment`, `obs_explanation`, `obs_categorie`, `obs_address_string`, `obs_cityname`, `obs_city`, `post_date`, `post_heure`, `resolution_add` (admin) ; POST `note_action=add\|delete`, `note_obsid`, `note_text`, `note_id` ; GET `importcityfromadress=1` (admin, vérifie lui-même `csrf_valid()`) ; actions groupées : POST `bulk_action` (`approve`, `disapprove`, `pending`, `category`, `city`, `resolution_new`, `resolution_add`, `archive`, `unarchive`, `cleancache`, `delete`, chacune avec le droit de l'action unitaire) + `bulk_ids[]` + `bulk_value_<action>` (catégorie active, ville, résolution) ; chaque observation est contrôlée comme une action unitaire (`obsadmin_can_act`), approbation commune dans `obsadmin_approve()` (webhooks). | `observation_approve`, `observation_delete`, `observation_archive`, `observation_unarchive`, `observation_archive_period`, `observation_cleancache`, `resolution_create`, `observation_edit`, `note_add`, `note_delete`, `observation_importcity` |
 | `resolutions.php` | admin, citystaff | Onglets par statut de résolution (`resolved` = 2, 3, 4, 1 ; défaut 2), 10 résolutions par page, observations liées, photo, alerte sur les observations présentes dans plusieurs résolutions. | POST `obsadd` + `obstoken` + `resolutionid` ; POST `resolution_id` + `post_date`/`post_heure`, `resolution_comment`, `resolution_status` (transition contrôlée par `$status_list`) ; POST `resolution_add` + `obs_id` ; GET `action=deleteobs&obsid=`, `action=delete` (admin), `action=resolve&new_status=` ; actions groupées : POST `bulk_action` (`status_<n>` selon le rôle, `delete` admin) + `bulk_ids[]`. Changement d'état unitaire ou groupé par `resolutionSetStatus()` (rôle et transition de `$status_list`). Un citystaff n'agit que sur des résolutions et observations de ses villes. | `resolution_add_observation`, `resolution_edit`, `resolution_remove_observation`, `resolution_delete`, `resolution_status` |
 | `reports.php` | admin, citystaff | Formulaire du **rapport pour une collectivité** (GET vers `report.php`, nouvel onglet) : titre, période (raccourcis 3 / 12 mois, année en cours / précédente, `admin.js`), villes (un citystaff : les siennes), types d'observation, distance de regroupement, format document ou diaporama. | — (lecture seule) | — |
@@ -617,7 +619,7 @@ Clés supprimées par `init-0.0.22.sql` : `sgblur_url` (reprise dans `vigilo_blu
 | `images/<token>.jpg` | Photo d'une observation (≤ 1024 px, floutée si un serveur est configuré) | `add_image.php` |
 | `images/resolutions/<R_token>.jpg` | Photo d'une résolution | `add_image.php?type=resolution` |
 | `caches/<token>_p3_w<largeur>.jpg` | Rendu public de `generate_panel.php` (pixelisé si non approuvée) | `generate_panel.php` |
-| `caches/remote_categories.json`, `caches/remote_citylist.json` | Copies des fichiers de vigilo-conf | `getCachedRemoteJson()` |
+| `caches/remote_categories.json`, `caches/remote_citylist.json` | Copies des fichiers de vigilo-conf (ou de `VIGILO_CONF_URL`) | `getCachedRemoteJson()` |
 | `caches/updates/` | `latest-release.json` (1 h), archives téléchargées, `stage-<version>/`, `backup-<version>-<date>/` (code + `database.sql`, 3 conservées) ; `.htaccess` `Require all denied` créé automatiquement | `updater.php` |
 | `config/config.php` | Connexion à la base | installation |
 | `caches/setup-code.php` (ou `config/setup-code.php`) | Code d'installation de l'assistant, supprimé à la création du premier admin | `vigilo_setup_code_ensure()` (assistant, `vigilo-migrate.php --setup-code`) |
@@ -904,6 +906,10 @@ répond 404 sans rien afficher. Saisi une fois (`vigilo_setup_code_valid()`, `ha
 ignorés, une seconde d'attente si faux), il est gardé en session (empreinte SHA-256) ; la session est régénérée. Il est
 supprimé à la création du compte admin, et ne peut plus être recréé ensuite (`setup.php` redirige, `--setup-code`
 n'affiche rien). Docker : l'entrypoint le crée avec `vigilo-migrate.php --setup-code` et l'affiche dans les journaux.
+Un hébergeur qui crée beaucoup d'instances (démos, [vigilo-demo](https://github.com/jesuisundesdeux/vigilo-demo)) peut
+fixer le code avec la variable `VIGILO_SETUP_CODE` (12 à 64 lettres ou chiffres, `vigilo_setup_code_env()`) : aucun
+fichier n'est écrit, la page renvoie vers l'hébergeur et `--setup-code` n'affiche rien (le code n'est jamais écrit
+dans les journaux).
 
 La page liste aussi les vérifications (`vigilo_setup_requirements()` : PHP ≥ 7.3, extensions `mysqli`, `gd`, `exif`,
 `curl` et `zip` (ces deux dernières facultatives), dossiers `images/`, `images/resolutions/`, `caches/` accessibles en

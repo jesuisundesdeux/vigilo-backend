@@ -23,6 +23,14 @@
   scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs), leur avancement et un lien vers chaque
   page. Les badges « Étape N » du menu sont retirés.
 
+### Instances de démonstration (écosystème fermé)
+- Variables d'environnement (ou `config/config.php`) pour une instance qui ne dépend ni de vigilo-conf ni
+  d'app.vigilo.city, utilisées par [vigilo-demo](https://github.com/jesuisundesdeux/vigilo-demo) :
+  - `VIGILO_CONF_URL` : dossier de `citylist.json` et `categorielist.json` (vigilo-conf par défaut) ; liste des
+    instances relue toutes les 5 minutes quand elle n'est pas celle de vigilo-conf ;
+  - `VIGILO_WEBAPP_URL` : application web des liens des webhooks (`https://app.vigilo.city/` par défaut) ;
+  - `VIGILO_SETUP_CODE` : code d'installation de l'assistant fixé par l'hébergeur (jamais affiché dans les journaux).
+
 ## 0.0.30
 
 ### Webhooks : filtres par catégorie et par ville
