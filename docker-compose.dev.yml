@@ -8,3 +8,7 @@ services:
     volumes:
       - ./app:/var/www/html
       - ./config/config.php.docker:/var/www/html/config/config.php
+  # Blur server built from blur-server/ (docker compose ... --profile blur up -d --build)
+  blur:
+    build: ./blur-server
+    image: vigilo-blur:dev

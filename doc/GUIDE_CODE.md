@@ -851,10 +851,12 @@ release), `AUTOUPDATE=true`.
 7. `exec apache2-foreground`.
 
 `docker-compose.yml` : services `db` (MariaDB, `MARIADB_AUTO_UPGRADE`), `web` (image
-`${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}`, volumes `images`, `caches`, journaux Apache), profils `watchtower`
-(`nickfedor/watchtower:1`, `--http-api-update --label-enable --cleanup`, ne met à jour que le conteneur portant le label
-`com.centurylinklabs.watchtower.enable=true`) et `blur`. `docker-compose.dev.yml` monte `./app` et construit l'image
-locale.
+`${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}`, volumes `images`, `caches`, journaux Apache ;
+`VIGILO_WATCHTOWER_URL` par défaut `http://watchtower:8080`), `watchtower` (actif par défaut depuis 0.0.31,
+`nickfedor/watchtower:1`, `--http-api-update --label-enable --cleanup`, ne met à jour que le conteneur portant le label
+`com.centurylinklabs.watchtower.enable=true` ; `WATCHTOWER_TOKEN` obligatoire) et le profil `blur` (image publiée).
+Le fichier fonctionne seul, sans le dépôt. `docker-compose.dev.yml` monte `./app` et construit les images locales
+(`web`, et `blur` depuis `blur-server/`).
 
 ### 7.6 Serveur de floutage (`blur-server/blur_server.py`)
 

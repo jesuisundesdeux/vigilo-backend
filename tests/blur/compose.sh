@@ -35,6 +35,7 @@ MYSQL_DATABASE=vigilo
 VIGILO_IMAGE=$1
 VIGILO_BLUR_IMAGE=$2
 VIGILO_BLUR_URL=http://blur:8000/blur
+WATCHTOWER_TOKEN=test-token
 ENV
 # The database is published for the test (settings and fixtures)
 cat > "$WORK/test.yml" <<YML

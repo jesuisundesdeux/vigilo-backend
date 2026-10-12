@@ -173,8 +173,8 @@ if ($steps) {
         <pre class="bg-body-tertiary p-3 rounded small mb-3">docker compose pull
 docker compose up -d</pre>
         <p class="small text-body-secondary mb-0">L'image doit suivre un tag de version (<code>vigilobs/vigilo-backend:0.0</code> ou <code>:stable</code>), pas un numéro figé.
-        Pour mettre à jour depuis cette page, ajoutez le service Watchtower du fichier <code>docker-compose.yml</code> fourni et définissez
-        <code>VIGILO_WATCHTOWER_URL</code> et <code>VIGILO_WATCHTOWER_TOKEN</code> (voir doc/UPGRADE.md).</p>
+        Pour mettre à jour depuis cette page, reprenez le fichier <code>docker-compose.yml</code> fourni (service Watchtower inclus) et définissez
+        <code>WATCHTOWER_TOKEN</code> dans <code>.env</code> (voir doc/UPGRADE.md).</p>
       <?php } ?>
     <?php } elseif ($blockers) { ?>
       <div class="alert alert-secondary mb-3">

@@ -29,7 +29,7 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
 | `scripts/` | `vigilo-migrate.php` (migrations en CLI), `build-release.sh`, `release-keygen.php`, `obsolete-paths.txt` |
 | `tests/` | Contrat de l'API, tests fonctionnels, smoke test de l'admin, mise à jour, floutage (voir `tests/README.md`) |
 | `doc/` | Documentation technique (API, fonctionnement, architecture, webhooks, mises à jour, contribution) |
-| `Dockerfile`, `docker-compose*.yml`, `vigilo-entrypoint` | Image PHP 8.3 + Apache, profils `blur` et `watchtower` |
+| `Dockerfile`, `docker-compose*.yml`, `vigilo-entrypoint` | Image PHP 8.3 + Apache, Watchtower (par défaut), profil `blur` |
 
 ## Règles à respecter
 
@@ -118,9 +118,11 @@ nouvelle route, action d'admin ou règle (`tests/api/functional.py`, `tests/admi
 ## Docker et mises à jour
 
 - `docker-compose.yml` : services `db` (MariaDB), `web` (image `${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}`),
-  profils `blur` (serveur de floutage) et `watchtower` (image `nickfedor/watchtower:1`, version maintenue ;
+  `watchtower` (actif par défaut, `WATCHTOWER_TOKEN` obligatoire ; image `nickfedor/watchtower:1`, version maintenue ;
   `containrrr/watchtower` est incompatible avec Docker Engine 29). L'admin appelle Watchtower en **POST**
-  `/v1/update` avec `Authorization: Bearer $VIGILO_WATCHTOWER_TOKEN`.
+  `/v1/update` avec `Authorization: Bearer $VIGILO_WATCHTOWER_TOKEN`. Profil `blur` (serveur de floutage).
+  `docker-compose.yml` doit fonctionner seul (la documentation d'installation en donne le contenu) : pas de `build`
+  ni de fichier du dépôt, seulement dans `docker-compose.dev.yml`.
 - Le code est dans l'image (jamais modifié dans le conteneur) ; la base est migrée au démarrage (`AUTOUPDATE`).
 - Variables d'environnement : `doc/ARCHITECTURE.md`.
 

@@ -39,23 +39,18 @@ docker compose pull
 docker compose up -d
 ```
 
-Mise à jour depuis l'admin, avec Watchtower (optionnel) : dans `.env`,
-
-```
-WATCHTOWER_TOKEN=une-longue-chaine-aleatoire
-VIGILO_WATCHTOWER_URL=http://watchtower:8080
-```
-
-puis `docker compose --profile watchtower up -d`. Le bouton « Mettre à jour l'image avec Watchtower »
-de la page « Mises à jour » télécharge la nouvelle image et redémarre le conteneur. Watchtower n'agit
-que sur le conteneur `web` (label `com.centurylinklabs.watchtower.enable`) et seulement à la demande.
-Il a accès au socket Docker : ne l'activez que si vous en avez besoin.
+Mise à jour depuis l'admin, avec Watchtower (service du `docker-compose.yml`, activé par défaut depuis la 0.0.31) :
+`WATCHTOWER_TOKEN` dans `.env` (chaîne aléatoire, par exemple `openssl rand -hex 32`), partagé par l'admin et
+Watchtower. Le bouton « Mettre à jour l'image avec Watchtower » de la page « Mises à jour » télécharge la nouvelle
+image et redémarre le conteneur. Watchtower n'agit que sur le conteneur `web` (label
+`com.centurylinklabs.watchtower.enable`) et seulement à la demande ; son API n'est pas publiée sur l'hôte. Il a accès
+au socket Docker : pour vous en passer, retirez le service `watchtower` de votre `docker-compose.yml`.
 
 Watchtower est l'image `nickfedor/watchtower`, version maintenue de `containrrr/watchtower` (archivée). Si
 Watchtower ne démarre pas avec `client version 1.25 is too old. Minimum supported API version is 1.44` (Docker
 Engine 29 et suivants), c'est que l'ancienne image est encore utilisée : retirez `WATCHTOWER_IMAGE` de `.env` (ou
 mettez `WATCHTOWER_IMAGE=nickfedor/watchtower:1`), reprenez le `docker-compose.yml` de cette version, puis
-`docker compose --profile watchtower up -d`. Le bouton de l'admin appelle Watchtower en POST, comme le demande la
+`docker compose up -d`. Le bouton de l'admin appelle Watchtower en POST, comme le demande la
 nouvelle image (backend 0.0.24 et suivants) ; avec un backend plus ancien, gardez `containrrr/watchtower:1.7.1` en
 ajoutant `DOCKER_API_VERSION=1.44` à l'environnement du service `watchtower`.
 
@@ -113,6 +108,11 @@ Aucune action manuelle ni migration de base. La première installation passe par
 (code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
 présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
 depuis l'admin.
+
+Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
+`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
+définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
+de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
 
 ### Passage à la 0.0.30
 
