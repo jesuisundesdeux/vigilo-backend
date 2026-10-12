@@ -331,10 +331,19 @@ function getCategoriesList()
     return $list;
 }
 
+/* Is the shared configuration another one than vigilo-conf (VIGILO_CONF_URL)? */
+function vigilo_conf_is_custom()
+{
+    global $config;
+    return $config['VIGILO_CONF_URL'] !== VIGILO_CONF_DEFAULT_URL;
+}
+
 /* Name of the instance in vigilo-conf (citylist.json) for a scope, used for links to the web app */
 function getInstanceNameFromFirebase($scope)
 {
-    $citylist_list = getCachedRemoteJson('https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/citylist.json', 'citylist', 86400);
+    global $config;
+    // A custom configuration (demo) lists a new scope within minutes
+    $citylist_list = getCachedRemoteJson($config['VIGILO_CONF_URL'] . '/citylist.json', 'citylist', vigilo_conf_is_custom() ? 300 : 86400);
     foreach ($citylist_list as $key => $value) {
         if (isset($value['scope']) && $value['scope'] == $scope) {
             return $key;

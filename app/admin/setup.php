@@ -48,6 +48,7 @@ $docker   = vigilo_setup_is_docker();
 list($code, $code_file) = vigilo_setup_code_ensure();
 $code_error = $code === null ? $code_file : '';
 $code_path  = $code !== null ? ltrim(str_replace(VIGILO_APP_DIR, '', $code_file), '/') : '';
+$code_env   = $code !== null && $code_file === '';
 
 /* Install code: once given, kept in the session */
 $unlocked = $code !== null && !empty($_SESSION['setup_ok']) && hash_equals((string) $_SESSION['setup_ok'], hash('sha256', $code));
@@ -237,9 +238,14 @@ $requirements = vigilo_setup_requirements();
       <div class="card shadow-sm mb-4">
         <div class="card-body">
           <h2 class="h5"><i class="bi bi-key"></i> Code d'installation</h2>
+<?php if ($code_env) { ?>
+          <p>Pour vérifier que vous administrez ce serveur, saisissez le code d'installation fourni par l'hébergeur de
+            l'instance (variable <code>VIGILO_SETUP_CODE</code>).</p>
+<?php } else { ?>
           <p>Pour vérifier que vous administrez ce serveur, saisissez le code d'installation. Il se trouve dans le fichier
             <code><?= h($code_path) ?></code> du serveur<?= $docker ? '' : ' (FTP, gestionnaire de fichiers de l\'hébergeur)' ?>.</p>
-<?php if ($docker) { ?>
+<?php } ?>
+<?php if ($docker && !$code_env) { ?>
           <p class="small">Avec Docker, il est aussi affiché au démarrage du conteneur :
             <code>docker compose logs web | grep -i "code d'installation"</code>, ou
             <code>docker compose exec web cat <?= h($code_path) ?></code>.</p>

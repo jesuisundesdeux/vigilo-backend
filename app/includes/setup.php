@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * The install code protects every step of the setup: it is written in a file of the
  * server (caches/ or config/), that only the person who installs can read (FTP, file
  * manager, "docker compose logs"). It is removed once the admin account exists.
+ * A host that creates many instances (demo farm) can set it instead with the environment
+ * variable VIGILO_SETUP_CODE.
  *
  * This file only defines functions: it does nothing when requested over HTTP.
  */
@@ -178,9 +180,20 @@ function vigilo_setup_code_dirs($app = VIGILO_APP_DIR)
     return array($app . '/caches', $app . '/config');
 }
 
-/* Current install code and its file, or array(null, null) */
+/* Install code set by the host (VIGILO_SETUP_CODE, 12 to 64 letters or digits), or null */
+function vigilo_setup_code_env()
+{
+    $code = strtoupper(preg_replace('/[\s-]+/', '', (string) getenv('VIGILO_SETUP_CODE')));
+    return preg_match('/^[A-Z0-9]{12,64}$/', $code) ? $code : null;
+}
+
+/* Current install code and its file ('' for VIGILO_SETUP_CODE), or array(null, null) */
 function vigilo_setup_code_read($app = VIGILO_APP_DIR)
 {
+    $env = vigilo_setup_code_env();
+    if ($env !== null) {
+        return array($env, '');
+    }
     foreach (vigilo_setup_code_dirs($app) as $dir) {
         $file = $dir . '/' . VIGILO_SETUP_CODE_FILE;
         if (is_file($file) && preg_match('/^([A-Z0-9]{24})$/m', (string) @file_get_contents($file), $m)) {

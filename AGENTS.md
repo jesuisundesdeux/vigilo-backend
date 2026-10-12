@@ -132,3 +132,5 @@ nouvelle route, action d'admin ou règle (`tests/api/functional.py`, `tests/admi
   page API (OpenAPI).
 - [vigilo-conf](https://github.com/jesuisundesdeux/vigilo-conf) : instances (`citylist.json`) et catégories nationales
   (`categorielist.json`).
+- [vigilo-demo](https://github.com/jesuisundesdeux/vigilo-demo) : instances de démonstration (backend + webapp +
+  configuration propres à chaque démo), qui utilisent `VIGILO_CONF_URL`, `VIGILO_WEBAPP_URL` et `VIGILO_SETUP_CODE`.

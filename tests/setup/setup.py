@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--base', required=True)
     parser.add_argument('--app', required=True)
     parser.add_argument('--repo', required=True)
+    parser.add_argument('--env-base', required=True, help='same code, served with VIGILO_SETUP_CODE=demo-code-1234-abcd')
     args = parser.parse_args()
     version = re.search(r"define\('BACKEND_VERSION', '([0-9.]+)'\)", open(os.path.join(args.repo, 'app/includes/version.php')).read()).group(1)
     config_file = os.path.join(args.app, 'config/config.php')
@@ -45,6 +46,15 @@ def main():
     status, _, served = client.request(args.base + '/caches/setup-code.php')
     check(code not in served, 'install code not served over HTTP')
     check('Vérifications' in page and 'Extension mysqli' in page, 'requirements listed')
+
+    # Install code set by the host: asked instead of the file's, never printed by the CLI
+    host = Client(args.env_base)
+    _, _, host_page = host.request('setup.php')
+    check('VIGILO_SETUP_CODE' in host_page and 'caches/setup-code.php' not in host_page, 'install code of the host asked (VIGILO_SETUP_CODE)')
+    _, _, host_page = host.request('setup.php', {'csrf_token': host.token(host_page), 'setup_code': code})
+    check('Code d\'installation incorrect' in host_page, 'code of the file refused when the host sets one')
+    _, _, host_page = host.request('setup.php', {'csrf_token': host.token(host_page), 'setup_code': 'DEMO CODE 1234 ABCD'})
+    check('name="MYSQL_HOST"' in host_page, 'install code of the host accepted')
 
     # Nothing without the code
     status, _, page = client.request('setup.php', dict(db, csrf_token=client.token(page), setup_action='db_save'))
@@ -85,6 +95,9 @@ def main():
     out = subprocess.run(['php', os.path.join(args.repo, 'scripts/vigilo-migrate.php'), '--app=' + args.app, '--setup-code'],
                          capture_output=True, text=True, env=dict(os.environ))
     check(out.returncode == 0 and out.stdout.split(' ')[0] == code, 'vigilo-migrate.php --setup-code prints the same code')
+    out = subprocess.run(['php', os.path.join(args.repo, 'scripts/vigilo-migrate.php'), '--app=' + args.app, '--setup-code'],
+                         capture_output=True, text=True, env=dict(os.environ, VIGILO_SETUP_CODE='demo-code-1234-abcd'))
+    check(out.returncode == 0 and out.stdout == '', 'vigilo-migrate.php --setup-code prints nothing with VIGILO_SETUP_CODE')
 
     # 3. Admin account
     admin = {'name': 'Admin <b>Test</b>', 'login': 'admin', 'password': 'court', 'password2': 'court', 'instance': 'Vigilo Test',

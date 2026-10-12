@@ -63,6 +63,17 @@ then
   fi
 fi
 
+# Reverse proxies in front of the container (e.g. Traefik, Docker networks): Apache takes
+# the client IP from X-Forwarded-For when the request comes from one of them
+REMOTEIP_CONF=/etc/apache2/conf-enabled/remoteip-proxies.conf
+if [ -n "$VIGILO_TRUSTED_PROXIES" ]
+then
+  PROXIES=$(echo "$VIGILO_TRUSTED_PROXIES" | tr ',' ' ' | tr -cd '0-9A-Fa-f.:/ ')
+  echo "RemoteIPInternalProxy $PROXIES" > "$REMOTEIP_CONF"
+else
+  rm -f "$REMOTEIP_CONF"
+fi
+
 # install.php of the versions before 0.0.31 (copied in the container by the old entrypoint):
 # replaced by the install assistant (admin/setup.php)
 rm -f "$APP_DIR/install.php"

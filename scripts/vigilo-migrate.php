@@ -7,7 +7,8 @@
  *
  * --status only prints "<db version> <code version>" and exits.
  * --setup-code prints "<install code> <file>" of the setup assistant (admin/setup.php) while
- * no admin account exists (created if needed), nothing otherwise.
+ * no admin account exists (created if needed), nothing otherwise or when the host sets it
+ * (VIGILO_SETUP_CODE).
  * --to stops at an older version than the code (tests, step by step upgrades).
  * Exit codes: 0 up to date / migrated, 1 error, 2 database newer than the code.
  */
@@ -55,6 +56,10 @@ if (isset($options['setup-code'])) {
         exit(0);
     }
     list($code, $file) = vigilo_setup_code_ensure($app);
+    if ($code !== null && $file === '') {
+        // VIGILO_SETUP_CODE: known by the host, never printed in the logs
+        exit(0);
+    }
     if ($code === null) {
         fwrite(STDERR, $file . "\n");
         exit(1);

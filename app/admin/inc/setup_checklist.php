@@ -53,8 +53,9 @@ function admin_setup_checklist($db, $config, $remote = false)
 
     // No scope yet: to do; otherwise unknown until the list of vigilo-conf is read
     $listed = $scopes ? null : false;
+    $custom = function_exists('vigilo_conf_is_custom') && vigilo_conf_is_custom();
     if ($remote && $scopes && function_exists('getInstanceNameFromFirebase')) {
-        $list = getCachedRemoteJson('https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/citylist.json', 'citylist', 86400);
+        $list = getCachedRemoteJson($config['VIGILO_CONF_URL'] . '/citylist.json', 'citylist', $custom ? 300 : 86400);
         if ($list) {
             $listed = false;
             foreach ($scopes as $scope) {
@@ -62,9 +63,12 @@ function admin_setup_checklist($db, $config, $remote = false)
             }
         }
     }
-    $steps['vigiloconf'] = array('Référencement dans l\'application', 'scopes', $listed, true,
-        'Pour apparaître dans l\'application web (app.vigilo.city) et sur vigilo.city, l\'instance doit être ajoutée à la liste '
-        . 'citylist.json du dépôt vigilo-conf (pull request ou demande à l\'équipe Vigilo), avec le même scope.');
+    $steps['vigiloconf'] = array('Référencement dans l\'application', 'scopes', $listed, true, $custom
+        // VIGILO_CONF_URL (demo): the list is built by the host from the scopes of the instance
+        ? 'La liste des territoires de l\'application web est fournie par l\'hébergeur de cette instance (VIGILO_CONF_URL) : '
+          . 'le scope y apparaît quelques minutes après sa création.'
+        : 'Pour apparaître dans l\'application web (app.vigilo.city) et sur vigilo.city, l\'instance doit être ajoutée à la liste '
+          . 'citylist.json du dépôt vigilo-conf (pull request ou demande à l\'équipe Vigilo), avec le même scope.');
     $steps['accounts'] = array('Modérateurs', 'accounts', admin_setup_count($db, "SELECT COUNT(*) FROM obs_roles WHERE role_name = 'moderator'") > 0, false,
         'Comptes moderator : modération depuis l\'application web avec leur clé (générée par l\'instance ou fournie par la personne).');
     return $steps;

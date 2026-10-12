@@ -69,7 +69,18 @@ while ($config_result = mysqli_fetch_array($config_query)) {
     }
 }
 
-$config['CATEGORIES_NATIONAL_URL'] = "https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main/categorielist.json";
+// Shared configuration (instances, national categories) and web app: vigilo-conf and
+// app.vigilo.city, or those of a closed set of instances (demo): VIGILO_CONF_URL, VIGILO_WEBAPP_URL
+define('VIGILO_CONF_DEFAULT_URL', 'https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main');
+define('VIGILO_WEBAPP_DEFAULT_URL', 'https://app.vigilo.city/');
+foreach (array('VIGILO_CONF_URL' => VIGILO_CONF_DEFAULT_URL, 'VIGILO_WEBAPP_URL' => VIGILO_WEBAPP_DEFAULT_URL) as $key => $default) {
+    if (empty($config[$key])) {
+        $config[$key] = getenv($key) ? (string) getenv($key) : $default;
+    }
+}
+$config['VIGILO_CONF_URL']   = rtrim($config['VIGILO_CONF_URL'], '/');
+$config['VIGILO_WEBAPP_URL'] = rtrim($config['VIGILO_WEBAPP_URL'], '/') . '/';
+$config['CATEGORIES_NATIONAL_URL'] = $config['VIGILO_CONF_URL'] . "/categorielist.json";
 
 date_default_timezone_set($config['VIGILO_TIMEZONE']);
 mysqli_set_charset($db, $config['MYSQL_CHARSET']);
