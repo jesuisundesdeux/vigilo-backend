@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.0.31
+
+### Assistant d'installation
+- Premier accès à `/admin/` sur une instance non installée : **assistant d'installation** (`admin/setup.php`), le même
+  en hébergement mutualisé et avec Docker, protégé par un **code d'installation** à usage unique écrit sur le serveur
+  (`caches/setup-code.php`, affiché aussi dans les journaux du conteneur Docker) :
+  - hébergement mutualisé : saisie de l'accès à la base, **test de la connexion et des droits** (création,
+    modification, suppression d'une table), puis écriture de `config/config.php` (ou contenu à déposer par FTP) ;
+  - Docker : vérification de la connexion (variables `MYSQL_*`) ;
+  - création des tables avec les scripts de `migrations/`, comparaison de la version de la base et du code (refus
+    d'une base plus récente) ;
+  - compte administrateur (mot de passe de 10 caractères au moins), nom de l'instance, **URL de base et protocole
+    détectés** d'après l'adresse utilisée ; l'assistant se ferme ensuite définitivement.
+- Vérifications affichées : version de PHP, extensions, dossiers accessibles en écriture, base de données.
+- L'ancien `install.php` (accessible à n'importe qui tant qu'aucun compte n'existait) est retiré ; la mise à jour
+  depuis l'admin le supprime s'il reste à la racine.
+
+### Première configuration
+- Accueil de l'admin : cadre **Première configuration** avec les étapes restantes (nom et adresse de l'instance,
+  scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs, floutage), leur avancement et un lien
+  vers chaque page. Les badges « Étape N » du menu suivent la même liste.
+
 ## 0.0.30
 
 ### Webhooks : filtres par catégorie et par ville

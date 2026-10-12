@@ -3,9 +3,11 @@
  * Command line database migration, used by the Docker entrypoint and usable on a
  * dedicated server:
  *
- *   php scripts/vigilo-migrate.php [--app=/var/www/html] [--status] [--to=X.Y.Z]
+ *   php scripts/vigilo-migrate.php [--app=/var/www/html] [--status] [--to=X.Y.Z] [--setup-code]
  *
  * --status only prints "<db version> <code version>" and exits.
+ * --setup-code prints "<install code> <file>" of the setup assistant (admin/setup.php) while
+ * no admin account exists (created if needed), nothing otherwise.
  * --to stops at an older version than the code (tests, step by step upgrades).
  * Exit codes: 0 up to date / migrated, 1 error, 2 database newer than the code.
  */
@@ -15,7 +17,7 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-$options = getopt('', array('app:', 'status', 'to:'));
+$options = getopt('', array('app:', 'status', 'to:', 'setup-code'));
 $app     = isset($options['app']) ? $options['app'] : dirname(__FILE__) . '/../app';
 
 require_once($app . '/includes/version.php');
@@ -43,6 +45,21 @@ try {
 
 if (isset($options['status'])) {
     echo $db_version . ' ' . BACKEND_VERSION . "\n";
+    exit(0);
+}
+
+// Install code of the setup assistant (admin/setup.php), printed while no admin account exists
+if (isset($options['setup-code'])) {
+    require_once($app . '/includes/setup.php');
+    if (vigilo_setup_admin_count($db) > 0) {
+        exit(0);
+    }
+    list($code, $file) = vigilo_setup_code_ensure($app);
+    if ($code === null) {
+        fwrite(STDERR, $file . "\n");
+        exit(1);
+    }
+    echo $code . ' ' . $file . "\n";
     exit(0);
 }
 

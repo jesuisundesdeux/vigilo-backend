@@ -133,8 +133,9 @@ echo json_encode(array('status' => '0'));
 7. `csrf_protect_request()` : toute requête POST, ou GET portant un paramètre `action`, doit contenir le jeton CSRF de
    la session (`csrf_token`, en POST ou en GET). Sinon `$_POST` est vidé et `$_GET['action']` supprimé : la page
    s'affiche normalement, avec l'avertissement « Action ignorée : jeton de sécurité absent ou expiré ».
-8. Indicateurs du menu : « Étape 1/2/3 » si `vigilo_urlbase` est vide, s'il n'y a aucun scope, aucune ville ; nombre
-   d'observations complètes en attente de modération.
+8. Indicateurs du menu : « Étape N » sur la page de chaque étape requise de la première configuration non faite
+   (`admin_setup_checklist()` de `inc/setup_checklist.php`, voir `dashboard.php` en §4.1) ; nombre d'observations complètes en attente de
+   modération.
 9. Mise en page Bootstrap 5 (barre latérale, thème clair/sombre mémorisé dans `localStorage`), puis
    `include('inc/' . $page_name . '.php')` si `$page_allowed`, sinon « Accès non autorisé pour ce rôle ».
 10. Fenêtre `#photoModal` commune et scripts `assets/vendor/bootstrap/bootstrap.bundle.min.js`, `assets/admin.js`.
@@ -307,8 +308,7 @@ Paramètres et formats de réponse : [REST_API.md](REST_API.md). Ce qui suit dé
 | `generate_panel.php` | GET | `images`, `handle` | **non** | `image/jpeg` | public (pixelisée), `secretid` ou clé |
 | `index.php` | GET | — | — | redirection vers https://vigilo.city | — |
 
-`install.php` n'est pas dans `app/` : `install_app/install.php` est copié dans `app/` par l'entrypoint Docker sur une
-base vide, ou à la main en installation classique (section 7.5).
+Il n'y a plus de `install.php` (0.0.31) : la première installation passe par l'assistant `admin/setup.php` (§7.6).
 
 ### 3.2 `create_issue.php` — création et modification d'une observation
 
@@ -460,7 +460,7 @@ Toutes les actions sont protégées par le jeton CSRF (1.3) ; les liens d'action
 
 | Page (`inc/`) | Rôles | Contenu | Actions (paramètres) | Journal |
 |---|---|---|---|---|
-| `dashboard.php` | admin, citystaff | Compteurs (total, complètes, approuvées, refusées, en attente), 5 dernières observations en attente, résolutions à valider (statut 4), version. Pour un citystaff, limité à ses villes. Alerte si `install.php` existe encore. | — | — |
+| `dashboard.php` | admin, citystaff | Compteurs (total, complètes, approuvées, refusées, en attente), 5 dernières observations en attente, résolutions à valider (statut 4), version. Pour un citystaff, limité à ses villes. Alerte si un ancien `install.php` existe encore. Admins : cadre **Première configuration** tant qu'une étape requise reste à faire (`admin_setup_checklist($db, $config, true)` de `inc/setup_checklist.php` : nom et URL de l'instance, scope, villes, référencement d'un scope dans `citylist.json` de vigilo-conf (liste en cache 24 h, « non vérifié » sans réseau) ; facultatifs : comptes moderator, serveur de floutage), avec barre d'avancement et lien vers chaque page. | — | — |
 | `observations.php` | admin, citystaff | Recherche (token unique ou similaires, rue, ville, catégorie, archives : `searcharchived` = 0 non archivées par défaut, 1 archivées, `all`), badge « Archivée », cadre « Archiver par période » sous la liste (admin), bouton « Archiver » / « Désarchiver » sur chaque ligne (admin), onglets Approuvées / À qualifier / Refusées (`approved` = 1, 0, 2), 100 observations par page (`pagenb`), notes, alerte « observations sans villes ». Un citystaff ne voit que ses villes. | GET `action=approve&obsid=&approveto=0\|1\|2` (admin) ; `action=archive&archiveto=1\|0` (admin, `obsadmin_archive()`) ; POST `archive_step=preview\|confirm` + `archive_from` (facultatif) / `archive_to` (`aaaa-mm-jj`, `obsadmin_day()`) + `archive_category` (0 : toutes) : archivage des observations non archivées de la période (date de l'observation), aperçu du nombre puis confirmation (admin) ; `action=delete` (admin, `deleteObs`) ; `action=cleancache` (admin) ; `action=resolve` (admin, citystaff : crée une résolution au statut 2 « prise en compte ») ; POST `obs_id` + `obs_comment`, `obs_explanation`, `obs_categorie`, `obs_address_string`, `obs_cityname`, `obs_city`, `post_date`, `post_heure`, `resolution_add` (admin) ; POST `note_action=add\|delete`, `note_obsid`, `note_text`, `note_id` ; GET `importcityfromadress=1` (admin, vérifie lui-même `csrf_valid()`) ; actions groupées : POST `bulk_action` (`approve`, `disapprove`, `pending`, `category`, `city`, `resolution_new`, `resolution_add`, `archive`, `unarchive`, `cleancache`, `delete`, chacune avec le droit de l'action unitaire) + `bulk_ids[]` + `bulk_value_<action>` (catégorie active, ville, résolution) ; chaque observation est contrôlée comme une action unitaire (`obsadmin_can_act`), approbation commune dans `obsadmin_approve()` (webhooks). | `observation_approve`, `observation_delete`, `observation_archive`, `observation_unarchive`, `observation_archive_period`, `observation_cleancache`, `resolution_create`, `observation_edit`, `note_add`, `note_delete`, `observation_importcity` |
 | `resolutions.php` | admin, citystaff | Onglets par statut de résolution (`resolved` = 2, 3, 4, 1 ; défaut 2), 10 résolutions par page, observations liées, photo, alerte sur les observations présentes dans plusieurs résolutions. | POST `obsadd` + `obstoken` + `resolutionid` ; POST `resolution_id` + `post_date`/`post_heure`, `resolution_comment`, `resolution_status` (transition contrôlée par `$status_list`) ; POST `resolution_add` + `obs_id` ; GET `action=deleteobs&obsid=`, `action=delete` (admin), `action=resolve&new_status=` ; actions groupées : POST `bulk_action` (`status_<n>` selon le rôle, `delete` admin) + `bulk_ids[]`. Changement d'état unitaire ou groupé par `resolutionSetStatus()` (rôle et transition de `$status_list`). Un citystaff n'agit que sur des résolutions et observations de ses villes. | `resolution_add_observation`, `resolution_edit`, `resolution_remove_observation`, `resolution_delete`, `resolution_status` |
 | `reports.php` | admin, citystaff | Formulaire du **rapport pour une collectivité** (GET vers `report.php`, nouvel onglet) : titre, période (raccourcis 3 / 12 mois, année en cours / précédente, `admin.js`), villes (un citystaff : les siennes), types d'observation, distance de regroupement, format document ou diaporama. | — (lecture seule) | — |
@@ -621,7 +621,7 @@ Clés supprimées par `init-0.0.22.sql` : `sgblur_url` (reprise dans `vigilo_blu
 | `caches/remote_categories.json`, `caches/remote_citylist.json` | Copies des fichiers de vigilo-conf | `getCachedRemoteJson()` |
 | `caches/updates/` | `latest-release.json` (1 h), archives téléchargées, `stage-<version>/`, `backup-<version>-<date>/` (code + `database.sql`, 3 conservées) ; `.htaccess` `Require all denied` créé automatiquement | `updater.php` |
 | `config/config.php` | Connexion à la base | installation |
-| `install.php` | Création du premier admin | entrypoint Docker / installation manuelle |
+| `caches/setup-code.php` (ou `config/setup-code.php`) | Code d'installation de l'assistant, supprimé à la création du premier admin | `vigilo_setup_code_ensure()` (assistant, `vigilo-migrate.php --setup-code`) |
 
 `images/`, `caches/` et `migrations/` contiennent un `.htaccess` `Require all denied` ; l'image Docker les interdit
 aussi dans `config/000-default.conf`. Sous nginx, il faut une règle équivalente (la page Mises à jour le vérifie,
@@ -829,7 +829,7 @@ Appelants : `scripts/vigilo-migrate.php` (CLI : `--app=`, `--status` qui affiche
 
 `Dockerfile` : `php:8.3-apache-bookworm`, extensions `gd` (freetype, jpeg), `mysqli`, `exif`, `zip`, modules Apache
 `remoteip`, `rewrite`, `headers`, `php.ini-production` + `upload_max_filesize = 20M`, `post_max_size = 25M`. Le code
-`app/` est copié dans `/var/www/html`, `install_app/` dans `/tmp/install_app`, `config/config.php.docker` devient
+`app/` est copié dans `/var/www/html`, `config/config.php.docker` devient
 `config/config.php`. Variables : `VIGILO_RUNTIME=docker`, `VIGILO_IMAGE_VERSION` (argument de build, le tag de la
 release), `AUTOUPDATE=true`.
 
@@ -838,14 +838,13 @@ release), `AUTOUPDATE=true`.
 1. attend la base (30 essais, une seconde d'intervalle) ;
 2. `vigilo-migrate.php --status` : arrêt (code 1) si la version de la base est illisible ; arrêt (code 2) si la base
    est plus récente que le code ;
-3. base vide (`0.0.0`) : migrations complètes, puis copie de `install.php` dans la racine (propriétaire `www-data`) ;
+3. base vide (`0.0.0`) : migrations complètes ;
 4. base plus ancienne : migrations si `AUTOUPDATE` ≠ `false`, sinon message (à appliquer depuis l'admin) ;
 5. crée `images/`, `images/resolutions/`, `caches/` et en donne la propriété à l'UID 33 (le contenu n'est pas
    modifié) ;
-6. `exec apache2-foreground`.
-
-`install_app/install.php` : refuse (403) et se supprime dès qu'un compte existe dans `obs_roles` ; sinon crée un
-compte `admin` avec une clé de 40 caractères hexadécimaux, puis se supprime et redirige vers l'admin.
+6. sans compte admin : `vigilo-migrate.php --setup-code` crée le code d'installation (`caches/setup-code.php`,
+   propriétaire `www-data`) et l'entrypoint l'affiche dans les journaux (« code d'installation ») ;
+7. `exec apache2-foreground`.
 
 `docker-compose.yml` : services `db` (MariaDB, `MARIADB_AUTO_UPGRADE`), `web` (image
 `${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}`, volumes `images`, `caches`, journaux Apache), profils `watchtower`
@@ -884,6 +883,37 @@ seulement. Méthode reprise du service de floutage de Panoramax ([SGBlur](https:
   `car.jpg` : une plaque masquée).
 
 ---
+
+
+### 7.6 Première installation (`admin/setup.php`, `includes/setup.php`)
+
+`admin/login.php` appelle `vigilo_setup_needed()` **avant** `common.php` (qui s'arrête sans configuration ou sans
+base) et redirige vers `setup.php` tant que l'instance n'est pas installée. `vigilo_setup_state()` (sans
+`common.php`) donne l'étape :
+
+| Étape | Condition | Action de l'assistant |
+|---|---|---|
+| `config` | pas de `config/config.php`, ou connexion impossible | installation classique : formulaire (serveur, `serveur:port`, base, utilisateur, mot de passe), **Tester la connexion** (`vigilo_setup_connect()`, délai 5 s, puis `vigilo_setup_check_privileges()` : création, modification et suppression d'une table `vigilo_setup_check`), **Tester et enregistrer** (`vigilo_setup_write_config()`, refus si le fichier existe ; si `config/` n'est pas accessible en écriture, le contenu à déposer par FTP est affiché). Docker (`VIGILO_RUNTIME=docker`) : erreur de connexion et rappel des variables `MYSQL_*` |
+| `database` | base vide (`0.0.0`), ou plus ancienne que le code **sans** compte admin | `vigilo_migrate()` (scripts de `migrations/`) |
+| `newer` | base plus récente que le code | refus, rien n'est modifié |
+| `admin` | aucun compte `admin` avec login et mot de passe | formulaire : nom, login (`[A-Za-z0-9._@-]{3,60}`), mot de passe (10 caractères au moins, confirmé), nom de l'instance, **URL de base** et protocole détectés par `vigilo_setup_detect_url()` (hôte + chemin au-dessus de `admin/`, `vigilo_is_https()`) ; crée le compte (clé de 40 caractères), écrit `vigilo_name`, `vigilo_urlbase`, `vigilo_http_proto`, journalise `setup_admin_create`, ouvre la session et redirige vers l'admin |
+| `done` | compte admin présent | redirection vers `login.php` (les mises à jour passent ensuite par la page Mises à jour ou Docker) |
+
+**Code d'installation** : chaque étape exige le code de `vigilo_setup_code_ensure()` (24 caractères sans ambiguïté,
+`random_int`), écrit dans `caches/setup-code.php` (sinon `config/setup-code.php`) sous la forme d'un fichier PHP qui
+répond 404 sans rien afficher. Saisi une fois (`vigilo_setup_code_valid()`, `hash_equals`, majuscules et espaces
+ignorés, une seconde d'attente si faux), il est gardé en session (empreinte SHA-256) ; la session est régénérée. Il est
+supprimé à la création du compte admin, et ne peut plus être recréé ensuite (`setup.php` redirige, `--setup-code`
+n'affiche rien). Docker : l'entrypoint le crée avec `vigilo-migrate.php --setup-code` et l'affiche dans les journaux.
+
+La page liste aussi les vérifications (`vigilo_setup_requirements()` : PHP ≥ 7.3, extensions `mysqli`, `gd`, `exif`,
+`curl` et `zip` (ces deux dernières facultatives), dossiers `images/`, `images/resolutions/`, `caches/` accessibles en
+écriture, créés si besoin ; connexion et versions de la base et du code).
+
+`common.php` lit `config/config.php` avec `require` (et non `require_once`) : `login.php` l'a déjà lu par
+`vigilo_setup_read_config()`.
+
+Test : `tests/setup/run.sh` (installation classique de bout en bout, base vide, PHP local).
 
 ## 8. Tests et intégration continue
 
@@ -951,7 +981,8 @@ restrictions du citystaff, accès direct à `inc/*.php`. Chaque page est contrô
 
 | Job | Contenu |
 |---|---|
-| `lint` | `php -l` de `app/`, `scripts/`, `install_app/` sous PHP 7.3 et 8.3. |
+| `lint` | `php -l` de `app/` et `scripts/` sous PHP 7.3 et 8.3. |
+| `setup` | `tests/setup/run.sh` : assistant d'installation de bout en bout (base vide, PHP 8.3 local). |
 | `version` | La dernière migration n'est pas plus récente que `BACKEND_VERSION` et met bien à jour `vigilo_db_version` à sa version. |
 | `migrations` | Installation depuis une base vide, rejeu, montée depuis 0.0.17 à 0.0.22 (schéma reconstruit avec `mysql`), reprise du réglage SGBlur, montée pas à pas, refus d'une base plus récente (code 2). |
 | `contract` | `ADMIN_SMOKE=1 tests/api/run.sh` avec l'image construite et avec `vigilobs/vigilo-backend:0.0.20` (PHP 7.3). |
@@ -1119,8 +1150,6 @@ compatibilité** (les tests de contrat les figent) ; les autres sont des défaut
   `utf8mb4`.
 - `common.php` arrête le script sans code d'erreur HTTP (200, corps vide ou texte) si `config.php` manque ou si la base
   est injoignable.
-- `install_app/install.php` charge Bootstrap 4 depuis un CDN et n'impose pas de longueur minimale de mot de passe
-  (l'admin en exige 10).
 
 ### Code à manier avec précaution
 

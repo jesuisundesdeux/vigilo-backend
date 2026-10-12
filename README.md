@@ -17,7 +17,8 @@ cp .env_sample .env          # mots de passe, VOLUME_PATH, BIND
 docker compose up -d         # --profile blur : serveur de floutage, --profile watchtower : mises à jour depuis l'admin
 ```
 
-Puis ouvrir `https://<instance>/install.php` pour créer le premier administrateur, et `https://<instance>/admin/`.
+Puis ouvrir `https://<instance>/admin/` : l'assistant d'installation demande le code d'installation affiché par
+`docker compose logs web` et crée le premier administrateur. En hébergement mutualisé, il configure aussi la base de données.
 Procédures complètes (Docker, hébergement mutualisé, configuration) : [documentation d'installation](https://vigilo.city/fr/documentation/installation/) sur vigilo.city.
 
 Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-backend) et

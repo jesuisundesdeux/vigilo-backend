@@ -38,7 +38,7 @@ define('VIGILO_REPOSITORY', 'jesuisundesdeux/vigilo-backend');
 /* Paths that belong to the instance and are never replaced nor backed up as code */
 function vigilo_update_preserved()
 {
-    return array('config/config.php', 'images', 'caches', 'maps', 'install.php');
+    return array('config/config.php', 'images', 'caches', 'maps');
 }
 
 function vigilo_app_root()

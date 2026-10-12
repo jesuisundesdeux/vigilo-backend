@@ -23,7 +23,7 @@ jobs:
           tools: none
       - name: Syntax check
         run: |
-          find app scripts install_app -name '*.php' -print0 \
+          find app scripts -name '*.php' -print0 \
             | xargs -0 -n1 php -l > /tmp/lint.log 2>&1 || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
 
   version:
@@ -266,3 +266,34 @@ jobs:
           tools: none
       - name: Updater test
         run: tests/update/run.sh
+
+  # Install assistant (admin/setup.php), end to end: empty database, no configuration
+  setup:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: vigilo
+          MARIADB_USER: vigilo
+          MARIADB_PASSWORD: vigilo
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_USER: vigilo
+      MYSQL_PASSWORD: vigilo
+      MYSQL_DATABASE: vigilo
+      MYSQL_ROOT_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, gd, exif, curl, zip
+          tools: none
+      - name: Setup test
+        run: tests/setup/run.sh

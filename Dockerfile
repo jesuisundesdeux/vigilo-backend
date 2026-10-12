@@ -37,7 +37,6 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
 COPY vigilo-entrypoint /usr/local/bin/vigilo-entrypoint
 
 COPY app /var/www/html
-COPY install_app /tmp/install_app
 
 COPY config/config.php.docker /var/www/html/config/config.php
 

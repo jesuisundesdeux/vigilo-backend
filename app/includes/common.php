@@ -19,7 +19,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ini_set('display_errors', 'Off');
 
 if (file_exists(dirname(__FILE__) . "/../config/config.php")) {
-    require_once(dirname(__FILE__) . "/../config/config.php");
+    // require, not require_once: the install check (includes/setup.php) may have read it already
+    require(dirname(__FILE__) . "/../config/config.php");
 } else {
     echo "Fichier config/config.php manquant";
     error_log("[FATAL] Fichier config/config.php manquant");

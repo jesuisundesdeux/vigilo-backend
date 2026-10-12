@@ -6,3 +6,4 @@ lib/codebird-php
 admin/inc/twitter.php
 mosaic.php
 style/mosaic.css
+install.php
