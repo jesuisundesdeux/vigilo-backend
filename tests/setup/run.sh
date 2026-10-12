@@ -33,9 +33,10 @@ done
 
 status=0
 python3 "$REPO/tests/setup/setup.py" --base "http://127.0.0.1:$PORT" --app "$WORK/app" --repo "$REPO" || status=$?
-if [ $status -ne 0 ] || grep -qi "warning\|fatal\|deprecated" "$WORK/php.log"; then
+# PHP warnings of the code under test only (not those of the PHP setup, "in Unknown on line 0")
+if [ $status -ne 0 ] || grep -i "warning\|fatal\|deprecated" "$WORK/php.log" | grep -q "$WORK/app"; then
   echo "--- PHP log"
   grep -i "warning\|error\|deprecated" "$WORK/php.log" | sort | uniq -c | sort -rn | head -40 || true
-  grep -qi "warning\|fatal\|deprecated" "$WORK/php.log" && status=1
+  grep -i "warning\|fatal\|deprecated" "$WORK/php.log" | grep -q "$WORK/app" && status=1
 fi
 exit $status
