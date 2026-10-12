@@ -19,8 +19,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
  * First configuration of an instance: steps shown on the dashboard (admins) until the
- * required ones are done, and as "Étape N" badges in the menu. Included by
- * admin/index.php (defines functions only).
+ * required ones are done. Included by inc/dashboard.php (defines functions only).
  */
 
 function admin_setup_count($db, $sql)
@@ -68,9 +67,5 @@ function admin_setup_checklist($db, $config, $remote = false)
         . 'citylist.json du dépôt vigilo-conf (pull request ou demande à l\'équipe Vigilo), avec le même scope.');
     $steps['accounts'] = array('Modérateurs', 'accounts', admin_setup_count($db, "SELECT COUNT(*) FROM obs_roles WHERE role_name = 'moderator'") > 0, false,
         'Comptes moderator : modération depuis l\'application web avec leur clé (générée par l\'instance ou fournie par la personne).');
-    $blur = (isset($config['VIGILO_BLUR_URL']) && $config['VIGILO_BLUR_URL'] !== '') || getenv('VIGILO_BLUR_URL')
-        || admin_setup_count($db, "SELECT COUNT(*) FROM obs_config WHERE config_param = 'vigilo_blur_url' AND config_value <> ''") > 0;
-    $steps['blur'] = array('Floutage des photos', 'settings', (bool) $blur, false,
-        'Serveur de floutage des visages et des plaques (profil « blur » du docker-compose, ou URL d\'un serveur) : Configuration, Photos.');
     return $steps;
 }

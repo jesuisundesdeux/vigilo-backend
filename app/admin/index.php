@@ -57,16 +57,6 @@ $page_allowed = in_array($_SESSION['role'], $menu[$page_name]['access'], true);
 /* Every change (POST form or action link) must carry the CSRF token of the session */
 $csrf_ok = csrf_protect_request();
 
-/* First configuration (inc/setup_checklist.php): "Étape N" badge on the pages of the required steps left */
-require_once('inc/setup_checklist.php');
-$setup_steps = admin_setup_checklist($db, $config);
-$setup_number = 0;
-foreach ($setup_steps as $setup_step) {
-  $setup_number++;
-  if ($setup_step[3] && $setup_step[2] === false && !isset($menu[$setup_step[1]]['confneeded'])) {
-    $menu[$setup_step[1]]['confneeded'] = $setup_number;
-  }
-}
 
 /* Pending moderation, shown in the menu */
 $pending_query = mysqli_query($db, "SELECT count(*) FROM obs_list WHERE obs_complete=1 AND obs_approved=0");
@@ -131,9 +121,6 @@ $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' 
                   echo '<i class="bi bi-' . h($item['icon']) . '"></i> ' . h($item['name']);
                   if ($key == 'observations' && $pending_nb > 0) {
                     echo ' <span class="badge rounded-pill text-bg-warning ms-auto" title="En attente de modération">' . intval($pending_nb) . '</span>';
-                  }
-                  if (isset($item['confneeded'])) {
-                    echo ' <span class="badge rounded-pill text-bg-info ms-auto">Étape ' . intval($item['confneeded']) . '</span>';
                   }
                   echo '</a></li>';
                 }
