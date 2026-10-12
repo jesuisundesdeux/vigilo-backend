@@ -2,15 +2,15 @@
 #
 # The code comes from the versioned image: "docker compose pull && docker compose up -d"
 # installs the latest patch of the 0.0 series, the database is migrated at startup
-# (AUTOUPDATE). To update from the admin (page "Mises à jour"), start Watchtower too:
-#
-#   docker compose --profile watchtower up -d
+# (AUTOUPDATE). Watchtower updates it from the admin (page "Mises à jour"): set
+# WATCHTOWER_TOKEN in .env (e.g. openssl rand -hex 32).
 #
 # To mask the faces and licence plates of the photos before they are published,
 # start the blur server too and set VIGILO_BLUR_URL=http://blur:8000/blur in .env:
 #
 #   docker compose --profile blur up -d
 #
+# This file works on its own (no copy of the repository needed): the code is in the images.
 # Development with the code of this repository: see docker-compose.dev.yml.
 services:
   db:
@@ -43,8 +43,8 @@ services:
       - MYSQL_PASSWORD
       - MYSQL_DATABASE
       - AUTOUPDATE
-      # Update button of the admin (needs the watchtower profile)
-      - VIGILO_WATCHTOWER_URL=${VIGILO_WATCHTOWER_URL:-}
+      # Update button of the admin (service watchtower)
+      - VIGILO_WATCHTOWER_URL=${VIGILO_WATCHTOWER_URL:-http://watchtower:8080}
       - VIGILO_WATCHTOWER_TOKEN=${WATCHTOWER_TOKEN:-}
       # Blur server (profile "blur"); empty: photos published as sent. The admin
       # setting "Serveur de floutage" takes precedence when filled in.
@@ -63,17 +63,17 @@ services:
       # Only this container is updated by Watchtower
       - com.centurylinklabs.watchtower.enable=true
 
-  # Optional: updates the "web" image when asked from the admin (HTTP API),
-  # never on its own. Enable with: docker compose --profile watchtower up -d
+  # Updates the "web" image when asked from the admin (HTTP API, not published on the
+  # host), never on its own. Only the containers labelled
+  # com.centurylinklabs.watchtower.enable=true are touched.
   # nickfedor/watchtower is the maintained fork of containrrr/watchtower (archived): the
   # latter speaks the Docker API 1.25, refused by Docker Engine 29 and later.
   watchtower:
     image: ${WATCHTOWER_IMAGE:-nickfedor/watchtower:1}
-    profiles: ["watchtower"]
     restart: always
     command: --http-api-update --label-enable --cleanup
     environment:
-      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN:-}
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN:?WATCHTOWER_TOKEN must be set in .env (e.g. openssl rand -hex 32)}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -81,7 +81,6 @@ services:
   # photo sent to the backend. Enable with: docker compose --profile blur up -d
   blur:
     image: ${VIGILO_BLUR_IMAGE:-ghcr.io/jesuisundesdeux/vigilo-blur:0.0}
-    build: ./blur-server
     profiles: ["blur"]
     restart: always
     environment:

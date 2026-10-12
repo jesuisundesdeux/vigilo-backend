@@ -11,10 +11,14 @@ approuvées et peuvent être floutées automatiquement (visages, plaques) par un
 
 ## Démarrage rapide (Docker)
 
+Seuls [`docker-compose.yml`](docker-compose.yml) et [`.env_sample`](.env_sample) sont nécessaires (le code est dans
+l'image) :
+
 ```sh
-git clone https://github.com/jesuisundesdeux/vigilo-backend.git && cd vigilo-backend
-cp .env_sample .env          # mots de passe, VOLUME_PATH, BIND
-docker compose up -d         # --profile blur : serveur de floutage, --profile watchtower : mises à jour depuis l'admin
+curl -fsSLO https://raw.githubusercontent.com/jesuisundesdeux/vigilo-backend/master/docker-compose.yml
+curl -fsSL -o .env https://raw.githubusercontent.com/jesuisundesdeux/vigilo-backend/master/.env_sample
+# .env : mots de passe, VOLUME_PATH, BIND, WATCHTOWER_TOKEN (openssl rand -hex 32)
+docker compose up -d         # Watchtower inclus (mises à jour depuis l'admin) ; --profile blur : serveur de floutage
 ```
 
 Puis ouvrir `https://<instance>/admin/` : l'assistant d'installation demande le code d'installation affiché par

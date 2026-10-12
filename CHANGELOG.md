@@ -23,6 +23,13 @@
   scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs), leur avancement et un lien vers chaque
   page. Les badges « Étape N » du menu sont retirés.
 
+### Docker : Watchtower par défaut
+- `docker-compose.yml` : le service `watchtower` (mise à jour depuis l'admin) est actif par défaut, sans profil ;
+  `WATCHTOWER_TOKEN` est obligatoire dans `.env` et `VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut.
+- Le fichier fonctionne seul, sans copie du dépôt (la construction du serveur de floutage passe dans
+  `docker-compose.dev.yml`) : la documentation d'installation donne directement le contenu de `docker-compose.yml`
+  et `.env`.
+
 ### Instances de démonstration (écosystème fermé)
 - Variables d'environnement (ou `config/config.php`) pour une instance qui ne dépend ni de vigilo-conf ni
   d'app.vigilo.city, utilisées par [vigilo-demo](https://github.com/jesuisundesdeux/vigilo-demo) :

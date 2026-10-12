@@ -34,7 +34,7 @@ docker compose --profile blur up -d
 ```
 
 L'image `ghcr.io/jesuisundesdeux/vigilo-blur` est publiée à chaque version. Elle peut aussi être
-construite depuis ce répertoire (`docker compose --profile blur build blur`).
+construite depuis ce répertoire (`docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile blur build blur`).
 
 ## Installation classique (hors Docker)
 
