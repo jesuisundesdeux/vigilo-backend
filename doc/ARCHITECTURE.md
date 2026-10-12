@@ -23,15 +23,16 @@ app/                    code servi (racine du site)
   config/               config.php (instance, non versionné)
   images/, caches/      données de l'instance (non servies directement)
 blur-server/            serveur de floutage (Python/OpenCV, image Docker séparée)
-install_app/install.php création du premier administrateur
 scripts/                vigilo-migrate.php, build-release.sh, release-keygen.php, obsolete-paths.txt
 config/                 Apache, config.php pour Docker
 tests/                  tests de contrat, fonctionnels, admin, mise à jour, floutage
 Dockerfile, vigilo-entrypoint, docker-compose*.yml
 ```
 
-`vigilo-entrypoint` (Docker) attend la base, crée le schéma ou applique les migrations, met en place
-`install.php` sur une base vide et rend `images/` et `caches/` accessibles à Apache.
+`vigilo-entrypoint` (Docker) attend la base, vérifie sa version par rapport au code, crée le schéma ou applique les
+migrations, rend `images/` et `caches/` accessibles à Apache et, tant qu'il n'y a pas de compte admin, affiche le code
+d'installation de l'assistant `admin/setup.php` (première installation, Docker comme hébergement mutualisé : base de
+données, schéma, compte administrateur et URL de l'instance).
 
 L'admin ne charge aucune ressource externe. Seules les cartes et outils de saisie appellent, depuis le navigateur,
 des services publics : tuiles OpenStreetMap (avec l'origine du site dans le `Referer`), Nominatim (recherche d'un lieu

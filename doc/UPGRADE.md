@@ -84,10 +84,9 @@ Pour développer avec le code du dépôt :
 
    ```nginx
    location ~ ^/(images|caches|migrations)/ { deny all; return 403; }
-   location = /install.php { deny all; return 403; }
    ```
 
-6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine.
+6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine (supprimé par les mises à jour depuis 0.0.31).
 7. Fonctionnalités retirées : publication sur Twitter (les comptes Twitter enregistrés sont supprimés de la base),
    génération des panneaux et cartes MapQuest. `generate_panel.php` reste disponible et renvoie la photo de l'observation
    (pixelisée tant qu'elle n'est pas approuvée) : les applications existantes continuent de fonctionner.
@@ -107,6 +106,12 @@ depuis la page « Mises à jour ». Elle ajoute la page **Catégories** de l'adm
 webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il servait à Twitter). En 0.0.24, avec Docker
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
+
+### Passage à la 0.0.31
+
+Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
+(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré, et supprimé de la
+racine par la mise à jour depuis l'admin s'il y était encore.
 
 ### Passage à la 0.0.30
 

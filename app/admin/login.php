@@ -21,6 +21,15 @@ require_once('../includes/security.php');
 vigilo_session_start();
 vigilo_admin_headers();
 
+// Instance not installed yet (configuration, database, first admin account): install assistant
+require_once('../includes/version.php');
+require_once('../includes/migrations.php');
+require_once('../includes/setup.php');
+if (vigilo_setup_needed()) {
+  header('Location: setup.php');
+  exit;
+}
+
 require_once('../includes/common.php');
 
 $error = '';

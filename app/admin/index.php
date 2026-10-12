@@ -57,27 +57,15 @@ $page_allowed = in_array($_SESSION['role'], $menu[$page_name]['access'], true);
 /* Every change (POST form or action link) must carry the CSRF token of the session */
 $csrf_ok = csrf_protect_request();
 
-/* Check config */
-$config_query = mysqli_query($db,"SELECT * FROM obs_config WHERE config_param='vigilo_urlbase' LIMIT 1");
-$config_result = mysqli_fetch_array($config_query);
-if(empty($config_result['config_value'])) {
-  $menu['settings']['confneeded'] = 1;
-}
-
-/* Check scopes */
-$scopes_query = mysqli_query($db,"SELECT count(*) FROM obs_scopes");
-$scopes_nb = mysqli_fetch_array($scopes_query)[0];
-
-if($scopes_nb == 0) {
-  $menu['scopes']['confneeded'] = 2;
-}
-
-/* Check Cities */
-$cities_query = mysqli_query($db,"SELECT count(*) FROM obs_cities");
-$cities_nb = mysqli_fetch_array($cities_query)[0];
-
-if($cities_nb == 0) {
-  $menu['cities']['confneeded'] = 3;
+/* First configuration (inc/setup_checklist.php): "Étape N" badge on the pages of the required steps left */
+require_once('inc/setup_checklist.php');
+$setup_steps = admin_setup_checklist($db, $config);
+$setup_number = 0;
+foreach ($setup_steps as $setup_step) {
+  $setup_number++;
+  if ($setup_step[3] && $setup_step[2] === false && !isset($menu[$setup_step[1]]['confneeded'])) {
+    $menu[$setup_step[1]]['confneeded'] = $setup_number;
+  }
 }
 
 /* Pending moderation, shown in the menu */

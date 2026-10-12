@@ -82,6 +82,52 @@ $stats = array(
     array('label' => 'En attente de modération', 'value' => $count_waitingapprove, 'icon' => 'hourglass-split', 'color' => 'warning')
 );
 
+/* First configuration: steps left (admins), with the listing in vigilo-conf */
+if ($is_admin) {
+    $guide = admin_setup_checklist($db, $config, true);
+    $guide_required = 0;
+    $guide_done     = 0;
+    foreach ($guide as $step) {
+        if ($step[3]) {
+            $guide_required++;
+            $guide_done += $step[2] === false ? 0 : 1;
+        }
+    }
+    if ($guide_done < $guide_required) {
+?>
+<div class="card shadow-sm mb-4 border-info setup-guide">
+  <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="fw-semibold"><i class="bi bi-signpost-split"></i> Première configuration</span>
+    <span class="small text-body-secondary"><?= intval($guide_done) ?> / <?= intval($guide_required) ?> étapes requises</span>
+  </div>
+  <div class="progress rounded-0" role="progressbar" aria-label="Avancement de la configuration" aria-valuenow="<?= intval($guide_done) ?>" aria-valuemin="0" aria-valuemax="<?= intval($guide_required) ?>" style="height: 4px;">
+    <div class="progress-bar bg-info" style="width: <?= intval(100 * $guide_done / max(1, $guide_required)) ?>%"></div>
+  </div>
+  <ol class="list-group list-group-flush list-group-numbered">
+<?php
+        foreach ($guide as $key => $step) {
+            list($title, $page, $done, $required, $help) = $step;
+            $icon = $done === true ? 'bi-check-circle-fill text-success' : ($done === false ? ($required ? 'bi-circle text-info' : 'bi-circle text-body-secondary') : 'bi-question-circle text-body-secondary');
+?>
+    <li class="list-group-item d-flex flex-wrap flex-md-nowrap align-items-start gap-2<?= $done === true ? ' text-body-secondary' : '' ?>">
+      <div class="ms-1 me-auto">
+        <div class="fw-semibold"><i class="bi <?= $icon ?>"></i> <?= h($title) ?><?= $required ? '' : ' <span class="badge text-bg-light border fw-normal">facultatif</span>' ?>
+          <?= $done === null ? '<span class="badge text-bg-light border fw-normal">non vérifié</span>' : '' ?></div>
+        <div class="small"><?= h($help) ?></div>
+      </div>
+<?php       if ($key === 'vigiloconf' && $done !== true) { ?>
+      <a class="btn btn-sm btn-outline-info text-nowrap" href="https://github.com/jesuisundesdeux/vigilo-conf/blob/main/main/citylist.json" target="_blank" rel="noopener noreferrer"><i class="bi bi-github"></i> vigilo-conf</a>
+<?php       } elseif ($done !== true) { ?>
+      <a class="btn btn-sm btn-outline-info text-nowrap" href="?page=<?= h($page) ?>"><i class="bi bi-arrow-right"></i> Configurer</a>
+<?php       } ?>
+    </li>
+<?php   } ?>
+  </ol>
+</div>
+<?php
+    }
+}
+
 if (file_exists('../install.php')) {
 ?>
 <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
