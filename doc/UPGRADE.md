@@ -110,8 +110,9 @@ permet d'abonner un webhook à plusieurs événements, les webhooks existants re
 ### Passage à la 0.0.31
 
 Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
-(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré, et supprimé de la
-racine par la mise à jour depuis l'admin s'il y était encore.
+(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
+présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
+depuis l'admin.
 
 ### Passage à la 0.0.30
 

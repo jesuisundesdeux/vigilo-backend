@@ -14,13 +14,14 @@
   - compte administrateur (mot de passe de 10 caractères au moins), nom de l'instance, **URL de base et protocole
     détectés** d'après l'adresse utilisée ; l'assistant se ferme ensuite définitivement.
 - Vérifications affichées : version de PHP, extensions, dossiers accessibles en écriture, base de données.
-- L'ancien `install.php` (accessible à n'importe qui tant qu'aucun compte n'existait) est retiré ; la mise à jour
-  depuis l'admin le supprime s'il reste à la racine.
+- L'ancien `install.php` (accessible à n'importe qui tant qu'aucun compte n'existait) est retiré ; s'il reste sur
+  une instance, il est supprimé au démarrage du conteneur Docker, par l'accueil de l'admin et par la mise à jour depuis
+  l'admin.
 
 ### Première configuration
 - Accueil de l'admin : cadre **Première configuration** avec les étapes restantes (nom et adresse de l'instance,
-  scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs, floutage), leur avancement et un lien
-  vers chaque page. Les badges « Étape N » du menu suivent la même liste.
+  scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs), leur avancement et un lien vers chaque
+  page. Les badges « Étape N » du menu sont retirés.
 
 ## 0.0.30
 

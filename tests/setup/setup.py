@@ -115,12 +115,15 @@ def main():
     check(url.endswith('/admin/index.php') and 'Se déconnecter' in page, 'login with the new account')
     # First configuration guide: instance done by the assistant, then scope, cities, vigilo-conf
     check('Première configuration' in page and '1 / 4 étapes requises' in page, 'first configuration guide on the dashboard')
-    check('Étape 2</span>' in page and 'Étape 3</span>' in page and 'Étape 1</span>' not in page, 'menu badges of the steps left')
+    check('Étape ' not in page, 'no step badge in the menu')
+    check('Floutage' not in page and 'Modérateurs' in page, 'steps listed (photo blurring not one of them)')
     sql("SET sql_mode=''; INSERT INTO obs_scopes (scope_name, scope_display_name) VALUES ('99_test', 'Test')")
     sql("SET sql_mode=''; INSERT INTO obs_cities (city_scope, city_name) VALUES (1, 'Testville')")
+    # install.php of the old versions: removed by the dashboard
+    open(os.path.join(args.app, 'install.php'), 'w').write('<?php // old install')
     status, _, page = fresh.request('index.php')
     clean('dashboard after scope and cities', status, page)
-    check('Étape 2</span>' not in page and 'Étape 3</span>' not in page, 'badges removed once done')
+    check(not os.path.exists(os.path.join(args.app, 'install.php')) and 'install.php' not in page, 'old install.php removed by the dashboard')
     check('Première configuration' not in page or 'vigilo-conf' in page, 'guide left only for the listing in vigilo-conf')
     status, _, page = fresh.request(args.base + '/get_version.php')
     check(status == 200 and version in page, 'public API answers')

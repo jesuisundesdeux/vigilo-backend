@@ -83,6 +83,7 @@ $stats = array(
 );
 
 /* First configuration: steps left (admins), with the listing in vigilo-conf */
+require_once(dirname(__FILE__) . '/setup_checklist.php');
 if ($is_admin) {
     $guide = admin_setup_checklist($db, $config, true);
     $guide_required = 0;
@@ -128,11 +129,14 @@ if ($is_admin) {
     }
 }
 
-if (file_exists('../install.php')) {
+// install.php of the versions before 0.0.31 (replaced by admin/setup.php): removed when possible
+if (file_exists('../install.php') && !@unlink('../install.php') && $is_admin) {
 ?>
 <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
   <i class="bi bi-exclamation-octagon-fill"></i>
-  <div><strong>Installation !</strong> Veuillez supprimer le fichier ./install.php</div>
+  <div><strong>Ancien fichier install.php</strong> : il ne sert plus (installation par l'assistant) et n'a pas pu être
+    supprimé automatiquement. Docker : redémarrez le conteneur (<code>docker compose up -d</code>), il est supprimé au
+    démarrage ; sinon, supprimez-le du serveur (FTP, gestionnaire de fichiers).</div>
 </div>
 <?php
 }

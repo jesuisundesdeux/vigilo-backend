@@ -63,6 +63,10 @@ then
   fi
 fi
 
+# install.php of the versions before 0.0.31 (copied in the container by the old entrypoint):
+# replaced by the install assistant (admin/setup.php)
+rm -f "$APP_DIR/install.php"
+
 # Volumes created by Docker belong to root: Apache (www-data) writes the photos and
 # the caches. Only the directories themselves are changed, never their content.
 for DIR in "$APP_DIR/images" "$APP_DIR/images/resolutions" "$APP_DIR/caches"
