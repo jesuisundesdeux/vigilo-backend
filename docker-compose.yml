@@ -56,6 +56,9 @@ services:
       # Install code of the setup assistant chosen by the host (12+ letters or digits)
       # instead of the one written in caches/setup-code.php
       - VIGILO_SETUP_CODE=${VIGILO_SETUP_CODE:-}
+      # Reverse proxies in front of the container (networks separated by commas, e.g.
+      # 172.16.0.0/12): client IP taken from X-Forwarded-For (anti-spam, login throttling)
+      - VIGILO_TRUSTED_PROXIES=${VIGILO_TRUSTED_PROXIES:-}
     labels:
       # Only this container is updated by Watchtower
       - com.centurylinklabs.watchtower.enable=true

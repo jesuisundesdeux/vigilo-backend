@@ -225,7 +225,7 @@ quels dans le SQL** (code ancien) ; l'appelant doit les avoir échappés ou conv
 | `vigilo_is_https()` | HTTPS direct ou derrière un proxy (`X-Forwarded-Proto`). |
 | `vigilo_session_start()`, `vigilo_admin_headers()` | Voir 1.3. |
 | `csrf_token()`, `csrf_field()`, `csrf_query()`, `csrf_valid()`, `csrf_protect_request()` | Jeton CSRF de session (64 caractères hexadécimaux) : champ caché pour les formulaires, suffixe `&csrf_token=…` pour les liens d'action, vérification `hash_equals`. |
-| `vigilo_client_ip()` | `$_SERVER['REMOTE_ADDR']` (derrière un proxy, c'est Apache `mod_remoteip` qui le corrige, voir `config/remoteip.conf`). |
+| `vigilo_client_ip()` | `$_SERVER['REMOTE_ADDR']` (derrière un proxy, c'est Apache `mod_remoteip` qui le corrige, voir `config/remoteip.conf` ; autres proxys : variable `VIGILO_TRUSTED_PROXIES`, écrite par l'entrypoint dans `remoteip-proxies.conf`). |
 | `login_is_throttled($db, $login)`, `login_failures()`, `login_record_failure()`, `login_clear_failures()` | Limitation des connexions, table `obs_login_attempts` : refus après 5 échecs pour le couple login + IP, ou 10 échecs pour le login **ou** l'IP, sur 15 minutes. Les tentatives de plus de 24 h sont purgées à chaque échec. |
 | `audit_log($action, $target = '', $details = '')` | Ligne dans `obs_audit_log` avec login, rôle et IP de la session ; `$details` tableau → JSON ; tronqué à 2 000 caractères. |
 | `api_rate_limited($db, $kind, $max, $window)` | Anti-spam de l'API, table `obs_rate_limit` : `true` si l'IP a déjà fait `$max` requêtes de ce type sur `$window` secondes, sinon enregistre la requête. Purge des lignes de plus de 24 h une fois sur 50. |
@@ -841,10 +841,13 @@ release), `AUTOUPDATE=true`.
    est plus récente que le code ;
 3. base vide (`0.0.0`) : migrations complètes ;
 4. base plus ancienne : migrations si `AUTOUPDATE` ≠ `false`, sinon message (à appliquer depuis l'admin) ;
-5. supprime l'ancien `install.php` (copié dans le conteneur par les versions antérieures à 0.0.31), crée `images/`,
+5. `VIGILO_TRUSTED_PROXIES` : écrit `RemoteIPInternalProxy <réseaux>` dans
+   `/etc/apache2/conf-enabled/remoteip-proxies.conf` (supprimé si la variable est vide) ;
+   supprime l'ancien `install.php` (copié dans le conteneur par les versions antérieures à 0.0.31), crée `images/`,
    `images/resolutions/`, `caches/` et en donne la propriété à l'UID 33 (le contenu n'est pas modifié) ;
 6. sans compte admin : `vigilo-migrate.php --setup-code` crée le code d'installation (`caches/setup-code.php`,
-   propriétaire `www-data`) et l'entrypoint l'affiche dans les journaux (« code d'installation ») ;
+   propriétaire `www-data`) et l'entrypoint l'affiche dans les journaux (« code d'installation ») ; rien avec
+   `VIGILO_SETUP_CODE` (code fixé par l'hébergeur) ;
 7. `exec apache2-foreground`.
 
 `docker-compose.yml` : services `db` (MariaDB, `MARIADB_AUTO_UPGRADE`), `web` (image

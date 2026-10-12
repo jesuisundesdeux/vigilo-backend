@@ -116,9 +116,9 @@ if ($is_admin) {
           <?= $done === null ? '<span class="badge text-bg-light border fw-normal">non vérifié</span>' : '' ?></div>
         <div class="small"><?= h($help) ?></div>
       </div>
-<?php       if ($key === 'vigiloconf' && $done !== true) { ?>
+<?php       if ($key === 'vigiloconf' && $done !== true && !(function_exists('vigilo_conf_is_custom') && vigilo_conf_is_custom())) { ?>
       <a class="btn btn-sm btn-outline-info text-nowrap" href="https://github.com/jesuisundesdeux/vigilo-conf/blob/main/main/citylist.json" target="_blank" rel="noopener noreferrer"><i class="bi bi-github"></i> vigilo-conf</a>
-<?php       } elseif ($done !== true) { ?>
+<?php       } elseif ($done !== true && $key !== 'vigiloconf') { ?>
       <a class="btn btn-sm btn-outline-info text-nowrap" href="?page=<?= h($page) ?>"><i class="bi bi-arrow-right"></i> Configurer</a>
 <?php       } ?>
     </li>

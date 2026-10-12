@@ -65,8 +65,8 @@ function admin_setup_checklist($db, $config, $remote = false)
     }
     $steps['vigiloconf'] = array('Référencement dans l\'application', 'scopes', $listed, true, $custom
         // VIGILO_CONF_URL (demo): the list is built by the host from the scopes of the instance
-        ? 'L\'application web de cette instance lit la liste des instances de ' . $config['VIGILO_CONF_URL'] . '/citylist.json '
-          . '(VIGILO_CONF_URL) : le scope y apparaît quelques minutes après sa création.'
+        ? 'La liste des territoires de l\'application web est fournie par l\'hébergeur de cette instance (VIGILO_CONF_URL) : '
+          . 'le scope y apparaît quelques minutes après sa création.'
         : 'Pour apparaître dans l\'application web (app.vigilo.city) et sur vigilo.city, l\'instance doit être ajoutée à la liste '
           . 'citylist.json du dépôt vigilo-conf (pull request ou demande à l\'équipe Vigilo), avec le même scope.');
     $steps['accounts'] = array('Modérateurs', 'accounts', admin_setup_count($db, "SELECT COUNT(*) FROM obs_roles WHERE role_name = 'moderator'") > 0, false,

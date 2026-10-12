@@ -51,6 +51,7 @@ Lues par le backend : `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATAB
 |---|---|---|
 | `VIGILO_CONF_URL` | Dossier où lire `citylist.json` (nom de l'instance pour les liens, guide de première configuration) et `categorielist.json` (catégories nationales) | `https://raw.githubusercontent.com/jesuisundesdeux/vigilo-conf/main/main` |
 | `VIGILO_WEBAPP_URL` | Application web des liens `observation_url` des webhooks | `https://app.vigilo.city/` |
+| `VIGILO_TRUSTED_PROXIES` | Image Docker : proxys inverses devant le conteneur (réseaux séparés par des virgules, ex. `172.16.0.0/12,10.0.0.0/8`), ajoutés par l'entrypoint à `mod_remoteip` (`RemoteIPInternalProxy`, `remoteip-proxies.conf`) en plus de ceux de `config/remoteip.conf` : l'IP du client (anti-spam, blocage des connexions, journal d'audit) est lue dans `X-Forwarded-For`. Sans elle, derrière un proxy d'un autre réseau, tous les visiteurs partagent l'IP du proxy | — |
 | `VIGILO_SETUP_CODE` | Code d'installation de l'assistant fixé par l'hébergeur (12 à 64 lettres ou chiffres), au lieu de celui écrit dans `caches/setup-code.php` | — |
 
 Sur un hébergement mutualisé, les deux premières peuvent aussi être définies dans `config/config.php`

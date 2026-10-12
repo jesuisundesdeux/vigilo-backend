@@ -30,6 +30,9 @@
     instances relue toutes les 5 minutes quand elle n'est pas celle de vigilo-conf ;
   - `VIGILO_WEBAPP_URL` : application web des liens des webhooks (`https://app.vigilo.city/` par défaut) ;
   - `VIGILO_SETUP_CODE` : code d'installation de l'assistant fixé par l'hébergeur (jamais affiché dans les journaux).
+- Image Docker, `VIGILO_TRUSTED_PROXIES` : réseaux des proxys inverses devant le conteneur (Traefik, réseaux Docker),
+  ajoutés à `mod_remoteip` : l'IP du client est lue dans `X-Forwarded-For`. Sans elle, derrière un proxy d'un autre
+  réseau que `172.19.0.0/24`, tous les visiteurs partagent l'IP du proxy pour l'anti-spam et le blocage des connexions.
 
 ## 0.0.30
 
