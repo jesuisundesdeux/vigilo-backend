@@ -102,43 +102,18 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
-### Passage à la 0.0.32
+### Passage à la 0.0.25
 
-Aucune migration de base. Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
-événements continuent d'être envoyés et sont signalés dans la page Webhooks de l'admin : les modifier pour n'en garder
-qu'un, et créer un webhook (avec un corps adapté) pour chacun des autres.
+Aucune action manuelle ni migration de base : correctif des webhooks (lien de la photo `{{photo_url}}` accessible
+avant modération, voir le CHANGELOG). Depuis la 0.0.24, le bouton de mise à jour de l'admin fonctionne avec Docker et
+Watchtower.
 
-Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
-`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
-définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
-de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
+### Passage à la 0.0.26
 
-### Passage à la 0.0.31
-
-Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
-(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
-présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
-depuis l'admin.
-
-### Passage à la 0.0.30
-
-Migration de base automatique (`init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` des webhooks),
-appliquée par la mise à jour depuis l'admin ou au démarrage du conteneur. Les webhooks existants restent envoyés pour
-toutes les catégories et toutes les villes ; les filtres se choisissent ensuite dans la page Webhooks de l'admin.
-
-### Passage à la 0.0.29
-
-Migration de base automatique (`init-0.0.29.sql` : colonne `obs_archived` des observations), appliquée par la mise à
-jour depuis l'admin ou au démarrage du conteneur. Aucune observation n'est archivée par la migration : l'archivage se
-fait ensuite depuis la page Observations de l'admin (une observation, une sélection, ou une période). Pour que les
-observations archivées restent dans les statistiques de l'application web, utiliser la version de l'application qui
-les demande (`get_issues.php?archived=1`).
-
-### Passage à la 0.0.28
-
-Migration de base automatique (`init-0.0.28.sql` : colonne `scope_association_url`), appliquée par la mise à jour
-depuis l'admin ou au démarrage du conteneur. Ensuite, renseigner le **site de l'association** sur la carte du scope
-(page Scopes de l'admin) : il s'affiche sur la page du territoire sur vigilo.city.
+Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
+photo d'origine pour les modérateurs, voir le CHANGELOG). `mosaic.php` est supprimée (la mise à jour depuis l'admin
+retire le fichier) : l'application web affiche elle-même les observations similaires. Mise à jour depuis le bouton
+de l'admin.
 
 ### Passage à la 0.0.27
 
@@ -152,18 +127,43 @@ Aucune action manuelle ni migration de base :
 
 Mise à jour depuis le bouton de l'admin.
 
-### Passage à la 0.0.26
+### Passage à la 0.0.28
 
-Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
-photo d'origine pour les modérateurs, voir le CHANGELOG). `mosaic.php` est supprimée (la mise à jour depuis l'admin
-retire le fichier) : l'application web affiche elle-même les observations similaires. Mise à jour depuis le bouton
-de l'admin.
+Migration de base automatique (`init-0.0.28.sql` : colonne `scope_association_url`), appliquée par la mise à jour
+depuis l'admin ou au démarrage du conteneur. Ensuite, renseigner le **site de l'association** sur la carte du scope
+(page Scopes de l'admin) : il s'affiche sur la page du territoire sur vigilo.city.
 
-### Passage à la 0.0.25
+### Passage à la 0.0.29
 
-Aucune action manuelle ni migration de base : correctif des webhooks (lien de la photo `{{photo_url}}` accessible
-avant modération, voir le CHANGELOG). Depuis la 0.0.24, le bouton de mise à jour de l'admin fonctionne avec Docker et
-Watchtower.
+Migration de base automatique (`init-0.0.29.sql` : colonne `obs_archived` des observations), appliquée par la mise à
+jour depuis l'admin ou au démarrage du conteneur. Aucune observation n'est archivée par la migration : l'archivage se
+fait ensuite depuis la page Observations de l'admin (une observation, une sélection, ou une période). Pour que les
+observations archivées restent dans les statistiques de l'application web, utiliser la version de l'application qui
+les demande (`get_issues.php?archived=1`).
+
+### Passage à la 0.0.30
+
+Migration de base automatique (`init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` des webhooks),
+appliquée par la mise à jour depuis l'admin ou au démarrage du conteneur. Les webhooks existants restent envoyés pour
+toutes les catégories et toutes les villes ; les filtres se choisissent ensuite dans la page Webhooks de l'admin.
+
+### Passage à la 0.0.31
+
+Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
+(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
+présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
+depuis l'admin.
+
+### Passage à la 0.0.32
+
+Aucune migration de base. Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
+événements continuent d'être envoyés et sont signalés dans la page Webhooks de l'admin : les modifier pour n'en garder
+qu'un, et créer un webhook (avec un corps adapté) pour chacun des autres.
+
+Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
+`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
+définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
+de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
 
 ### Publier une version (mainteneurs)
 
