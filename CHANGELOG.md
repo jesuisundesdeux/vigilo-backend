@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.0.32
+
+### Webhooks : un événement par webhook
+- Le formulaire des webhooks ne propose plus qu'**un seul événement** par webhook (boutons radio) : le corps et les
+  variables dépendent de l'événement (une résolution n'a pas de commentaire d'observation, par exemple), et un
+  webhook abonné à plusieurs événements envoyait des requêtes incomplètes ou invalides pour certains.
+- Les webhooks créés avec plusieurs événements (0.0.24 à 0.0.31) continuent d'être envoyés ; ils sont signalés
+  dans la liste, et leur modification demande de garder un seul événement (créer un webhook pour chacun des autres).
+
+### Docker : Watchtower par défaut
+- `docker-compose.yml` : le service `watchtower` (mise à jour depuis l'admin) est actif par défaut, sans profil ;
+  `WATCHTOWER_TOKEN` est obligatoire dans `.env` et `VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut.
+- Le fichier fonctionne seul, sans copie du dépôt (la construction du serveur de floutage passe dans
+  `docker-compose.dev.yml`) : la documentation d'installation donne directement le contenu de `docker-compose.yml`
+  et `.env`.
+
 ## 0.0.31
 
 ### Assistant d'installation
@@ -22,13 +38,6 @@
 - Accueil de l'admin : cadre **Première configuration** avec les étapes restantes (nom et adresse de l'instance,
   scope, villes, référencement dans vigilo-conf ; facultatif : modérateurs), leur avancement et un lien vers chaque
   page. Les badges « Étape N » du menu sont retirés.
-
-### Docker : Watchtower par défaut
-- `docker-compose.yml` : le service `watchtower` (mise à jour depuis l'admin) est actif par défaut, sans profil ;
-  `WATCHTOWER_TOKEN` est obligatoire dans `.env` et `VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut.
-- Le fichier fonctionne seul, sans copie du dépôt (la construction du serveur de floutage passe dans
-  `docker-compose.dev.yml`) : la documentation d'installation donne directement le contenu de `docker-compose.yml`
-  et `.env`.
 
 ### Instances de démonstration (écosystème fermé)
 - Variables d'environnement (ou `config/config.php`) pour une instance qui ne dépend ni de vigilo-conf ni

@@ -176,14 +176,11 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
         'webhook_categories'    => webhook_admin_posted_ids('webhook_categories', $filter_categories),
         'webhook_cities'        => webhook_admin_posted_ids('webhook_cities', $filter_cities),
     );
-    // Events: only the known ones
+    // One known event per webhook: the variables and the body depend on it (a resolution
+    // has no observation comment, for instance)
     $events = array();
-    if (isset($_POST['webhook_events']) && is_array($_POST['webhook_events'])) {
-        foreach (array_keys(webhook_events()) as $event) {
-            if (in_array($event, $_POST['webhook_events'], true)) {
-                $events[] = $event;
-            }
-        }
+    if (isset($_POST['webhook_event']) && is_string($_POST['webhook_event']) && isset(webhook_events()[$_POST['webhook_event']])) {
+        $events[] = $_POST['webhook_event'];
     }
     $edit['webhook_event'] = implode(',', $events);
     // Correspondence of the categories: only the filled codes are kept
@@ -198,7 +195,7 @@ if (isset($_POST['webhook_save']) || isset($_POST['webhook_test'])) {
     $edit['webhook_category_map'] = json_encode($map, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT);
     $errors = array();
     if (empty($events)) {
-        $errors[] = 'Choisir au moins un événement.';
+        $errors[] = 'Choisir un événement.';
     }
     if ($edit['webhook_name'] === '' || strlen($edit['webhook_name']) > 100) {
         $errors[] = 'Le nom est obligatoire (100 caractères au plus).';
@@ -307,14 +304,16 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin mb-0">
       <thead>
-        <tr><th scope="col">Nom</th><th scope="col">Événements</th><th scope="col">Appel</th><th scope="col">État</th><th scope="col">Dernier envoi</th><th scope="col"></th></tr>
+        <tr><th scope="col">Nom</th><th scope="col">Événement</th><th scope="col">Appel</th><th scope="col">État</th><th scope="col">Dernier envoi</th><th scope="col"></th></tr>
       </thead>
       <tbody>
       <?php foreach ($hooks as $hook) {
         $last = $hook['last_delivery'] ? explode('|', $hook['last_delivery'], 3) : null; ?>
         <tr>
           <td class="fw-semibold"><?= h($hook['webhook_name']) ?></td>
-          <td class="small"><?php foreach (webhook_hook_events($hook) as $event) { ?><span class="badge text-bg-light border me-1" title="<?= h(webhook_events()[$event]) ?>"><?= h($event) ?></span><?php } ?>
+          <td class="small"><?php $hook_events = webhook_hook_events($hook);
+            foreach ($hook_events as $event) { ?><span class="badge text-bg-light border me-1" title="<?= h(webhook_events()[$event]) ?>"><?= h($event) ?></span><?php } ?>
+            <?php if (count($hook_events) > 1) { ?><div class="text-warning-emphasis mt-1"><i class="bi bi-exclamation-triangle"></i> Plusieurs événements (ancienne version) : à modifier, un seul événement par webhook</div><?php } ?>
             <?php foreach (webhook_admin_filter_summary($hook, $filter_categories, $filter_cities) as $summary) { ?><div class="text-body-secondary mt-1"><i class="bi bi-funnel"></i> <?= h($summary) ?></div><?php } ?></td>
           <td class="text-break small"><span class="badge text-bg-secondary"><?= h($hook['webhook_method']) ?></span> <?= h($hook['webhook_url']) ?></td>
           <td><?= $hook['webhook_enabled'] ? '<span class="badge text-bg-success">Actif</span>' : '<span class="badge text-bg-secondary">Désactivé</span>' ?></td>
@@ -370,11 +369,17 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
           </div>
           <div class="col-12">
             <fieldset>
-              <legend class="form-label fs-6 mb-1">Événements</legend>
+              <legend class="form-label fs-6 mb-1">Événement</legend>
               <?php $hook_events = webhook_hook_events($edit);
+              if (count($hook_events) > 1) { ?>
+              <div class="alert alert-warning small py-2" role="alert">
+                Ce webhook était abonné à plusieurs événements (<?= h(implode(', ', $hook_events)) ?>). Un webhook n'en suit plus
+                qu'un : le corps et les variables dépendent de l'événement. Choisissez-le ici et créez un webhook pour chacun des autres.
+              </div>
+              <?php }
               foreach (webhook_events() as $event => $label) { ?>
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="webhook_events[]" id="event_<?= h(str_replace('.', '_', $event)) ?>" value="<?= h($event) ?>"<?= in_array($event, $hook_events, true) ? ' checked' : '' ?>>
+                <input class="form-check-input" type="radio" name="webhook_event" id="event_<?= h(str_replace('.', '_', $event)) ?>" value="<?= h($event) ?>"<?= $hook_events && $hook_events[0] === $event ? ' checked' : '' ?>>
                 <label class="form-check-label" for="event_<?= h(str_replace('.', '_', $event)) ?>"><?= h($label) ?> <code class="small"><?= h($event) ?></code></label>
               </div>
               <?php } ?>

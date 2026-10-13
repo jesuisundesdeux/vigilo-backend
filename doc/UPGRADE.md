@@ -39,7 +39,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Mise à jour depuis l'admin, avec Watchtower (service du `docker-compose.yml`, activé par défaut depuis la 0.0.31) :
+Mise à jour depuis l'admin, avec Watchtower (service du `docker-compose.yml`, activé par défaut depuis la 0.0.32) :
 `WATCHTOWER_TOKEN` dans `.env` (chaîne aléatoire, par exemple `openssl rand -hex 32`), partagé par l'admin et
 Watchtower. Le bouton « Mettre à jour l'image avec Watchtower » de la page « Mises à jour » télécharge la nouvelle
 image et redémarre le conteneur. Watchtower n'agit que sur le conteneur `web` (label
@@ -102,17 +102,23 @@ webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il
 et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
 permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
 
+### Passage à la 0.0.32
+
+Aucune migration de base. Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
+événements continuent d'être envoyés et sont signalés dans la page Webhooks de l'admin : les modifier pour n'en garder
+qu'un, et créer un webhook (avec un corps adapté) pour chacun des autres.
+
+Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
+`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
+définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
+de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
+
 ### Passage à la 0.0.31
 
 Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
 (code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
 présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
 depuis l'admin.
-
-Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
-`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
-définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
-de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
 
 ### Passage à la 0.0.30
 

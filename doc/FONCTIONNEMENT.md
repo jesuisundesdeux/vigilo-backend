@@ -63,7 +63,7 @@ Voir aussi le [glossaire](GLOSSAIRE.md) et l'[API REST](REST_API.md).
 ## Webhooks
 
 Le backend appelle les webhooks actifs définis dans l'admin (page **Webhooks**, réservée aux administrateurs) à chaque
-**événement** auquel ils sont abonnés (un webhook peut en cocher plusieurs ; `{{event}}` indique lequel) :
+**événement** auquel ils sont abonnés (un événement par webhook depuis 0.0.32 ; `{{event}}` indique lequel) :
 
 | Événement | Quand | Variables |
 |---|---|---|
