@@ -21,16 +21,19 @@ Rappels :
   que pour ces catégories (exemple : [Open311](#ticketing-de-collectivité-open311)) ;
 - un webhook fait **une seule requête** : un service qui demande d'abord d'ouvrir une session (Bluesky, GLPI…) passe
   par un relais (voir [Bluesky](#bluesky)) ;
+- un webhook suit **un seul événement** (depuis 0.0.32) : les variables disponibles dépendent de l'événement (une
+  résolution n'a pas de commentaire d'observation, par exemple). Pour plusieurs événements, créer un webhook par
+  événement, chacun avec son corps ;
 - `{{event_description}}` décrit l'action en une phrase (nouvelle observation à modérer, observation publiée ou
-  refusée, nouvelle résolution, changement d'état d'une résolution avec l'ancien et le nouvel état) : pratique pour un
-  webhook abonné à plusieurs événements ; `{{event_label}}` donne le nom de l'événement ;
+  refusée, nouvelle résolution, changement d'état d'une résolution avec l'ancien et le nouvel état) ;
+  `{{event_label}}` donne le nom de l'événement ;
 - les jetons et mots de passe sont enregistrés en clair dans la base : utiliser des jetons dédiés, limités au strict
   nécessaire (publication seule), et les révoquer s'ils fuitent.
 
 Les exemples ci-dessous sont prévus pour l'événement « Observation publiée ». Pour prévenir les modérateurs d'une
-observation à modérer, cocher « Nouvelle observation » sur un webhook Slack, Mattermost ou Discord (voir
-[l'exemple](#modérateurs-observation-à-modérer)) ; pour suivre les résolutions, cocher les événements de résolution et
-utiliser les variables `resolution_*`.
+observation à modérer, choisir « Nouvelle observation » sur un webhook Slack, Mattermost ou Discord (voir
+[l'exemple](#modérateurs-observation-à-modérer)) ; pour suivre les résolutions, créer un webhook par événement de
+résolution et utiliser les variables `resolution_*`.
 
 Sommaire : [Mastodon](#mastodon) · [Slack, Mattermost, Discord](#slack-mattermost-discord) · [Bluesky](#bluesky) ·
 [Ticketing de collectivité (Open311)](#ticketing-de-collectivité-open311) · [Redmine](#redmine) ·

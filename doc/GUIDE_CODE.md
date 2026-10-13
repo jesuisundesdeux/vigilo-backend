@@ -470,7 +470,7 @@ Toutes les actions sont protégées par le jeton CSRF (1.3) ; les liens d'action
 | `scopes.php` | admin | Une carte par scope (Leaflet : rectangle, centre, zoom, recherche Nominatim), fenêtre de création. Création et suppression désactivées si `SAAS_MODE`. | POST `scope_create` + `scope_name`, `scope_display_name`, `scope_department`, `scope_contact_email` ; POST `scope_id` + colonnes de `$scope_fields` ; GET `action=delete&scopeid=`. Identifiant vérifié par `scope_name_valid()` (seulement s'il change). Site de l'association (`scope_association_url`, type `url`) : vide ou adresse `http(s)://` valide. | `scope_create`, `scope_edit`, `scope_delete` |
 | `categories.php` | admin | Catégories nationales (désactivables) et catégories de l'instance (≥ 1000) ; la fenêtre de création rappelle qu'une catégorie utile à d'autres instances peut être proposée par pull request dans vigilo-conf. | GET `action=disable\|enable&catid=` (nationale) ; POST `category_delete` + `cat_id` (instance) et, si elle est utilisée, `obs_action=move` + `target_catid` (catégorie active, observations déplacées) ou `obs_action=delete` (observations supprimées par `deleteObs`, journalisées une à une) ; POST `category_save` + `cat_id` (0 = création), `cat_name`, `cat_name_en`, `cat_color` (`#rrggbb` ou nom CSS), `cat_resolvable`, `cat_active`. | `category_disable`, `category_enable`, `category_delete`, `category_create`, `category_edit` |
 | `settings.php` | admin | Réglages de `obs_config` décrits dans `$settings_fields` (cartes Instance, Publication, Photos, Anti-spam). Indisponible si `SAAS_MODE`. | POST `settings_save` + `cfg[<param>]`. Seuls les paramètres de `$settings_fields` sont écrits (`INSERT … ON DUPLICATE KEY UPDATE`). | `settings_edit` |
-| `webhooks.php` | admin | Liste avec le dernier envoi et les filtres de chaque webhook (`webhook_admin_filter_summary()`), formulaire (modèles, filtres par catégorie et par ville, correspondance des catégories), 30 derniers envois (la table en conserve 500). | GET `edit=new\|<id>` (affiche le formulaire) ; POST `webhook_save` ou `webhook_test` + `webhook_id`, `webhook_name`, `webhook_enabled`, `webhook_events[]`, `webhook_categories[]` (catégories connues, désactivées comprises), `webhook_cities[]` (villes de `obs_cities`, `0` : sans ville), `webhook_method`, `webhook_url`, `webhook_format`, `webhook_headers`, `webhook_body`, `webhook_category_only`, `category_map[<catid>]` ; GET `action=delete&webhookid=`. | `webhook_create`, `webhook_edit`, `webhook_delete` |
+| `webhooks.php` | admin | Liste avec le dernier envoi et les filtres de chaque webhook (`webhook_admin_filter_summary()`), formulaire (modèles, filtres par catégorie et par ville, correspondance des catégories), 30 derniers envois (la table en conserve 500). | GET `edit=new\|<id>` (affiche le formulaire) ; POST `webhook_save` ou `webhook_test` + `webhook_id`, `webhook_name`, `webhook_enabled`, `webhook_event` (un seul ; « Plusieurs événements » signalé dans la liste et le formulaire pour les anciens webhooks), `webhook_categories[]` (catégories connues, désactivées comprises), `webhook_cities[]` (villes de `obs_cities`, `0` : sans ville), `webhook_method`, `webhook_url`, `webhook_format`, `webhook_headers`, `webhook_body`, `webhook_category_only`, `category_map[<catid>]` ; GET `action=delete&webhookid=`. | `webhook_create`, `webhook_edit`, `webhook_delete` |
 | `audit.php` | admin | Journal paginé (50 par page, `p`), filtres `f_login`, `f_action` (pas `action`, réservé aux liens d'action). | — | — |
 | `update.php` | admin | Versions (code, base, image Docker `VIGILO_IMAGE_VERSION`, dernière release), migrations en attente, contrôles de sécurité (`vigilo_security_checks()`), installation. Indisponible si `SAAS_MODE`. | POST `apply_migrations` ; POST `install_release` + `version` + `password` (mot de passe de l'admin redemandé) ; POST `watchtower_update` ; POST `refresh` (relit la dernière release). | `update_migrations`, `update_install`, `update_failed`, `update_docker_watchtower` |
 
@@ -555,7 +555,7 @@ colonnes de `obs_roles` et `obs_cities` en `latin1`, tables créées depuis 0.0.
 | `obs_config` | `config_param` (unique), `config_value` (varchar 255) | Voir 5.3. |
 | `obs_categories` | `cat_id`, `cat_custom` (0 nationale surchargée, 1 propre à l'instance), `cat_disabled`, `cat_name`, `cat_name_en`, `cat_color`, `cat_resolvable` | Une ligne n'existe pour une catégorie nationale que si l'admin l'a désactivée / réactivée. |
 | `obs_notes` | `note_obsid`, `note_time`, `note_login`, `note_text` | Notes privées, jamais exposées par l'API. |
-| `obs_webhooks` | `webhook_name`, `webhook_enabled`, `webhook_event` (événements séparés par des virgules, varchar 255 depuis 0.0.24), `webhook_method`, `webhook_url`, `webhook_format` (`json`, `form`, `text`), `webhook_headers`, `webhook_body`, `webhook_category_map` (JSON `catid => code`), `webhook_category_only`, `webhook_categories` et `webhook_cities` (filtres : identifiants séparés par des virgules, vide = toutes, ville 0 = sans ville ; 0.0.30) | |
+| `obs_webhooks` | `webhook_name`, `webhook_enabled`, `webhook_event` (un événement depuis 0.0.32 ; plusieurs, séparés par des virgules, pour les webhooks créés de 0.0.24 à 0.0.31, toujours envoyés), `webhook_method`, `webhook_url`, `webhook_format` (`json`, `form`, `text`), `webhook_headers`, `webhook_body`, `webhook_category_map` (JSON `catid => code`), `webhook_category_only`, `webhook_categories` et `webhook_cities` (filtres : identifiants séparés par des virgules, vide = toutes, ville 0 = sans ville ; 0.0.30) | |
 | `obs_webhook_deliveries` | `delivery_webhookid`, `delivery_time`, `delivery_event`, `delivery_token`, `delivery_http_code`, `delivery_error`, `delivery_duration_ms`, `delivery_response` (500 car.) | 500 lignes conservées. |
 | `obs_audit_log` | `audit_time`, `audit_login`, `audit_role`, `audit_ip`, `audit_action`, `audit_target`, `audit_details` | |
 | `obs_login_attempts`, `obs_rate_limit` | tentatives de connexion ; requêtes de l'API par type et IP | Purgées après 24 h. |
@@ -692,8 +692,9 @@ l'appeler aussi.
 
 ### 7.1 Webhooks (`includes/webhooks.php`)
 
-Événements (`webhook_events()`), un webhook stockant les siens dans `webhook_event` (liste séparée par des virgules,
-cherchée avec `FIND_IN_SET`) :
+Événements (`webhook_events()`), un webhook stockant le sien dans `webhook_event` (cherché avec `FIND_IN_SET` :
+les webhooks créés de 0.0.24 à 0.0.31 peuvent en avoir plusieurs, séparés par des virgules ; l'admin n'en enregistre
+plus qu'un depuis 0.0.32, bouton radio `webhook_event`, et signale les anciens) :
 
 | Événement | Déclenché par |
 |---|---|
@@ -852,7 +853,7 @@ release), `AUTOUPDATE=true`.
 
 `docker-compose.yml` : services `db` (MariaDB, `MARIADB_AUTO_UPGRADE`), `web` (image
 `${VIGILO_IMAGE:-vigilobs/vigilo-backend:0.0}`, volumes `images`, `caches`, journaux Apache ;
-`VIGILO_WATCHTOWER_URL` par défaut `http://watchtower:8080`), `watchtower` (actif par défaut depuis 0.0.31,
+`VIGILO_WATCHTOWER_URL` par défaut `http://watchtower:8080`), `watchtower` (actif par défaut depuis 0.0.32,
 `nickfedor/watchtower:1`, `--http-api-update --label-enable --cleanup`, ne met à jour que le conteneur portant le label
 `com.centurylinklabs.watchtower.enable=true` ; `WATCHTOWER_TOKEN` obligatoire) et le profil `blur` (image publiée).
 Le fichier fonctionne seul, sans le dépôt. `docker-compose.dev.yml` monte `./app` et construit les images locales

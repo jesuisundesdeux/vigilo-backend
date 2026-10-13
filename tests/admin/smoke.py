@@ -159,10 +159,13 @@ def main():
     hook = {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Test <b>hook</b>', 'webhook_enabled': '1',
             'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/hook?t={{token}}', 'webhook_format': 'json',
             'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}',
-            'webhook_events[]': ['observation.approved', 'resolution.status_changed'],
+            'webhook_event': 'observation.approved',
             'webhook_categories[]': ['2', '99999'], 'webhook_cities[]': ['1', '0', 'x']}
-    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1', **{'webhook_events[]': []}))
-    check('au moins un événement' in page, 'webhook without event refused')
+    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1', webhook_event=''))
+    check('Choisir un événement' in page, 'webhook without event refused')
+    check('type="radio" name="webhook_event"' in page and 'name="webhook_events[]"' not in page, 'one event per webhook (radio buttons)')
+    status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1', webhook_event='observation.unknown'))
+    check('Choisir un événement' in page, 'unknown event refused')
     status, _, page = admin.request('index.php?page=webhooks', dict(hook, webhook_save='1'))
     clean('webhook invalid JSON', status, page)
     check('JSON valide' in page, 'webhook with an invalid JSON body refused')
@@ -171,7 +174,7 @@ def main():
     clean('webhook save and test', status, page)
     check('Test &lt;b&gt;hook&lt;/b&gt;' in page and 'enregistré' in page, 'webhook saved and escaped')
     check("Test de l'événement <code>observation.approved</code>" in page and 'Requête envoyée' in page, 'webhook test reported')
-    check('resolution.status_changed</span>' in page, 'events of the webhook listed')
+    check('observation.approved</span>' in page and 'Plusieurs événements' not in page, 'event of the webhook listed')
     check('<i class="bi bi-funnel"></i> Véhicule ou objet gênant</div>' in page and '<i class="bi bi-funnel"></i> Testville, Sans ville référencée</div>' in page,
           'filters of the webhook listed (unknown ids left out)')
     check('non envoyé, hors des filtres' in page, 'webhook test out of the filters reported')
@@ -192,13 +195,13 @@ def main():
         if key == 'empty':
             continue
         name = template['name'] or 'Modèle ' + key
-        status, _, page = admin.request('index.php?page=webhooks', {
-            'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': name, 'webhook_enabled': '1',
-            'webhook_method': template['method'], 'webhook_url': template['url'] or 'https://example.org/hook',
-            'webhook_format': template['format'], 'webhook_headers': template['headers'], 'webhook_body': template['body'],
-            'webhook_save': '1', 'webhook_events[]': ['observation.created', 'observation.approved', 'observation.disapproved',
-                                                       'resolution.created', 'resolution.status_changed']})
-        check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted for every event' % key)
+        for event in ['observation.created', 'observation.approved', 'observation.disapproved', 'resolution.created', 'resolution.status_changed']:
+            status, _, page = admin.request('index.php?page=webhooks', {
+                'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': name, 'webhook_enabled': '1',
+                'webhook_method': template['method'], 'webhook_url': template['url'] or 'https://example.org/hook',
+                'webhook_format': template['format'], 'webhook_headers': template['headers'], 'webhook_body': template['body'],
+                'webhook_save': '1', 'webhook_event': event})
+            check('alert-success' in page and 'enregistré' in page, 'webhook template %s accepted for %s' % (key, event))
 
     # Scopes: identifier checked when it changes, legacy identifier still editable
     status, _, page = admin.request('index.php?page=scopes')

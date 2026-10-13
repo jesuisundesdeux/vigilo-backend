@@ -804,7 +804,8 @@ class T10Webhooks(unittest.TestCase):
 
 class T13WebhookEvents(unittest.TestCase):
     """Other events of the workflow (#198): new observation, refused observation, new resolution,
-    change of status of a resolution (admin); a webhook can subscribe to several events."""
+    change of status of a resolution (admin). Since 0.0.32 the admin saves one event per webhook; a webhook
+    of an older version subscribed to several events is still delivered and flagged in the admin."""
 
     BODY = ('{"event": "{{event}}", "token": "{{token}}", "approved": "{{approved}}", "photo": "{{photo_url}}", "photo_full": "{{photo_full_url}}", "resolution": "{{resolution_token}}", '
             '"status": "{{resolution_status}}", "status_name": "{{resolution_status_name}}", "previous": "{{resolution_previous_status}}", '
@@ -920,6 +921,25 @@ class T13WebhookEvents(unittest.TestCase):
         self.assertEqual((body['event'], body['resolution'], body['status'], body['status_name'], body['previous']),
                          ('resolution.status_changed', resolution, '1', 'Résolue', '4'))
         self.assertEqual(body['description'], 'Résolution %s : Indiquée résolue (à valider) → Résolue (1 observation).' % resolution)
+
+    def test_legacy_multi_event_webhook_flagged(self):
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def admin(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)})
+        page = admin('index.php?page=webhooks')
+        self.assertEqual(page.count('Plusieurs événements (ancienne version)'), 1, 'only the multi-event webhook is flagged')
+        hook = sql("SELECT webhook_id FROM obs_webhooks WHERE webhook_name = 'all'")
+        page = admin('index.php?page=webhooks&edit=' + hook)
+        self.assertIn('était abonné à plusieurs événements', page)
+        self.assertRegex(page, r'type="radio" name="webhook_event" id="event_observation_created" value="observation.created" checked',
+                         'first event of the list chosen')
+        self.assertEqual(page.count('name="webhook_event"'), 5, 'one radio button per event')
 
 
 class T11Categories(unittest.TestCase):
