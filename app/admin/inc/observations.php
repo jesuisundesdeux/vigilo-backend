@@ -280,7 +280,8 @@ if (isset($_POST['note_action']) && in_array($current_role, $actions_acl['notes'
   }
   elseif ($note_action == 'delete') {
     $note_id = isset($_POST['note_id']) ? intval($_POST['note_id']) : 0;
-    $note_query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_id='" . $note_id . "' LIMIT 1");
+    // Notes of a problem (note_problemid) are managed in the page Problèmes
+    $note_query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_id='" . $note_id . "' AND note_problemid = 0 LIMIT 1");
     $note = $note_query ? mysqli_fetch_array($note_query) : null;
 
     if (!$note) {
@@ -294,7 +295,7 @@ if (isset($_POST['note_action']) && in_array($current_role, $actions_acl['notes'
       }
       else {
         mysqli_query($db, "DELETE FROM obs_notes WHERE note_id='" . $note_id . "' LIMIT 1");
-        audit_log('note_delete', $obs ? $obs['obs_token'] : '', array('note_id' => $note_id, 'note_login' => $note['note_login']));
+        audit_log('note_delete', $obs ? $obs['obs_token'] : '', array('note_id' => $note_id, 'note_login' => $note['note_login'], 'note_text' => $note['note_text']));
         obsadmin_message($messages, 'success', 'Note supprimée');
       }
     }

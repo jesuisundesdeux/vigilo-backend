@@ -64,7 +64,10 @@ aussi être rattachée à la main (par son token, même hors des critères) ou d
 **Rattachement automatique** : quand une observation est publiée (approbation dans l'admin ou par l'API, ou photo
 reçue après l'approbation), elle est rattachée au problème **actif** (ouvert, en cours, en attente) qui lui correspond
 s'il n'y en a qu'un. Si plusieurs correspondent, elle n'est pas rattachée et apparaît dans le cadre **À arbitrer** de
-la page Problèmes, où l'administrateur choisit son problème. Une observation déjà rattachée n'est jamais changée. Les problèmes ne sont visibles
+la page Problèmes, où l'administrateur choisit son problème. Une observation déjà rattachée n'est jamais changée.
+
+La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
+table que les notes des observations), jamais publiées ni reprises dans les rapports. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
 
 ## Photos, pixelisation et floutage

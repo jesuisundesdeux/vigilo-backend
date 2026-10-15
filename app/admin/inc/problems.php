@@ -74,6 +74,7 @@ $edit = null;
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['problemid'])) {
     $problem = problem_load($db, $_GET['problemid']);
     if ($problem && mysqli_query($db, "DELETE FROM obs_problems WHERE problem_id = " . intval($problem['problem_id']))) {
+        mysqli_query($db, "DELETE FROM obs_notes WHERE note_problemid = " . intval($problem['problem_id']));
         mysqli_query($db, "DELETE FROM obs_problem_observations WHERE po_problemid = " . intval($problem['problem_id']));
         audit_log('problem_delete', 'problem:' . intval($problem['problem_id']), array('title' => $problem['problem_title'], 'observations' => mysqli_affected_rows($db)));
         $messages[] = array('success', 'Problème <strong>' . h($problem['problem_title']) . '</strong> supprimé (ses observations sont conservées).');
@@ -192,6 +193,46 @@ if ($view) {
     };
     if (isset($_POST['problem_count'])) {
         $count = problem_count($db, $view);
+    }
+    // Status and priority changed from the detail
+    if (isset($_POST['problem_quick'])) {
+        $new_status   = isset($_POST['problem_status']) && is_string($_POST['problem_status']) && isset($statuses[$_POST['problem_status']]) ? $_POST['problem_status'] : $view['problem_status'];
+        $new_priority = isset($_POST['problem_priority']) && isset($priorities[intval($_POST['problem_priority'])]) ? intval($_POST['problem_priority']) : intval($view['problem_priority']);
+        $changes      = array('title' => $view['problem_title']);
+        if ($new_status !== $view['problem_status']) {
+            $changes['status'] = array(isset($statuses[$view['problem_status']]) ? $statuses[$view['problem_status']][0] : $view['problem_status'], $statuses[$new_status][0]);
+        }
+        if ($new_priority !== intval($view['problem_priority'])) {
+            $changes['priority'] = array(isset($priorities[intval($view['problem_priority'])]) ? $priorities[intval($view['problem_priority'])][0] : '', $priorities[$new_priority][0]);
+        }
+        if (count($changes) > 1 && mysqli_query($db, "UPDATE obs_problems SET problem_status = '" . mysqli_real_escape_string($db, $new_status) . "',
+                                                       problem_priority = " . $new_priority . ", problem_updated_time = " . time() . ",
+                                                       problem_updated_login = '" . mysqli_real_escape_string($db, $login) . "'
+                                                       WHERE problem_id = " . $view_id)) {
+            audit_log('problem_edit', 'problem:' . $view_id, $changes);
+            $messages[] = array('success', 'Statut et priorité enregistrés.');
+            $view = problem_load($db, $view_id);
+        }
+    }
+    // Internal notes (obs_notes shared with the observations, never published nor in the reports)
+    if (isset($_POST['problem_note_add'])) {
+        $note_text = isset($_POST['note_text']) && is_scalar($_POST['note_text']) ? vigilo_truncate(trim((string) $_POST['note_text']), 5000) : '';
+        if ($note_text === '') {
+            $messages[] = array('warning', 'La note est vide.');
+        } elseif (mysqli_query($db, "INSERT INTO obs_notes (note_obsid, note_problemid, note_time, note_login, note_text)
+                                     VALUES (0, " . $view_id . ", " . time() . ", '" . mysqli_real_escape_string($db, $login) . "',
+                                             '" . mysqli_real_escape_string($db, $note_text) . "')")) {
+            audit_log('note_add', 'problem:' . $view_id, array('note_id' => intval(mysqli_insert_id($db))));
+            $messages[] = array('success', 'Note ajoutée.');
+        }
+    }
+    if (isset($_POST['problem_note_delete']) && isset($_POST['note_id'])) {
+        $query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_id = " . intval($_POST['note_id']) . " AND note_problemid = " . $view_id);
+        $note  = $query ? mysqli_fetch_assoc($query) : null;
+        if ($note && mysqli_query($db, "DELETE FROM obs_notes WHERE note_id = " . intval($note['note_id']))) {
+            audit_log('note_delete', 'problem:' . $view_id, array('note_id' => intval($note['note_id']), 'note_login' => $note['note_login'], 'note_text' => $note['note_text']));
+            $messages[] = array('success', 'Note supprimée.');
+        }
     }
     if (isset($_POST['problem_attach_retro'])) {
         $result = problem_attach_retro($db, $view, $login);
@@ -427,6 +468,24 @@ if ($edit !== null) {
       <dt class="col-sm-3">Période</dt><dd class="col-sm-9"><?= h(problem_admin_period($view)) ?></dd>
       <dt class="col-sm-3">Création</dt><dd class="col-sm-9"><?= h(date('d/m/Y H:i', intval($view['problem_created_time']))) ?> par <?= h($view['problem_created_login']) ?></dd>
     </dl>
+    <form method="POST" action="<?= h($view_url) ?>" class="row g-2 align-items-end mb-3">
+      <?= csrf_field() ?>
+      <div class="col-6 col-sm-auto">
+        <label class="form-label small mb-1" for="quick_status">Statut</label>
+        <select class="form-select form-select-sm" id="quick_status" name="problem_status">
+          <?php foreach ($statuses as $key => $item) { ?><option value="<?= h($key) ?>"<?= $view['problem_status'] === $key ? ' selected' : '' ?>><?= h($item[0]) ?></option><?php } ?>
+        </select>
+      </div>
+      <div class="col-6 col-sm-auto">
+        <label class="form-label small mb-1" for="quick_priority">Priorité</label>
+        <select class="form-select form-select-sm" id="quick_priority" name="problem_priority">
+          <?php foreach ($priorities as $key => $item) { ?><option value="<?= intval($key) ?>"<?= intval($view['problem_priority']) === $key ? ' selected' : '' ?>><?= h($item[0]) ?></option><?php } ?>
+        </select>
+      </div>
+      <div class="col-12 col-sm-auto">
+        <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_quick" value="1"><i class="bi bi-check-lg"></i> Enregistrer</button>
+      </div>
+    </form>
     <div class="problem-view-map rounded border" data-problem-view="<?= h(json_encode($map_data)) ?>" style="height: 320px;"></div>
     <div class="form-text">
       <span class="text-success"><i class="bi bi-circle-fill"></i> rattachées</span>
@@ -499,6 +558,37 @@ if ($edit !== null) {
     </table>
   </div>
   <?php } ?>
+</div>
+<?php
+    $notes = array();
+    $query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_problemid = " . $view_id . " ORDER BY note_time ASC, note_id ASC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $notes[] = $row;
+    } ?>
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold"><i class="bi bi-sticky"></i> Notes internes (<?= count($notes) ?>)</div>
+  <div class="card-body">
+    <p class="small text-body-secondary"><i class="bi bi-lock"></i> Visibles seulement dans l'admin : jamais publiées ni reprises dans les rapports.</p>
+    <?php foreach ($notes as $note) { ?>
+    <div class="border-bottom pb-2 mb-2">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="small text-body-secondary"><i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?></div>
+        <form method="POST" action="<?= h($view_url) ?>" class="m-0">
+          <?= csrf_field() ?>
+          <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>">
+          <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" name="problem_note_delete" value="1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
+        </form>
+      </div>
+      <div class="small text-break"><?= nl2br(h($note['note_text'])) ?></div>
+    </div>
+    <?php } ?>
+    <form method="POST" action="<?= h($view_url) ?>" class="m-0">
+      <?= csrf_field() ?>
+      <label class="visually-hidden" for="note_text">Nouvelle note</label>
+      <textarea class="form-control form-control-sm mb-2" id="note_text" name="note_text" rows="2" maxlength="5000" placeholder="Échange avec la mairie, relance, décision…" required></textarea>
+      <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_note_add" value="1"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
+    </form>
+  </div>
 </div>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
