@@ -74,6 +74,10 @@ sont dans aucune résolution sont regroupées dans une nouvelle résolution « R
 qui contiennent les autres passent à « Résolue » (y compris leurs observations hors du problème, signalées avant de
 confirmer). Rien n'est fait sans confirmation.
 
+Le rattachement des observations existantes ignore les observations **archivées**, sauf si la case « Inclure les
+observations archivées » est cochée. Le bouton **Diffuser** d'un problème appelle les webhooks de l'événement
+`problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente ».
+
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
 table que les notes des observations), jamais publiées ni reprises dans les rapports.
 
@@ -117,6 +121,7 @@ Le backend appelle les webhooks actifs définis dans l'admin (page **Webhooks**,
 | `observation.disapproved` | Refus (passage à `approved = 2`, admin ou `approve.php`) | observation |
 | `resolution.created` | Résolution déclarée dans l'application (`create_resolution.php`, état 4 ; la photo arrive ensuite) ou créée dans l'admin (état 2) | résolution + sa première observation |
 | `resolution.status_changed` | Changement d'état d'une résolution dans l'admin (unitaire, groupé ou formulaire) | résolution + sa première observation, `resolution_previous_status` |
+| `problem.broadcast` | Bouton **Diffuser** d'un problème (page Problèmes de l'admin, 0.0.34) ; le problème passe « En attente » | problème (`problem_*`) + sa dernière observation |
 
 Chaque événement n'est envoyé qu'au changement d'état (pas de nouvel appel si l'observation est déjà publiée ou
 refusée, ni pour une nouvelle photo de la même observation). Pour une résolution, `resolution_token`,

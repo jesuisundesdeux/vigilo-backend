@@ -285,7 +285,7 @@ function problem_location_matches($problem, $lat, $lon, $address, $cityname = ''
  * SQL condition of the observations that may match the problem: published, categories,
  * period and bounding box of the zone (the exact zone, or the streets, are checked in PHP)
  */
-function problem_candidates_where($problem)
+function problem_candidates_where($problem, $include_archived = false)
 {
     $categories = problem_category_ids($problem);
     $streets    = $problem['problem_zone'] == 'streets';
@@ -294,7 +294,7 @@ function problem_candidates_where($problem)
         || ($streets && !problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''))) {
         return "0";
     }
-    $where = "obs_list.obs_complete = 1 AND obs_list.obs_approved = 1"
+    $where = "obs_list.obs_complete = 1 AND obs_list.obs_approved = 1" . ($include_archived ? "" : " AND obs_list.obs_archived = 0")
            . " AND obs_list.obs_categorie IN (" . implode(',', $categories) . ")"
            . " AND obs_list.obs_time >= " . intval($problem['problem_start']);
     if ($problem['problem_end'] !== null && $problem['problem_end'] !== '') {
@@ -311,7 +311,7 @@ function problem_candidates_where($problem)
  * Observations matching the problem, with the problem they are attached to (0: none):
  * list of array('id', 'token', 'lat', 'lon', 'time', 'category', 'address', 'problem')
  */
-function problem_matching_observations($db, $problem)
+function problem_matching_observations($db, $problem, $include_archived = false)
 {
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
@@ -320,7 +320,7 @@ function problem_matching_observations($db, $problem)
                                 FROM obs_list
                                 LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
                                 " . PROBLEM_CITY_JOIN . "
-                                WHERE " . problem_candidates_where($problem) . "
+                                WHERE " . problem_candidates_where($problem, $include_archived) . "
                                 ORDER BY obs_list.obs_time ASC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $lat = (float) $row['obs_coordinates_lat'];
@@ -477,10 +477,10 @@ function problem_zone_label($problem)
  * into already attached to this problem, to attach (attached to no problem) and conflicts
  * (attached to another problem, never moved silently)
  */
-function problem_count($db, $problem)
+function problem_count($db, $problem, $include_archived = false)
 {
     $result = array('matching' => 0, 'here' => array(), 'to_attach' => array(), 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $include_archived) as $observation) {
         $result['matching']++;
         if ($observation['problem'] == intval($problem['problem_id'])) {
             $result['here'][] = $observation;
@@ -540,12 +540,12 @@ function problem_detach($db, $problem_id, $obs_id)
  * administrators get consistent results.
  * Returns array('attached' => tokens, 'already' => n, 'conflicts' => observations).
  */
-function problem_attach_retro($db, $problem, $login)
+function problem_attach_retro($db, $problem, $login, $include_archived = false)
 {
     $lock   = mysqli_query($db, "SELECT GET_LOCK('vigilo_problem_attach', 10)");
     $locked = $lock && intval(mysqli_fetch_array($lock)[0]) === 1;
     $result = array('attached' => array(), 'already' => 0, 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $include_archived) as $observation) {
         $status = problem_attach($db, $problem['problem_id'], $observation['id'], 'retro', $login);
         if ($status == 'attached') {
             $result['attached'][] = $observation['token'];
@@ -815,4 +815,63 @@ function problem_report_rows($db, $observations)
         return $b['count'] - $a['count'];
     });
     return array_values($rows);
+}
+
+/*
+ * Distribution in time of observations (list of rows with obs_time or time): number per
+ * month from the first to the last one ('YYYY-MM' => n), per day of the week (Monday
+ * first) and per hour, as in the statistics of the web application.
+ */
+function problem_time_stats($observations)
+{
+    $stats = array('months' => array(), 'weekdays' => array_fill(0, 7, 0), 'hours' => array_fill(0, 24, 0), 'count' => 0);
+    $times = array();
+    foreach ($observations as $obs) {
+        $time = intval(isset($obs['obs_time']) ? $obs['obs_time'] : (isset($obs['time']) ? $obs['time'] : 0));
+        if ($time > 0) {
+            $times[] = $time;
+        }
+    }
+    if (!$times) {
+        return $stats;
+    }
+    sort($times);
+    $month = strtotime(date('Y-m-01', $times[0]));
+    $last  = date('Y-m', end($times));
+    while (true) {
+        $stats['months'][date('Y-m', $month)] = 0;
+        if (date('Y-m', $month) >= $last || count($stats['months']) >= 240) {
+            break;
+        }
+        $month = strtotime('+1 month', $month);
+    }
+    foreach ($times as $time) {
+        if (isset($stats['months'][date('Y-m', $time)])) {
+            $stats['months'][date('Y-m', $time)]++;
+        }
+        $stats['weekdays'][intval(date('N', $time)) - 1]++;
+        $stats['hours'][intval(date('G', $time))]++;
+    }
+    $stats['count'] = count($times);
+    return $stats;
+}
+
+/* Charts of problem_time_stats() (SVG of report.php): timeline per month, days of the week, hours */
+function problem_time_charts($stats, $color = '#3f6fb5')
+{
+    require_once(dirname(__FILE__) . '/report.php');
+    $names  = array(1 => 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.');
+    $months = array();
+    foreach ($stats['months'] as $month => $count) {
+        $months[$names[intval(substr($month, 5, 2))] . ' ' . substr($month, 2, 2)] = $count;
+    }
+    $hours = array();
+    foreach ($stats['hours'] as $hour => $count) {
+        $hours[$hour . ' h'] = $count;
+    }
+    return array(
+        'timeline' => report_svg_columns($months, '#f2c200', 'Observations par mois'),
+        'weekdays' => report_svg_columns(array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), $stats['weekdays']), $color, 'Observations par jour de la semaine'),
+        'hours'    => report_svg_columns($hours, $color, 'Observations par heure'),
+    );
 }

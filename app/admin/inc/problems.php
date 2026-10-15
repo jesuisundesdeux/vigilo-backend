@@ -248,6 +248,67 @@ function problem_admin_resolve_observations($db, $problem, $plan, &$messages)
     return array($created, $updated, $failed);
 }
 
+/* Colors of the statuses on the maps (same as the badges) */
+function problem_admin_status_color($status)
+{
+    $colors = array('open' => '#0d6efd', 'in_progress' => '#0dcaf0', 'waiting' => '#ffc107', 'resolved' => '#198754', 'closed' => '#6c757d');
+    return isset($colors[$status]) ? $colors[$status] : '#6c757d';
+}
+
+/*
+ * Problems of the map tab: zone (circle, polygon; streets: positions of the attached observations,
+ * of the cities $city_ids if not null), status, priority, number of observations.
+ * Returns array('shown' => list, 'hidden' => titles of the problems without position).
+ */
+function problem_admin_map_data($db, $problems, $counts, $statuses, $priorities, $city_ids)
+{
+    $street_points = array();
+    $street_ids    = array();
+    foreach ($problems as $problem) {
+        if ($problem['problem_zone'] == 'streets') {
+            $street_ids[] = intval($problem['problem_id']);
+        }
+    }
+    if ($street_ids) {
+        $query = mysqli_query($db, "SELECT po_problemid, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon FROM obs_problem_observations
+                                    INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                    WHERE po_problemid IN (" . implode(',', $street_ids) . ")"
+                                    . ($city_ids === null ? "" : " AND " . problem_city_condition($city_ids)) . " LIMIT 20000");
+        while ($query && ($row = mysqli_fetch_assoc($query))) {
+            $street_points[intval($row['po_problemid'])][] = array(round((float) $row['obs_coordinates_lat'], 6), round((float) $row['obs_coordinates_lon'], 6));
+        }
+    }
+    $shown  = array();
+    $hidden = array();
+    foreach ($problems as $problem) {
+        $id   = intval($problem['problem_id']);
+        $item = array('id' => $id, 'title' => (string) $problem['problem_title'], 'zone' => $problem['problem_zone'],
+                      'status' => isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : (string) $problem['problem_status'],
+                      'color' => problem_admin_status_color($problem['problem_status']),
+                      'priority' => isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '',
+                      'count' => isset($counts[$id]) ? intval($counts[$id]) : 0);
+        if ($problem['problem_zone'] == 'polygon') {
+            $item['polygon'] = problem_polygon_points($problem['problem_polygon']);
+            if (!$item['polygon']) {
+                $hidden[] = $item['title'];
+                continue;
+            }
+        } elseif ($problem['problem_zone'] == 'streets') {
+            if (empty($street_points[$id])) {
+                $hidden[] = $item['title'];
+                continue;
+            }
+            $item['points'] = $street_points[$id];
+        } else {
+            $item['lat']    = (float) $problem['problem_lat'];
+            $item['lon']    = (float) $problem['problem_lon'];
+            $item['radius'] = intval($problem['problem_radius']);
+        }
+        $shown[] = $item;
+    }
+    return array('shown' => $shown, 'hidden' => $hidden);
+}
+
 $empty_problem = array('problem_id' => 0, 'problem_title' => '', 'problem_description' => '', 'problem_categories' => '',
                        'problem_zone' => 'circle', 'problem_lat' => 0, 'problem_lon' => 0, 'problem_radius' => 100,
                        'problem_polygon' => '', 'problem_streets' => '', 'problem_start' => 0, 'problem_end' => null, 'problem_priority' => 2,
@@ -263,6 +324,34 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['proble
         mysqli_query($db, "DELETE FROM obs_problem_observations WHERE po_problemid = " . intval($problem['problem_id']));
         audit_log('problem_delete', 'problem:' . intval($problem['problem_id']), array('title' => $problem['problem_title'], 'observations' => mysqli_affected_rows($db)));
         $messages[] = array('success', 'Problème <strong>' . h($problem['problem_title']) . '</strong> supprimé (ses observations sont conservées).');
+    }
+}
+
+/* Broadcast: webhooks of the event problem.broadcast, then status "En attente" */
+if (isset($_POST['problem_broadcast'])) {
+    $problem = problem_load($db, $_POST['problem_broadcast']);
+    if ($problem) {
+        $id = intval($problem['problem_id']);
+        mysqli_query($db, "UPDATE obs_problems SET problem_status = 'waiting', problem_updated_time = " . time() . ",
+                           problem_updated_login = '" . mysqli_real_escape_string($db, $login) . "' WHERE problem_id = " . $id);
+        $hooks      = webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST);
+        $deliveries = webhooks_for_problem($db, $id);
+        $failures   = array();
+        foreach ($deliveries as $hook_id => $delivery) {
+            if ($delivery[1] !== '') {
+                $failures[] = '#' . intval($hook_id) . ' (' . $delivery[1] . ')';
+            }
+        }
+        audit_log('problem_broadcast', 'problem:' . $id, array('title' => $problem['problem_title'],
+                  'status' => array(isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : $problem['problem_status'], $statuses['waiting'][0]),
+                  'webhooks' => count($deliveries), 'failures' => $failures));
+        if (!$hooks) {
+            $messages[] = array('warning', 'Problème <strong>' . h($problem['problem_title']) . '</strong> passé « En attente », mais aucun webhook actif ne suit
+                                           l\'événement « Diffusion d\'un problème » (<a class="alert-link" href="?page=webhooks">Webhooks</a>).');
+        } else {
+            $messages[] = array($failures ? 'warning' : 'success', 'Problème <strong>' . h($problem['problem_title']) . '</strong> diffusé (' . count($deliveries)
+                                . ' webhook(s)) et passé « En attente »' . ($failures ? ' ; en échec : ' . h(implode(', ', $failures)) . ' (voir la page Webhooks)' : '') . '.');
+        }
     }
 }
 
@@ -415,8 +504,10 @@ if ($view) {
         }
         return $items ? '<ul class="mb-0 mt-1">' . implode('', $items) . '</ul>' : '';
     };
+    // Archived observations: only when asked (count and attachment)
+    $include_archived = !empty($_POST['include_archived']);
     if (isset($_POST['problem_count'])) {
-        $count = problem_count($db, $view);
+        $count = problem_count($db, $view, $include_archived);
     }
     // Resolved problem: its observations set as resolved (resolutions), after confirmation
     if (isset($_POST['problem_resolve_observations'])) {
@@ -479,8 +570,8 @@ if ($view) {
         }
     }
     if (isset($_POST['problem_attach_retro'])) {
-        $result = problem_attach_retro($db, $view, $login);
-        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'attached' => count($result['attached']),
+        $result = problem_attach_retro($db, $view, $login, $include_archived);
+        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'archived' => $include_archived, 'attached' => count($result['attached']),
                   'tokens' => implode(',', array_slice($result['attached'], 0, 100)), 'already' => $result['already'],
                   'conflicts' => count($result['conflicts'])));
         $messages[] = array(count($result['conflicts']) ? 'warning' : 'success', '<strong>' . count($result['attached']) . '</strong> observation(s) rattachée(s), '
@@ -549,6 +640,8 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
 }
 $counts   = problem_observation_counts($db, $staff_cities);
 $filtered = $f_q !== '' || $f_status !== '' || $f_priority || $f_category;
+$tab      = isset($_GET['tab']) && $_GET['tab'] === 'map' ? 'map' : 'list';
+$filter_query = '&' . http_build_query(array_filter(array('q' => $f_q, 'status' => $f_status, 'priority' => $f_priority ?: '', 'category' => $f_category ?: ''), 'strlen'));
 
 /* Initial view of the map of a new problem: center of the first scope */
 $map_center = '46.6,2.4';
@@ -790,6 +883,22 @@ if ($edit !== null) {
   </div>
 </div>
 
+<?php if ($attached) {
+    $time_stats  = problem_time_stats($attached);
+    $time_charts = problem_time_charts($time_stats); ?>
+<div class="card shadow-sm mb-4" id="timeline">
+  <div class="card-header fw-semibold"><i class="bi bi-clock-history"></i> Chronologie et horaires des observations</div>
+  <div class="card-body">
+    <h3 class="h6 mb-0">Frise chronologique (observations par mois)</h3>
+    <div class="problem-chart"><?= $time_charts['timeline'] /* SVG built with escaped labels (report_svg_columns) */ ?></div>
+    <div class="row g-3 mt-1">
+      <div class="col-md-6"><h3 class="h6 mb-0">Jour de la semaine</h3><div class="problem-chart"><?= $time_charts['weekdays'] ?></div></div>
+      <div class="col-md-6"><h3 class="h6 mb-0">Heure</h3><div class="problem-chart"><?= $time_charts['hours'] ?></div></div>
+    </div>
+  </div>
+</div>
+<?php } ?>
+
 <?php if (!$readonly && $view['problem_status'] == 'resolved') {
     $plan = problem_admin_resolution_plan($db, $view_id);
     $to_resolve = count($plan['free']);
@@ -827,12 +936,17 @@ if ($edit !== null) {
   <div class="card-header fw-semibold">Rattachement des observations existantes</div>
   <div class="card-body">
     <p class="small text-body-secondary">
-      Les observations publiées de la zone, des catégories et de la période du problème. <strong>Compter</strong> ne modifie
+      Les observations publiées de la zone, des catégories et de la période du problème (sans les observations archivées, sauf
+      si la case est cochée). <strong>Compter</strong> ne modifie
       rien ; <strong>Rattacher</strong> refait le calcul et rattache celles qui n'appartiennent à aucun problème. Une
       observation déjà dans un autre problème n'est jamais déplacée : elle est signalée, à arbitrer.
     </p>
-    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap gap-2">
+    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap align-items-center gap-2">
       <?= csrf_field() ?>
+      <div class="form-check me-2">
+        <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="include_archived"<?= $include_archived ? ' checked' : '' ?>>
+        <label class="form-check-label" for="include_archived">Inclure les observations archivées</label>
+      </div>
       <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
       <?php if ($count && count($count['to_attach'])) { ?>
       <button class="btn btn-primary" type="submit" name="problem_attach_retro" value="1" data-confirm="Rattacher <?= count($count['to_attach']) ?> observation(s) au problème « <?= h($view['problem_title']) ?> » ?"><i class="bi bi-link-45deg"></i> Rattacher <?= count($count['to_attach']) ?> observation(s)</button>
@@ -864,12 +978,17 @@ if ($edit !== null) {
   </div>
   <?php if (empty($attached)) { ?>
     <div class="card-body"><p class="text-body-secondary mb-0">Aucune observation rattachée.</p></div>
-  <?php } else { ?>
+  <?php } else {
+      // Pages of the attached observations (the map shows all of them)
+      $per_page   = 20;
+      $obs_pages  = max(1, (int) ceil(count($attached) / $per_page));
+      $obs_page   = isset($_GET['opage']) && ctype_digit((string) $_GET['opage']) ? max(1, min($obs_pages, intval($_GET['opage']))) : 1;
+      $page_rows  = array_slice($attached, ($obs_page - 1) * $per_page, $per_page); ?>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin table-stack-md mb-0">
       <thead><tr><th scope="col">Photo</th><th scope="col">Observation</th><th scope="col">Catégorie</th><th scope="col">Rattachement</th><th scope="col"></th></tr></thead>
       <tbody>
-      <?php foreach ($attached as $row) {
+      <?php foreach ($page_rows as $row) {
           $token = (string) $row['obs_token'];
           $catid = intval($row['obs_categorie']); ?>
         <tr>
@@ -889,6 +1008,19 @@ if ($edit !== null) {
       </tbody>
     </table>
   </div>
+  <?php if ($obs_pages > 1) {
+      $opage_url = $view_url . '&opage='; ?>
+  <nav class="card-footer" aria-label="Pages des observations rattachées">
+    <ul class="pagination pagination-sm flex-wrap mb-0" id="attached">
+      <li class="page-item<?= $obs_page <= 1 ? ' disabled' : '' ?>"><a class="page-link" href="<?= h($opage_url . max(1, $obs_page - 1)) ?>#attached"><i class="bi bi-chevron-left"></i><span class="visually-hidden">Précédent</span></a></li>
+      <?php for ($i = 1; $i <= $obs_pages; $i++) { ?>
+      <li class="page-item<?= $i == $obs_page ? ' active' : '' ?>"<?= $i == $obs_page ? ' aria-current="page"' : '' ?>><a class="page-link" href="<?= h($opage_url . $i) ?>#attached"><?= $i ?></a></li>
+      <?php } ?>
+      <li class="page-item<?= $obs_page >= $obs_pages ? ' disabled' : '' ?>"><a class="page-link" href="<?= h($opage_url . min($obs_pages, $obs_page + 1)) ?>#attached"><i class="bi bi-chevron-right"></i><span class="visually-hidden">Suivant</span></a></li>
+    </ul>
+    <div class="small text-body-secondary mt-1"><?= ($obs_page - 1) * $per_page + 1 ?> à <?= min(count($attached), $obs_page * $per_page) ?> sur <?= count($attached) ?></div>
+  </nav>
+  <?php } ?>
   <?php } ?>
 </div>
 <?php if (!$readonly) { ?>
@@ -1016,8 +1148,13 @@ if (!$readonly) { ?>
       qui lui correspond, s'il n'y en a qu'un. Les problèmes ne sont visibles que dans l'admin.
       <?php if ($readonly) { ?><br>Consultation seulement : problèmes ayant des observations dans vos villes, gérés par les administrateurs.<?php } ?>
     </p>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><a class="nav-link<?= $tab == 'list' ? ' active" aria-current="page' : '' ?>" href="<?= h($self_url . rtrim($filter_query, '&')) ?>"><i class="bi bi-list-ul"></i> Liste</a></li>
+      <li class="nav-item"><a class="nav-link<?= $tab == 'map' ? ' active" aria-current="page' : '' ?>" href="<?= h($self_url . '&tab=map' . rtrim($filter_query, '&')) ?>"><i class="bi bi-map"></i> Carte</a></li>
+    </ul>
     <form class="row g-2 align-items-end mb-3" method="GET" action="">
       <input type="hidden" name="page" value="<?= h($page_name) ?>">
+      <?php if ($tab == 'map') { ?><input type="hidden" name="tab" value="map"><?php } ?>
       <div class="col-12 col-sm">
         <label class="form-label small mb-1" for="f_q">Recherche</label>
         <input class="form-control form-control-sm" type="search" id="f_q" name="q" value="<?= h($f_q) ?>" placeholder="Titre, description">
@@ -1046,12 +1183,25 @@ if (!$readonly) { ?>
       </div>
       <div class="col-12 col-sm-auto d-flex gap-2">
         <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel"></i> Filtrer</button>
-        <?php if ($filtered) { ?><a class="btn btn-outline-secondary btn-sm" href="<?= h($self_url) ?>"><i class="bi bi-x-lg"></i> Réinitialiser</a><?php } ?>
+        <?php if ($filtered) { ?><a class="btn btn-outline-secondary btn-sm" href="<?= h($self_url . ($tab == 'map' ? '&tab=map' : '')) ?>"><i class="bi bi-x-lg"></i> Réinitialiser</a><?php } ?>
       </div>
     </form>
   </div>
   <?php if (empty($problems)) { ?>
     <div class="card-body pt-0"><p class="text-body-secondary mb-0"><?= $filtered ? 'Aucun problème ne correspond aux filtres.' : 'Aucun problème.' ?></p></div>
+  <?php } elseif ($tab == 'map') {
+      $map_problems = problem_admin_map_data($db, $problems, $counts, $statuses, $priorities, $staff_cities); ?>
+  <div class="card-body pt-0">
+    <div class="problem-list-map rounded border" data-problems-map="<?= h(json_encode(array('problems' => $map_problems['shown'], 'center' => $map_center, 'zoom' => $map_zoom))) ?>" style="height: 520px;"></div>
+    <div class="form-text">
+      <?php foreach ($statuses as $key => $item) { ?><span class="me-2 text-nowrap"><span class="problem-legend-dot" style="background: <?= h(problem_admin_status_color($key)) ?>;"></span> <?= h($item[0]) ?></span><?php } ?>
+      · zone d'un problème de rues : ses observations rattachées.
+      <?php if ($map_problems['hidden']) { ?><br><?= count($map_problems['hidden']) ?> problème(s) sans position (rues sans observation rattachée) : <?= h(implode(', ', $map_problems['hidden'])) ?>.<?php } ?>
+    </div>
+  </div>
+  <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
+  <script src="assets/vendor/leaflet/leaflet.js"></script>
+  <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
   <?php } else { ?>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin table-stack-md mb-0">
@@ -1075,6 +1225,10 @@ if (!$readonly) { ?>
           <td data-label="Observations"><?= isset($counts[$id]) ? intval($counts[$id]) : 0 ?></td>
           <td class="text-end text-nowrap">
             <?php if (!$readonly) { ?>
+            <form method="POST" action="<?= h($self_url . rtrim($filter_query, '&')) ?>" class="d-inline">
+              <?= csrf_field() ?>
+              <button class="btn btn-sm btn-outline-success" type="submit" name="problem_broadcast" value="<?= $id ?>" data-confirm="Diffuser le problème « <?= h($problem['problem_title']) ?> » (webhooks « Diffusion d'un problème ») et le passer « En attente » ?" title="Appelle les webhooks « Diffusion d'un problème » et passe le statut à « En attente »"><i class="bi bi-megaphone"></i> Diffuser</button>
+            </form>
             <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $id ?>"><i class="bi bi-pencil"></i> Modifier</a>
             <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;problemid=<?= $id ?><?= h(csrf_query()) ?>" data-confirm="Supprimer le problème « <?= h($problem['problem_title']) ?> » ? Ses observations sont conservées." aria-label="Supprimer"><i class="bi bi-trash"></i></a>
             <?php } else { ?>

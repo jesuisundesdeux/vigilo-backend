@@ -571,6 +571,22 @@ def main():
         status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_arbitrate': pb_gare, 'obs_id': '1'})
         clean('problem arbitrate', status, page)
         check('Observation <strong>TOKA0001</strong> rattachée au problème <strong>Piste' in page and 'À arbitrer' not in page, 'observation arbitrated')
+        # Problem of the observation on the page Observations, timeline of the detail, map tab
+        status, _, page = admin.request('index.php?page=observations&approved=1')
+        check('href="?page=problems&amp;view=' + pb_gare + '"' in page and 'bi-diagram-3' in page, 'observation linked to its problem on the page Observations')
+        status, _, page = admin.request(gare_url)
+        check('id="timeline"' in page and 'Observations par heure' in page and 'Observations par mois' in page, 'timeline and hours of the observations of the problem')
+        for query in ['tab=map', 'tab=map&status=active']:
+            status, _, page = admin.request('index.php?page=problems&' + query)
+            clean('problems ' + query, status, page)
+            check('data-problems-map=' in page and '&quot;id&quot;:' + pb_gare in page and 'nav-tabs' in page, 'problems map tab ' + query)
+        status, _, page = admin.request('index.php?page=problems&tab=map&q=nothing-matches')
+        check('data-problems-map=' not in page and 'Aucun problème ne correspond' in page, 'problems map tab without problem')
+        # Broadcast without webhook of the event: status set to "En attente", warning
+        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_broadcast': pb_works})
+        clean('problem broadcast', status, page)
+        check('aucun webhook actif' in page and 'passé « En attente »' in page, 'problem broadcast without webhook')
         # Status and priority from the detail, internal notes (obs_notes shared with the observations)
         status, _, page = admin.request(gare_url)
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_quick': '1', 'problem_status': 'waiting', 'problem_priority': '4'})
@@ -646,7 +662,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss']:
         check(action in page, 'audit log contains ' + action)
 
     # A problem without observation: not shown to a citystaff

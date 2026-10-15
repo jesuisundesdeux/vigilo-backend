@@ -1,6 +1,7 @@
 // Vigilo admin: zone of a problem (circle, polygon or streets), drawn on a map. Keeps the
 // form fields in sync (center and radius, JSON list of [lat, lon] points, or streets),
-// with the observations of reference. Also the map of the detail of a problem (data-problem-view).
+// with the observations of reference. Also the map of the detail of a problem (data-problem-view)
+// and the map tab of the list (data-problems-map).
 (function () {
   'use strict';
 
@@ -365,6 +366,61 @@
       map.fitBounds(bounds.pad(0.15), { maxZoom: 18 });
     } else {
       // Zone of streets without observation: view of the scope
+      var center = String(data.center || '46.6,2.4').split(',');
+      map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
+    }
+    setTimeout(function () { map.invalidateSize(); }, 200);
+  });
+
+  // Map tab of the list: zones of the problems, colored by status, with a link to their detail
+  document.querySelectorAll('[data-problems-map]').forEach(function (container) {
+    var data;
+    try {
+      data = JSON.parse(container.getAttribute('data-problems-map'));
+    } catch (e) {
+      return;
+    }
+    var map = L.map(container);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
+    var bounds = null;
+    function extend(b) {
+      bounds = bounds ? bounds.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+    }
+    data.problems.forEach(function (p) {
+      var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: 0.25 };
+      var layer;
+      if (p.zone === 'polygon') {
+        layer = L.polygon(p.polygon, style);
+        extend(layer.getBounds());
+      } else if (p.zone === 'streets') {
+        layer = L.featureGroup(p.points.map(function (pt) {
+          return L.circleMarker(pt, L.extend({ radius: 5 }, style, { fillOpacity: 0.8 }));
+        }));
+        extend(layer.getBounds());
+      } else {
+        layer = L.circle([p.lat, p.lon], L.extend({ radius: p.radius }, style));
+        extend(L.latLng(p.lat, p.lon).toBounds(p.radius * 2));
+      }
+      // Popup built as DOM (titles are text, not HTML)
+      var box = document.createElement('div');
+      var link = document.createElement('a');
+      link.href = '?page=problems&view=' + encodeURIComponent(p.id);
+      link.className = 'fw-semibold';
+      link.textContent = p.title;
+      var info = document.createElement('div');
+      info.className = 'small';
+      info.textContent = p.status + ' · ' + p.priority + ' · ' + p.count + ' observation' + (p.count > 1 ? 's' : '');
+      box.appendChild(link);
+      box.appendChild(info);
+      layer.bindPopup(box);
+      var label = document.createElement('span');
+      label.textContent = p.title;
+      layer.bindTooltip(label, { sticky: true });
+      layer.addTo(map);
+    });
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });
+    } else {
       var center = String(data.center || '46.6,2.4').split(',');
       map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
     }

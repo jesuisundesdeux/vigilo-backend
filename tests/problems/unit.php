@@ -93,6 +93,18 @@ check($errors === array() && $problem['problem_zone'] === 'streets' && $problem[
 list($problem, $errors) = problem_from_post(array_merge($post_streets, array('problem_streets' => array(' '))), $known);
 check(count($errors) == 1, 'form: zone of streets without street refused');
 
+// Archived observations excluded unless asked
+check(strpos(problem_candidates_where(array_merge($circle, array('problem_categories' => '2', 'problem_start' => 0, 'problem_end' => null))), 'obs_archived = 0') !== false
+      && strpos(problem_candidates_where(array_merge($circle, array('problem_categories' => '2', 'problem_start' => 0, 'problem_end' => null)), true), 'obs_archived') === false,
+      'archived observations excluded unless asked');
+
+// Distribution in time
+$stats = problem_time_stats(array(array('obs_time' => mktime(8, 30, 0, 11, 30, 2020)), array('time' => mktime(18, 0, 0, 2, 1, 2021)), array('obs_time' => 0)));
+check($stats['count'] == 2 && array_keys($stats['months']) === array('2020-11', '2020-12', '2021-01', '2021-02')
+      && $stats['months']['2020-12'] === 0 && $stats['weekdays'][0] === 2 && $stats['hours'][8] === 1 && $stats['hours'][18] === 1,
+      'time stats: continuous months, Monday first, hours');
+check(problem_time_stats(array())['months'] === array(), 'time stats: no observation');
+
 check(problem_active_statuses() === array('open', 'in_progress', 'waiting'), 'active statuses');
 
 echo $failures . " failure(s)\n";
