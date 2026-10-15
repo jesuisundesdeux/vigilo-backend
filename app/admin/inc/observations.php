@@ -78,6 +78,20 @@ function obsadmin_approve($db, $obs, $approveto, &$messages)
   $approved_before = webhook_approval_state($db, $token);
   mysqli_query($db, "UPDATE obs_list SET obs_approved='" . intval($approveto) . "' WHERE obs_id='" . intval($obs['obs_id']) . "'");
   audit_log('observation_approve', $token, array('approved' => intval($approveto)));
+  // Published: attached to the matching active problem, if only one (#327)
+  if (intval($approveto) === 1 && $approved_before !== 1) {
+    $problem = problems_on_publication($db, $token, isset($_SESSION['login']) ? $_SESSION['login'] : '', 'admin');
+    if ($problem[0] == 'attached' || $problem[0] == 'ambiguous') {
+      $titles = problem_titles($db);
+      $names  = array();
+      foreach ($problem[1] as $problem_id) {
+        $names[] = '<a href="?page=problems&amp;view=' . intval($problem_id) . '">' . h(isset($titles[$problem_id]) ? $titles[$problem_id] : '#' . $problem_id) . '</a>';
+      }
+      obsadmin_message($messages, 'info', $problem[0] == 'attached'
+        ? 'Observation <strong>' . h($token) . '</strong> rattachée au problème ' . $names[0] . '.'
+        : 'Observation <strong>' . h($token) . '</strong> : plusieurs problèmes correspondent (' . implode(', ', $names) . '), à arbitrer dans la page Problèmes.');
+    }
+  }
   foreach (webhooks_on_approval($db, $token, $approved_before, $approveto) as $hook_id => $delivery) {
     if ($delivery[1] !== '') {
       obsadmin_message($messages, 'warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec pour <strong>' . h($token) . '</strong> : ' . h($delivery[1]) . ' (voir la page Webhooks).');

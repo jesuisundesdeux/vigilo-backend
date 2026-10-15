@@ -16,6 +16,10 @@
   observation déjà dans un autre problème n'est jamais déplacée mais signalée (conflit, lien vers l'autre problème) ;
   rattachement manuel d'une observation publiée par son token, détachement. Journal : `problem_attach_retro`,
   `problem_attach`, `problem_detach`.
+- **Rattachement automatique** à la publication d'une observation (admin, `approve.php`, ou photo reçue après
+  l'approbation) au problème actif (ouvert, en cours, en attente) qui lui correspond, s'il n'y en a qu'un ; sinon
+  l'observation apparaît dans le cadre **À arbitrer** de la page Problèmes. Journal : `problem_attach_auto`,
+  `problem_attach_ambiguous`. Les réponses de l'API ne changent pas.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
   l'instant). Rien ne change pour l'API publique ni pour l'application web.
 

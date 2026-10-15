@@ -22,6 +22,7 @@ $cwd = dirname(__FILE__);
 require_once("{$cwd}/includes/common.php");
 require_once("{$cwd}/includes/functions.php");
 require_once("{$cwd}/includes/webhooks.php");
+require_once("{$cwd}/includes/problems.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -66,6 +67,10 @@ delete_token_cache($token);
 vigilo_send_response_and_continue(json_encode(array(
     'status' => '0'
 )));
+// Published: attached to the matching active problem, if only one (#327)
+if (intval($approved) === 1 && $approved_before !== 1) {
+    problems_on_publication($db, $token, '', 'api');
+}
 webhooks_on_approval($db, $token, $approved_before, $approved);
 
 ?>

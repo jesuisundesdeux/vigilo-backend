@@ -531,6 +531,26 @@ def main():
             check('<strong>TOKA0001</strong> détachée' in page and 'Observations rattachées (0)' in page, 'observation detached')
         status, _, page = admin.request(gare_url + '&action=detach&obsid=1')
         check('jeton de sécurité' in page, 'detach without CSRF token refused')
+        # Automatic attachment when TOKA0001 is published again from the admin
+        csrf = admin.token(page)
+        for approveto in ['0', '1']:
+            status, _, page = admin.request('index.php?page=observations&approved=0&action=approve&approveto=%s&token=TOKA0001&obsid=1&csrf_token=%s' % (approveto, csrf))
+        clean('approve with a problem', status, page)
+        check('Observation <strong>TOKA0001</strong> rattachée au problème' in page, 'observation attached to its problem when published')
+        status, _, page = admin.request(gare_url)
+        check('Observations rattachées (1)' in page and 'Automatique' in page, 'automatic attachment shown in the problem')
+        # Two active problems match TOKA0001 once detached: to arbitrate
+        detach = links(page, 'action=detach')
+        if detach:
+            admin.request('index.php' + detach[0] if detach[0].startswith('?') else detach[0])
+        status, _, page = admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_title='Gare bis', problem_radius='50'))
+        check('Gare bis' in page and 'À arbitrer (1)' in page and 'name="problem_arbitrate"' in page, 'observation of two active problems to arbitrate')
+        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_arbitrate': pb_gare, 'obs_id': '1'})
+        clean('problem arbitrate', status, page)
+        check('Observation <strong>TOKA0001</strong> rattachée au problème <strong>Piste' in page and 'À arbitrer' not in page, 'observation arbitrated')
+        bis = [l for l in links(page, 'action=delete') if 'problemid=' in l and 'problemid=' + pb_gare not in l and 'problemid=' + pb_works not in l]
+        if bis:
+            admin.request('index.php' + bis[0] if bis[0].startswith('?') else bis[0])
         status, _, page = admin.request('index.php?page=problems')
 
     delete = [l for l in links(page, 'action=delete') if 'problemid=' in l]
@@ -543,7 +563,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout

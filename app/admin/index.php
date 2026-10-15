@@ -30,6 +30,7 @@ require_once('../includes/common.php');
 require_once('../includes/functions.php');
 require_once('../includes/handle.php');
 require_once('../includes/webhooks.php');
+require_once('../includes/problems.php');
 
 $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "camera", "name" => "Observations", "access" => array('admin','citystaff')),
