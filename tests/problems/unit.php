@@ -1,7 +1,7 @@
 <?php
 /*
  * Unit tests of the problem rules (app/includes/problems.php) that need no database:
- * zones (circle, polygon), bounding box, validation of the form.
+ * zones (circle, polygon, streets), bounding box, validation of the form.
  *
  *   php tests/problems/unit.php
  */
@@ -66,6 +66,32 @@ check($errors === array() && $problem['problem_radius'] === 0 && abs($problem['p
       'form: polygon accepted, center of its box');
 list($problem, $errors) = problem_from_post(array_merge($post_polygon, array('problem_polygon' => '[[43.6,3.9],[43.61,3.9]]')), $known);
 check(count($errors) == 1, 'form: polygon of 2 points refused');
+
+
+// Zone of streets
+check(problem_street_key('12 bis, Rue Jean-Jaurès') === 'ruejeanjaures' && problem_street_key('rue  JEAN jaures') === 'ruejeanjaures', 'streets: names compared without case, accents, number');
+check(problem_address_parts('12, Rue de la Gare, Montpellier') === array('Rue de la Gare', 'Montpellier'), 'streets: address split (number alone ignored)');
+check(problem_address_parts('Rue de la Gare') === array('Rue de la Gare', ''), 'streets: address without city');
+$streets = problem_streets_list('[{"street":"Rue de la Gare","city":"Montpellier"},{"street":"rue de la gare","city":"montpellier"},{"street":"Avenue X","city":""}]');
+check(count($streets) == 2, 'streets: duplicates removed');
+check(problem_streets_list('[{"city":"X"}]') === array() && problem_streets_list('x') === array(), 'streets: invalid JSON refused');
+$zone = array('problem_zone' => 'streets', 'problem_lat' => 0, 'problem_lon' => 0, 'problem_radius' => 0, 'problem_polygon' => '',
+              'problem_streets' => json_encode($streets));
+check(problem_location_matches($zone, 0, 0, '3 Rue de la Gare, Montpellier'), 'streets: observation of the street and city');
+check(problem_location_matches($zone, 0, 0, 'Rue de la Gare, Lattes', 'Montpellier'), 'streets: city name of the observation also accepted');
+check(!problem_location_matches($zone, 0, 0, 'Rue de la Gare, Lattes'), 'streets: other city refused');
+check(problem_location_matches($zone, 0, 0, 'Avenue X, Nîmes') && !problem_location_matches($zone, 0, 0, 'Avenue Y, Nîmes'), 'streets: street without city, any city');
+check(problem_bbox($zone) === null && !problem_zone_contains($zone, 0, 0), 'streets: no bounding box');
+check(problem_zone_label($zone) === 'Rues : Rue de la Gare, Montpellier ; Avenue X', 'streets: label');
+check(problem_street_from_text(' Rue A,  B , Ville ') === array('street' => 'Rue A, B', 'city' => 'Ville'), 'streets: text split on the last comma');
+
+$post_streets = array_merge($post, array('problem_zone' => 'streets', 'problem_streets' => array('Rue de la Gare, Montpellier', '', 'Avenue X')));
+list($problem, $errors) = problem_from_post($post_streets, $known);
+check($errors === array() && $problem['problem_zone'] === 'streets' && $problem['problem_radius'] === 0
+      && problem_streets_list($problem['problem_streets']) === array(array('street' => 'Rue de la Gare', 'city' => 'Montpellier'), array('street' => 'Avenue X', 'city' => '')),
+      'form: streets accepted, empty fields ignored');
+list($problem, $errors) = problem_from_post(array_merge($post_streets, array('problem_streets' => array(' '))), $known);
+check(count($errors) == 1, 'form: zone of streets without street refused');
 
 check(problem_active_statuses() === array('open', 'in_progress', 'waiting'), 'active statuses');
 

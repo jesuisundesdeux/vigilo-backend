@@ -1,6 +1,6 @@
-// Vigilo admin: zone of a problem (circle or polygon), drawn on a map. Keeps the
-// form fields in sync (center and radius, or JSON list of [lat, lon] points). Also the
-// map of the detail of a problem (data-problem-view).
+// Vigilo admin: zone of a problem (circle, polygon or streets), drawn on a map. Keeps the
+// form fields in sync (center and radius, JSON list of [lat, lon] points, or streets),
+// with the observations of reference. Also the map of the detail of a problem (data-problem-view).
 (function () {
   'use strict';
 
@@ -20,6 +20,27 @@
   function num(input) {
     var value = parseFloat(String(input.value).replace(',', '.'));
     return isNaN(value) ? null : value;
+  }
+
+  // Same comparison as problem_street_key() (PHP): lowercase, no accents, house number or punctuation
+  function streetKey(name) {
+    return String(name || '').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]+/g, '');
+  }
+
+  // "12 Rue X, Ville" -> street "Rue X", city "Ville" (as problem_address_parts())
+  function addressParts(address) {
+    var parts = String(address || '').split(',');
+    var city = parts.length > 1 ? parts.pop().trim() : '';
+    parts = parts.map(function (p) { return p.trim(); }).filter(function (p) { return p !== '' && !/^\d+\s*(bis|ter)?$/i.test(p); });
+    var street = parts.join(', ').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '').trim();
+    return { street: street, city: city };
+  }
+
+  function streetText(text) {
+    var value = String(text || '').trim(), cut = value.lastIndexOf(',');
+    return cut < 0 ? { street: value, city: '' } : { street: value.slice(0, cut).trim(), city: value.slice(cut + 1).trim() };
   }
 
   function setup(container) {
@@ -51,6 +72,15 @@
       points = [];
     }
 
+    // Observations of reference (of the suggestion, or attached to the problem)
+    var references = [];
+    try {
+      references = JSON.parse(container.getAttribute('data-points') || '[]');
+    } catch (e) {
+      references = [];
+    }
+    var referenceLayer = L.featureGroup().addTo(map);
+
     function drawCircle() {
       var lat = num(f.lat), lon = num(f.lon), radius = num(f.radius);
       if (lat === null || lon === null) {
@@ -79,18 +109,133 @@
       return circle;
     }
 
-    function drawPolygon() {
-      vertices.clearLayers();
-      points.forEach(function (p) {
-        L.circleMarker(p, { radius: 4, color: STYLE.color, weight: 2, fillOpacity: 1 }).addTo(vertices);
-      });
+    // Shape and field of the polygon (without the handles, kept while one is dragged)
+    function drawShape() {
       if (polygon) { map.removeLayer(polygon); polygon = null; }
       if (points.length >= 2) {
         polygon = (points.length >= 3 ? L.polygon(points, STYLE) : L.polyline(points, STYLE)).addTo(map);
+        polygon.bringToBack();
       }
       f.polygon.value = points.length ? JSON.stringify(points.map(function (p) { return [Number(fixed(p.lat)), Number(fixed(p.lng))]; })) : '';
       say(points.length ? points.length + ' point' + (points.length > 1 ? 's' : '') + (points.length < 3 ? ' (3 au moins)' : '') : '');
+    }
+
+    var VERTEX = L.divIcon({ className: 'problem-vertex', iconSize: [14, 14] });
+    var MIDPOINT = L.divIcon({ className: 'problem-midpoint', iconSize: [10, 10] });
+
+    // Polygon with its handles: a vertex is dragged to move it, removed by a right click
+    // (long press); a midpoint is clicked or dragged to insert a vertex
+    function drawPolygon() {
+      vertices.clearLayers();
+      points.forEach(function (p, i) {
+        var handle = L.marker(p, { icon: VERTEX, draggable: true, title: 'Point ' + (i + 1) + ' (déplaçable, clic droit pour le retirer)', keyboard: false });
+        handle.on('drag', function () { points[i] = handle.getLatLng(); drawShape(); });
+        handle.on('dragend', drawPolygon);
+        handle.on('contextmenu', function (e) {
+          if (e.originalEvent) { L.DomEvent.preventDefault(e.originalEvent); }
+          points.splice(i, 1);
+          drawPolygon();
+        });
+        handle.addTo(vertices);
+      });
+      var edges = points.length >= 3 ? points.length : points.length - 1;
+      for (var i = 0; i < edges; i++) {
+        (function (i) {
+          var a = points[i], b = points[(i + 1) % points.length];
+          var middle = L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2);
+          var handle = L.marker(middle, { icon: MIDPOINT, draggable: true, title: 'Insérer un point', keyboard: false });
+          var inserted = false;
+          function insert() {
+            if (!inserted) { points.splice(i + 1, 0, handle.getLatLng()); inserted = true; }
+          }
+          handle.on('dragstart', insert);
+          handle.on('drag', function () { points[i + 1] = handle.getLatLng(); drawShape(); });
+          handle.on('dragend', drawPolygon);
+          handle.on('click', function () { insert(); drawPolygon(); });
+          handle.addTo(vertices);
+        })(i);
+      }
+      drawShape();
       return polygon;
+    }
+
+    // Streets: one field per street, with suggestions of the streets of the observations
+    var streetList = block.querySelector('[data-street-list]');
+    function streetInputs() {
+      return Array.prototype.slice.call(streetList.querySelectorAll('input[name="problem_streets[]"]'));
+    }
+    function streets() {
+      return streetInputs().map(function (input) { return streetText(input.value); }).filter(function (s) { return streetKey(s.street) !== ''; });
+    }
+    function inStreets(address) {
+      var parts = addressParts(address), key = streetKey(parts.street);
+      return key !== '' && streets().some(function (s) {
+        return streetKey(s.street) === key && (s.city === '' || streetKey(s.city) === streetKey(parts.city));
+      });
+    }
+    function addStreetRow(value) {
+      var rows = streetList.querySelectorAll('[data-street-row]');
+      var row = rows[rows.length - 1].cloneNode(true);
+      var input = row.querySelector('input');
+      input.value = value || '';
+      input.id = 'problem_street_' + Date.now();
+      streetList.appendChild(row);
+      return input;
+    }
+    function addStreet(value) {
+      var empty = streetInputs().filter(function (input) { return input.value.trim() === ''; })[0];
+      if (empty) {
+        empty.value = value;
+      } else {
+        addStreetRow(value);
+      }
+      refreshStreets();
+    }
+    block.querySelector('[data-street-add]').addEventListener('click', function () {
+      addStreetRow('').focus();
+    });
+    streetList.addEventListener('click', function (e) {
+      var button = e.target.closest('[data-street-remove]');
+      if (!button) { return; }
+      var row = button.closest('[data-street-row]');
+      if (streetList.querySelectorAll('[data-street-row]').length > 1) {
+        row.remove();
+      } else {
+        row.querySelector('input').value = '';
+      }
+      refreshStreets();
+    });
+    streetList.addEventListener('input', function () { refreshStreets(); });
+
+    // Observations of reference; in the zone "Rues", those of the chosen streets are highlighted
+    function drawReferences() {
+      referenceLayer.clearLayers();
+      var streetsZone = zone() === 'streets', matching = 0;
+      references.forEach(function (p) {
+        var match = streetsZone && inStreets(p.address);
+        if (match) { matching++; }
+        var color = streetsZone ? (match ? '#198754' : '#6c757d') : (p.kind === 'attached' ? '#198754' : '#fd7e14');
+        var dot = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.9 }).addTo(referenceLayer);
+        // Token and address as text (not HTML)
+        var label = document.createElement('span');
+        label.textContent = p.token + (p.address ? ' – ' + p.address : '');
+        dot.bindTooltip(label);
+        dot.on('click', function (e) {
+          if (zone() !== 'streets') { return; }
+          L.DomEvent.stopPropagation(e);
+          var parts = addressParts(p.address);
+          if (parts.street !== '' && !inStreets(p.address)) {
+            addStreet(parts.street + (parts.city ? ', ' + parts.city : ''));
+          }
+        });
+      });
+      if (streetsZone) {
+        var count = streets().length;
+        say(count + ' rue' + (count > 1 ? 's' : '') + (references.length ? ' · ' + matching + ' observation' + (matching > 1 ? 's' : '') + ' sur ' + references.length + ' dans ces rues' : ''));
+      }
+    }
+    function refreshStreets() {
+      if (zone() === 'streets') { drawReferences(); }
     }
 
     // Only the tools and the shape of the chosen zone are shown
@@ -109,10 +254,22 @@
         map.removeLayer(vertices);
         if (polygon) { map.removeLayer(polygon); }
       }
-      var shape = current === 'circle' ? drawCircle() : drawPolygon();
+      var shape = current === 'circle' ? drawCircle() : (current === 'polygon' ? drawPolygon() : null);
       if (current === 'circle') { say(''); }
-      if (fit && shape && shape.getBounds && shape.getBounds().isValid()) {
-        map.fitBounds(shape.getBounds().pad(0.3));
+      drawReferences();
+      if (!fit) {
+        return;
+      }
+      var bounds = shape && shape.getBounds && shape.getBounds().isValid() ? L.latLngBounds(shape.getBounds()) : null;
+      if (current === 'circle' && circle) {
+        bounds = L.latLng(circle.getLatLng()).toBounds(circle.getRadius() * 2);
+      }
+      if (references.length) {
+        var all = referenceLayer.getBounds();
+        bounds = bounds ? bounds.extend(all) : all;
+      }
+      if (bounds && bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.3), { maxZoom: 18 });
       }
     }
 
@@ -121,7 +278,7 @@
         f.lat.value = fixed(e.latlng.lat);
         f.lon.value = fixed(e.latlng.lng);
         drawCircle();
-      } else {
+      } else if (zone() === 'polygon') {
         points.push(e.latlng);
         drawPolygon();
       }
@@ -187,22 +344,30 @@
     }
     var map = L.map(container);
     L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
-    var zone = data.zone === 'polygon'
-      ? L.polygon(data.polygon, STYLE)
-      : L.circle([data.lat, data.lon], L.extend({ radius: data.radius }, STYLE));
-    // A circle has bounds only once the map has a view
-    var bounds = data.zone === 'polygon' ? zone.getBounds() : L.latLng(data.lat, data.lon).toBounds(data.radius * 2);
-    map.fitBounds(bounds);
-    zone.addTo(map);
+    var bounds = null;
+    if (data.zone === 'polygon') {
+      bounds = L.polygon(data.polygon, STYLE).addTo(map).getBounds();
+    } else if (data.zone !== 'streets') {
+      // A circle has bounds only once the map has a view
+      bounds = L.latLng(data.lat, data.lon).toBounds(data.radius * 2);
+      map.fitBounds(bounds);
+      L.circle([data.lat, data.lon], L.extend({ radius: data.radius }, STYLE)).addTo(map);
+    }
     data.points.forEach(function (p) {
       var marker = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 1, fillColor: COLORS[p.kind] || '#6c757d', fillOpacity: 0.9 }).addTo(map);
       // Token as text (not HTML)
       var label = document.createElement('span');
       label.textContent = p.token;
       marker.bindTooltip(label);
-      bounds.extend([p.lat, p.lon]);
+      bounds = bounds ? bounds.extend([p.lat, p.lon]) : L.latLngBounds([p.lat, p.lon], [p.lat, p.lon]);
     });
-    map.fitBounds(bounds.pad(0.15));
+    if (bounds) {
+      map.fitBounds(bounds.pad(0.15), { maxZoom: 18 });
+    } else {
+      // Zone of streets without observation: view of the scope
+      var center = String(data.center || '46.6,2.4').split(',');
+      map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
+    }
     setTimeout(function () { map.invalidateSize(); }, 200);
   });
 })();

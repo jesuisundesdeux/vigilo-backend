@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.33
+
+### Problèmes : zone de rues, édition de la zone
+- Nouvelle zone **Rues** (en alternative au cercle et au polygone) : une ou plusieurs rues (« Rue, Ville », ville
+  facultative) comparées à l'adresse des observations, sans tenir compte des majuscules, des accents ni du numéro ; la
+  ville est celle de l'adresse ou de l'observation. Le formulaire propose les rues des observations publiées ; un clic
+  sur une observation de la carte ajoute sa rue. Le rattachement (rétroactif, automatique, à arbitrer) suit la même
+  règle.
+- Polygone : les points se **déplacent** (glisser), un point s'**insère** depuis le milieu d'un côté (clic ou glisser)
+  et se **retire** par un clic droit (appui long) ; le polygone d'un problème existant se modifie ainsi depuis
+  « Modifier » ou le lien « Modifier la zone » de sa fiche.
+- La carte du formulaire affiche les **observations de la suggestion** (problème créé depuis une suggestion) ou celles
+  **rattachées** au problème modifié ; les rues de la suggestion sont proposées pour la zone Rues.
+- Migration 0.0.33 : colonne `obs_problems.problem_streets`. Rien ne change pour l'API publique.
+
 ## 0.0.32
 
 ### Problèmes (lot 1, première partie)

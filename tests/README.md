@@ -10,7 +10,7 @@ Prérequis : une MariaDB accessible (`MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD
 | Contrat de l'API | `tests/api/run.sh app <image>` | Les réponses des routes publiques sont identiques à celles de la version précédente (`tests/api/snapshots.json`, changements voulus dans `tests/api/expected_changes.json`). |
 | Tests fonctionnels de l'API | `tests/api/run.sh app <image> --functional` | Le comportement de chaque appel : création, photo, modération, publication, mise à jour, suppression, filtres et formats de `get_issues`, pixellisation, résolutions, webhooks (appel à la publication, variables, échappement, échec sans blocage), serveur de floutage (photo envoyée et remplacée, conservée telle qu'envoyée en cas d'échec ; avec le vrai serveur si `BLUR_SERVER_URL` est défini), anti-spam, injections SQL, répertoires privés. |
 | Admin | `ADMIN_SMOKE=1 tests/api/run.sh app <image>` | Toutes les pages, les actions, le CSRF, les rôles, les photos de l'admin, sans erreur PHP. |
-| Problèmes | `php tests/problems/unit.php` | Zones (cercle, polygone concave), rectangle englobant, validation du formulaire, sans base de données. |
+| Problèmes | `php tests/problems/unit.php` | Zones (cercle, polygone concave, rues), rectangle englobant, validation du formulaire, sans base de données. |
 | Serveur de floutage | `python3 -m unittest discover -s blur-server/tests` | Visages et plaques détectés et masqués, reste de la photo intact, appels HTTP. |
 | docker-compose + floutage | `tests/blur/compose.sh <image backend> <image blur>` | Profil `blur` de bout en bout : photo envoyée au backend, enregistrée visage et plaques masqués. |
 | Migrations | job `migrations` de la CI | Installation neuve, rejeu, montée depuis chaque version, refus du retour arrière. |

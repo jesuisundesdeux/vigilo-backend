@@ -74,9 +74,79 @@ function problem_admin_form_values($problem)
     return $problem;
 }
 
+/*
+ * Observations shown on the map of the form (by token, published only): those of a
+ * suggestion, or those attached to the problem. List of array(lat, lon, token, address, kind).
+ */
+function problem_admin_reference_points($db, $tokens, $problem_id)
+{
+    $points = array();
+    if ($problem_id > 0) {
+        foreach (problem_observations($db, $problem_id) as $row) {
+            $points[] = array('lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
+                              'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']), 'kind' => 'attached');
+        }
+        return $points;
+    }
+    $list = array();
+    foreach (array_slice($tokens, 0, 200) as $token) {
+        if (is_string($token) && preg_match('/^[A-Za-z0-9]{1,32}$/', $token)) {
+            $list[] = "'" . mysqli_real_escape_string($db, $token) . "'";
+        }
+    }
+    if (!$list) {
+        return $points;
+    }
+    $query = mysqli_query($db, "SELECT obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon, obs_list.obs_address_string,
+                                       " . PROBLEM_CITY_SQL . " AS city_label
+                                FROM obs_list " . PROBLEM_CITY_JOIN . "
+                                WHERE obs_list.obs_token IN (" . implode(',', $list) . ") AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $points[] = array('lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
+                          'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']), 'kind' => 'suggestion');
+    }
+    return $points;
+}
+
+/* Streets of the published observations ("Rue X, Ville" => number of observations), for the form */
+function problem_admin_known_streets($db)
+{
+    $streets = array();
+    $query   = mysqli_query($db, "SELECT obs_list.obs_address_string, " . PROBLEM_CITY_SQL . " AS city_label, COUNT(*) AS nb
+                                  FROM obs_list " . PROBLEM_CITY_JOIN . "
+                                  WHERE obs_list.obs_complete = 1 AND obs_list.obs_approved = 1 AND obs_list.obs_address_string <> ''
+                                  GROUP BY obs_list.obs_address_string, city_label ORDER BY nb DESC LIMIT 5000");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        list($street, $city) = problem_address_parts(problem_full_address($row['obs_address_string'], $row['city_label']));
+        $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i', '', $street));
+        $key    = problem_street_key($street) . '|' . problem_street_key($city);
+        if (problem_street_key($street) === '') {
+            continue;
+        }
+        if (!isset($streets[$key])) {
+            $streets[$key] = array(problem_street_text(array('street' => $street, 'city' => $city)), 0);
+        }
+        $streets[$key][1] += intval($row['nb']);
+    }
+    usort($streets, function ($a, $b) {
+        return $b[1] - $a[1];
+    });
+    $known = array();
+    foreach (array_slice($streets, 0, 1000) as $street) {
+        $known[$street[0]] = $street[1];
+    }
+    return $known;
+}
+
+/* Streets of the form: those of the problem, or of a suggestion (texts "Rue X, Ville") */
+function problem_admin_street_texts($problem)
+{
+    return array_map('problem_street_text', problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
+}
+
 $empty_problem = array('problem_id' => 0, 'problem_title' => '', 'problem_description' => '', 'problem_categories' => '',
                        'problem_zone' => 'circle', 'problem_lat' => 0, 'problem_lon' => 0, 'problem_radius' => 100,
-                       'problem_polygon' => '', 'problem_start' => 0, 'problem_end' => null, 'problem_priority' => 2,
+                       'problem_polygon' => '', 'problem_streets' => '', 'problem_start' => 0, 'problem_end' => null, 'problem_priority' => 2,
                        'problem_status' => 'open', 'start_day' => date('Y-m-d'), 'end_day' => '');
 
 $edit = null;
@@ -106,11 +176,12 @@ if (isset($_POST['problem_save'])) {
             'problem_title'       => "'" . mysqli_real_escape_string($db, $edit['problem_title']) . "'",
             'problem_description' => "'" . mysqli_real_escape_string($db, $edit['problem_description']) . "'",
             'problem_categories'  => "'" . mysqli_real_escape_string($db, $edit['problem_categories']) . "'",
-            'problem_zone'        => "'" . ($edit['problem_zone'] == 'polygon' ? 'polygon' : 'circle') . "'",
+            'problem_zone'        => "'" . (in_array($edit['problem_zone'], array('polygon', 'streets'), true) ? $edit['problem_zone'] : 'circle') . "'",
             'problem_lat'         => sprintf('%.6F', $edit['problem_lat']),
             'problem_lon'         => sprintf('%.6F', $edit['problem_lon']),
             'problem_radius'      => intval($edit['problem_radius']),
             'problem_polygon'     => "'" . mysqli_real_escape_string($db, $edit['problem_polygon']) . "'",
+            'problem_streets'     => $edit['problem_zone'] == 'streets' ? "'" . mysqli_real_escape_string($db, $edit['problem_streets']) . "'" : 'NULL',
             'problem_start'       => intval($edit['problem_start']),
             'problem_end'         => $edit['problem_end'] === null ? 'NULL' : intval($edit['problem_end']),
             'problem_priority'    => intval($edit['problem_priority']),
@@ -141,7 +212,7 @@ if (isset($_POST['problem_save'])) {
             if ($existing['problem_description'] !== $edit['problem_description']) {
                 $changes['description'] = 'modifiée';
             }
-            if ($existing['problem_zone'] == $edit['problem_zone'] && ($existing['problem_polygon'] !== $edit['problem_polygon']
+            if ($existing['problem_zone'] == $edit['problem_zone'] && $edit['problem_zone'] != 'streets' && ($existing['problem_polygon'] !== $edit['problem_polygon']
                 || abs($existing['problem_lat'] - $edit['problem_lat']) > 1e-6 || abs($existing['problem_lon'] - $edit['problem_lon']) > 1e-6)) {
                 $changes['zone_moved'] = true;
             }
@@ -162,7 +233,11 @@ if (isset($_POST['problem_save'])) {
     }
 }
 
-/* Form to show */
+/* Form to show; observations shown on its map (of the suggestion, or attached to the problem) */
+$reference_tokens = array();
+if ($edit !== null && isset($_POST['reference_tokens']) && is_string($_POST['reference_tokens'])) {
+    $reference_tokens = explode(',', $_POST['reference_tokens']);
+}
 if ($edit === null && isset($_GET['edit'])) {
     if ($_GET['edit'] === 'new') {
         $edit = $empty_problem;
@@ -175,6 +250,7 @@ if ($edit === null && isset($_GET['edit'])) {
             $edit['problem_lon']        = is_numeric($get('lon')) ? (float) $get('lon') : 0;
             $edit['problem_radius']     = is_numeric($get('radius')) ? intval($get('radius')) : 100;
             $edit['start_day']          = preg_match('/^\d{4}-\d{2}-\d{2}$/', $get('start')) ? $get('start') : $edit['start_day'];
+            $reference_tokens           = $get('tokens') !== '' ? explode(',', $get('tokens')) : array();
         }
     } else {
         $edit = problem_load($db, $_GET['edit']);
@@ -359,10 +435,28 @@ foreach ($messages as $message) {
 if ($edit !== null) {
     $selected = problem_category_ids($edit);
     $polygon  = $edit['problem_zone'] == 'polygon' ? (string) $edit['problem_polygon'] : '';
+    $zone     = in_array($edit['problem_zone'], array('polygon', 'streets'), true) ? $edit['problem_zone'] : 'circle';
+    $points   = problem_admin_reference_points($db, $reference_tokens, intval($edit['problem_id']));
+    $street_texts = problem_admin_street_texts($edit);
+    // Suggestion: its streets proposed (used if the zone "Rues" is chosen)
+    if (!$street_texts && $points && !$edit['problem_id']) {
+        $seen = array();
+        foreach ($points as $point) {
+            list($street, $city) = problem_address_parts($point['address']);
+            $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i', '', $street));
+            $key    = problem_street_key($street) . '|' . problem_street_key($city);
+            if (problem_street_key($street) !== '' && !isset($seen[$key]) && count($seen) < VIGILO_PROBLEM_STREETS_MAX) {
+                $seen[$key]     = true;
+                $street_texts[] = problem_street_text(array('street' => $street, 'city' => $city));
+            }
+        }
+    }
+    $known_streets = problem_admin_known_streets($db);
 ?>
 <form class="card shadow-sm mb-4" method="POST" action="<?= h($self_url) ?>">
   <?= csrf_field() ?>
   <input type="hidden" name="problem_id" value="<?= intval($edit['problem_id']) ?>">
+  <?php if ($reference_tokens) { ?><input type="hidden" name="reference_tokens" value="<?= h(implode(',', array_slice(array_filter($reference_tokens, 'is_string'), 0, 200))) ?>"><?php } ?>
   <div class="card-header fw-semibold"><?= $edit['problem_id'] ? 'Modifier le problème' : 'Nouveau problème' ?></div>
   <div class="card-body">
     <div class="row g-3">
@@ -416,17 +510,21 @@ if ($edit !== null) {
           </div>
         </div>
       </div>
-      <div class="col-12 problem-map-block">
+      <div class="col-12 problem-map-block" id="zone">
         <fieldset>
           <legend class="form-label fs-6 mb-1">Zone</legend>
           <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
             <div class="form-check form-check-inline me-0">
-              <input class="form-check-input" type="radio" name="problem_zone" id="problem_zone_circle" value="circle"<?= $edit['problem_zone'] != 'polygon' ? ' checked' : '' ?>>
+              <input class="form-check-input" type="radio" name="problem_zone" id="problem_zone_circle" value="circle"<?= $zone == 'circle' ? ' checked' : '' ?>>
               <label class="form-check-label" for="problem_zone_circle">Cercle</label>
             </div>
             <div class="form-check form-check-inline me-0">
-              <input class="form-check-input" type="radio" name="problem_zone" id="problem_zone_polygon" value="polygon"<?= $edit['problem_zone'] == 'polygon' ? ' checked' : '' ?>>
+              <input class="form-check-input" type="radio" name="problem_zone" id="problem_zone_polygon" value="polygon"<?= $zone == 'polygon' ? ' checked' : '' ?>>
               <label class="form-check-label" for="problem_zone_polygon">Polygone</label>
+            </div>
+            <div class="form-check form-check-inline me-0">
+              <input class="form-check-input" type="radio" name="problem_zone" id="problem_zone_streets" value="streets"<?= $zone == 'streets' ? ' checked' : '' ?>>
+              <label class="form-check-label" for="problem_zone_streets">Rues</label>
             </div>
             <div class="input-group input-group-sm" style="max-width: 20rem;">
               <input type="search" class="form-control" placeholder="Aller à une ville, un lieu…" data-map-search aria-label="Rechercher un lieu">
@@ -437,18 +535,40 @@ if ($edit !== null) {
               <button class="btn btn-sm btn-outline-danger" type="button" data-map-action="clear"><i class="bi bi-x-lg"></i> Effacer</button>
             </span>
           </div>
-          <div class="problem-map rounded border" data-problem-map data-center="<?= h($map_center) ?>" data-zoom="<?= intval($map_zoom) ?>" style="height: 380px;"></div>
+          <div class="problem-map rounded border" data-problem-map data-center="<?= h($map_center) ?>" data-zoom="<?= intval($map_zoom) ?>" data-points="<?= h(json_encode($points)) ?>" style="height: 380px;"></div>
           <div class="form-text" data-map-status aria-live="polite"></div>
+          <?php if ($points) { ?>
+          <div class="form-text"><span class="problem-legend-dot" style="background: <?= $edit['problem_id'] ? '#198754' : '#fd7e14' ?>;"></span>
+            <?= count($points) ?> observation<?= count($points) > 1 ? 's' : '' ?> <?= $edit['problem_id'] ? 'rattachée' . (count($points) > 1 ? 's' : '') . ' au problème' : 'de la suggestion' ?> (repère<?= count($points) > 1 ? 's' : '' ?> sur la carte).</div>
+          <?php } ?>
           <div class="form-text" data-zone-help="circle">Cliquer sur la carte pour placer le centre du cercle (marqueur déplaçable), puis régler le rayon.</div>
-          <div class="form-text" data-zone-help="polygon">Cliquer sur la carte pour ajouter les points du polygone (3 au moins).</div>
+          <div class="form-text" data-zone-help="polygon">Cliquer sur la carte pour ajouter un point à la fin du polygone (3 au moins). Faire glisser un point pour le déplacer,
+            cliquer ou faire glisser le petit point au milieu d'un côté pour en insérer un, clic droit (ou appui long) sur un point pour le retirer.</div>
+          <div class="form-text" data-zone-help="streets">Les observations dont l'adresse est dans l'une de ces rues correspondent au problème
+            (sans tenir compte des majuscules, des accents ni du numéro). Cliquer sur une observation de la carte ajoute sa rue.</div>
+          <div class="mt-2" data-zone-tools="streets">
+            <label class="form-label mb-1" for="problem_street_0">Rues <span class="text-body-secondary small">(1 à <?= VIGILO_PROBLEM_STREETS_MAX ?>, « Rue, Ville » ; sans ville : toutes les villes)</span></label>
+            <div data-street-list>
+              <?php foreach ($street_texts ? $street_texts : array('') as $i => $text) { ?>
+              <div class="input-group input-group-sm mb-1" data-street-row>
+                <input class="form-control" id="problem_street_<?= intval($i) ?>" name="problem_streets[]" list="problem_known_streets" maxlength="255" value="<?= h($text) ?>" placeholder="Rue de la Gare, Montpellier" aria-label="Rue">
+                <button class="btn btn-outline-danger" type="button" data-street-remove aria-label="Retirer cette rue"><i class="bi bi-x-lg"></i></button>
+              </div>
+              <?php } ?>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-street-add><i class="bi bi-plus-lg"></i> Ajouter une rue</button>
+            <datalist id="problem_known_streets">
+              <?php foreach ($known_streets as $text => $count) { ?><option value="<?= h($text) ?>"><?= intval($count) ?> observation<?= $count > 1 ? 's' : '' ?></option><?php } ?>
+            </datalist>
+          </div>
           <div class="row g-3 mt-0" data-zone-tools="circle">
             <div class="col-6 col-md-3">
               <label class="form-label" for="problem_lat">Latitude du centre</label>
-              <input class="form-control" id="problem_lat" name="problem_lat" inputmode="decimal" value="<?= $edit['problem_zone'] != 'polygon' && floatval($edit['problem_lat']) ? h($edit['problem_lat']) : '' ?>">
+              <input class="form-control" id="problem_lat" name="problem_lat" inputmode="decimal" value="<?= $zone == 'circle' && floatval($edit['problem_lat']) ? h($edit['problem_lat']) : '' ?>">
             </div>
             <div class="col-6 col-md-3">
               <label class="form-label" for="problem_lon">Longitude du centre</label>
-              <input class="form-control" id="problem_lon" name="problem_lon" inputmode="decimal" value="<?= $edit['problem_zone'] != 'polygon' && floatval($edit['problem_lon']) ? h($edit['problem_lon']) : '' ?>">
+              <input class="form-control" id="problem_lon" name="problem_lon" inputmode="decimal" value="<?= $zone == 'circle' && floatval($edit['problem_lon']) ? h($edit['problem_lon']) : '' ?>">
             </div>
             <div class="col-6 col-md-3">
               <label class="form-label" for="problem_radius">Rayon (m)</label>
@@ -488,7 +608,8 @@ if ($edit !== null) {
         }
     }
     $map_data = array('zone' => $view['problem_zone'], 'lat' => (float) $view['problem_lat'], 'lon' => (float) $view['problem_lon'],
-                      'radius' => intval($view['problem_radius']), 'polygon' => problem_polygon_points($view['problem_polygon']), 'points' => $points);
+                      'radius' => intval($view['problem_radius']), 'polygon' => problem_polygon_points($view['problem_polygon']), 'points' => $points,
+                      'center' => $map_center, 'zoom' => $map_zoom);
 ?>
 <p><a href="<?= h($self_url) ?>"><i class="bi bi-arrow-left"></i> Tous les problèmes</a></p>
 <div class="card shadow-sm mb-4">
@@ -532,6 +653,7 @@ if ($edit !== null) {
     <div class="form-text">
       <span class="text-success"><i class="bi bi-circle-fill"></i> rattachées</span>
       <?php if ($count) { ?> · <span class="text-primary"><i class="bi bi-circle-fill"></i> à rattacher</span> · <span><i class="bi bi-circle-fill" style="color: #fd7e14;"></i> dans un autre problème</span><?php } ?>
+      <?php if (!$readonly) { ?> · <a href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>#zone"><i class="bi bi-bounding-box"></i> Modifier la zone</a><?php } ?>
     </div>
   </div>
 </div>
@@ -695,7 +817,8 @@ if (!$readonly) { ?>
     <?php foreach ($suggest['suggestions'] as $suggestion) {
         $category = isset($problem_categories[$suggestion['category']]) ? $problem_categories[$suggestion['category']][0] : '#' . $suggestion['category'];
         $create   = $self_url . '&edit=new&suggestion=1&' . http_build_query(array('title' => $category . ' – ' . $suggestion['address'], 'catid' => $suggestion['category'],
-                    'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']))); ?>
+                    'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']),
+                    'tokens' => implode(',', array_slice($suggestion['tokens'], 0, 200)))); ?>
     <li class="list-group-item">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <span class="badge text-bg-primary"><?= intval($suggestion['count']) ?></span>
@@ -724,7 +847,7 @@ if (!$readonly) { ?>
   </div>
   <div class="card-body pb-0">
     <p class="small text-body-secondary">
-      Un problème regroupe les observations publiées d'une zone (cercle ou polygone), de catégories et d'une période.
+      Un problème regroupe les observations publiées d'une zone (cercle, polygone ou rues), de catégories et d'une période.
       À sa publication, une observation est rattachée automatiquement au problème actif (ouvert, en cours, en attente)
       qui lui correspond, s'il n'y en a qu'un. Les problèmes ne sont visibles que dans l'admin.
       <?php if ($readonly) { ?><br>Consultation seulement : problèmes ayant des observations dans vos villes, gérés par les administrateurs.<?php } ?>

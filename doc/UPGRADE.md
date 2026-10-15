@@ -170,6 +170,11 @@ une base vide (installation neuve) ; une base plus ancienne que la 0.0.17 est re
 depuis l'admin supprime les anciens fichiers `migrations/init-0.0.2.sql` à `init-0.0.17.sql`. La migration 0.0.32,
 appliquée automatiquement, ajoute les tables des problèmes (page Problèmes de l'admin).
 
+### Passage à la 0.0.33
+
+Aucune action manuelle. La migration 0.0.33, appliquée automatiquement, ajoute la colonne des rues d'un problème
+(`obs_problems.problem_streets`).
+
 ### Publier une version (mainteneurs)
 
 Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).
