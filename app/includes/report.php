@@ -311,6 +311,51 @@ function report_stats($observations, $groups, $filters, $previous, $population)
     );
 }
 
+/*
+ * Sections of the report, in their order: key => array(title, administrators only,
+ * included by default). Chosen in the form (sections[], with s=1); without s (old links),
+ * the default ones, the problems only with problems=1.
+ */
+function report_sections()
+{
+    return array(
+        'kpis'            => array('Chiffres clés', false, true),
+        'monthly'         => array('Évolution mensuelle', false, true),
+        'categories'      => array('Types d\'observation', false, true),
+        'statuses'        => array('État de traitement', false, true),
+        'cities'          => array('Répartition par ville', false, true),
+        'streets'         => array('Rues les plus concernées', false, true),
+        'times'           => array('Jours et heures', false, true),
+        'map'             => array('Carte des lieux', false, true),
+        'groups'          => array('Lieux récurrents', false, true),
+        'problems'        => array('Problèmes suivis (tableau)', true, true),
+        'problem_details' => array('Détail de chaque problème (carte, chronologie, horaires, photos)', true, true),
+        'method'          => array('Méthode', false, true),
+    );
+}
+
+/* Sections chosen for a request: key => true */
+function report_chosen_sections($get, $is_admin)
+{
+    $chosen = array();
+    foreach (report_sections() as $key => $section) {
+        if ($section[1] && !$is_admin) {
+            continue;
+        }
+        if (isset($get['s'])) {
+            $on = isset($get['sections']) && is_array($get['sections']) && in_array($key, $get['sections'], true);
+        } elseif ($section[1]) {
+            $on = !empty($get['problems']);
+        } else {
+            $on = $section[2];
+        }
+        if ($on) {
+            $chosen[$key] = true;
+        }
+    }
+    return $chosen;
+}
+
 /* ---- SVG charts (no library: printed as they are seen) ---- */
 
 function report_svg_escape($text)
@@ -348,6 +393,69 @@ function report_svg_columns($values, $color, $title)
             $svg .= '<text x="' . round($x + $bar / 2, 1) . '" y="' . ($height - $bottom + 16) . '" text-anchor="middle" class="axis">' . report_svg_escape($label) . '</text>';
         }
         $i++;
+    }
+    return $svg . '</svg>';
+}
+
+/* Number of observations per day of the week (Monday first) and hour: 7 rows of 24 numbers */
+function report_week_grid($observations)
+{
+    $grid = array_fill(0, 7, array_fill(0, 24, 0));
+    foreach ($observations as $obs) {
+        $time = intval(isset($obs['time']) ? $obs['time'] : (isset($obs['obs_time']) ? $obs['obs_time'] : 0));
+        if ($time > 0) {
+            $grid[intval(date('N', $time)) - 1][intval(date('G', $time))]++;
+        }
+    }
+    return $grid;
+}
+
+/*
+ * Matrix days × hours, squares darker with the number of observations (same ramp and steps
+ * as the statistics of the web application)
+ */
+function report_svg_heatmap($grid, $title)
+{
+    $ramp  = array('#f4f5f7', '#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#104281');
+    $days  = array('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
+    $cell  = 26;
+    $gap   = 3;
+    $left  = 44;
+    $top   = 18;
+    $width = $left + 24 * ($cell + $gap);
+    $max   = 0;
+    foreach ($grid as $row) {
+        $max = max($max, max($row));
+    }
+    $height = $top + 7 * ($cell + $gap) + 30;
+    $svg = '<svg viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . report_svg_escape($title) . '" class="report-chart report-heatmap">';
+    for ($h = 0; $h < 24; $h += 3) {
+        $svg .= '<text x="' . ($left + $h * ($cell + $gap)) . '" y="12" class="axis">' . $h . ' h</text>';
+    }
+    $busiest = array(0, '');
+    foreach ($grid as $d => $row) {
+        $y = $top + $d * ($cell + $gap);
+        $svg .= '<text x="' . ($left - 6) . '" y="' . ($y + $cell / 2 + 4) . '" text-anchor="end" class="axis">' . report_svg_escape(substr($days[$d], 0, 3) . '.') . '</text>';
+        foreach ($row as $h => $count) {
+            $step = $count == 0 ? 0 : min(count($ramp) - 1, 1 + (int) floor($count / $max * (count($ramp) - 1) - 1e-9));
+            $tip  = $days[$d] . ' ' . $h . ' h – ' . ($h + 1) . ' h : ' . $count . ' observation' . ($count > 1 ? 's' : '');
+            $svg .= '<rect x="' . ($left + $h * ($cell + $gap)) . '" y="' . $y . '" width="' . $cell . '" height="' . $cell . '" rx="4" fill="' . $ramp[$step] . '"'
+                  . ($step == 0 ? ' class="empty"' : '') . '><title>' . report_svg_escape($tip) . '</title></rect>';
+            if ($count > $busiest[0]) {
+                $busiest = array($count, $tip);
+            }
+        }
+    }
+    // Scale: less → more
+    $y  = $top + 7 * ($cell + $gap) + 8;
+    $x  = $width - (count($ramp) - 1) * 16 - 40;
+    $svg .= '<text x="' . ($x - 6) . '" y="' . ($y + 11) . '" text-anchor="end" class="axis">moins</text>';
+    for ($i = 1; $i < count($ramp); $i++) {
+        $svg .= '<rect x="' . ($x + ($i - 1) * 16) . '" y="' . $y . '" width="13" height="13" rx="3" fill="' . $ramp[$i] . '"/>';
+    }
+    $svg .= '<text x="' . ($x + (count($ramp) - 1) * 16 + 4) . '" y="' . ($y + 11) . '" class="axis">plus</text>';
+    if ($busiest[0] > 0) {
+        $svg .= '<text x="0" y="' . ($y + 11) . '" class="axis">Le plus fréquent : ' . report_svg_escape($busiest[1]) . '</text>';
     }
     return $svg . '</svg>';
 }

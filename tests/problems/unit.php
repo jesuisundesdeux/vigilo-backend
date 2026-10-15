@@ -104,6 +104,12 @@ check($stats['count'] == 2 && array_keys($stats['months']) === array('2020-11', 
       && $stats['months']['2020-12'] === 0 && $stats['weekdays'][0] === 2 && $stats['hours'][8] === 1 && $stats['hours'][18] === 1,
       'time stats: continuous months, Monday first, hours');
 check(problem_time_stats(array())['months'] === array(), 'time stats: no observation');
+check($stats['grid'][0][8] === 1 && $stats['grid'][0][18] === 1 && array_sum(array_map('array_sum', $stats['grid'])) === 2, 'time stats: matrix days × hours');
+require_once __DIR__ . '/../../app/includes/report.php';
+$svg = report_svg_heatmap($stats['grid'], 'Test <b>');
+check(substr_count($svg, '<rect') == 7 * 24 + 6 && strpos($svg, 'lundi 8 h – 9 h : 1 observation<') !== false && strpos($svg, '#104281') !== false
+      && strpos($svg, '<b>') === false, 'heatmap: 168 squares and a scale, darkest for the maximum, title escaped');
+check(report_week_grid(array(array('time' => mktime(23, 0, 0, 1, 3, 2021))))[6][23] === 1, 'week grid: Sunday 23 h');
 
 check(problem_active_statuses() === array('open', 'in_progress', 'waiting'), 'active statuses');
 

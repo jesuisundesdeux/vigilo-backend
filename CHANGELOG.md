@@ -5,14 +5,26 @@
 ### Problèmes
 - Rattachement des observations existantes (**Compter** / **Rattacher**) : les observations **archivées** ne sont
   prises en compte que si la case « Inclure les observations archivées » est cochée (décochée par défaut).
-- Fiche d'un problème : **frise chronologique** (observations par mois) et répartition par **jour de la semaine** et
-  par **heure** ; **pagination** des observations rattachées (20 par page).
+- Fiche d'un problème : **frise chronologique** (observations par mois) et **matrice jours × heures** (une case par
+  jour et par heure, d'autant plus foncée que les observations y sont nombreuses, comme les statistiques de
+  l'application web) ; **pagination** des observations rattachées (20 par page).
 - Onglet **Carte** de la page Problèmes : zones des problèmes (filtres de la liste), couleur du statut, lien vers leur
   fiche ; un problème de rues est représenté par ses observations.
 - Bouton **Diffuser** sur chaque problème de la liste : appelle les webhooks du nouvel événement `problem.broadcast`
   (« Diffusion d'un problème », variables `problem_*`) et passe le problème « En attente » (journal
   `problem_broadcast`).
 - Page **Observations** : une observation rattachée à un problème affiche un lien vers ce problème.
+
+### Rapport pour une collectivité
+- Formulaire : liste des **sections** à cocher (chiffres clés, évolution mensuelle, types, état de traitement, villes,
+  rues, jours et heures, carte, lieux récurrents, problèmes suivis, détail de chaque problème, méthode) ; « Tout
+  cocher » / « Tout décocher ». Les anciens liens (`problems=1`) restent valides.
+- Nouvelle section **Détail de chaque problème** (administrateurs) : statut, priorité, date de création, catégories,
+  zone, nombre et période des observations, description, **carte** (zone et observations du rapport), dernières
+  **photos**, **frise chronologique** par mois, **matrice jours × heures** (deux diapositives en diaporama). Jamais
+  les notes internes.
+- Section « Jours et heures » : matrice jours × heures (à la place des deux histogrammes).
+- Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).
 
 ## 0.0.33
 

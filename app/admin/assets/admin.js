@@ -169,7 +169,7 @@
     update();
   });
 
-  // Report form (page Rapports): quick periods
+  // Report form (page Rapports): quick periods, sections
   document.querySelectorAll('[data-report-form]').forEach(function (form) {
     function day(d) {
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -194,6 +194,13 @@
         }
         form.querySelector('[name="from"]').value = day(from);
         form.querySelector('[name="to"]').value = day(to);
+      });
+    });
+    // Sections: all / none
+    form.querySelectorAll('[data-report-sections]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var on = button.getAttribute('data-report-sections') === 'all';
+        form.querySelectorAll('input[name="sections[]"]').forEach(function (box) { box.checked = on; });
       });
     });
   });

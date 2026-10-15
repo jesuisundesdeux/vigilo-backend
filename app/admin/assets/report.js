@@ -9,6 +9,13 @@
     : '@page { size: A4 portrait; }';
   document.head.appendChild(style);
 
+  // Labels come from the observations: text, never HTML
+  function textNode(text) {
+    var span = document.createElement('span');
+    span.textContent = text;
+    return span;
+  }
+
   var map = null;
   var fitMap = function () {};
   var container = document.getElementById('report-map');
@@ -33,7 +40,7 @@
       L.circleMarker([g.lat, g.lon], {
         radius: Math.min(26, 5 + Math.sqrt(g.count) * 4),
         color: '#1f2328', weight: 1, fillColor: g.color, fillOpacity: 0.75
-      }).bindTooltip(g.label).addTo(map);
+      }).bindTooltip(textNode(g.label)).addTo(map);
       bounds.push([g.lat, g.lon]);
     });
     fitMap = fit;
@@ -49,14 +56,54 @@
     }
   }
 
+  // Maps of the problems (detail of each problem): zone and observations of the report
+  var problemMaps = [];
+  document.querySelectorAll('.report-problem-map').forEach(function (el) {
+    var data;
+    try { data = JSON.parse(el.getAttribute('data-problem') || '{}'); } catch (e) { return; }
+    if (!window.L) {
+      return;
+    }
+    var m = L.map(el, { zoomControl: false, attributionControl: true });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      referrerPolicy: 'strict-origin-when-cross-origin'
+    }).addTo(m);
+    var style = { color: '#3f6fb5', weight: 2, fillOpacity: 0.12 };
+    var b = null;
+    if (data.zone === 'polygon' && data.polygon && data.polygon.length) {
+      b = L.polygon(data.polygon, style).addTo(m).getBounds();
+    } else if (data.zone !== 'streets' && data.radius) {
+      L.circle([data.lat, data.lon], L.extend({ radius: data.radius }, style)).addTo(m);
+      b = L.latLng(data.lat, data.lon).toBounds(data.radius * 2);
+    }
+    (data.points || []).forEach(function (p) {
+      L.circleMarker([p.lat, p.lon], { radius: 5, color: '#1f2328', weight: 1, fillColor: '#f2c200', fillOpacity: 0.9 })
+        .bindTooltip(textNode(p.label)).addTo(m);
+      b = b ? b.extend([p.lat, p.lon]) : L.latLngBounds([p.lat, p.lon], [p.lat, p.lon]);
+    });
+    var fitThis = function () {
+      if (b && b.isValid()) {
+        m.fitBounds(b.pad(0.15), { maxZoom: 17 });
+      } else {
+        m.setView([46.6, 2.4], 5);
+      }
+    };
+    fitThis();
+    problemMaps.push({ map: m, fit: fitThis });
+  });
+
   function refreshMap() {
     if (map) {
       map.invalidateSize();
     }
+    problemMaps.forEach(function (p) { p.map.invalidateSize(); p.fit(); });
   }
   // Printing: the map gets its printed size (see report.css) and is centered for it, then back
   var printing = false;
   window.addEventListener('beforeprint', function () {
+    problemMaps.forEach(function (p) { p.map.invalidateSize(); p.fit(); });
     if (!map) {
       return;
     }
@@ -68,6 +115,7 @@
     fitMap();
   });
   window.addEventListener('afterprint', function () {
+    problemMaps.forEach(function (p) { p.map.invalidateSize(); p.fit(); });
     if (!map) {
       return;
     }

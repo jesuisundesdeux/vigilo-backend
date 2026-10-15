@@ -75,6 +75,17 @@ h3 { font-size: 14px; color: var(--soft); font-weight: 600; }
 .problems-table th { font-size: 12px; color: var(--soft); font-weight: 600; }
 .problems-table tr { break-inside: avoid; }
 .problems-table .note { margin: 2px 0 0; }
+.problem-info { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 13px; margin: 0 0 8px; }
+.problem-info dt { color: var(--soft); font-weight: 600; }
+.problem-info dd { margin: 0; }
+.problem-description { font-size: 13px; margin: 0 0 10px; }
+.problem-top { margin-bottom: 8px; }
+.report-problem-map { height: 260px; border-radius: 10px; border: 1px solid var(--border); }
+.problem-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.problem-photos figure { margin: 0; break-inside: avoid; }
+.problem-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #e9ecef; display: block; }
+.problem-photos figcaption { font-size: 10.5px; color: var(--soft); font-family: ui-monospace, monospace; }
+.problem-detail h3 { font-size: 13px; margin: 10px 0 2px; }
 
 /* Recurrent places */
 .groups { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -114,6 +125,9 @@ h3 { font-size: 14px; color: var(--soft); font-weight: 600; }
 .report-slides .summary { font-size: 16px; margin-top: 18px; }
 .report-slides .groups { grid-template-columns: 1fr 1fr; }
 .report-slides .group img { width: auto; height: 100%; max-height: 150px; aspect-ratio: 1; }
+.report-slides .problem-slide > div { min-height: 0; display: flex; flex-direction: column; }
+.report-slides .problem-slide .report-problem-map { flex: 1; height: auto; min-height: 200px; }
+.report-slides .problem-slide .problem-photos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* Presentation mode: one slide at a time, full screen */
 body.presenting { background: #000; }
@@ -146,6 +160,8 @@ body.presenting .slide.current { display: flex; }
   .report-document .groups-section { break-inside: auto; }
   /* same size as set by report.js before printing (the map is centered for this size) */
   .report-document .report-map { width: 182mm; height: 380px; }
+  .report-document .problem-detail { break-inside: auto; }
+  .report-document .problem-top, .report-document .problem-detail .two-cols { break-inside: avoid; }
   .report-slides .report-map { width: 273mm; height: 100mm; flex: none; min-height: 0; }
   .report-slides .slide {
     width: 100%; height: 100vh; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0;
@@ -155,3 +171,5 @@ body.presenting .slide.current { display: flex; }
 }
 @page { margin: 14mm; }
 @page :first { margin-top: 12mm; }
+.report-heatmap { max-width: 760px; }
+.report-heatmap .empty { stroke: #e9ecef; stroke-width: 1; }

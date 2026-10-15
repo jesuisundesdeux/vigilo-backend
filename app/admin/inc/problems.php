@@ -891,10 +891,8 @@ if ($edit !== null) {
   <div class="card-body">
     <h3 class="h6 mb-0">Frise chronologique (observations par mois)</h3>
     <div class="problem-chart"><?= $time_charts['timeline'] /* SVG built with escaped labels (report_svg_columns) */ ?></div>
-    <div class="row g-3 mt-1">
-      <div class="col-md-6"><h3 class="h6 mb-0">Jour de la semaine</h3><div class="problem-chart"><?= $time_charts['weekdays'] ?></div></div>
-      <div class="col-md-6"><h3 class="h6 mb-0">Heure</h3><div class="problem-chart"><?= $time_charts['hours'] ?></div></div>
-    </div>
+    <h3 class="h6 mb-0 mt-3">Jours et heures</h3>
+    <div class="problem-chart"><?= $time_charts['heatmap'] /* matrix, darker with the number of observations */ ?></div>
   </div>
 </div>
 <?php } ?>

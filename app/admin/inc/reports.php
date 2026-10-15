@@ -21,6 +21,8 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
   exit('Not allowed');
 }
 
+require_once(__DIR__ . '/../../includes/report.php');
+
 /* Report for a local authority: the form opens admin/report.php (document or slides) in a new tab */
 $report_cities = array();
 $cities_query = mysqli_query($db, "SELECT city_id, city_name FROM obs_cities ORDER BY city_name");
@@ -101,16 +103,24 @@ foreach (getCategoriesList() as $categorie) {
         </select>
         <div class="form-text">Les observations de la même catégorie dans la même rue sont aussi regroupées.</div>
       </div>
-      <?php if ($_SESSION['role'] == 'admin') { ?>
-      <div class="col-sm-6 col-lg-4">
-        <span class="form-label fw-semibold d-block">Problèmes</span>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" name="problems" value="1" id="report_problems" checked>
-          <label class="form-check-label" for="report_problems">Inclure les problèmes suivis</label>
+      <fieldset class="col-12">
+        <legend class="form-label fw-semibold fs-6">Sections du rapport</legend>
+        <input type="hidden" name="s" value="1">
+        <div class="report-sections border rounded p-2">
+          <?php foreach (report_sections() as $key => $report_section) {
+              if ($report_section[1] && $_SESSION['role'] != 'admin') { continue; } ?>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="sections[]" value="<?= h($key) ?>" id="report_section_<?= h($key) ?>"<?= $report_section[2] ? ' checked' : '' ?>>
+            <label class="form-check-label" for="report_section_<?= h($key) ?>"><?= h($report_section[0]) ?></label>
+          </div>
+          <?php } ?>
         </div>
-        <div class="form-text">Problèmes ayant des observations dans le rapport, avec leur état ; jamais les notes internes.</div>
-      </div>
-      <?php } ?>
+        <div class="d-flex flex-wrap gap-2 mt-1">
+          <button type="button" class="btn btn-sm btn-link p-0" data-report-sections="all">Tout cocher</button>
+          <button type="button" class="btn btn-sm btn-link p-0" data-report-sections="none">Tout décocher</button>
+        </div>
+        <?php if ($_SESSION['role'] == 'admin') { ?><div class="form-text">Problèmes : ceux qui ont des observations dans le rapport, avec leur état ; jamais les notes internes.</div><?php } ?>
+      </fieldset>
       <fieldset class="col-sm-6 col-lg-4">
         <legend class="form-label fw-semibold fs-6">Format</legend>
         <div class="form-check">
