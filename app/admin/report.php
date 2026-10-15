@@ -201,7 +201,8 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
     $points[] = array('lat' => round($obs['lat'], 6), 'lon' => round($obs['lon'], 6), 'label' => $obs['token'] . ' — ' . report_date($obs['time']));
   }
   $map_data = array('zone' => $problem['problem_zone'], 'lat' => (float) $problem['problem_lat'], 'lon' => (float) $problem['problem_lon'],
-                    'radius' => intval($problem['problem_radius']), 'polygon' => problem_polygon_points($problem['problem_polygon']), 'points' => $points);
+                    'radius' => intval($problem['problem_radius']), 'polygon' => problem_polygon_points($problem['problem_polygon']), 'points' => $points,
+                    'streets' => problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
   $map    = '<div class="report-problem-map" data-problem="' . h(json_encode($map_data)) . '" role="img" aria-label="Carte du problème ' . h($problem['problem_title']) . '"></div>';
   $photos = '';
   foreach (array_slice(array_reverse($row['observations']), 0, $slides ? 4 : 6) as $obs) {
@@ -364,6 +365,7 @@ $section = function ($title, $content, $class = '') use ($slides) {
     ?>
 
     <script src="assets/vendor/leaflet/leaflet.js"></script>
+    <script src="js/street-lines.js?v=<?= intval(@filemtime(__DIR__ . '/js/street-lines.js')) ?>"></script>
     <script src="assets/report.js?v=<?= intval(@filemtime(__DIR__ . '/assets/report.js')) ?>"></script>
   </body>
 </html>

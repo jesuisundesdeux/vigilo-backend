@@ -663,6 +663,7 @@ def main():
         status, _, page = admin.request('index.php?page=problems&view=' + m.group(1))
         clean('problem streets detail', status, page)
         check('&quot;zone&quot;:&quot;streets&quot;' in page and 'Modifier la zone' in page, 'problem of streets: map without shape, link to the zone')
+        check('js/street-lines.js' in page and '&quot;streets&quot;:[{&quot;street&quot;:&quot;rue des lilas&quot;' in page, 'problem of streets: streets given to the map to be highlighted')
         status, _, page = admin.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': admin.token(page), 'problem_count': '1'})
         check('<strong>1</strong> observation(s) publiée(s)' in page and 'TOKA0003' in page, 'problem of streets: TOKA0003 (Rue des Lilas) matches')
         status, _, page = admin.request('index.php?page=problems&edit=' + m.group(1))

@@ -235,8 +235,34 @@
         say(count + ' rue' + (count > 1 ? 's' : '') + (references.length ? ' · ' + matching + ' observation' + (matching > 1 ? 's' : '') + ' sur ' + references.length + ' dans ces rues' : ''));
       }
     }
+    // Streets of the zone drawn from OpenStreetMap (street-lines.js), after typing stops
+    var streetLines = null, streetTimer = null, streetRequest = 0;
+    function drawStreetLines() {
+      clearTimeout(streetTimer);
+      if (streetLines) { map.removeLayer(streetLines); streetLines = null; }
+      if (zone() !== 'streets' || !window.vigiloStreetLines || !streets().length) {
+        return;
+      }
+      streetTimer = setTimeout(function () {
+        var request = ++streetRequest;
+        // Area: around the observations of reference, else the view if zoomed in, else the city of each street
+        var bbox = references.length ? referenceLayer.getBounds() : (map.getZoom() >= 12 ? map.getBounds() : null);
+        window.vigiloStreetLines(map, streets(), { bbox: bbox }).then(function (group) {
+          if (request !== streetRequest || zone() !== 'streets') {
+            return;
+          }
+          streetLines = group.addTo(map);
+          streetLines.bringToBack();
+          if (!group.getLayers().length) {
+            status.textContent += ' · rues non trouvées sur OpenStreetMap';
+          } else if (!references.length) {
+            map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 17 });
+          }
+        });
+      }, 700);
+    }
     function refreshStreets() {
-      if (zone() === 'streets') { drawReferences(); }
+      if (zone() === 'streets') { drawReferences(); drawStreetLines(); }
     }
 
     // Only the tools and the shape of the chosen zone are shown
@@ -258,6 +284,7 @@
       var shape = current === 'circle' ? drawCircle() : (current === 'polygon' ? drawPolygon() : null);
       if (current === 'circle') { say(''); }
       drawReferences();
+      drawStreetLines();
       if (!fit) {
         return;
       }
@@ -369,6 +396,18 @@
       var center = String(data.center || '46.6,2.4').split(',');
       map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
     }
+    // Zone of streets: the streets highlighted (OpenStreetMap), around the observations or in their city
+    if (data.zone === 'streets' && data.streets && data.streets.length && window.vigiloStreetLines) {
+      window.vigiloStreetLines(map, data.streets, { bbox: bounds, style: { color: STYLE.color } }).then(function (group) {
+        if (!group.getLayers().length) {
+          return;
+        }
+        group.addTo(map).bringToBack();
+        var all = L.latLngBounds(group.getBounds().getSouthWest(), group.getBounds().getNorthEast());
+        if (bounds) { all.extend(bounds); }
+        map.fitBounds(all.pad(0.1), { maxZoom: 18 });
+      });
+    }
     setTimeout(function () { map.invalidateSize(); }, 200);
   });
 
@@ -386,6 +425,7 @@
     function extend(b) {
       bounds = bounds ? bounds.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
     }
+    var pending = Promise.resolve();
     data.problems.forEach(function (p) {
       var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: 0.25 };
       var layer;
@@ -417,6 +457,15 @@
       label.textContent = p.title;
       layer.bindTooltip(label, { sticky: true });
       layer.addTo(map);
+      // Zone of streets: its streets highlighted (OpenStreetMap), one request after the other
+      if (p.zone === 'streets' && p.streets && p.streets.length && window.vigiloStreetLines) {
+        pending = pending.then(function () {
+          return window.vigiloStreetLines(map, p.streets, { bbox: layer.getBounds(), style: { color: p.color, weight: 5 } }).then(function (group) {
+            group.eachLayer(function (line) { line.bindPopup(box); });
+            group.addTo(map).bringToBack();
+          });
+        });
+      }
     });
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });

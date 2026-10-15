@@ -10,6 +10,10 @@
   heures** (une case par
   jour et par heure, d'autant plus foncée que les observations y sont nombreuses, comme les statistiques de
   l'application web) ; **pagination** des observations rattachées (20 par page).
+- Problèmes de **rues** : les rues sont **surlignées** sur les cartes (fiche, formulaire, onglet Carte, détail du
+  rapport), d'après OpenStreetMap (API Overpass, depuis le navigateur) : voies du même nom (sans tenir compte des
+  majuscules, des accents ni de la ponctuation) autour des observations du problème, ou dans la ville de la rue. Sans
+  réponse d'Overpass, seules les observations sont affichées.
 - Onglet **Carte** de la page Problèmes : zones des problèmes (filtres de la liste), couleur du statut, lien vers leur
   fiche ; un problème de rues est représenté par ses observations.
 - Bouton **Diffuser** sur chaque problème de la liste : appelle les webhooks du nouvel événement `problem.broadcast`

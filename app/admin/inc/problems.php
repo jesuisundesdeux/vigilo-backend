@@ -298,7 +298,8 @@ function problem_admin_map_data($db, $problems, $counts, $statuses, $priorities,
                 $hidden[] = $item['title'];
                 continue;
             }
-            $item['points'] = $street_points[$id];
+            $item['points']  = $street_points[$id];
+            $item['streets'] = problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : '');
         } else {
             $item['lat']    = (float) $problem['problem_lat'];
             $item['lon']    = (float) $problem['problem_lon'];
@@ -812,6 +813,7 @@ if ($edit !== null) {
 </form>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="js/street-lines.js?v=<?= intval(@filemtime(__DIR__ . '/../js/street-lines.js')) ?>"></script>
 <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
 <?php } ?>
 
@@ -834,6 +836,7 @@ if ($edit !== null) {
     }
     $map_data = array('zone' => $view['problem_zone'], 'lat' => (float) $view['problem_lat'], 'lon' => (float) $view['problem_lon'],
                       'radius' => intval($view['problem_radius']), 'polygon' => problem_polygon_points($view['problem_polygon']), 'points' => $points,
+                      'streets' => problem_streets_list(isset($view['problem_streets']) ? $view['problem_streets'] : ''),
                       'center' => $map_center, 'zoom' => $map_zoom);
 ?>
 <p><a href="<?= h($self_url) ?>"><i class="bi bi-arrow-left"></i> Tous les problèmes</a></p>
@@ -1056,6 +1059,7 @@ if ($edit !== null) {
 <?php } ?>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="js/street-lines.js?v=<?= intval(@filemtime(__DIR__ . '/../js/street-lines.js')) ?>"></script>
 <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
 <?php } else { ?>
 <?php
@@ -1199,7 +1203,8 @@ if (!$readonly) { ?>
   </div>
   <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
   <script src="assets/vendor/leaflet/leaflet.js"></script>
-  <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
+  <script src="js/street-lines.js?v=<?= intval(@filemtime(__DIR__ . '/../js/street-lines.js')) ?>"></script>
+<script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
   <?php } else { ?>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin table-stack-md mb-0">

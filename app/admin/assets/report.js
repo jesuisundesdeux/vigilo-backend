@@ -91,6 +91,18 @@
       }
     };
     fitThis();
+    // Zone of streets: the streets highlighted (OpenStreetMap, js/street-lines.js)
+    if (data.zone === 'streets' && data.streets && data.streets.length && window.vigiloStreetLines) {
+      window.vigiloStreetLines(m, data.streets, { bbox: b, style: { color: '#3f6fb5' } }).then(function (group) {
+        if (!group.getLayers().length) {
+          return;
+        }
+        group.addTo(m).bringToBack();
+        var gb = group.getBounds();
+        b = b ? b.extend(gb) : L.latLngBounds(gb.getSouthWest(), gb.getNorthEast());
+        fitThis();
+      });
+    }
     problemMaps.push({ map: m, fit: fitThis });
   });
 
