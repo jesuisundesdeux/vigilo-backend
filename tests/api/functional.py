@@ -1300,6 +1300,79 @@ class T14Problems(unittest.TestCase):
         sql("UPDATE obs_list SET obs_archived = 0 WHERE obs_token = '%s'" % token)
 
 
+class T15PasswordLinks(unittest.TestCase):
+    """Link to set the password of an account (page Comptes, admin/password.php)."""
+
+    def opener(self):
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def request(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+        return request
+
+    @staticmethod
+    def csrf(page):
+        return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+
+    def tearDown(self):
+        sql("DELETE FROM obs_roles WHERE role_login LIKE 't15%'")
+
+    def test_link_flow(self):
+        admin = self.opener()
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': self.csrf(page)})
+        page = admin('index.php?page=accounts')
+        form = {'csrf_token': self.csrf(page), 'role_id': '0', 'role_city_present': '1', 'role_name': 'citystaff', 'role_owner': 'T15',
+                'role_login': 't15staff', 'role_password': '', 'role_key': ''}
+        page = admin('index.php?page=accounts', form)
+        self.assertIn('Un mot de passe est obligatoire', page, 'login without password nor link refused')
+        page = admin('index.php?page=accounts', dict(form, role_name='moderator', password_link_new='1'))
+        self.assertIn('ne sert qu&#039;aux comptes admin et citystaff', page.replace("'", '&#039;'), 'no link for a moderator')
+        page = admin('index.php?page=accounts', dict(form, password_link_new='1'))
+        self.assertIn('ajouté', page)
+        links = re.findall(r'/admin/password\.php\?token=([a-f0-9]{64})', page)
+        self.assertEqual(len(links), 1, 'link shown once after the creation')
+        token = links[0]
+        self.assertEqual(sql("SELECT role_password FROM obs_roles WHERE role_login = 't15staff'"), '', 'no password yet')
+        self.assertEqual(sql("SELECT COUNT(*) FROM obs_password_links WHERE link_hash = SHA2('%s', 256)" % token), '1', 'only the hash is stored')
+        self.assertEqual(sql("SELECT COUNT(*) FROM obs_password_links WHERE link_hash = '%s'" % token), '0')
+        self.assertNotIn(token, sql("SELECT GROUP_CONCAT(audit_details) FROM obs_audit_log WHERE audit_action = 'account_password_link'"), 'token not logged')
+
+        person = self.opener()
+        page = person('password.php?token=' + token)
+        self.assertIn('value="t15staff"', page)
+        for password, confirm, error in [('court', 'court', 'au moins'), ('un-long-mot-de-passe', 'autre-long-mot-de-passe', 'différents')]:
+            page = person('password.php?token=' + token, {'csrf_token': self.csrf(page), 'password': password, 'password_confirm': confirm})
+            self.assertIn(error, page)
+        page = person('password.php?token=' + token, {'password': 'un-long-mot-de-passe', 'password_confirm': 'un-long-mot-de-passe'})
+        self.assertIn('Session expirée', page, 'CSRF token required')
+        page = person('password.php?token=' + token, {'csrf_token': self.csrf(page), 'password': 'un-long-mot-de-passe', 'password_confirm': 'un-long-mot-de-passe'})
+        self.assertIn('Mot de passe enregistré', page)
+        page = person('password.php?token=' + token)
+        self.assertIn('pas valide', page, 'link used once')
+        page = person('login.php')
+        page = person('login.php', {'login': 't15staff', 'password': 'un-long-mot-de-passe', 'csrf_token': self.csrf(page)})
+        self.assertNotIn('incorrect', page)
+        self.assertIn('logout.php', page, 'signed in with the chosen password')
+        self.assertIn('account_password_set', sql("SELECT GROUP_CONCAT(audit_action) FROM obs_audit_log WHERE audit_target = "
+                                                  "(SELECT CONCAT('role:', role_id) FROM obs_roles WHERE role_login = 't15staff')"))
+
+        # A new link replaces the previous one; an expired link is refused
+        role = sql("SELECT role_id FROM obs_roles WHERE role_login = 't15staff'")
+        page = admin('index.php?page=accounts')
+        self.assertIn('id="role%slinkform"' % role, page)
+        first = re.findall(r'token=([a-f0-9]{64})', admin('index.php?page=accounts', {'csrf_token': self.csrf(page), 'role_id': role, 'password_link': '1'}))[0]
+        page = admin('index.php?page=accounts')
+        second = re.findall(r'token=([a-f0-9]{64})', admin('index.php?page=accounts', {'csrf_token': self.csrf(page), 'role_id': role, 'password_link': '1'}))[0]
+        self.assertIn('pas valide', person('password.php?token=' + first), 'previous link invalidated')
+        self.assertIn('Nouveau mot de passe', person('password.php?token=' + second))
+        sql("UPDATE obs_password_links SET link_expires = %d WHERE link_roleid = %s" % (int(time.time()) - 1, role))
+        self.assertIn('pas valide', person('password.php?token=' + second), 'expired link refused')
+        self.assertIn('pas valide', person('password.php?token=nope'))
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()

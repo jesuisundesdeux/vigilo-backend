@@ -205,6 +205,26 @@
     });
   });
 
+  // Copy buttons: data-copy="#id" of a field
+  document.addEventListener('click', function (e) {
+    var button = e.target.closest('[data-copy]');
+    if (!button) {
+      return;
+    }
+    var field = document.querySelector(button.getAttribute('data-copy'));
+    if (!field) {
+      return;
+    }
+    field.select();
+    var done = function () { button.textContent = 'Copié'; };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(field.value).then(done, function () { document.execCommand('copy'); done(); });
+    } else {
+      document.execCommand('copy');
+      done();
+    }
+  });
+
   // Bootstrap tooltips
   if (window.bootstrap) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {

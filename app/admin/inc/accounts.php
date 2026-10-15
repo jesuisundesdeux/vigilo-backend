@@ -21,7 +21,9 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
     exit('Not allowed');
 }
 
-define('ACCOUNT_PASSWORD_MIN_LENGTH', 10);
+require_once(__DIR__ . '/../../includes/password_links.php');
+
+define('ACCOUNT_PASSWORD_MIN_LENGTH', VIGILO_PASSWORD_MIN_LENGTH);
 define('ACCOUNT_ROLE_CITY_MAX_LENGTH', 255);
 
 $account_roles = array('guest', 'admin', 'citystaff', 'moderator');
@@ -89,6 +91,23 @@ if (!function_exists('account_new_key')) {
     }
 }
 
+/* Message with a link to set the password: shown once (the token is not stored) */
+if (!function_exists('account_link_message')) {
+    function account_link_message($db, $role_id, $login)
+    {
+        $token = password_link_create($db, $role_id, $login);
+        if ($token === null) {
+            return array('danger', 'Impossible de créer le lien du compte <strong>#' . intval($role_id) . '</strong>.');
+        }
+        audit_log('account_password_link', 'role:' . intval($role_id), array('hours' => VIGILO_PASSWORD_LINK_HOURS));
+        $url = password_link_url($token);
+        return array('success', 'Lien pour choisir le mot de passe du compte <strong>#' . intval($role_id) . '</strong>, à transmettre à la personne
+            (valable ' . VIGILO_PASSWORD_LINK_HOURS . ' heures, une seule fois ; il ne sera plus affiché) :
+            <div class="input-group input-group-sm mt-2"><input class="form-control font-monospace" type="text" readonly value="' . h($url) . '" id="password-link-' . intval($role_id) . '" aria-label="Lien">
+            <button class="btn btn-outline-secondary" type="button" data-copy="#password-link-' . intval($role_id) . '"><i class="bi bi-clipboard"></i> Copier</button></div>');
+    }
+}
+
 $messages      = array();
 $reopen        = null;
 $current_login = isset($_SESSION['login']) ? (string) $_SESSION['login'] : '';
@@ -121,8 +140,19 @@ if (isset($_GET['action']) && !isset($_POST['role_id'])) {
     }
 }
 
-/* POST: regenerate the API key */
-if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
+/* POST: new link to set the password (accounts with a login that sign in to the panel) */
+if (isset($_POST['role_id']) && isset($_POST['password_link'])) {
+    $roleid      = intval($_POST['role_id']);
+    $query_check = mysqli_query($db, "SELECT role_id, role_login, role_name FROM obs_roles WHERE role_id = " . $roleid . " LIMIT 1");
+    $check       = $query_check ? mysqli_fetch_array($query_check) : null;
+    if (!$check) {
+        $messages[] = array('warning', 'Compte <strong>#' . $roleid . '</strong> introuvable.');
+    } elseif ((string) $check['role_login'] === '' || !in_array($check['role_name'], array('admin', 'citystaff'), true)) {
+        $messages[] = array('warning', 'Le lien ne sert qu\'aux comptes admin et citystaff qui ont un login.');
+    } else {
+        $messages[] = account_link_message($db, $roleid, $current_login);
+    }
+} elseif (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
     $roleid      = intval($_POST['role_id']);
     $query_check = mysqli_query($db, "SELECT role_id FROM obs_roles WHERE role_id = " . $roleid . " LIMIT 1");
     if ($query_check && mysqli_fetch_array($query_check)) {
@@ -211,10 +241,15 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
         if ($creating && !isset($set['role_name'])) {
             $errors[] = 'Le rôle est obligatoire.';
         }
-        // A login without password could not sign in
+        // A login without password could not sign in, unless a link lets the person choose it
         $final_login = isset($set['role_login']) ? $set['role_login'] : (string) $old['role_login'];
-        if ($final_login !== '' && ($creating || isset($set['role_login'])) && !isset($set['role_password']) && (string) $old['role_password'] === '') {
-            $errors[] = 'Un mot de passe est obligatoire pour un compte avec login.';
+        $want_link   = !empty($_POST['password_link_new']);
+        $link_role   = isset($set['role_name']) ? $set['role_name'] : (string) $old['role_name'];
+        if ($want_link && ($final_login === '' || !in_array($link_role, array('admin', 'citystaff'), true))) {
+            $errors[] = 'Le lien pour choisir le mot de passe ne sert qu\'aux comptes admin et citystaff qui ont un login.';
+        }
+        if (!$want_link && $final_login !== '' && ($creating || isset($set['role_login'])) && !isset($set['role_password']) && (string) $old['role_password'] === '') {
+            $errors[] = 'Un mot de passe est obligatoire pour un compte avec login (ou cocher « Envoyer un lien pour choisir le mot de passe »).';
         }
 
         // Cities of a citystaff (#237, #270): clean JSON array of city names
@@ -267,6 +302,7 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
         foreach (array('role_name', 'role_owner', 'role_login', 'role_key') as $field) {
             $reopen[$field] = isset($_POST[$field]) && is_string($_POST[$field]) ? $_POST[$field] : '';
         }
+        $reopen['password_link_new'] = !empty($_POST['password_link_new']);
         if (isset($_POST['role_city']) && is_array($_POST['role_city'])) {
             $reopen['role_city'] = account_clean_city_list($_POST['role_city']);
         }
@@ -291,11 +327,17 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
             $new_id = intval(mysqli_insert_id($db));
             audit_log('account_create', 'role:' . $new_id, $changes);
             $messages[] = array('success', 'Compte <strong>#' . $new_id . '</strong> (' . h($set['role_name']) . ') ajouté.');
+            if ($want_link) {
+                $messages[] = account_link_message($db, $new_id, $current_login);
+            }
         } else {
             $messages[] = array('danger', 'Impossible d\'ajouter le compte.');
         }
     } elseif (empty($set)) {
         $messages[] = array('info', 'Aucune modification pour le compte <strong>#' . $roleid . '</strong>.');
+        if ($want_link) {
+            $messages[] = account_link_message($db, $roleid, $current_login);
+        }
     } else {
         $parts = array();
         foreach ($set as $column => $value) {
@@ -309,6 +351,9 @@ if (isset($_POST['role_id']) && isset($_POST['key_regenerate'])) {
                 $current_login     = $set['role_login'];
             }
             $messages[] = array('success', 'Compte <strong>#' . $roleid . '</strong> mis à jour.');
+            if ($want_link) {
+                $messages[] = account_link_message($db, $roleid, $current_login);
+            }
         } else {
             $messages[] = array('danger', 'Impossible de mettre à jour le compte <strong>#' . $roleid . '</strong>.');
         }
@@ -369,7 +414,12 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
     $forms .= '<form method="POST" action="' . h($self_url) . '" id="' . h($key_form) . '">'
             . csrf_field()
             . '<input type="hidden" name="role_id" value="' . $role_id . '" />'
-            . '<input type="hidden" name="key_regenerate" value="1" /></form>';
+            . '<input type="hidden" name="key_regenerate" value="1" /></form>'
+            . '<form method="POST" action="' . h($self_url) . '" id="role' . $role_id . 'linkform">'
+            . csrf_field()
+            . '<input type="hidden" name="role_id" value="' . $role_id . '" />'
+            . '<input type="hidden" name="password_link" value="1" /></form>';
+    $can_link    = (string) $result_role['role_login'] !== '' && in_array($role_name, array('admin', 'citystaff'), true);
 ?>
         <tr<?= $is_self ? ' class="table-active"' : '' ?>>
           <td class="d-none d-md-table-cell text-body-secondary">#<?= $role_id ?></td>
@@ -394,6 +444,9 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
           <td class="text-end text-nowrap">
             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#accountModal"
                     data-title="Modifier le compte #<?= $role_id ?>" data-fill="<?= h(json_encode($role_fill)) ?>"><i class="bi bi-pencil"></i><span class="d-none d-lg-inline"> Modifier</span></button>
+<?php if ($can_link) { ?>
+            <button type="submit" class="btn btn-sm btn-outline-secondary" form="role<?= $role_id ?>linkform" title="Lien pour choisir le mot de passe" data-confirm="Créer un lien pour que le compte #<?= $role_id ?> choisisse son mot de passe ? Les liens précédents de ce compte ne fonctionneront plus."><i class="bi bi-link-45deg"></i><span class="d-none d-lg-inline"> Lien</span></button>
+<?php } ?>
 <?php if (!$is_self) { ?>
             <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;roleid=<?= $role_id ?><?= h(csrf_query()) ?>" data-confirm="Merci de valider la suppression du compte #<?= $role_id ?>" title="Supprimer"><i class="bi bi-trash"></i><span class="d-none d-lg-inline"> Supprimer</span></a>
 <?php } ?>
@@ -443,6 +496,11 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
             <label class="form-label" for="role_password">Mot de passe</label>
             <input type="password" class="form-control" id="role_password" name="role_password" minlength="<?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?>" autocomplete="new-password" />
             <div class="form-text" data-account-password></div>
+            <div class="form-check mt-1">
+              <input class="form-check-input" type="checkbox" name="password_link_new" value="1" id="password_link_new">
+              <label class="form-check-label" for="password_link_new">Envoyer un lien pour choisir le mot de passe</label>
+            </div>
+            <div class="form-text">Comptes admin et citystaff avec login : un lien à usage unique, valable <?= intval(VIGILO_PASSWORD_LINK_HOURS) ?> heures, s'affiche après l'enregistrement ; le mot de passe peut alors rester vide.</div>
           </div>
           <div class="col-12">
             <label class="form-label" for="role_key">Clé fournie par la personne <span class="text-body-secondary small">(facultatif)</span></label>
@@ -487,7 +545,8 @@ while ($query_role && ($result_role = mysqli_fetch_array($query_role))) {
       form.querySelector('[data-account-self]').hidden = values.is_self !== true;
       form.querySelector('[data-account-new]').hidden = !creating;
       form.elements['role_password'].placeholder = creating ? '' : 'Inchangé';
-      form.querySelector('[data-account-password]').textContent = (creating ? 'Obligatoire avec un login' : 'Vide : mot de passe inchangé')
+      form.elements['password_link_new'].checked = values.password_link_new === true;
+      form.querySelector('[data-account-password]').textContent = (creating ? 'Obligatoire avec un login, sauf lien ci-dessous' : 'Vide : mot de passe inchangé')
         + ', au moins <?= intval(ACCOUNT_PASSWORD_MIN_LENGTH) ?> caractères.';
       form.querySelector('[data-account-key]').textContent = 'Clé générée par la personne dans l\'application web (« Devenir modérateur »), 20 à 64 lettres ou chiffres. '
         + (creating ? 'Vide : une clé est générée.' : 'Vide : clé inchangée.');

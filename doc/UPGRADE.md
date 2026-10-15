@@ -177,7 +177,9 @@ Aucune action manuelle. La migration 0.0.33, appliquée automatiquement, ajoute 
 
 ### Passage à la 0.0.34
 
-Aucune action manuelle ni migration de base.
+Aucune action manuelle. La migration 0.0.34, appliquée automatiquement, ajoute la table des liens pour choisir un mot
+de passe (`obs_password_links`). Les liens utilisent l'adresse de l'instance (Configuration, `vigilo_urlbase`) :
+vérifier qu'elle est renseignée.
 
 ### Publier une version (mainteneurs)
 
