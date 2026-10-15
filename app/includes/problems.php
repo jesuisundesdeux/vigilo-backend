@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Needs functions.php (distance()).
  */
 
+require_once(dirname(__FILE__) . '/security.php');
+
 define('VIGILO_PROBLEM_RADIUS_MIN', 10);
 define('VIGILO_PROBLEM_RADIUS_MAX', 20000);
 define('VIGILO_PROBLEM_POLYGON_MAX', 200);
@@ -429,4 +431,93 @@ function problem_titles($db)
         $titles[intval($row['problem_id'])] = (string) $row['problem_title'];
     }
     return $titles;
+}
+
+/* Does a published observation (row of obs_list) match the criteria of the problem? */
+function problem_matches_observation($problem, $obs)
+{
+    if (intval($obs['obs_complete']) != 1 || intval($obs['obs_approved']) != 1
+        || !in_array(intval($obs['obs_categorie']), problem_category_ids($problem), true)
+        || intval($obs['obs_time']) < intval($problem['problem_start'])
+        || ($problem['problem_end'] !== null && $problem['problem_end'] !== '' && intval($obs['obs_time']) > intval($problem['problem_end']))) {
+        return false;
+    }
+    return problem_zone_contains($problem, (float) $obs['obs_coordinates_lat'], (float) $obs['obs_coordinates_lon']);
+}
+
+/* Active problems (open, in progress, waiting): problem_id => problem */
+function problems_active($db)
+{
+    $problems = array();
+    $query    = mysqli_query($db, "SELECT * FROM obs_problems WHERE problem_status IN ('" . implode("','", problem_active_statuses()) . "') ORDER BY problem_id");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $problems[intval($row['problem_id'])] = $row;
+    }
+    return $problems;
+}
+
+/*
+ * Automatic attachment, when an observation becomes published (approval, or photo received
+ * after the approval): attached to the active problem it matches if there is exactly one;
+ * with several, it is left for the administrators ("À arbitrer"). An observation already
+ * in a problem is not changed. Returns array(state, problem ids): state 'attached',
+ * 'ambiguous', 'none' (no problem, or not published) or 'already'.
+ */
+function problems_on_publication($db, $token, $login = '', $source = 'admin')
+{
+    $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_complete, obs_list.obs_approved, obs_list.obs_categorie,
+                                       obs_list.obs_time, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
+                                       COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid
+                                FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                WHERE obs_list.obs_token = '" . mysqli_real_escape_string($db, (string) $token) . "' LIMIT 1");
+    $obs   = $query ? mysqli_fetch_assoc($query) : null;
+    if (!$obs || intval($obs['obs_complete']) != 1 || intval($obs['obs_approved']) != 1) {
+        return array('none', array());
+    }
+    if (intval($obs['po_problemid'])) {
+        return array('already', array(intval($obs['po_problemid'])));
+    }
+    $matches = array();
+    foreach (problems_active($db) as $id => $problem) {
+        if (problem_matches_observation($problem, $obs)) {
+            $matches[] = $id;
+        }
+    }
+    if (count($matches) == 1) {
+        $state = problem_attach($db, $matches[0], $obs['obs_id'], 'auto', $login);
+        if ($state == 'attached') {
+            audit_log('problem_attach_auto', 'problem:' . $matches[0], array('token' => $obs['obs_token'], 'source' => $source));
+            return array('attached', $matches);
+        }
+        return array($state == 'already' ? 'already' : 'none', $matches);
+    }
+    if (count($matches) > 1) {
+        audit_log('problem_attach_ambiguous', (string) $obs['obs_token'], array('problems' => implode(',', $matches), 'source' => $source));
+        return array('ambiguous', $matches);
+    }
+    return array('none', array());
+}
+
+/*
+ * Observations to arbitrate: published, in no problem, and matching several active
+ * problems. List of array('id', 'token', 'time', 'address', 'category', 'problems' => ids).
+ */
+function problems_ambiguous($db)
+{
+    $observations = array();
+    foreach (problems_active($db) as $id => $problem) {
+        foreach (problem_matching_observations($db, $problem) as $observation) {
+            if ($observation['problem']) {
+                continue;
+            }
+            if (!isset($observations[$observation['id']])) {
+                $observations[$observation['id']] = $observation;
+                $observations[$observation['id']]['problems'] = array();
+            }
+            $observations[$observation['id']]['problems'][] = $id;
+        }
+    }
+    return array_values(array_filter($observations, function ($observation) {
+        return count($observation['problems']) > 1;
+    }));
 }

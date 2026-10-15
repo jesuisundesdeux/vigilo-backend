@@ -27,7 +27,7 @@ Authentification :
 | `GET acl.php?key=` | Rôle associé à une clé | `key` |
 | `POST create_issue.php` | Crée une observation (ou la modifie avec `token` + `key`) | anti-spam par IP, sauf `key` admin/modérateur |
 | `POST add_image.php?token=&secretid=` | Photo de l'observation (corps brut, ou `method=base64` en formulaire/JSON) ; `type=resolution` pour une résolution | `secretid` (+ `key` admin/modérateur si approuvée) |
-| `GET approve.php?token=&key=` | Approuve (`approved=1`, par défaut), remet à modérer (`approved=0`) ou refuse (`approved=2`) ; déclenche les [webhooks](WEBHOOKS.md) | `key` admin/modérateur |
+| `GET approve.php?token=&key=` | Approuve (`approved=1`, par défaut), remet à modérer (`approved=0`) ou refuse (`approved=2`) ; déclenche les [webhooks](WEBHOOKS.md) et, à la publication, le rattachement automatique à un problème (admin, réponse inchangée) | `key` admin/modérateur |
 | `GET delete.php?token=` | Supprime une observation | `secretid` ou `key` admin/modérateur |
 | `POST create_resolution.php` | Déclare la résolution d'observations (`tokenlist`) | anti-spam par IP, sauf `key` admin |
 

@@ -160,6 +160,20 @@ if ($edit === null && isset($_GET['edit'])) {
     }
 }
 
+/* Observation matching several active problems: attached to the one chosen (#327) */
+if (isset($_POST['problem_arbitrate']) && isset($_POST['obs_id'])) {
+    $chosen = problem_load($db, $_POST['problem_arbitrate']);
+    $query  = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_id = " . intval($_POST['obs_id']));
+    $row    = $query ? mysqli_fetch_assoc($query) : null;
+    $state  = ($chosen && $row) ? problem_attach($db, $chosen['problem_id'], $_POST['obs_id'], 'manual', $login) : 'error';
+    if ($state == 'attached') {
+        audit_log('problem_attach', 'problem:' . intval($chosen['problem_id']), array('title' => $chosen['problem_title'], 'token' => $row['obs_token'], 'arbitration' => true));
+        $messages[] = array('success', 'Observation <strong>' . h($row['obs_token']) . '</strong> rattachée au problème <strong>' . h($chosen['problem_title']) . '</strong>.');
+    } else {
+        $messages[] = array('warning', 'Observation non rattachée (déjà dans un problème, ou plus publiée).');
+    }
+}
+
 /* Detail of a problem: count, attribution, manual attach / detach */
 $view   = isset($_GET['view']) ? problem_load($db, $_GET['view']) : null;
 $count  = null;
@@ -490,6 +504,35 @@ if ($edit !== null) {
 <script src="assets/vendor/leaflet/leaflet.js"></script>
 <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
 <?php } else { ?>
+<?php
+$ambiguous = $edit === null ? problems_ambiguous($db) : array();
+if ($ambiguous) {
+    $titles = problem_titles($db); ?>
+<div class="card shadow-sm mb-4 border-warning" id="arbitrate">
+  <div class="card-header fw-semibold"><i class="bi bi-signpost-split"></i> À arbitrer (<?= count($ambiguous) ?>)</div>
+  <div class="card-body pb-0">
+    <p class="small text-body-secondary">
+      Observations publiées qui correspondent à plusieurs problèmes actifs : elles ne sont pas rattachées
+      automatiquement. Choisir leur problème.
+    </p>
+  </div>
+  <ul class="list-group list-group-flush">
+    <?php foreach ($ambiguous as $observation) { ?>
+    <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+      <a class="fw-semibold" href="?page=observations&amp;approved=1&amp;filtertype=uniq&amp;filtertoken=<?= h(urlencode($observation['token'])) ?>&amp;searcharchived=all"><?= h($observation['token']) ?></a>
+      <span class="small text-body-secondary me-auto"><?= h(date('d/m/Y', $observation['time'])) ?> · <?= h($observation['address']) ?></span>
+      <form method="POST" action="<?= h($self_url) ?>" class="d-flex flex-wrap gap-1">
+        <?= csrf_field() ?>
+        <input type="hidden" name="obs_id" value="<?= intval($observation['id']) ?>">
+        <?php foreach ($observation['problems'] as $problem_id) { ?>
+        <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_arbitrate" value="<?= intval($problem_id) ?>"><i class="bi bi-link-45deg"></i> <?= h(isset($titles[$problem_id]) ? $titles[$problem_id] : '#' . $problem_id) ?></button>
+        <?php } ?>
+      </form>
+    </li>
+    <?php } ?>
+  </ul>
+</div>
+<?php } ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-diagram-3"></i> Problèmes</h2>
@@ -498,7 +541,8 @@ if ($edit !== null) {
   <div class="card-body pb-0">
     <p class="small text-body-secondary">
       Un problème regroupe les observations publiées d'une zone (cercle ou polygone), de catégories et d'une période.
-      Les problèmes ne sont visibles que dans l'admin.
+      À sa publication, une observation est rattachée automatiquement au problème actif (ouvert, en cours, en attente)
+      qui lui correspond, s'il n'y en a qu'un. Les problèmes ne sont visibles que dans l'admin.
     </p>
     <form class="row g-2 align-items-end mb-3" method="GET" action="">
       <input type="hidden" name="page" value="<?= h($page_name) ?>">

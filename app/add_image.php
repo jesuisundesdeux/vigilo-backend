@@ -25,6 +25,7 @@ require_once("{$cwd}/includes/images.php");
 require_once("{$cwd}/includes/blur.php");
 require_once("{$cwd}/includes/handle.php");
 require_once("{$cwd}/includes/webhooks.php");
+require_once("{$cwd}/includes/problems.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
 header('Content-Type: application/json; charset=utf-8');
@@ -142,6 +143,10 @@ if ($image_written) {
             $complete_row   = $complete_query ? mysqli_fetch_array($complete_query) : null;
             $obs_created    = $complete_row && intval($complete_row['obs_complete']) == 0;
             mysqli_query($db, "UPDATE obs_list SET obs_complete=1 WHERE obs_id='" . $obsid . "'");
+            // Approved before its photo: published now, attached to the matching problem (#327)
+            if ($obs_created) {
+                problems_on_publication($db, $token, '', 'api');
+            }
         } elseif ($type == "resolution") {
             $resolutionid = getResolutionIdByResolutionToken($token);
             mysqli_query($db, "UPDATE obs_resolutions SET resolution_complete=1,resolution_withphoto=1 WHERE resolution_id='" . $resolutionid . "'");

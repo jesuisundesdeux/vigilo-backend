@@ -1102,6 +1102,74 @@ class T14Archives(unittest.TestCase):
                          'not offered as a similar observation')
 
 
+class T14Problems(unittest.TestCase):
+    """Problems (#327): automatic attachment of an observation when it becomes published."""
+
+    def setUp(self):
+        sql("DELETE FROM obs_problems WHERE problem_title LIKE 'T14%'")
+
+    def tearDown(self):
+        sql("DELETE FROM obs_problem_observations WHERE po_problemid NOT IN (SELECT problem_id FROM obs_problems WHERE problem_title NOT LIKE 'T14%')")
+        sql("DELETE FROM obs_problems WHERE problem_title LIKE 'T14%'")
+
+    def problem(self, title, lat, lon, status='open', categories='2', radius=200):
+        sql("INSERT INTO obs_problems (problem_title, problem_description, problem_categories, problem_zone, problem_lat, problem_lon, "
+            "problem_radius, problem_polygon, problem_start, problem_status) VALUES ('T14 %s', '', '%s', 'circle', %s, %s, %d, '', 0, '%s')"
+            % (title, categories, lat, lon, radius, status))
+        return sql("SELECT MAX(problem_id) FROM obs_problems")
+
+    def observation(self, lat, lon, categorie='2', approve_first=False):
+        r = create(coordinates_lat=str(lat), coordinates_lon=str(lon), categorie=categorie)
+        self.assertEqual(r.status, 200, r.text)
+        token, secret = r.json()['token'], r.json()['secretid']
+        if approve_first:
+            self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        # Approved observation: its photo needs a moderator key (ALREADYAPPROVED otherwise)
+        query = {'token': token, 'secretid': secret, 'key': ADMIN} if approve_first else {'token': token, 'secretid': secret}
+        self.assertEqual(call('add_image.php', query, raw=PHOTO).status, 200)
+        return token
+
+    def link(self, token):
+        return sql("SELECT CONCAT(po_problemid, ':', po_mode) FROM obs_problem_observations INNER JOIN obs_list ON obs_id = po_obsid "
+                   "WHERE obs_token = '%s'" % token)
+
+    def test_attached_when_published(self):
+        problem = self.problem('gare', 43.55, 3.85)
+        self.problem('fermé', 43.55, 3.85, status='closed')
+        token = self.observation(43.5501, 3.8501)
+        self.assertEqual(self.link(token), '', 'not attached before the publication')
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual(self.link(token), problem + ':auto', 'attached to the only active problem')
+        self.assertIn('"source":"api"', sql("SELECT audit_details FROM obs_audit_log WHERE audit_action = 'problem_attach_auto' "
+                                            "AND audit_details LIKE '%%%s%%'" % token))
+        # Published again later: unchanged
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '0'}).status, 200)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual(self.link(token), problem + ':auto')
+
+    def test_not_attached_outside_the_criteria(self):
+        self.problem('catégorie', 43.56, 3.86)
+        for token in [self.observation(43.5601, 3.8601, categorie='3'), self.observation(43.57, 3.87)]:
+            self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+            self.assertEqual(self.link(token), '', 'other category or outside the zone')
+        token = self.observation(43.5601, 3.8601)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO, 'approved': '2'}).status, 200)
+        self.assertEqual(self.link(token), '', 'refused: not attached')
+
+    def test_several_problems_left_to_arbitrate(self):
+        self.problem('un', 43.58, 3.88)
+        self.problem('deux', 43.5801, 3.8801, categories='2,3')
+        token = self.observation(43.5801, 3.8801)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual(self.link(token), '', 'several problems: not attached')
+        self.assertEqual(sql("SELECT COUNT(*) FROM obs_audit_log WHERE audit_action = 'problem_attach_ambiguous' AND audit_target = '%s'" % token), '1')
+
+    def test_approved_before_its_photo(self):
+        problem = self.problem('photo', 43.59, 3.89)
+        token = self.observation(43.5901, 3.8901, approve_first=True)
+        self.assertEqual(self.link(token), problem + ':auto', 'attached when the photo makes it published')
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()
