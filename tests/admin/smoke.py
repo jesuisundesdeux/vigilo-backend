@@ -592,7 +592,7 @@ def main():
         status, _, page = admin.request('index.php?page=observations&approved=1')
         check('href="?page=problems&amp;view=' + pb_gare + '"' in page and 'bi-diagram-3' in page, 'observation linked to its problem on the page Observations')
         status, _, page = admin.request(gare_url)
-        check('id="timeline"' in page and 'class="report-chart report-heatmap"' in page and 'Observations par mois' in page
+        check('id="timeline"' in page and 'class="report-chart report-heatmap"' in page and 'report-strip' in page and 'Mois le plus chargé' in page
               and page.count('<rect') >= 7 * 24, 'timeline and matrix days × hours of the observations of the problem')
         for query in ['tab=map', 'tab=map&status=active']:
             status, _, page = admin.request('index.php?page=problems&' + query)
@@ -618,7 +618,7 @@ def main():
         clean('report with problems', status, report)
         check('Problèmes suivis' in report and 'Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Travaux du centre' in report
               and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the notes')
-        check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'class="report-problem-map"' in report and 'Chronologie (observations par mois)' in report
+        check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'class="report-problem-map"' in report and 'Frise chronologique' in report and 'report-strip' in report
               and 'photo.php?s=300&amp;token=TOKA0001' in report and 'Créé le' in report, 'detail of each problem in the report')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems')
         check('Problèmes suivis' in report and 'report-problem-map' not in report, 'problems table without their detail')

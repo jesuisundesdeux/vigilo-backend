@@ -889,7 +889,7 @@ if ($edit !== null) {
 <div class="card shadow-sm mb-4" id="timeline">
   <div class="card-header fw-semibold"><i class="bi bi-clock-history"></i> Chronologie et horaires des observations</div>
   <div class="card-body">
-    <h3 class="h6 mb-0">Frise chronologique (observations par mois)</h3>
+    <h3 class="h6 mb-0">Frise chronologique</h3>
     <div class="problem-chart"><?= $time_charts['timeline'] /* SVG built with escaped labels (report_svg_columns) */ ?></div>
     <h3 class="h6 mb-0 mt-3">Jours et heures</h3>
     <div class="problem-chart"><?= $time_charts['heatmap'] /* matrix, darker with the number of observations */ ?></div>

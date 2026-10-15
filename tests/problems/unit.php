@@ -109,6 +109,17 @@ require_once __DIR__ . '/../../app/includes/report.php';
 $svg = report_svg_heatmap($stats['grid'], 'Test <b>');
 check(substr_count($svg, '<rect') == 7 * 24 + 6 && strpos($svg, 'lundi 8 h – 9 h : 1 observation<') !== false && strpos($svg, '#104281') !== false
       && strpos($svg, '<b>') === false, 'heatmap: 168 squares and a scale, darkest for the maximum, title escaped');
+$strip = report_svg_strip(array('2020-11' => 1, '2020-12' => 0, '2021-01' => 4), 'Frise');
+check(substr_count($strip, '<rect') == 3 + 6 && strpos($strip, 'décembre 2020 : 0 observation<') !== false && strpos($strip, '>2021</text>') !== false
+      && strpos($strip, '>2020</text>') !== false && strpos($strip, 'janvier 2021 (4)') !== false && strpos($strip, '#104281') !== false,
+      'timeline strip: one square per month, years, busiest month, darkest for the maximum');
+$long = array();
+for ($t = mktime(0, 0, 0, 1, 1, 2015); $t < mktime(0, 0, 0, 1, 1, 2021); $t = strtotime('+1 month', $t)) {
+    $long[date('Y-m', $t)] = date('n', $t) == 5 ? 2 : 0;
+}
+$strip = report_svg_strip($long, 'Frise');
+check(substr_count($strip, '<rect') == 24 + 6 && strpos($strip, '2e trimestre 2015 : 2 observations<') !== false && strpos($strip, 'Trimestre le plus chargé') !== false,
+      'timeline strip: by quarter beyond 4 years');
 check(report_week_grid(array(array('time' => mktime(23, 0, 0, 1, 3, 2021))))[6][23] === 1, 'week grid: Sunday 23 h');
 
 check(problem_active_statuses() === array('open', 'in_progress', 'waiting'), 'active statuses');

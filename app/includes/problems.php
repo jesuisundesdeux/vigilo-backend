@@ -863,21 +863,16 @@ function problem_time_stats($observations)
     return $stats;
 }
 
-/* Charts of problem_time_stats() (SVG of report.php): timeline per month, matrix days × hours (and the two distributions) */
+/* Charts of problem_time_stats() (SVG of report.php): compact timeline per month, matrix days × hours (and the two distributions) */
 function problem_time_charts($stats, $color = '#3f6fb5')
 {
     require_once(dirname(__FILE__) . '/report.php');
-    $names  = array(1 => 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.');
-    $months = array();
-    foreach ($stats['months'] as $month => $count) {
-        $months[$names[intval(substr($month, 5, 2))] . ' ' . substr($month, 2, 2)] = $count;
-    }
     $hours = array();
     foreach ($stats['hours'] as $hour => $count) {
         $hours[$hour . ' h'] = $count;
     }
     return array(
-        'timeline' => report_svg_columns($months, '#f2c200', 'Observations par mois'),
+        'timeline' => report_svg_strip($stats['months'], 'Frise chronologique : observations par mois'),
         'weekdays' => report_svg_columns(array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), $stats['weekdays']), $color, 'Observations par jour de la semaine'),
         'hours'    => report_svg_columns($hours, $color, 'Observations par heure'),
         'heatmap'  => report_svg_heatmap($stats['grid'], 'Observations par jour de la semaine et par heure'),
