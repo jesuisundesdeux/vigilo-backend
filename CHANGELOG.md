@@ -26,6 +26,14 @@
 - Section « Jours et heures » : matrice jours × heures (à la place des deux histogrammes).
 - Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).
 
+### Comptes : lien pour choisir son mot de passe
+- Page **Comptes** : à la création (ou à la modification) d'un compte admin ou citystaff avec login, case « Envoyer un
+  lien pour choisir le mot de passe » (le mot de passe peut alors rester vide), et bouton **Lien** sur chaque compte.
+  Le lien (`admin/password.php?token=…`) est affiché une seule fois pour être transmis à la personne : à usage
+  unique, valable 72 heures, remplacé par un nouveau lien ; seule l'empreinte SHA-256 du jeton est enregistrée.
+  Journal : `account_password_link`, `account_password_set`.
+- Migration 0.0.34 : table `obs_password_links`.
+
 ## 0.0.33
 
 
