@@ -41,4 +41,10 @@ CREATE TABLE IF NOT EXISTS `obs_problem_observations` (
   UNIQUE KEY `po_obsid` (`po_obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Notes of a problem: obs_notes shared with the observations (note_obsid = 0, note_problemid set)
+SET @vigilo_sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `obs_notes` ADD COLUMN `note_problemid` int(11) NOT NULL DEFAULT 0, ADD KEY `note_problemid` (`note_problemid`)', 'SELECT 1') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'obs_notes' AND COLUMN_NAME = 'note_problemid');
+PREPARE vigilo_stmt FROM @vigilo_sql;
+EXECUTE vigilo_stmt;
+DEALLOCATE PREPARE vigilo_stmt;
+
 UPDATE `obs_config` SET `config_value` = '0.0.32' WHERE `obs_config`.`config_param` = 'vigilo_db_version';

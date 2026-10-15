@@ -20,8 +20,11 @@
   l'approbation) au problème actif (ouvert, en cours, en attente) qui lui correspond, s'il n'y en a qu'un ; sinon
   l'observation apparaît dans le cadre **À arbitrer** de la page Problèmes. Journal : `problem_attach_auto`,
   `problem_attach_ambiguous`. Les réponses de l'API ne changent pas.
+- Fiche d'un problème : changement du statut et de la priorité, **notes internes** (table `obs_notes`, colonne
+  `note_problemid`), jamais publiées ni reprises dans les rapports. Le journal garde le texte d'une note supprimée
+  (observation ou problème).
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
-  l'instant). Rien ne change pour l'API publique ni pour l'application web.
+  l'instant), colonne `obs_notes.note_problemid`. Rien ne change pour l'API publique ni pour l'application web.
 
 ### Plus ancienne version prise en charge : 0.0.17
 - Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à
