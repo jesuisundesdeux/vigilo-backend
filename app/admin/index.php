@@ -35,7 +35,7 @@ require_once('../includes/problems.php');
 $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "camera", "name" => "Observations", "access" => array('admin','citystaff')),
         "resolutions" => array("icon" => "check2-square", "name" => "Résolutions", "access" => array('admin','citystaff')),
-        "problems" => array("icon" => "diagram-3", "name" => "Problèmes", "access" => array('admin')),
+        "problems" => array("icon" => "diagram-3", "name" => "Problèmes", "access" => array('admin','citystaff')),
         "reports" => array("icon" => "file-earmark-bar-graph", "name" => "Rapports", "access" => array('admin','citystaff')),
         "cities" => array("icon" => "buildings", "name" => "Villes", "access" => array('admin')),
         "accounts" => array("icon" => "people", "name" => "Comptes", "access" => array('admin')),

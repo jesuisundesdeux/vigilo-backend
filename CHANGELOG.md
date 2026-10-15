@@ -3,7 +3,7 @@
 ## 0.0.32
 
 ### Problèmes (lot 1, première partie)
-- Nouvelle page **Problèmes** dans l'admin (administrateurs seulement, issue #327) : un problème regroupe les
+- Nouvelle page **Problèmes** dans l'admin (gérée par les administrateurs, issue #327) : un problème regroupe les
   observations publiées d'une **zone** (cercle ou polygone tracé sur la carte), d'une ou plusieurs **catégories** (les
   catégories nationales et celles de l'instance) et d'une **période** (début, fin facultative, sur la date des
   observations), avec une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en cours, en
@@ -29,6 +29,8 @@
   n'est créé automatiquement.
 - **Rapport pour une collectivité** : section « Problèmes suivis » (administrateurs, case du formulaire), avec l'état,
   la priorité et le nombre d'observations de chaque problème du rapport ; jamais les notes internes.
+- Comptes **citystaff** : page Problèmes en **lecture seule**, limitée aux problèmes qui ont des observations dans
+  leurs villes (et à ces observations), sans les notes internes ni aucune action.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
   l'instant), colonne `obs_notes.note_problemid`,
   table `obs_problem_suggestions_dismissed`. Rien ne change pour l'API publique ni pour l'application web.

@@ -207,11 +207,14 @@ function problem_matching_observations($db, $problem)
     return $list;
 }
 
-/* Number of observations attached to each problem: problem_id => count */
-function problem_observation_counts($db)
+/* Number of observations attached to each problem: problem_id => count (of the cities $city_ids if not null) */
+function problem_observation_counts($db, $city_ids = null)
 {
     $counts = array();
-    $query  = mysqli_query($db, "SELECT po_problemid, COUNT(*) AS nb FROM obs_problem_observations GROUP BY po_problemid");
+    $query  = mysqli_query($db, "SELECT po_problemid, COUNT(*) AS nb FROM obs_problem_observations"
+                               . ($city_ids === null ? "" : " INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                                             WHERE " . problem_city_condition($city_ids)) . "
+                                 GROUP BY po_problemid");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $counts[intval($row['po_problemid'])] = intval($row['nb']);
     }
@@ -404,8 +407,15 @@ function problem_attach_retro($db, $problem, $login)
     return $result;
 }
 
-/* Observations attached to a problem, with the details of the attachment */
-function problem_observations($db, $problem_id)
+/* SQL condition on obs_list.obs_city: the cities of a citystaff account (none: nothing) */
+function problem_city_condition($city_ids)
+{
+    $ids = array_values(array_filter(array_map('intval', (array) $city_ids)));
+    return $ids ? "obs_list.obs_city IN (" . implode(',', $ids) . ")" : "0";
+}
+
+/* Observations attached to a problem, with the details of the attachment (of the cities $city_ids if not null) */
+function problem_observations($db, $problem_id, $city_ids = null)
 {
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
@@ -414,7 +424,8 @@ function problem_observations($db, $problem_id)
                                        obs_problem_observations.po_mode, obs_problem_observations.po_time, obs_problem_observations.po_login
                                 FROM obs_problem_observations
                                 INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
-                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id) . "
+                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id)
+                                . ($city_ids === null ? "" : " AND " . problem_city_condition($city_ids)) . "
                                 ORDER BY obs_list.obs_time DESC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $list[] = $row;
