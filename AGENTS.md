@@ -23,7 +23,7 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
 | `app/*.php` | Routes publiques de l'API (une route = un fichier), documentées dans `doc/REST_API.md` |
 | `app/includes/` | Code partagé : `common.php` (connexion, config), `functions.php`, `security.php`, `images.php`, `blur.php`, `webhooks.php`, `report.php` (rapport pour une collectivité), `updater.php`, `migrations.php`, `setup.php` (première installation), `version.php` |
 | `app/admin/` | Panneau d'administration : `index.php` (menu, rôles autorisés par page), `inc/<page>.php`, `assets/` (Bootstrap 5, Leaflet, `admin.js`), `js/` |
-| `app/migrations/init-X.Y.Z.sql` | Migrations de la base, appliquées dans l'ordre des versions |
+| `app/migrations/` | `schema-0.0.17.sql` (base de départ d'une installation neuve, plus ancienne version prise en charge) puis `init-X.Y.Z.sql` : migrations appliquées dans l'ordre des versions |
 | `config/` | Modèles de configuration (`config.php.docker` lit les variables d'environnement) |
 | `blur-server/` | Serveur de floutage optionnel (Python, image séparée `vigilo-blur`) |
 | `scripts/` | `vigilo-migrate.php` (migrations en CLI), `build-release.sh`, `release-keygen.php`, `obsolete-paths.txt` |
@@ -67,7 +67,9 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
     PREPARE …; EXECUTE …; DEALLOCATE PREPARE …;` (exemples dans `init-0.0.22.sql` et `init-0.0.23.sql`) ;
   - la dernière ligne met à jour `vigilo_db_version` ;
   - **ne jamais modifier la migration d'une version déjà publiée (tag existant)** : créer la migration de la version
-    suivante.
+    suivante ;
+  - plus ancienne version prise en charge : **0.0.17** (`schema-0.0.17.sql` pour une base vide, base plus ancienne
+    refusée).
 - **Version** : `app/includes/version.php` (`BACKEND_VERSION`) est la seule source. La CI refuse une migration plus
   récente que cette version. Une version sans changement de schéma n'a pas besoin de migration.
 - **Code retiré** : lister les fichiers supprimés dans `scripts/obsolete-paths.txt` (la mise à jour depuis l'admin

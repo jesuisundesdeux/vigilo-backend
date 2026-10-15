@@ -19,7 +19,7 @@ app/                    code servi (racine du site)
   admin/                interface d'administration (index.php + pages inc/*.php)
     assets/             admin.js, admin.css, vendor/ (Bootstrap, Bootstrap Icons, Leaflet servis localement)
     js/                 carte des scopes, import des communes, complément Wikidata
-  migrations/           init-X.Y.Z.sql, une par version
+  migrations/           schema-0.0.17.sql (base neuve), puis init-X.Y.Z.sql, une par version
   config/               config.php (instance, non versionné)
   images/, caches/      données de l'instance (non servies directement)
 blur-server/            serveur de floutage (Python/OpenCV, image Docker séparée)
@@ -75,4 +75,4 @@ Les réglages de l'instance (table `obs_config`) sont décrits sur [vigilo.city]
 | `obs_audit_log` | Journal des actions privilégiées |
 | `obs_login_attempts`, `obs_rate_limit` | Limitation des connexions et anti-spam |
 
-Le schéma évolue uniquement par les migrations `app/migrations/init-X.Y.Z.sql` (voir [UPGRADE.md](UPGRADE.md)).
+Une base neuve part de `app/migrations/schema-0.0.17.sql` (plus ancienne version prise en charge) ; le schéma évolue ensuite uniquement par les migrations `app/migrations/init-X.Y.Z.sql` (voir [UPGRADE.md](UPGRADE.md)).

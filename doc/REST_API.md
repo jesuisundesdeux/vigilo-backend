@@ -6,6 +6,8 @@ Présentation API Vigilo
 Toutes les routes sont à la racine de l'instance et répondent en JSON (sauf images) avec l'en-tête
 `BACKEND_VERSION` et `Access-Control-Allow-Origin: *` (sauf `get_version.php` et `generate_panel.php`).
 Erreurs : `{"error": {"status", "code", "message"}}` avec le code HTTP correspondant. Le détail de chaque route suit.
+Plus ancienne version de backend prise en charge : 0.0.17 ; les mentions de versions antérieures dans les colonnes
+« Compatibilité » sont historiques.
 
 Authentification :
 - `key` : clé privée d'un compte (`admin`, `moderator` ou `citystaff`, voir [acl.php](#vérification-acl)). Les droits

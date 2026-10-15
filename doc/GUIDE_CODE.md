@@ -540,7 +540,7 @@ ressource de CDN n'est chargée. Les appels aux API externes ci-dessus se font d
 
 ### 5.1 Tables
 
-Le schéma est la somme des migrations `app/migrations/init-*.sql` (section 7.4). Les jeux de caractères varient selon
+Le schéma est celui de `app/migrations/schema-0.0.17.sql` (base de départ) suivi des migrations `app/migrations/init-*.sql` (section 7.4). Les jeux de caractères varient selon
 l'époque de création : `obs_list`, `obs_scopes`, `obs_config`, `obs_resolutions` en `utf8` (`utf8_bin`), certaines
 colonnes de `obs_roles` et `obs_cities` en `latin1`, tables créées depuis 0.0.22 en `utf8mb4`.
 
@@ -604,7 +604,7 @@ le lien `action=resolve&new_status=` (voir section 10).
 | `vigilo_language` | `common.php` (`VIGILO_LANGUAGE`) : attribut `lang` de la mosaïque | oui | `fr-FR` |
 | `vigilo_timezone` | `common.php` | oui | `Europe/Paris` |
 | `mysql_charset` | `common.php` (`mysqli_set_charset`) | oui | `utf8` |
-| `vigilo_shownonapproved` | `get_issues.php` | oui | `1` (inséré par `init-0.0.13.sql`) |
+| `vigilo_shownonapproved` | `get_issues.php` | oui | `1` (installation neuve : `schema-0.0.17.sql`) |
 | `vigilo_resolved_hide_days` | `get_issues.php` | oui | `0` |
 | `vigilo_blur_url` | `blur.php` | oui | `''` |
 | `vigilo_ratelimit_create` | `create_issue.php`, `create_resolution.php` | oui | `60` (ligne absente : pas de limite) |
@@ -811,14 +811,20 @@ reproductible), `SHA256SUMS`, et `.sig` si `VIGILO_RELEASE_SIGNING_KEY` est déf
 
 ### 7.4 Migrations (`includes/migrations.php`)
 
-- `vigilo_migrations_list()` : `init-X.Y.Z.sql` triés par `version_compare`.
+- Base de départ : `VIGILO_MIGRATIONS_BASE` (`0.0.17`), schéma `schema-0.0.17.sql` (tables, index et réglages d'une
+  base en 0.0.17, `CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`) qui remplace depuis 0.0.33 les migrations 0.0.2 à
+  0.0.17 (issue #328 : aucune instance plus ancienne). Il n'est appliqué qu'à une base vide (`0.0.0`) ; une base entre
+  les deux (`vigilo_db_too_old()`) est refusée par `vigilo_migrate()` sans être modifiée. La CI vérifie que le schéma
+  est identique à celui produit par les anciennes migrations du tag v0.0.31.
+- `vigilo_migrations_list()` : `init-X.Y.Z.sql` triés par `version_compare` ; `vigilo_migrations_pending()` commence
+  par `schema-0.0.17.sql` pour une base vide.
 - `vigilo_db_version()` : `0.0.0` si ni `obs_config` ni `obs_list` n'existent ; **exception** si `obs_list` existe
   sans `obs_config`, si la lecture échoue ou si la valeur est invalide (une erreur passagère ne doit jamais faire
   rejouer toutes les migrations).
 - `vigilo_migration_statements()` : supprime les lignes commençant par `--` ou `#`, puis découpe sur un `;` **suivi
   d'une fin de ligne** (ou de la fin du fichier). Deux instructions sur une même ligne ne sont donc pas séparées.
 - `vigilo_migrate($db, $target = BACKEND_VERSION, $log)` : verrou MySQL `GET_LOCK('vigilo_migrate', 0)` (une seule
-  migration à la fois), refus si la base est plus récente que la cible, `innodb_strict_mode=OFF` et `sql_mode=''`,
+  migration à la fois), refus si la base est plus récente que la cible ou plus ancienne que la base de départ, `innodb_strict_mode=OFF` et `sql_mode=''`,
   exécution de chaque instruction, `vigilo_set_db_version()` **après chaque fichier réussi** (une migration interrompue
   reprend au dernier fichier réussi), puis alignement de la version sur la cible si aucun fichier ne correspond à
   `BACKEND_VERSION` (version sans changement de schéma).
@@ -1155,7 +1161,7 @@ compatibilité** (les tests de contrat les figent) ; les autres sont des défaut
   peuvent pas enregistrer leur version (`obs_config` n'existe qu'à partir de 0.0.4). Une installation interrompue
   avant 0.0.4 laisse une base que `vigilo_db_version()` refuse (« obs_config absente mais obs_list présente ») : il faut
   vider la base.
-- `vigilo_shownonapproved` vaut **1** sur une installation neuve (`init-0.0.13.sql`) : les observations sont publiées
+- `vigilo_shownonapproved` vaut **1** sur une installation neuve (`schema-0.0.17.sql`) : les observations sont publiées
   sans modération tant que l'admin ne décoche pas le réglage, alors que le défaut de `$settings_fields` (utilisé si la
   ligne manque) est `0`. De même `mysql_charset` vaut `utf8` en base (`init-0.0.4.sql`), le défaut de la page étant
   `utf8mb4`.
