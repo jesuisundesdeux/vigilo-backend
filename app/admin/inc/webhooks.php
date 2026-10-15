@@ -483,20 +483,26 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
   </div>
   <div class="col-12 col-xl-5">
     <div class="card shadow-sm">
-      <div class="card-header fw-semibold"><i class="bi bi-braces"></i> Variables</div>
+      <div class="card-header fw-semibold"><i class="bi bi-braces"></i> Variables <span class="fw-normal text-body-secondary small" data-variables-event></span></div>
       <div class="table-responsive">
-        <table class="table table-sm mb-0 small">
+        <table class="table table-sm mb-0 small" data-webhook-variables>
           <tbody>
-          <?php foreach (webhook_variables() as $name => $description) { ?>
-            <tr><td class="font-monospace text-nowrap">{{<?= h($name) ?>}}</td><td><?= h($description) ?></td></tr>
+          <?php $selected_event = $hook_events ? $hook_events[0] : VIGILO_WEBHOOK_EVENT_APPROVED;
+          foreach (webhook_variables() as $name => $description) {
+              // Variables of the chosen event only (the others are shown when it changes)
+              $var_events = webhook_variable_events($name); ?>
+            <tr<?= $var_events ? ' data-events="' . h(implode(' ', $var_events)) . '"' . (in_array($selected_event, $var_events, true) ? '' : ' hidden') : '' ?>><td class="font-monospace text-nowrap">{{<?= h($name) ?>}}</td><td><?= h($description) ?></td></tr>
           <?php } ?>
           </tbody>
         </table>
       </div>
       <div class="card-body small text-body-secondary">
-        Utilisables dans l'URL, les en-têtes et le corps. Pour les événements de résolution, les variables de
-        l'observation sont celles de sa première observation. « Enregistrer et tester » envoie la requête du premier
-        événement coché avec la dernière observation publiée (ou la dernière résolution).
+        Utilisables dans l'URL, les en-têtes et le corps.
+        <span data-variables-note="observation"<?= strpos($selected_event, 'observation.') === 0 ? '' : ' hidden' ?>>Variables de l'observation concernée.</span>
+        <span data-variables-note="resolution"<?= strpos($selected_event, 'resolution.') === 0 ? '' : ' hidden' ?>>Les variables de l'observation sont celles de la première observation de la résolution.</span>
+        <span data-variables-note="problem"<?= strpos($selected_event, 'problem.') === 0 ? '' : ' hidden' ?>>Les variables de l'observation sont celles de la dernière observation du problème.</span>
+        « Enregistrer et tester » envoie la requête de l'événement choisi avec la dernière observation publiée (la dernière
+        résolution, le dernier problème).
       </div>
     </div>
   </div>
@@ -505,6 +511,31 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
 <?php if ($edit) { ?>
 <script type="application/json" id="webhook_templates_data"><?= json_encode($webhook_templates, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 <script>
+  // Variables: those of the chosen event
+  (function () {
+    var table = document.querySelector('[data-webhook-variables]');
+    var title = document.querySelector('[data-variables-event]');
+    if (!table) {
+      return;
+    }
+    function sync() {
+      var checked = document.querySelector('input[name="webhook_event"]:checked');
+      var event = checked ? checked.value : '';
+      table.querySelectorAll('tr[data-events]').forEach(function (row) {
+        row.hidden = row.getAttribute('data-events').split(' ').indexOf(event) < 0;
+      });
+      document.querySelectorAll('[data-variables-note]').forEach(function (note) {
+        note.hidden = event.indexOf(note.getAttribute('data-variables-note') + '.') !== 0;
+      });
+      var label = checked ? document.querySelector('label[for="' + checked.id + '"]') : null;
+      title.textContent = label ? '— ' + label.firstChild.textContent.trim() : '';
+    }
+    document.querySelectorAll('input[name="webhook_event"]').forEach(function (radio) {
+      radio.addEventListener('change', sync);
+    });
+    sync();
+  })();
+
   (function () {
     var select = document.getElementById('webhook_template');
     var templates = JSON.parse(document.getElementById('webhook_templates_data').textContent);

@@ -1128,7 +1128,9 @@ l'action en tête de page, écrire le lien avec `csrf_query()` ou le formulaire 
 
 ### 9.6 Ajouter une variable de webhook
 
-1. `webhook_variables()` : nom et description (affichés dans l'admin).
+1. `webhook_variables()` : nom et description (affichés dans l'admin) ; `webhook_variable_events()` : événements qui
+   l'utilisent si elle n'est pas commune (préfixes `resolution_`, `problem_`) — le formulaire n'affiche que les
+   variables de l'événement choisi (`data-events`, script de `admin/inc/webhooks.php`).
 2. `webhook_observation_values()` : valeur (chaîne). Si son calcul est coûteux ou distant, mettre `null` et la
    calculer dans `webhook_value()` à la première utilisation.
 3. Si les valeurs d'exemple de `webhook_admin_test_values()` (page Webhooks) sont utilisées, y ajouter la clé.

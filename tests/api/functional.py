@@ -939,7 +939,7 @@ class T13WebhookEvents(unittest.TestCase):
         self.assertIn('était abonné à plusieurs événements', page)
         self.assertRegex(page, r'type="radio" name="webhook_event" id="event_observation_created" value="observation.created" checked',
                          'first event of the list chosen')
-        self.assertEqual(page.count('name="webhook_event"'), 6, 'one radio button per event')
+        self.assertEqual(page.count('type="radio" name="webhook_event"'), 6, 'one radio button per event')
 
 
 class T11Categories(unittest.TestCase):
