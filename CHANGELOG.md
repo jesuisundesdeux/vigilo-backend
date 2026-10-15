@@ -11,9 +11,13 @@
 - Liste avec recherche (titre, description) et filtres (statut, priorité, catégorie), création, modification et
   suppression (les observations sont conservées). Les actions sont inscrites au journal (`problem_create`,
   `problem_edit` avec les valeurs modifiées, `problem_delete`).
+- **Fiche d'un problème** : carte de la zone et des observations, rattachement des observations existantes en deux
+  temps, **Compter** (aucune modification) puis **Rattacher** (avec confirmation, calcul refait, idempotent) ; une
+  observation déjà dans un autre problème n'est jamais déplacée mais signalée (conflit, lien vers l'autre problème) ;
+  rattachement manuel d'une observation publiée par son token, détachement. Journal : `problem_attach_retro`,
+  `problem_attach`, `problem_detach`.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
-  l'instant). Le rattachement des observations suivra ; rien ne change pour l'API publique
-  ni pour l'application web.
+  l'instant). Rien ne change pour l'API publique ni pour l'application web.
 
 ### Plus ancienne version prise en charge : 0.0.17
 - Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à

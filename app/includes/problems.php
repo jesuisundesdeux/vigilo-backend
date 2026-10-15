@@ -312,3 +312,121 @@ function problem_zone_label($problem)
     }
     return 'Cercle de ' . intval($problem['problem_radius']) . ' m';
 }
+
+/*
+ * Retroactive attribution, first step (changes nothing): the matching observations split
+ * into already attached to this problem, to attach (attached to no problem) and conflicts
+ * (attached to another problem, never moved silently)
+ */
+function problem_count($db, $problem)
+{
+    $result = array('matching' => 0, 'here' => array(), 'to_attach' => array(), 'conflicts' => array());
+    foreach (problem_matching_observations($db, $problem) as $observation) {
+        $result['matching']++;
+        if ($observation['problem'] == intval($problem['problem_id'])) {
+            $result['here'][] = $observation;
+        } elseif ($observation['problem'] == 0) {
+            $result['to_attach'][] = $observation;
+        } else {
+            $result['conflicts'][] = $observation;
+        }
+    }
+    return $result;
+}
+
+/*
+ * Attaches an observation to a problem: 'attached', 'already' (already in this problem),
+ * 'conflict' (in another problem: left there), 'unpublished' or 'error'. The unique key on
+ * po_obsid makes it safe when two requests attach the same observation.
+ */
+function problem_attach($db, $problem_id, $obs_id, $mode, $login)
+{
+    $obs_id = intval($obs_id);
+    $query  = mysqli_query($db, "SELECT obs_list.obs_id, COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid
+                                 FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                 WHERE obs_list.obs_id = " . $obs_id . " AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1 LIMIT 1");
+    $row    = $query ? mysqli_fetch_assoc($query) : null;
+    if (!$row) {
+        return 'unpublished';
+    }
+    if (intval($row['po_problemid'])) {
+        return intval($row['po_problemid']) == intval($problem_id) ? 'already' : 'conflict';
+    }
+    $mode = in_array($mode, array('retro', 'auto', 'manual'), true) ? $mode : 'manual';
+    $ok   = mysqli_query($db, "INSERT IGNORE INTO obs_problem_observations (po_problemid, po_obsid, po_mode, po_time, po_login)
+                               VALUES (" . intval($problem_id) . ", " . $obs_id . ", '" . $mode . "', " . time() . ",
+                                       '" . mysqli_real_escape_string($db, (string) $login) . "')");
+    if (!$ok) {
+        return 'error';
+    }
+    if (mysqli_affected_rows($db) == 1) {
+        return 'attached';
+    }
+    // Attached meanwhile by another request
+    $query = mysqli_query($db, "SELECT po_problemid FROM obs_problem_observations WHERE po_obsid = " . $obs_id);
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    return ($row && intval($row['po_problemid']) == intval($problem_id)) ? 'already' : 'conflict';
+}
+
+function problem_detach($db, $problem_id, $obs_id)
+{
+    mysqli_query($db, "DELETE FROM obs_problem_observations WHERE po_problemid = " . intval($problem_id) . " AND po_obsid = " . intval($obs_id));
+    return mysqli_affected_rows($db) == 1;
+}
+
+/*
+ * Retroactive attribution, second step: the matching observations are computed again
+ * (the data may have changed since the count) and those attached to no problem are
+ * attached. Idempotent: a second run attaches nothing. Under a lock so that two
+ * administrators get consistent results.
+ * Returns array('attached' => tokens, 'already' => n, 'conflicts' => observations).
+ */
+function problem_attach_retro($db, $problem, $login)
+{
+    $lock   = mysqli_query($db, "SELECT GET_LOCK('vigilo_problem_attach', 10)");
+    $locked = $lock && intval(mysqli_fetch_array($lock)[0]) === 1;
+    $result = array('attached' => array(), 'already' => 0, 'conflicts' => array());
+    foreach (problem_matching_observations($db, $problem) as $observation) {
+        $status = problem_attach($db, $problem['problem_id'], $observation['id'], 'retro', $login);
+        if ($status == 'attached') {
+            $result['attached'][] = $observation['token'];
+        } elseif ($status == 'already') {
+            $result['already']++;
+        } elseif ($status == 'conflict') {
+            $result['conflicts'][] = $observation;
+        }
+    }
+    if ($locked) {
+        mysqli_query($db, "SELECT RELEASE_LOCK('vigilo_problem_attach')");
+    }
+    return $result;
+}
+
+/* Observations attached to a problem, with the details of the attachment */
+function problem_observations($db, $problem_id)
+{
+    $list  = array();
+    $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
+                                       obs_list.obs_time, obs_list.obs_categorie, obs_list.obs_address_string, obs_list.obs_comment,
+                                       obs_list.obs_approved, obs_list.obs_archived,
+                                       obs_problem_observations.po_mode, obs_problem_observations.po_time, obs_problem_observations.po_login
+                                FROM obs_problem_observations
+                                INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id) . "
+                                ORDER BY obs_list.obs_time DESC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $list[] = $row;
+    }
+    return $list;
+}
+
+/* Titles of the problems: problem_id => title */
+function problem_titles($db)
+{
+    $titles = array();
+    $query  = mysqli_query($db, "SELECT problem_id, problem_title FROM obs_problems");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $titles[intval($row['problem_id'])] = (string) $row['problem_title'];
+    }
+    return $titles;
+}

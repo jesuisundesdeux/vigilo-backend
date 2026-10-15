@@ -489,6 +489,50 @@ def main():
                                                                             problem_status='in_progress', problem_radius='150'))
             check('Cercle de 150 m' in page and '>En cours</span>' in page and 'Cercle de 100 m' not in page
                   and len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
+
+    # Problem detail: count (no change), retroactive attribution (idempotent, conflicts kept),
+    # manual attach and detach
+    ids = dict((html.unescape(t), i) for i, t in re.findall(r'view=(\d+)">([^<]+)</a>', page))
+    pb_gare, pb_works = ids.get('Piste <b>bloquée</b>'), ids.get('Travaux du centre')
+    check(pb_gare is not None and pb_works is not None, 'problem detail links')
+    if pb_gare and pb_works:
+        gare_url, works_url = 'index.php?page=problems&view=' + pb_gare, 'index.php?page=problems&view=' + pb_works
+        status, _, page = admin.request(gare_url)
+        clean('problem detail', status, page)
+        check('data-problem-view' in page and 'Observations rattachées (0)' in page, 'problem detail with map, nothing attached')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1'})
+        clean('problem count', status, page)
+        check('<strong>2</strong> observation(s) publiée(s)' in page and 'TOKA0001, TOKA0003' in page and 'Observations rattachées (0)' in page,
+              'problem count: TOKA0001 and TOKA0003 match, nothing attached')
+        # TOKA0003 in another problem (manual attach ignores the criteria)
+        status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_attach_token': '1', 'obs_token': 'toka0003'})
+        check('Observation <strong>TOKA0003</strong> rattachée' in page and 'Observations rattachées (1)' in page, 'manual attach')
+        for token, text in [('TOKA0003', 'déjà rattachée à ce problème'), ('TOKA0004', 'publiée'), ('NOPE0000', 'introuvable')]:
+            status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_attach_token': '1', 'obs_token': token})
+            check(text in page, 'manual attach of %s refused (%s)' % (token, text))
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_token': '1', 'obs_token': 'TOKA0003'})
+        check('appartient déjà à un autre problème' in page and 'Travaux du centre</a>' in page, 'manual attach of an observation of another problem refused')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1'})
+        check('<strong>1</strong> à rattacher : TOKA0001' in page and '<strong>1</strong> dans un autre problème' in page, 'problem count with a conflict')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
+        clean('problem attach', status, page)
+        check('<strong>1</strong> observation(s) rattachée(s), 0 déjà' in page and 'laissée(s) dans un autre problème' in page
+              and 'Observations rattachées (1)' in page, 'retroactive attribution, conflict left in the other problem')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
+        check('<strong>0</strong> observation(s) rattachée(s), 1 déjà' in page, 'retroactive attribution is idempotent')
+        status, _, page = admin.request('index.php?page=problems')
+        check(re.search(r'data-label="Observations">1<', page) is not None, 'number of observations in the list')
+        status, _, page = admin.request(gare_url)
+        detach = [l for l in links(page, 'action=detach')]
+        check(len(detach) == 1, 'detach link')
+        if detach:
+            status, _, page = admin.request('index.php' + detach[0] if detach[0].startswith('?') else detach[0])
+            clean('problem detach', status, page)
+            check('<strong>TOKA0001</strong> détachée' in page and 'Observations rattachées (0)' in page, 'observation detached')
+        status, _, page = admin.request(gare_url + '&action=detach&obsid=1')
+        check('jeton de sécurité' in page, 'detach without CSRF token refused')
+        status, _, page = admin.request('index.php?page=problems')
+
     delete = [l for l in links(page, 'action=delete') if 'problemid=' in l]
     check(len(delete) == 2, 'problem delete links')
     if delete:
@@ -499,7 +543,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout

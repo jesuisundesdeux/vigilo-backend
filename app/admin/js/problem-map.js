@@ -1,5 +1,6 @@
 // Vigilo admin: zone of a problem (circle or polygon), drawn on a map. Keeps the
-// form fields in sync (center and radius, or JSON list of [lat, lon] points).
+// form fields in sync (center and radius, or JSON list of [lat, lon] points). Also the
+// map of the detail of a problem (data-problem-view).
 (function () {
   'use strict';
 
@@ -174,4 +175,34 @@
   }
 
   document.querySelectorAll('[data-problem-map]').forEach(setup);
+
+  // Detail of a problem: zone and observations (attached, to attach, in another problem)
+  var COLORS = { attached: '#198754', to_attach: '#0d6efd', conflict: '#fd7e14' };
+  document.querySelectorAll('[data-problem-view]').forEach(function (container) {
+    var data;
+    try {
+      data = JSON.parse(container.getAttribute('data-problem-view'));
+    } catch (e) {
+      return;
+    }
+    var map = L.map(container);
+    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
+    var zone = data.zone === 'polygon'
+      ? L.polygon(data.polygon, STYLE)
+      : L.circle([data.lat, data.lon], L.extend({ radius: data.radius }, STYLE));
+    // A circle has bounds only once the map has a view
+    var bounds = data.zone === 'polygon' ? zone.getBounds() : L.latLng(data.lat, data.lon).toBounds(data.radius * 2);
+    map.fitBounds(bounds);
+    zone.addTo(map);
+    data.points.forEach(function (p) {
+      var marker = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 1, fillColor: COLORS[p.kind] || '#6c757d', fillOpacity: 0.9 }).addTo(map);
+      // Token as text (not HTML)
+      var label = document.createElement('span');
+      label.textContent = p.token;
+      marker.bindTooltip(label);
+      bounds.extend([p.lat, p.lon]);
+    });
+    map.fitBounds(bounds.pad(0.15));
+    setTimeout(function () { map.invalidateSize(); }, 200);
+  });
 })();

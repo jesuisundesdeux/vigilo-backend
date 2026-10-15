@@ -52,7 +52,14 @@ plusieurs **catégories** (nationales ou de l'instance), une **zone** (cercle ou
 cours, en attente, résolu, clos).
 
 Une observation correspond à un problème si elle est **publiée**, de l'**une** de ses catégories, dans sa zone et
-dans sa période (date de l'observation). Une observation appartient à un seul problème. Les problèmes ne sont visibles
+dans sa période (date de l'observation). Une observation appartient à un seul problème.
+
+Sur la fiche d'un problème, le **rattachement des observations existantes** se fait en deux temps : **Compter**
+(aucune modification : observations correspondantes, déjà rattachées, à rattacher, dans un autre problème), puis
+**Rattacher** (avec confirmation), qui refait le calcul et ne rattache que les observations qui ne sont dans aucun
+problème : une observation d'un autre problème n'est jamais déplacée, elle est signalée pour être arbitrée (la
+détacher de l'autre problème puis la rattacher). Recommencer ne rattache rien de plus. Une observation publiée peut
+aussi être rattachée à la main (par son token, même hors des critères) ou détachée. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
 
 ## Photos, pixelisation et floutage
