@@ -458,6 +458,8 @@ def main():
         clean('problem from suggestion', status, form)
         check('value="2" checked' in form and 'value="2020-09-13"' in form and 'id="problem_lat" name="problem_lat" inputmode="decimal" value="43.6' in form
               and 'ne correspond aux filtres' not in form, 'problem form prefilled by the suggestion (list not filtered)')
+        check('name="reference_tokens" value="TOKA0001,TOKA0003"' in form and '&quot;token&quot;:&quot;TOKA0003&quot;' in form
+              and 'value="Rue des Lilas, Bourgade"' in form, 'observations of the suggestion on the map, their streets proposed')
     m = re.search(r'name="problem_suggestion_dismiss" value="([^"]+)"', page)
     if m:
         status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})
@@ -597,6 +599,32 @@ def main():
         bis = [l for l in links(page, 'action=delete') if 'problemid=' in l and 'problemid=' + pb_gare not in l and 'problemid=' + pb_works not in l]
         if bis:
             admin.request('index.php' + bis[0] if bis[0].startswith('?') else bis[0])
+        status, _, page = admin.request('index.php?page=problems')
+
+    # Zone of streets: streets of the observations proposed, matching on the address
+    status, _, page = admin.request('index.php?page=problems&edit=new')
+    check('<option value="Rue des Lilas, Bourgade">' in page and 'value="streets"' in page, 'streets of the observations proposed')
+    streets = dict(problem, csrf_token=admin.token(page), problem_title='Rue des Lilas', problem_zone='streets', problem_lat='', problem_lon='')
+    status, _, page = admin.request('index.php?page=problems', dict(streets, **{'problem_streets[]': ['', ' ']}))
+    check('Indiquer de 1 à' in page, 'zone of streets without street refused')
+    status, _, page = admin.request('index.php?page=problems', dict(streets, **{'problem_streets[]': ['rue des lilas, bourgade', 'Rue <b>X</b>']}))
+    clean('problem streets create', status, page)
+    check('Rues : rue des lilas, bourgade ; Rue &lt;b&gt;X&lt;/b&gt;' in page, 'problem of streets created and escaped')
+    m = re.search(r'view=(\d+)">Rue des Lilas</a>', page)
+    check(m is not None, 'problem of streets listed')
+    if m:
+        status, _, page = admin.request('index.php?page=problems&view=' + m.group(1))
+        clean('problem streets detail', status, page)
+        check('&quot;zone&quot;:&quot;streets&quot;' in page and 'Modifier la zone' in page, 'problem of streets: map without shape, link to the zone')
+        status, _, page = admin.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': admin.token(page), 'problem_count': '1'})
+        check('<strong>1</strong> observation(s) publiée(s)' in page and 'TOKA0003' in page, 'problem of streets: TOKA0003 (Rue des Lilas) matches')
+        status, _, page = admin.request('index.php?page=problems&edit=' + m.group(1))
+        check('value="rue des lilas, bourgade"' in page and 'id="problem_zone_streets" value="streets" checked' in page
+              and '&quot;kind&quot;:&quot;attached&quot;' not in page, 'problem of streets: edit form filled')
+        status, _, page = admin.request('index.php?page=problems')
+        delete = [l for l in links(page, 'action=delete') if re.search(r'problemid=' + m.group(1) + r'(&|$)', l)]
+        if delete:
+            admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
         status, _, page = admin.request('index.php?page=problems')
 
     delete = [l for l in links(page, 'action=delete') if 'problemid=' in l]

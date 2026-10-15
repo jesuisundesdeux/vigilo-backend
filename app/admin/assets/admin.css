@@ -106,3 +106,9 @@ body {
   max-height: 260px;
   overflow-y: auto;
 }
+
+/* Problems: map of the form (vertices of the polygon, observations of reference) */
+.problem-legend-dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; vertical-align: baseline; }
+.problem-vertex { background: #fff; border: 2px solid #0d6efd; border-radius: 50%; cursor: move; }
+.problem-midpoint { background: #0d6efd; border: 1px solid #fff; border-radius: 50%; opacity: .55; cursor: copy; }
+.problem-midpoint:hover { opacity: 1; }

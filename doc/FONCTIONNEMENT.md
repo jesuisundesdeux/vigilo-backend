@@ -47,12 +47,15 @@ l'application web utilise ; les applications qui ne la lisent pas utilisent la l
 
 Les administrateurs regroupent des observations sous un **problème** (page **Problèmes** de l'admin, issue #327) :
 par exemple « Stationnement sur la piste cyclable de l'avenue X ». Un problème a un titre, une description, une ou
-plusieurs **catégories** (nationales ou de l'instance), une **zone** (cercle ou polygone tracé sur la carte), une
+plusieurs **catégories** (nationales ou de l'instance), une **zone** (cercle ou polygone tracé sur la carte, ou une
+ou plusieurs **rues**), une
 **période** (début, fin facultative), une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en
 cours, en attente, résolu, clos).
 
 Une observation correspond à un problème si elle est **publiée**, de l'**une** de ses catégories, dans sa zone et
-dans sa période (date de l'observation). Une observation appartient à un seul problème.
+dans sa période (date de l'observation). Une observation appartient à un seul problème. Pour une zone de rues,
+l'adresse de l'observation doit être dans l'une des rues (sans tenir compte des majuscules, des accents ni du numéro)
+et, si la rue précise une ville, dans cette ville (ville de l'adresse, ou ville de l'observation).
 
 Sur la fiche d'un problème, le **rattachement des observations existantes** se fait en deux temps : **Compter**
 (aucune modification : observations correspondantes, déjà rattachées, à rattacher, dans un autre problème), puis

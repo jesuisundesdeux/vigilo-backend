@@ -1118,8 +1118,8 @@ class T14Problems(unittest.TestCase):
             % (title, categories, lat, lon, radius, status))
         return sql("SELECT MAX(problem_id) FROM obs_problems")
 
-    def observation(self, lat, lon, categorie='2', approve_first=False):
-        r = create(coordinates_lat=str(lat), coordinates_lon=str(lon), categorie=categorie)
+    def observation(self, lat, lon, categorie='2', approve_first=False, address='Rue du Test, Testville'):
+        r = create(coordinates_lat=str(lat), coordinates_lon=str(lon), categorie=categorie, address=address)
         self.assertEqual(r.status, 200, r.text)
         token, secret = r.json()['token'], r.json()['secretid']
         if approve_first:
@@ -1128,6 +1128,12 @@ class T14Problems(unittest.TestCase):
         query = {'token': token, 'secretid': secret, 'key': ADMIN} if approve_first else {'token': token, 'secretid': secret}
         self.assertEqual(call('add_image.php', query, raw=PHOTO).status, 200)
         return token
+
+    def streets_problem(self, title, streets):
+        sql("INSERT INTO obs_problems (problem_title, problem_description, problem_categories, problem_zone, problem_polygon, "
+            "problem_streets, problem_start, problem_status) VALUES ('T14 %s', '', '2', 'streets', '', '%s', 0, 'open')"
+            % (title, json.dumps(streets, ensure_ascii=False).replace("'", "''")))
+        return sql("SELECT MAX(problem_id) FROM obs_problems")
 
     def link(self, token):
         return sql("SELECT CONCAT(po_problemid, ':', po_mode) FROM obs_problem_observations INNER JOIN obs_list ON obs_id = po_obsid "
@@ -1168,6 +1174,21 @@ class T14Problems(unittest.TestCase):
         problem = self.problem('photo', 43.59, 3.89)
         token = self.observation(43.5901, 3.8901, approve_first=True)
         self.assertEqual(self.link(token), problem + ':auto', 'attached when the photo makes it published')
+
+    def test_zone_of_streets(self):
+        problem = self.streets_problem('rues', [{'street': 'Rue Émile Zola', 'city': 'Testville'}, {'street': 'Avenue T14', 'city': ''}])
+        tokens = {
+            'street': self.observation(43.611, 3.911, address='12 rue emile-zola, Testville'),
+            'any_city': self.observation(43.612, 3.912, address='Avenue T14, Ailleurs'),
+            'other_city': self.observation(43.613, 3.913, address='Rue Émile Zola, Ailleurs'),
+            'other_street': self.observation(43.614, 3.914, address='Rue Victor Hugo, Testville'),
+        }
+        for token in tokens.values():
+            self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        self.assertEqual(self.link(tokens['street']), problem + ':auto', 'same street, without case, accents or number')
+        self.assertEqual(self.link(tokens['any_city']), problem + ':auto', 'street without city: any city')
+        self.assertEqual(self.link(tokens['other_city']), '', 'other city')
+        self.assertEqual(self.link(tokens['other_street']), '', 'other street')
 
 
 def main():

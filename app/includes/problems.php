@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
  * Problems (#327): published observations grouped by the administrators under a
  * structured problem. An observation matches a problem when it is published (complete and
- * approved), of one of its categories, in its zone (circle or polygon) and in its period.
+ * approved), of one of its categories, in its zone (circle, polygon or streets) and in its period.
  * Needs functions.php (distance()).
  */
 
@@ -29,6 +29,7 @@ require_once(dirname(__FILE__) . '/security.php');
 define('VIGILO_PROBLEM_RADIUS_MIN', 10);
 define('VIGILO_PROBLEM_RADIUS_MAX', 20000);
 define('VIGILO_PROBLEM_POLYGON_MAX', 200);
+define('VIGILO_PROBLEM_STREETS_MAX', 50);
 
 /* Priorities: value stored => label, color of the badge */
 function problem_priorities()
@@ -102,9 +103,118 @@ function problem_polygon_points($json)
     return (count($list) >= 3 && count($list) <= VIGILO_PROBLEM_POLYGON_MAX) ? $list : array();
 }
 
-/* Bounding box of the zone: array(lat min, lat max, lon min, lon max), null if no valid zone */
+/*
+ * Comparable form of a street or city name: lowercase, without accents, house number,
+ * spaces or punctuation ("12 bis, Rue Jean-Jaurès" and "rue jean jaures" are the same)
+ */
+function problem_street_key($name)
+{
+    $name = preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/iu', '', (string) $name);
+    $name = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+    $name = strtr($name, array('à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e',
+                               'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ó' => 'o', 'ò' => 'o',
+                               'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
+                               'œ' => 'oe', 'æ' => 'ae', 'ß' => 'ss'));
+    return preg_replace('/[^a-z0-9]+/', '', $name);
+}
+
+/* Street and city of an address of observation ("Rue X, Ville"): array(street, city) */
+function problem_address_parts($address)
+{
+    $parts = explode(',', (string) $address);
+    $city  = count($parts) > 1 ? trim(array_pop($parts)) : '';
+    // "12, Rue X, Ville": the house number alone is not the street
+    $parts = array_values(array_filter(array_map('trim', $parts), function ($part) {
+        return $part !== '' && !preg_match('/^\d+\s*(bis|ter)?$/i', $part);
+    }));
+    return array($parts ? implode(', ', $parts) : '', $city);
+}
+
+/*
+ * Streets of a zone 'streets': list of array('street' => name, 'city' => name or '' for any
+ * city), from the JSON stored (duplicates removed), or an empty list if invalid
+ */
+function problem_streets_list($json)
+{
+    $items = json_decode((string) $json, true);
+    if (!is_array($items)) {
+        return array();
+    }
+    $list = array();
+    $seen = array();
+    foreach ($items as $item) {
+        if (!is_array($item) || !isset($item['street']) || !is_string($item['street'])) {
+            return array();
+        }
+        $street = trim($item['street']);
+        $city   = isset($item['city']) && is_string($item['city']) ? trim($item['city']) : '';
+        $key    = problem_street_key($street) . '|' . problem_street_key($city);
+        if (problem_street_key($street) === '' || isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $list[]     = array('street' => $street, 'city' => $city);
+    }
+    return count($list) <= VIGILO_PROBLEM_STREETS_MAX ? $list : array();
+}
+
+/* Street typed in the form ("Rue X, Ville" or "Rue X"): array('street', 'city') */
+function problem_street_from_text($text)
+{
+    $text = trim(preg_replace('/\s+/u', ' ', (string) $text));
+    $cut  = strrpos($text, ',');
+    if ($cut === false) {
+        return array('street' => $text, 'city' => '');
+    }
+    return array('street' => trim(substr($text, 0, $cut)), 'city' => trim(substr($text, $cut + 1)));
+}
+
+function problem_street_text($street)
+{
+    return $street['street'] . ($street['city'] !== '' ? ', ' . $street['city'] : '');
+}
+
+/*
+ * City of an observation (SQL, needs PROBLEM_CITY_JOIN): the city of the instance (obs_city),
+ * else the name given (obs_cityname); the API takes the city out of the address when it can
+ */
+define('PROBLEM_CITY_JOIN', 'LEFT JOIN obs_cities ON obs_cities.city_id = obs_list.obs_city');
+define('PROBLEM_CITY_SQL', "COALESCE(obs_cities.city_name, NULLIF(obs_list.obs_cityname, ''), '')");
+
+/* Address with its city, for display ("Rue X" and "Ville" => "Rue X, Ville") */
+function problem_full_address($address, $city)
+{
+    $address = trim((string) $address);
+    $city    = trim((string) $city);
+    return ($city === '' || strpos($address, ',') !== false) ? $address : ($address === '' ? '' : $address . ', ' . $city);
+}
+
+/* Is the address (or the city) of an observation in one of the streets? */
+function problem_streets_contain($streets, $address, $cityname = '')
+{
+    list($street, $city) = problem_address_parts($address);
+    $street_key = problem_street_key($street);
+    if ($street_key === '') {
+        return false;
+    }
+    $city_keys = array_filter(array(problem_street_key($city), problem_street_key($cityname)));
+    foreach ($streets as $item) {
+        if (problem_street_key($item['street']) !== $street_key) {
+            continue;
+        }
+        if ($item['city'] === '' || in_array(problem_street_key($item['city']), $city_keys, true)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Bounding box of the zone: array(lat min, lat max, lon min, lon max), null if no valid zone (or a zone of streets) */
 function problem_bbox($problem)
 {
+    if ($problem['problem_zone'] == 'streets') {
+        return null;
+    }
     if ($problem['problem_zone'] == 'polygon') {
         $points = problem_polygon_points($problem['problem_polygon']);
         if (!$points) {
@@ -148,8 +258,12 @@ function problem_point_in_polygon($lat, $lon, $points)
     return $inside;
 }
 
+/* Is the point in the zone (circle or polygon; a zone of streets needs the address, see problem_location_matches()) */
 function problem_zone_contains($problem, $lat, $lon)
 {
+    if ($problem['problem_zone'] == 'streets') {
+        return false;
+    }
     if ($problem['problem_zone'] == 'polygon') {
         $points = problem_polygon_points($problem['problem_polygon']);
         return $points ? problem_point_in_polygon($lat, $lon, $points) : false;
@@ -158,15 +272,26 @@ function problem_zone_contains($problem, $lat, $lon)
     return $radius > 0 && distance((float) $problem['problem_lat'], (float) $problem['problem_lon'], $lat, $lon, 'm') <= $radius;
 }
 
+/* Is an observation (position, address, city name) in the zone of the problem? */
+function problem_location_matches($problem, $lat, $lon, $address, $cityname = '')
+{
+    if ($problem['problem_zone'] == 'streets') {
+        return problem_streets_contain(problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''), $address, $cityname);
+    }
+    return problem_zone_contains($problem, $lat, $lon);
+}
+
 /*
  * SQL condition of the observations that may match the problem: published, categories,
- * period and bounding box of the zone (the exact zone is checked in PHP)
+ * period and bounding box of the zone (the exact zone, or the streets, are checked in PHP)
  */
 function problem_candidates_where($problem)
 {
     $categories = problem_category_ids($problem);
-    $bbox       = problem_bbox($problem);
-    if (!$categories || !$bbox) {
+    $streets    = $problem['problem_zone'] == 'streets';
+    $bbox       = $streets ? null : problem_bbox($problem);
+    if (!$categories || (!$streets && !$bbox)
+        || ($streets && !problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''))) {
         return "0";
     }
     $where = "obs_list.obs_complete = 1 AND obs_list.obs_approved = 1"
@@ -175,8 +300,10 @@ function problem_candidates_where($problem)
     if ($problem['problem_end'] !== null && $problem['problem_end'] !== '') {
         $where .= " AND obs_list.obs_time <= " . intval($problem['problem_end']);
     }
-    $where .= " AND CAST(obs_list.obs_coordinates_lat AS DECIMAL(10,6)) BETWEEN " . sprintf('%.6F AND %.6F', $bbox[0], $bbox[1])
-            . " AND CAST(obs_list.obs_coordinates_lon AS DECIMAL(10,6)) BETWEEN " . sprintf('%.6F AND %.6F', $bbox[2], $bbox[3]);
+    if ($bbox) {
+        $where .= " AND CAST(obs_list.obs_coordinates_lat AS DECIMAL(10,6)) BETWEEN " . sprintf('%.6F AND %.6F', $bbox[0], $bbox[1])
+                . " AND CAST(obs_list.obs_coordinates_lon AS DECIMAL(10,6)) BETWEEN " . sprintf('%.6F AND %.6F', $bbox[2], $bbox[3]);
+    }
     return $where;
 }
 
@@ -188,21 +315,22 @@ function problem_matching_observations($db, $problem)
 {
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
-                                       obs_list.obs_time, obs_list.obs_categorie, obs_list.obs_address_string,
+                                       obs_list.obs_time, obs_list.obs_categorie, obs_list.obs_address_string, " . PROBLEM_CITY_SQL . " AS city_label,
                                        COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid
                                 FROM obs_list
                                 LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                " . PROBLEM_CITY_JOIN . "
                                 WHERE " . problem_candidates_where($problem) . "
                                 ORDER BY obs_list.obs_time ASC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $lat = (float) $row['obs_coordinates_lat'];
         $lon = (float) $row['obs_coordinates_lon'];
-        if (!problem_zone_contains($problem, $lat, $lon)) {
+        if (!problem_location_matches($problem, $lat, $lon, $row['obs_address_string'], $row['city_label'])) {
             continue;
         }
         $list[] = array('id' => intval($row['obs_id']), 'token' => (string) $row['obs_token'], 'lat' => $lat, 'lon' => $lon,
                         'time' => intval($row['obs_time']), 'category' => intval($row['obs_categorie']),
-                        'address' => (string) $row['obs_address_string'], 'problem' => intval($row['po_problemid']));
+                        'address' => problem_full_address($row['obs_address_string'], $row['city_label']), 'problem' => intval($row['po_problemid']));
     }
     return $list;
 }
@@ -252,11 +380,12 @@ function problem_from_post($post, $known_categories)
         'problem_title'       => $text('problem_title', 200),
         'problem_description' => $text('problem_description', 10000),
         'problem_categories'  => implode(',', $categories),
-        'problem_zone'        => (isset($post['problem_zone']) && $post['problem_zone'] === 'polygon') ? 'polygon' : 'circle',
+        'problem_zone'        => (isset($post['problem_zone']) && in_array($post['problem_zone'], array('polygon', 'streets'), true)) ? $post['problem_zone'] : 'circle',
         'problem_lat'         => isset($post['problem_lat']) && is_numeric($post['problem_lat']) ? (float) $post['problem_lat'] : 0,
         'problem_lon'         => isset($post['problem_lon']) && is_numeric($post['problem_lon']) ? (float) $post['problem_lon'] : 0,
         'problem_radius'      => isset($post['problem_radius']) && is_numeric($post['problem_radius']) ? intval($post['problem_radius']) : 0,
         'problem_polygon'     => '',
+        'problem_streets'     => '',
         'problem_start'       => 0,
         'problem_end'         => null,
         'problem_priority'    => isset($post['problem_priority']) && isset($priorities[intval($post['problem_priority'])]) ? intval($post['problem_priority']) : 2,
@@ -270,7 +399,28 @@ function problem_from_post($post, $known_categories)
     if (!$categories) {
         $errors[] = 'Choisir au moins une catégorie.';
     }
-    if ($problem['problem_zone'] == 'polygon') {
+    // Streets typed in the form (one per field: "Rue X, Ville"), kept for the form even with another zone
+    $streets = array();
+    if (isset($post['problem_streets']) && is_array($post['problem_streets'])) {
+        foreach ($post['problem_streets'] as $text) {
+            if (is_string($text) && trim($text) !== '') {
+                $street = problem_street_from_text(function_exists('mb_substr') ? mb_substr($text, 0, 255, 'UTF-8') : substr($text, 0, 255));
+                if ($street['street'] !== '') {
+                    $streets[] = $street;
+                }
+            }
+        }
+    }
+    $streets = problem_streets_list(json_encode($streets));
+    $problem['problem_streets'] = $streets ? json_encode($streets) : '';
+    if ($problem['problem_zone'] == 'streets') {
+        if (!$streets) {
+            $errors[] = 'Indiquer de 1 à ' . VIGILO_PROBLEM_STREETS_MAX . ' rues.';
+        }
+        $problem['problem_lat']    = 0;
+        $problem['problem_lon']    = 0;
+        $problem['problem_radius'] = 0;
+    } elseif ($problem['problem_zone'] == 'polygon') {
         $points = problem_polygon_points(isset($post['problem_polygon']) && is_string($post['problem_polygon']) ? $post['problem_polygon'] : '');
         if (!$points) {
             $errors[] = 'Le polygone doit avoir de 3 à ' . VIGILO_PROBLEM_POLYGON_MAX . ' points.';
@@ -312,6 +462,10 @@ function problem_from_post($post, $known_categories)
 /* Summary of the zone, for the lists */
 function problem_zone_label($problem)
 {
+    if ($problem['problem_zone'] == 'streets') {
+        $names = array_map('problem_street_text', problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
+        return (count($names) > 1 ? 'Rues : ' : 'Rue : ') . implode(' ; ', $names);
+    }
     if ($problem['problem_zone'] == 'polygon') {
         return 'Polygone de ' . count(problem_polygon_points($problem['problem_polygon'])) . ' points';
     }
@@ -420,10 +574,11 @@ function problem_observations($db, $problem_id, $city_ids = null)
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
                                        obs_list.obs_time, obs_list.obs_categorie, obs_list.obs_address_string, obs_list.obs_comment,
-                                       obs_list.obs_approved, obs_list.obs_archived,
+                                       obs_list.obs_approved, obs_list.obs_archived, " . PROBLEM_CITY_SQL . " AS city_label,
                                        obs_problem_observations.po_mode, obs_problem_observations.po_time, obs_problem_observations.po_login
                                 FROM obs_problem_observations
                                 INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                " . PROBLEM_CITY_JOIN . "
                                 WHERE obs_problem_observations.po_problemid = " . intval($problem_id)
                                 . ($city_ids === null ? "" : " AND " . problem_city_condition($city_ids)) . "
                                 ORDER BY obs_list.obs_time DESC");
@@ -453,7 +608,8 @@ function problem_matches_observation($problem, $obs)
         || ($problem['problem_end'] !== null && $problem['problem_end'] !== '' && intval($obs['obs_time']) > intval($problem['problem_end']))) {
         return false;
     }
-    return problem_zone_contains($problem, (float) $obs['obs_coordinates_lat'], (float) $obs['obs_coordinates_lon']);
+    return problem_location_matches($problem, (float) $obs['obs_coordinates_lat'], (float) $obs['obs_coordinates_lon'],
+                                    isset($obs['obs_address_string']) ? $obs['obs_address_string'] : '', isset($obs['city_label']) ? $obs['city_label'] : '');
 }
 
 /* Active problems (open, in progress, waiting): problem_id => problem */
@@ -478,8 +634,10 @@ function problems_on_publication($db, $token, $login = '', $source = 'admin')
 {
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_complete, obs_list.obs_approved, obs_list.obs_categorie,
                                        obs_list.obs_time, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
+                                       obs_list.obs_address_string, " . PROBLEM_CITY_SQL . " AS city_label,
                                        COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid
                                 FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                " . PROBLEM_CITY_JOIN . "
                                 WHERE obs_list.obs_token = '" . mysqli_real_escape_string($db, (string) $token) . "' LIMIT 1");
     $obs   = $query ? mysqli_fetch_assoc($query) : null;
     if (!$obs || intval($obs['obs_complete']) != 1 || intval($obs['obs_approved']) != 1) {
