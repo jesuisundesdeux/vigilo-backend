@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.0.34
+## 0.0.33
+
 
 ### Problèmes : résolution des observations
 - Quand un problème passe à **Résolu**, sa fiche propose de passer ses observations publiées en **résolues** (après
@@ -10,7 +11,6 @@
   présentes dans ces résolutions. Journal (`resolution_create`, `resolution_status`, `problem_resolve_observations`) et
   webhooks des résolutions comme depuis les pages Observations et Résolutions. Pas de migration.
 
-## 0.0.33
 
 ### Problèmes : zone de rues, édition de la zone
 - Nouvelle zone **Rues** (en alternative au cercle et au polygone) : une ou plusieurs rues (« Rue, Ville », ville
