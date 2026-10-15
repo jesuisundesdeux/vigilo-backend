@@ -76,17 +76,49 @@ jobs:
           php scripts/vigilo-migrate.php --status | awk '{ exit ($1 == $2) ? 0 : 1 }'
       - name: Migrations are re-runnable
         run: php scripts/vigilo-migrate.php | grep -q 'Base à jour'
+      # schema-0.0.17.sql replaces the migrations 0.0.2 to 0.0.17 (issue #328): same
+      # tables, indexes and settings as the former migrations of the last tag that had them
+      - name: Schema 0.0.17 equals the former migrations 0.0.2 to 0.0.17
+        run: |
+          git fetch -q --depth=1 origin tag v0.0.31
+          mkdir -p /tmp/old && git archive v0.0.31 app/migrations | tar -x -C /tmp/old
+          mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE IF EXISTS old17; CREATE DATABASE old17; DROP DATABASE vigilo; CREATE DATABASE vigilo'
+          for V in $(ls /tmp/old/app/migrations/init-*.sql | sed 's/.*init-//;s/\.sql$//' | sort -V); do
+            if [ "$(printf '%s\n%s\n' "$V" 0.0.17 | sort -V | tail -1)" = "0.0.17" ]; then
+              cat mysql/pre_sql.sql /tmp/old/app/migrations/init-$V.sql
+              echo
+            fi
+          done | grep -v '^[[:space:]]*--' | mysql -h 127.0.0.1 -uroot -proot old17
+          php scripts/vigilo-migrate.php --to=0.0.17
+          dump() { mysqldump -h 127.0.0.1 -uroot -proot --no-data --skip-comments --compact "$1" | sed 's/ AUTO_INCREMENT=[0-9]*//'; }
+          settings() { mysql -h 127.0.0.1 -uroot -proot -N "$1" -e 'SELECT config_param, config_value FROM obs_config ORDER BY config_param'; }
+          diff <(dump old17) <(dump vigilo)
+          diff <(settings old17) <(settings vigilo)
+      - name: Refuse a database older than 0.0.17
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot vigilo -e "UPDATE obs_config SET config_value='0.0.16' WHERE config_param='vigilo_db_version'"
+          set +e
+          php scripts/vigilo-migrate.php 2>&1 | tee /tmp/old.log
+          code=${PIPESTATUS[0]}
+          set -e
+          test "$code" = "1"
+          grep -q "plus ancienne que la 0.0.17" /tmp/old.log
+          test "$(mysql -h 127.0.0.1 -uroot -proot vigilo -N -e "SELECT config_value FROM obs_config WHERE config_param='vigilo_db_version'")" = "0.0.16"
       - name: Upgrade from every released version
         run: |
           VERSIONS=$(ls app/migrations/init-*.sql | sed 's/.*init-//;s/\.sql$//' | sort -V)
           for FROM in 0.0.17 0.0.18 0.0.19 0.0.20 0.0.21 0.0.22; do
             mysql -h 127.0.0.1 -uroot -proot -e 'DROP DATABASE vigilo; CREATE DATABASE vigilo'
-            for V in $VERSIONS; do
-              if [ "$(printf '%s\n%s\n' "$V" "$FROM" | sort -V | tail -1)" = "$FROM" ]; then
-                cat mysql/pre_sql.sql app/migrations/init-$V.sql
-                echo
-              fi
-            done | grep -v '^[[:space:]]*--' | mysql -h 127.0.0.1 -uroot -proot vigilo
+            {
+              cat app/migrations/schema-0.0.17.sql
+              echo
+              for V in $VERSIONS; do
+                if [ "$(printf '%s\n%s\n' "$V" "$FROM" | sort -V | tail -1)" = "$FROM" ]; then
+                  cat mysql/pre_sql.sql app/migrations/init-$V.sql
+                  echo
+                fi
+              done
+            } | grep -v '^[[:space:]]*--' | mysql -h 127.0.0.1 -uroot -proot vigilo
             echo "From $(php scripts/vigilo-migrate.php --status)"
             php scripts/vigilo-migrate.php
           done

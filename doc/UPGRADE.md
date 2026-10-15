@@ -165,11 +165,22 @@ Docker : le service `watchtower` est maintenant actif par défaut (plus de profi
 définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
 de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
 
+### Passage à la 0.0.33
+
+Aucune migration de base ni action manuelle pour une instance en 0.0.17 ou plus récente. Les migrations 0.0.2 à
+0.0.17 sont remplacées par le schéma `schema-0.0.17.sql`, appliqué seulement à une base vide (installation neuve) ;
+une base plus ancienne que la 0.0.17 est refusée (voir ci-dessous). La mise à jour depuis l'admin supprime les anciens
+fichiers `migrations/init-0.0.2.sql` à `init-0.0.17.sql`.
+
 ### Publier une version (mainteneurs)
 
 Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).
 
 ## Mise à jour des versions antérieures à 0.0.22
+
+Versions prises en charge : **0.0.17 et suivantes**. Une instance plus ancienne (aucune n'est en service) doit d'abord
+passer en 0.0.17 avec le code et les migrations du tag `v0.0.32`, le dernier qui les contient ; à partir de la 0.0.33,
+une base plus ancienne que la 0.0.17 est refusée, sans être modifiée.
 
 Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:
 
@@ -180,15 +191,6 @@ SET SESSION innodb_strict_mode=OFF;
 ### Pour chaque mise à jour
 
 #### Mise à jour du code
-
-##### Versions < 0.0.17
-
-* Récupérer et choisir la dernière branche
-
-```
-$ git fetch origin
-$ git checkout X.X.X
-```
 
 ##### Versions >= 0.0.17
 
@@ -214,14 +216,6 @@ $ git checkout vX.X.X
 
 Lancer dans l'ordre les fichiers SQL de app/migrations/ (mysql/init/ avant la 0.0.22) correspondant aux versions supérieures à la votre 
 
-Exemple : Si votre version est 0.0.12, lancer init-0.0.13.sql puis init-0.0.14.sql puis init-0.0.15.sql ...
+Exemple : si votre version est 0.0.18, lancer init-0.0.19.sql puis init-0.0.20.sql puis init-0.0.21.sql…
 
-
-### Actions spécifiques
-
-Certaines mises à jour de version necessitent des actions supplémentaires 
-
-#### Mise à jour vers 0.0.13
-
-* Aller sur l'admin https://URL/admin/ puis sur "Observations" et suivre les instructions
 

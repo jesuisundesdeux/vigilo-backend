@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.33
+
+### Plus ancienne version prise en charge : 0.0.17
+- Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à
+  `init-0.0.17.sql` sont remplacées par le schéma `schema-0.0.17.sql`, appliqué seulement à une base vide (même
+  structure et mêmes réglages, vérifié par la CI). Une base plus ancienne que la 0.0.17 est refusée par la migration,
+  sans être modifiée ; les procédures de mise à jour des versions antérieures (branches, 0.0.13) sont retirées de la
+  documentation.
+- La mise à jour depuis l'admin supprime les anciens fichiers de migration (`scripts/obsolete-paths.txt`).
+
 ## 0.0.32
 
 ### Webhooks : un événement par webhook

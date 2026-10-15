@@ -21,14 +21,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  * Database migrations runner, shared by the Docker entrypoint (scripts/vigilo-migrate.php)
  * and the admin "Mises à jour" page, so every install type upgrades the same way.
  *
- * Migrations are app/migrations/init-X.Y.Z.sql, applied in version order. Each one is
- * recorded by setting obs_config.vigilo_db_version to its version as soon as it succeeds:
- * a failed run stops at the last good version and can be resumed.
+ * An empty database starts from the schema app/migrations/schema-0.0.17.sql (oldest version
+ * supported, VIGILO_MIGRATIONS_BASE); a database older than that is refused. Migrations
+ * are then app/migrations/init-X.Y.Z.sql, applied in version order. Each one is recorded
+ * by setting obs_config.vigilo_db_version to its version as soon as it succeeds: a failed
+ * run stops at the last good version and can be resumed.
  *
  * This file only defines functions: it does nothing when requested over HTTP.
  */
 
 define('VIGILO_MIGRATIONS_DIR', dirname(__FILE__) . '/../migrations');
+// Oldest database version supported: schema of a new database (schema-<version>.sql)
+define('VIGILO_MIGRATIONS_BASE', '0.0.17');
+
+/* Schema file of a new database */
+function vigilo_migrations_base_file($dir = VIGILO_MIGRATIONS_DIR)
+{
+    return $dir . '/schema-' . VIGILO_MIGRATIONS_BASE . '.sql';
+}
+
+/* Is this database too old to be migrated (older than the base, not empty)? */
+function vigilo_db_too_old($db_version)
+{
+    return $db_version !== '0.0.0' && version_compare($db_version, VIGILO_MIGRATIONS_BASE, '<');
+}
 
 /* Version => file of every migration, sorted by version */
 function vigilo_migrations_list($dir = VIGILO_MIGRATIONS_DIR)
@@ -76,10 +92,17 @@ function vigilo_db_version($db)
     return $row['config_value'];
 }
 
-/* Migrations newer than the database, up to (and including) $target */
+/*
+ * Migrations newer than the database, up to (and including) $target. An empty database
+ * starts with the schema of the base version.
+ */
 function vigilo_migrations_pending($db_version, $target, $dir = VIGILO_MIGRATIONS_DIR)
 {
     $pending = array();
+    if ($db_version === '0.0.0' && version_compare(VIGILO_MIGRATIONS_BASE, $target, '<=')) {
+        $pending[VIGILO_MIGRATIONS_BASE] = vigilo_migrations_base_file($dir);
+        $db_version = VIGILO_MIGRATIONS_BASE;
+    }
     foreach (vigilo_migrations_list($dir) as $version => $file) {
         if (version_compare($version, $db_version, '>') && version_compare($version, $target, '<=')) {
             $pending[$version] = $file;
@@ -150,6 +173,10 @@ function vigilo_migrate($db, $target = null, $log = null, $dir = VIGILO_MIGRATIO
         $db_version = vigilo_db_version($db);
         if (version_compare($db_version, $target, '>')) {
             throw new Exception("La base ($db_version) est plus récente que le code ($target) : retour arrière non supporté");
+        }
+        if (vigilo_db_too_old($db_version)) {
+            throw new Exception("La base ($db_version) est plus ancienne que la " . VIGILO_MIGRATIONS_BASE . ", la plus ancienne version prise en charge : "
+                . "la mettre d'abord à jour en " . VIGILO_MIGRATIONS_BASE . " avec les migrations du tag v0.0.32 (rien n'a été modifié)");
         }
 
         mysqli_query($db, "SET SESSION innodb_strict_mode=OFF");
