@@ -157,6 +157,9 @@ def main():
     status, _, page = admin.request('index.php?page=webhooks&edit=new')
     clean('webhook form', status, page)
     check('{{observation_url}}' in page, 'webhook variables listed')
+    check(re.search(r'<tr data-events="resolution\.created resolution\.status_changed" hidden><td[^>]*>\{\{resolution_token\}\}', page) is not None
+          and re.search(r'<tr data-events="problem\.broadcast" hidden><td[^>]*>\{\{problem_title\}\}', page) is not None
+          and re.search(r'<tr><td[^>]*>\{\{token\}\}', page) is not None, 'webhook variables of the chosen event shown, the others hidden')
     hook = {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Test <b>hook</b>', 'webhook_enabled': '1',
             'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/hook?t={{token}}', 'webhook_format': 'json',
             'webhook_headers': 'Authorization: Bearer x', 'webhook_body': '{"comment": {{comment}}}',

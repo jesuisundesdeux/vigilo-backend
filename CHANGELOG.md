@@ -21,6 +21,11 @@
   `problem_broadcast`).
 - Page **Observations** : une observation rattachée à un problème affiche un lien vers ce problème.
 
+### Webhooks
+- Formulaire d'un webhook : le cadre **Variables** ne liste que les variables de l'événement choisi (celles des
+  résolutions pour les événements de résolution, celles des problèmes pour la diffusion d'un problème) et précise de
+  quelle observation viennent les variables de l'observation.
+
 ### Rapport pour une collectivité
 - Formulaire : liste des **sections** à cocher (chiffres clés, évolution mensuelle, types, état de traitement, villes,
   rues, jours et heures, carte, lieux récurrents, problèmes suivis, détail de chaque problème, méthode) ; « Tout

@@ -172,6 +172,21 @@ function webhook_variables()
     );
 }
 
+/* Events of a variable (admin page: list of the variables of the chosen event); null = all of them */
+function webhook_variable_events($name)
+{
+    if ($name == 'resolution_previous_status') {
+        return array(VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS);
+    }
+    if (strpos($name, 'resolution_') === 0) {
+        return array(VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED, VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS);
+    }
+    if (strpos($name, 'problem_') === 0) {
+        return array(VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST);
+    }
+    return null;
+}
+
 /* Values of the variables for an observation, null if it does not exist */
 function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
 {
