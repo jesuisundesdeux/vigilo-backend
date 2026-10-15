@@ -595,6 +595,15 @@ def main():
             check('Note introuvable' in obs_page, 'problem note not deleted from the observations page')
             status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_delete': '1', 'note_id': m.group(1)})
             check('Note supprimée' in page and 'Notes internes (0)' in page, 'problem note deleted')
+        # Resolved problem whose observations are all resolved (TOKA0003, R_RES00002 validated above): nothing proposed
+        # (the full case is in tests/api/functional.py, T14Problems)
+        status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_resolve_observations': '1'})
+        check('pas résolu' in page, 'observations not resolved while the problem is not resolved')
+        status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_quick': '1', 'problem_status': 'resolved', 'problem_priority': '1'})
+        clean('problem resolved', status, page)
+        check('>Résolu</span>' in page and 'id="resolve"' not in page, 'resolved problem with resolved observations: nothing proposed')
+        status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_resolve_observations': '1'})
+        check('déjà résolues' in page, 'nothing to resolve')
         status, _, page = admin.request('index.php?page=problems')
         bis = [l for l in links(page, 'action=delete') if 'problemid=' in l and 'problemid=' + pb_gare not in l and 'problemid=' + pb_works not in l]
         if bis:

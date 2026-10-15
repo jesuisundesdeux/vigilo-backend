@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.34
+
+### Problèmes : résolution des observations
+- Quand un problème passe à **Résolu**, sa fiche propose de passer ses observations publiées en **résolues** (après
+  confirmation) : celles qui ne sont dans aucune résolution sont regroupées dans une nouvelle résolution « Résolue »
+  datée du jour (commentaire « Problème résolu : <titre> »), les résolutions qui contiennent les autres passent à
+  « Résolue » (datées du jour si elles n'avaient pas de date). La fiche signale les observations hors du problème
+  présentes dans ces résolutions. Journal (`resolution_create`, `resolution_status`, `problem_resolve_observations`) et
+  webhooks des résolutions comme depuis les pages Observations et Résolutions. Pas de migration.
+
 ## 0.0.33
 
 ### Problèmes : zone de rues, édition de la zone

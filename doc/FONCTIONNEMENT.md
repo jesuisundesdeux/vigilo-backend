@@ -69,6 +69,11 @@ reçue après l'approbation), elle est rattachée au problème **actif** (ouvert
 s'il n'y en a qu'un. Si plusieurs correspondent, elle n'est pas rattachée et apparaît dans le cadre **À arbitrer** de
 la page Problèmes, où l'administrateur choisit son problème. Une observation déjà rattachée n'est jamais changée.
 
+Quand un problème est **résolu**, sa fiche propose de passer ses observations publiées en résolues : celles qui ne
+sont dans aucune résolution sont regroupées dans une nouvelle résolution « Résolue » datée du jour, et les résolutions
+qui contiennent les autres passent à « Résolue » (y compris leurs observations hors du problème, signalées avant de
+confirmer). Rien n'est fait sans confirmation.
+
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
 table que les notes des observations), jamais publiées ni reprises dans les rapports.
 
