@@ -160,6 +160,63 @@ if ($edit === null && isset($_GET['edit'])) {
     }
 }
 
+/* Detail of a problem: count, attribution, manual attach / detach */
+$view   = isset($_GET['view']) ? problem_load($db, $_GET['view']) : null;
+$count  = null;
+if ($view) {
+    $view_id  = intval($view['problem_id']);
+    $view_url = $self_url . '&view=' . $view_id;
+    $titles   = problem_titles($db);
+    // Observations shown as a list of tokens, linked to the problem they belong to
+    $conflict_list = function ($conflicts) use ($titles, $self_url) {
+        $items = array();
+        foreach ($conflicts as $observation) {
+            $title   = isset($titles[$observation['problem']]) ? $titles[$observation['problem']] : '#' . $observation['problem'];
+            $items[] = '<li><strong>' . h($observation['token']) . '</strong> : problème <a href="' . h($self_url . '&view=' . intval($observation['problem'])) . '">' . h($title) . '</a></li>';
+        }
+        return $items ? '<ul class="mb-0 mt-1">' . implode('', $items) . '</ul>' : '';
+    };
+    if (isset($_POST['problem_count'])) {
+        $count = problem_count($db, $view);
+    }
+    if (isset($_POST['problem_attach_retro'])) {
+        $result = problem_attach_retro($db, $view, $login);
+        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'attached' => count($result['attached']),
+                  'tokens' => implode(',', array_slice($result['attached'], 0, 100)), 'already' => $result['already'],
+                  'conflicts' => count($result['conflicts'])));
+        $messages[] = array(count($result['conflicts']) ? 'warning' : 'success', '<strong>' . count($result['attached']) . '</strong> observation(s) rattachée(s), '
+            . intval($result['already']) . ' déjà rattachée(s) à ce problème'
+            . (count($result['conflicts']) ? ', <strong>' . count($result['conflicts']) . '</strong> laissée(s) dans un autre problème (à arbitrer) :' . $conflict_list($result['conflicts']) : '.'));
+    }
+    if (isset($_POST['problem_attach_token'])) {
+        $token = isset($_POST['obs_token']) && is_scalar($_POST['obs_token']) ? strtoupper(trim((string) $_POST['obs_token'])) : '';
+        $query = mysqli_query($db, "SELECT obs_id FROM obs_list WHERE obs_token = '" . mysqli_real_escape_string($db, $token) . "' LIMIT 1");
+        $row   = $query ? mysqli_fetch_assoc($query) : null;
+        $state = $row ? problem_attach($db, $view_id, $row['obs_id'], 'manual', $login) : 'unknown';
+        if ($state == 'attached') {
+            audit_log('problem_attach', 'problem:' . $view_id, array('title' => $view['problem_title'], 'token' => $token));
+            $messages[] = array('success', 'Observation <strong>' . h($token) . '</strong> rattachée.');
+        } elseif ($state == 'conflict') {
+            $other = mysqli_query($db, "SELECT po_problemid FROM obs_problem_observations WHERE po_obsid = " . intval($row['obs_id']));
+            $other = $other ? mysqli_fetch_assoc($other) : null;
+            $messages[] = array('warning', 'L\'observation <strong>' . h($token) . '</strong> appartient déjà à un autre problème : la détacher d\'abord de celui-ci.'
+                . $conflict_list(array(array('token' => $token, 'problem' => $other ? intval($other['po_problemid']) : 0))));
+        } else {
+            $texts = array('already' => 'est déjà rattachée à ce problème', 'unpublished' => 'n\'est pas publiée (seules les observations publiées peuvent être rattachées)',
+                           'unknown' => 'est introuvable', 'error' => 'n\'a pas pu être rattachée');
+            $messages[] = array($state == 'already' ? 'info' : 'danger', 'L\'observation <strong>' . h($token) . '</strong> ' . $texts[$state] . '.');
+        }
+    }
+    if (isset($_GET['action']) && $_GET['action'] == 'detach' && isset($_GET['obsid'])) {
+        $query = mysqli_query($db, "SELECT obs_token FROM obs_list WHERE obs_id = " . intval($_GET['obsid']));
+        $row   = $query ? mysqli_fetch_assoc($query) : null;
+        if (problem_detach($db, $view_id, $_GET['obsid'])) {
+            audit_log('problem_detach', 'problem:' . $view_id, array('title' => $view['problem_title'], 'token' => $row ? $row['obs_token'] : intval($_GET['obsid'])));
+            $messages[] = array('success', 'Observation <strong>' . h($row ? $row['obs_token'] : '') . '</strong> détachée du problème.');
+        }
+    }
+}
+
 /* Filters of the list */
 $f_q        = isset($_GET['q']) && is_scalar($_GET['q']) ? trim((string) $_GET['q']) : '';
 $f_status   = isset($_GET['status']) && is_scalar($_GET['status']) && ($_GET['status'] === 'active' || isset($statuses[$_GET['status']])) ? (string) $_GET['status'] : '';
@@ -318,6 +375,121 @@ if ($edit !== null) {
 <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
 <?php } ?>
 
+<?php if ($view && $edit === null) {
+    $attached = problem_observations($db, $view_id);
+    $priority = isset($priorities[intval($view['problem_priority'])]) ? $priorities[intval($view['problem_priority'])] : array('?', 'secondary');
+    $status   = isset($statuses[$view['problem_status']]) ? $statuses[$view['problem_status']] : array($view['problem_status'], 'secondary');
+    $modes    = array('retro' => 'Rétroactif', 'auto' => 'Automatique', 'manual' => 'Manuel');
+    // Map: zone, attached observations, and those of the count
+    $points = array();
+    foreach ($attached as $row) {
+        $points[] = array('lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'], 'token' => $row['obs_token'], 'kind' => 'attached');
+    }
+    if ($count) {
+        foreach (array('to_attach' => 'to_attach', 'conflicts' => 'conflict') as $key => $kind) {
+            foreach ($count[$key] as $observation) {
+                $points[] = array('lat' => $observation['lat'], 'lon' => $observation['lon'], 'token' => $observation['token'], 'kind' => $kind);
+            }
+        }
+    }
+    $map_data = array('zone' => $view['problem_zone'], 'lat' => (float) $view['problem_lat'], 'lon' => (float) $view['problem_lon'],
+                      'radius' => intval($view['problem_radius']), 'polygon' => problem_polygon_points($view['problem_polygon']), 'points' => $points);
+?>
+<p><a href="<?= h($self_url) ?>"><i class="bi bi-arrow-left"></i> Tous les problèmes</a></p>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h2 class="h5 mb-0 text-break"><?= h($view['problem_title']) ?></h2>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="badge text-bg-<?= h($priority[1]) ?>"><?= h($priority[0]) ?></span>
+      <span class="badge text-bg-<?= h($status[1]) ?>"><?= h($status[0]) ?></span>
+      <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a>
+    </div>
+  </div>
+  <div class="card-body">
+    <?php if ($view['problem_description'] !== '') { ?><p class="text-break" style="white-space: pre-line;"><?= h($view['problem_description']) ?></p><?php } ?>
+    <dl class="row small mb-3">
+      <dt class="col-sm-3">Catégories</dt><dd class="col-sm-9"><?= h(implode(', ', problem_admin_category_names($view, $problem_categories))) ?></dd>
+      <dt class="col-sm-3">Zone</dt><dd class="col-sm-9"><?= h(problem_zone_label($view)) ?></dd>
+      <dt class="col-sm-3">Période</dt><dd class="col-sm-9"><?= h(problem_admin_period($view)) ?></dd>
+      <dt class="col-sm-3">Création</dt><dd class="col-sm-9"><?= h(date('d/m/Y H:i', intval($view['problem_created_time']))) ?> par <?= h($view['problem_created_login']) ?></dd>
+    </dl>
+    <div class="problem-view-map rounded border" data-problem-view="<?= h(json_encode($map_data)) ?>" style="height: 320px;"></div>
+    <div class="form-text">
+      <span class="text-success"><i class="bi bi-circle-fill"></i> rattachées</span>
+      <?php if ($count) { ?> · <span class="text-primary"><i class="bi bi-circle-fill"></i> à rattacher</span> · <span><i class="bi bi-circle-fill" style="color: #fd7e14;"></i> dans un autre problème</span><?php } ?>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">Rattachement des observations existantes</div>
+  <div class="card-body">
+    <p class="small text-body-secondary">
+      Les observations publiées de la zone, des catégories et de la période du problème. <strong>Compter</strong> ne modifie
+      rien ; <strong>Rattacher</strong> refait le calcul et rattache celles qui n'appartiennent à aucun problème. Une
+      observation déjà dans un autre problème n'est jamais déplacée : elle est signalée, à arbitrer.
+    </p>
+    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap gap-2">
+      <?= csrf_field() ?>
+      <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
+      <?php if ($count && count($count['to_attach'])) { ?>
+      <button class="btn btn-primary" type="submit" name="problem_attach_retro" value="1" data-confirm="Rattacher <?= count($count['to_attach']) ?> observation(s) au problème « <?= h($view['problem_title']) ?> » ?"><i class="bi bi-link-45deg"></i> Rattacher <?= count($count['to_attach']) ?> observation(s)</button>
+      <?php } ?>
+    </form>
+    <?php if ($count) { ?>
+    <ul class="mt-3 mb-0" data-problem-count>
+      <li><strong><?= intval($count['matching']) ?></strong> observation(s) publiée(s) correspondent au problème ;</li>
+      <li><strong><?= count($count['here']) ?></strong> déjà rattachée(s) à ce problème ;</li>
+      <li><strong><?= count($count['to_attach']) ?></strong> à rattacher<?= count($count['to_attach']) ? ' : ' . h(implode(', ', array_map(function ($o) { return $o['token']; }, array_slice($count['to_attach'], 0, 50)))) . (count($count['to_attach']) > 50 ? '…' : '') : '' ?> ;</li>
+      <li><strong><?= count($count['conflicts']) ?></strong> dans un autre problème (non déplacées)<?= count($count['conflicts']) ? ' :' . $conflict_list($count['conflicts']) : '.' ?></li>
+    </ul>
+    <?php } ?>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold">Observations rattachées (<?= count($attached) ?>)</span>
+    <form method="POST" action="<?= h($view_url) ?>" class="d-flex gap-2">
+      <?= csrf_field() ?>
+      <label class="visually-hidden" for="obs_token">Token de l'observation</label>
+      <input class="form-control form-control-sm" id="obs_token" name="obs_token" placeholder="Token" maxlength="20" required style="max-width: 9rem;">
+      <button class="btn btn-sm btn-outline-primary text-nowrap" type="submit" name="problem_attach_token" value="1"><i class="bi bi-plus-lg"></i> Rattacher</button>
+    </form>
+  </div>
+  <?php if (empty($attached)) { ?>
+    <div class="card-body"><p class="text-body-secondary mb-0">Aucune observation rattachée.</p></div>
+  <?php } else { ?>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle table-admin table-stack-md mb-0">
+      <thead><tr><th scope="col">Photo</th><th scope="col">Observation</th><th scope="col">Catégorie</th><th scope="col">Rattachement</th><th scope="col"></th></tr></thead>
+      <tbody>
+      <?php foreach ($attached as $row) {
+          $token = (string) $row['obs_token'];
+          $catid = intval($row['obs_categorie']); ?>
+        <tr>
+          <td><a href="<?= h('photo.php?s=800&token=' . urlencode($token)) ?>" data-photo data-photo-title="Observation <?= h($token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($token) ?>" src="<?= h('photo.php?s=200&token=' . urlencode($token)) ?>"></a></td>
+          <td>
+            <a class="fw-semibold" href="?page=observations&amp;approved=<?= intval($row['obs_approved']) ?>&amp;filtertype=uniq&amp;filtertoken=<?= h(urlencode($token)) ?>&amp;searcharchived=all"><?= h($token) ?></a>
+            <?php if (intval($row['obs_approved']) != 1) { ?><span class="badge text-bg-warning">Plus publiée</span><?php } ?>
+            <?php if (intval($row['obs_archived'])) { ?><span class="badge text-bg-secondary">Archivée</span><?php } ?>
+            <div class="small text-body-secondary"><?= h(date('d/m/Y H:i', intval($row['obs_time']))) ?> · <?= h($row['obs_address_string']) ?></div>
+            <?php if ($row['obs_comment'] !== '') { ?><div class="small text-break"><?= h($row['obs_comment']) ?></div><?php } ?>
+          </td>
+          <td class="small" data-label="Catégorie"><?= h(isset($problem_categories[$catid]) ? $problem_categories[$catid][0] : '#' . $catid) ?></td>
+          <td class="small" data-label="Rattachement"><?= h(isset($modes[$row['po_mode']]) ? $modes[$row['po_mode']] : $row['po_mode']) ?>, <?= h(date('d/m/Y', intval($row['po_time']))) ?><?= $row['po_login'] !== '' ? ' (' . h($row['po_login']) . ')' : '' ?></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-danger text-nowrap" href="<?= h($view_url) ?>&amp;action=detach&amp;obsid=<?= intval($row['obs_id']) ?><?= h(csrf_query()) ?>" data-confirm="Détacher l'observation <?= h($token) ?> du problème ?"><i class="bi bi-x-lg"></i> Détacher</a></td>
+        </tr>
+      <?php } ?>
+      </tbody>
+    </table>
+  </div>
+  <?php } ?>
+</div>
+<link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
+<?php } else { ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-diagram-3"></i> Problèmes</h2>
@@ -377,7 +549,7 @@ if ($edit !== null) {
         $status   = isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']] : array($problem['problem_status'], 'secondary'); ?>
         <tr>
           <td>
-            <div class="fw-semibold"><?= h($problem['problem_title']) ?></div>
+            <a class="fw-semibold" href="<?= h($self_url) ?>&amp;view=<?= $id ?>"><?= h($problem['problem_title']) ?></a>
             <?php if ($problem['problem_description'] !== '') { ?><div class="small text-body-secondary text-break"><?= h(vigilo_truncate($problem['problem_description'], 160)) ?></div><?php } ?>
           </td>
           <td class="small" data-label="Catégories"><?= h(implode(', ', problem_admin_category_names($problem, $problem_categories))) ?></td>
@@ -396,3 +568,4 @@ if ($edit !== null) {
   </div>
   <?php } ?>
 </div>
+<?php } ?>
