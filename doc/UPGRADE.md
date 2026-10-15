@@ -156,7 +156,7 @@ depuis l'admin.
 
 ### Passage à la 0.0.32
 
-Aucune migration de base. Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
+Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
 événements continuent d'être envoyés et sont signalés dans la page Webhooks de l'admin : les modifier pour n'en garder
 qu'un, et créer un webhook (avec un corps adapté) pour chacun des autres.
 
@@ -165,12 +165,10 @@ Docker : le service `watchtower` est maintenant actif par défaut (plus de profi
 définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
 de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
 
-### Passage à la 0.0.33
-
-Aucune migration de base ni action manuelle pour une instance en 0.0.17 ou plus récente. Les migrations 0.0.2 à
-0.0.17 sont remplacées par le schéma `schema-0.0.17.sql`, appliqué seulement à une base vide (installation neuve) ;
-une base plus ancienne que la 0.0.17 est refusée (voir ci-dessous). La mise à jour depuis l'admin supprime les anciens
-fichiers `migrations/init-0.0.2.sql` à `init-0.0.17.sql`.
+Migrations : les migrations 0.0.2 à 0.0.17 sont remplacées par le schéma `schema-0.0.17.sql`, appliqué seulement à
+une base vide (installation neuve) ; une base plus ancienne que la 0.0.17 est refusée (voir ci-dessous). La mise à jour
+depuis l'admin supprime les anciens fichiers `migrations/init-0.0.2.sql` à `init-0.0.17.sql`. La migration 0.0.32,
+appliquée automatiquement, ajoute les tables des problèmes (page Problèmes de l'admin).
 
 ### Publier une version (mainteneurs)
 
@@ -179,7 +177,7 @@ Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backen
 ## Mise à jour des versions antérieures à 0.0.22
 
 Versions prises en charge : **0.0.17 et suivantes**. Une instance plus ancienne (aucune n'est en service) doit d'abord
-passer en 0.0.17 avec le code et les migrations du tag `v0.0.32`, le dernier qui les contient ; à partir de la 0.0.33,
+passer en 0.0.17 avec le code et les migrations du tag `v0.0.31`, le dernier qui les contient ; à partir de la 0.0.32,
 une base plus ancienne que la 0.0.17 est refusée, sans être modifiée.
 
 Avant de mettre à jour désactiver INNODB STRICT MODE en lancant MySQL CLI:

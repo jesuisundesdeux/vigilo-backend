@@ -1,5 +1,5 @@
 --------------------
--- init 0.0.34
+-- init 0.0.32
 --------------------
 -- Problems (#327): observations grouped by the administrators under a structured problem
 -- (zone, categories, period, priority, status). Admin only, never published.
@@ -41,4 +41,4 @@ CREATE TABLE IF NOT EXISTS `obs_problem_observations` (
   UNIQUE KEY `po_obsid` (`po_obsid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-UPDATE `obs_config` SET `config_value` = '0.0.34' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
+UPDATE `obs_config` SET `config_value` = '0.0.32' WHERE `obs_config`.`config_param` = 'vigilo_db_version';

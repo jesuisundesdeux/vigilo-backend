@@ -576,8 +576,8 @@ colonnes de `obs_roles` et `obs_cities` en `latin1`, tables créées depuis 0.0.
 | `obs_notes` | `note_obsid`, `note_time`, `note_login`, `note_text` | Notes privées, jamais exposées par l'API. |
 | `obs_webhooks` | `webhook_name`, `webhook_enabled`, `webhook_event` (un événement depuis 0.0.32 ; plusieurs, séparés par des virgules, pour les webhooks créés de 0.0.24 à 0.0.31, toujours envoyés), `webhook_method`, `webhook_url`, `webhook_format` (`json`, `form`, `text`), `webhook_headers`, `webhook_body`, `webhook_category_map` (JSON `catid => code`), `webhook_category_only`, `webhook_categories` et `webhook_cities` (filtres : identifiants séparés par des virgules, vide = toutes, ville 0 = sans ville ; 0.0.30) | |
 | `obs_webhook_deliveries` | `delivery_webhookid`, `delivery_time`, `delivery_event`, `delivery_token`, `delivery_http_code`, `delivery_error`, `delivery_duration_ms`, `delivery_response` (500 car.) | 500 lignes conservées. |
-| `obs_problems` | `problem_id`, `problem_title`, `problem_description`, `problem_categories` (catids séparés par des virgules), `problem_zone` (`circle`, `polygon`), `problem_lat` / `problem_lon` (centre ; milieu du rectangle d'un polygone), `problem_radius` (m), `problem_polygon` (JSON `[[lat, lon], …]`), `problem_start`, `problem_end` (NULL : sans fin), `problem_priority` (1 basse à 4 critique), `problem_status` (`open`, `in_progress`, `waiting`, `resolved`, `closed`), `problem_created_time/login`, `problem_updated_time/login` | 0.0.34. Admin seulement, jamais exposé par l'API. Historique dans `obs_audit_log`. |
-| `obs_problem_observations` | `po_problemid`, `po_obsid`, `po_mode` (`retro`, `auto`, `manual`), `po_time`, `po_login` | 0.0.34. Clé unique sur `po_obsid` : une observation dans un seul problème (supprimer cette clé pour en permettre plusieurs). |
+| `obs_problems` | `problem_id`, `problem_title`, `problem_description`, `problem_categories` (catids séparés par des virgules), `problem_zone` (`circle`, `polygon`), `problem_lat` / `problem_lon` (centre ; milieu du rectangle d'un polygone), `problem_radius` (m), `problem_polygon` (JSON `[[lat, lon], …]`), `problem_start`, `problem_end` (NULL : sans fin), `problem_priority` (1 basse à 4 critique), `problem_status` (`open`, `in_progress`, `waiting`, `resolved`, `closed`), `problem_created_time/login`, `problem_updated_time/login` | 0.0.32. Admin seulement, jamais exposé par l'API. Historique dans `obs_audit_log`. |
+| `obs_problem_observations` | `po_problemid`, `po_obsid`, `po_mode` (`retro`, `auto`, `manual`), `po_time`, `po_login` | 0.0.32. Clé unique sur `po_obsid` : une observation dans un seul problème (supprimer cette clé pour en permettre plusieurs). |
 | `obs_audit_log` | `audit_time`, `audit_login`, `audit_role`, `audit_ip`, `audit_action`, `audit_target`, `audit_details` | |
 | `obs_login_attempts`, `obs_rate_limit` | tentatives de connexion ; requêtes de l'API par type et IP | Purgées après 24 h. |
 
@@ -833,7 +833,7 @@ reproductible), `SHA256SUMS`, et `.sig` si `VIGILO_RELEASE_SIGNING_KEY` est déf
 ### 7.4 Migrations (`includes/migrations.php`)
 
 - Base de départ : `VIGILO_MIGRATIONS_BASE` (`0.0.17`), schéma `schema-0.0.17.sql` (tables, index et réglages d'une
-  base en 0.0.17, `CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`) qui remplace depuis 0.0.33 les migrations 0.0.2 à
+  base en 0.0.17, `CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`) qui remplace depuis 0.0.32 les migrations 0.0.2 à
   0.0.17 (issue #328 : aucune instance plus ancienne). Il n'est appliqué qu'à une base vide (`0.0.0`) ; une base entre
   les deux (`vigilo_db_too_old()`) est refusée par `vigilo_migrate()` sans être modifiée. La CI vérifie que le schéma
   est identique à celui produit par les anciennes migrations du tag v0.0.31.
