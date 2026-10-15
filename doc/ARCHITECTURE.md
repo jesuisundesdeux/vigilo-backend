@@ -36,8 +36,9 @@ données, schéma, compte administrateur et URL de l'instance).
 
 L'admin ne charge aucune ressource externe. Seules les cartes et outils de saisie appellent, depuis le navigateur,
 des services publics : tuiles OpenStreetMap (avec l'origine du site dans le `Referer`), Nominatim (recherche d'un lieu
-sur la carte des scopes), [geo.api.gouv.fr](https://geo.api.gouv.fr) (import des communes) et Wikidata (complément
-d'une ville).
+sur la carte des scopes et des problèmes), [Overpass](https://overpass-api.de) (tracé des rues d'un problème de rues,
+données OpenStreetMap), [geo.api.gouv.fr](https://geo.api.gouv.fr) (import des communes) et Wikidata (complément
+d'une ville). Si l'un d'eux ne répond pas, la page reste utilisable (les rues ne sont alors pas tracées).
 
 ## Variables d'environnement
 
