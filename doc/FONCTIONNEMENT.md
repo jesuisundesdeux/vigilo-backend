@@ -72,7 +72,11 @@ table que les notes des observations), jamais publiées ni reprises dans les rap
 **Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
 catégorie et proches (même méthode que les lieux récurrents des rapports), selon les réglages de la page Configuration
 (nombre minimal, distance, période). Une suggestion ouvre un formulaire de création prérempli (titre, catégorie,
-cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun problème n'est créé automatiquement. Les problèmes ne sont visibles
+cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun problème n'est créé automatiquement.
+
+**Rapport** : un administrateur peut ajouter au rapport pour une collectivité la section « Problèmes suivis » (problèmes
+ayant des observations dans le rapport, avec leur état, leur priorité et leur nombre d'observations), sans les notes
+internes. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
 
 ## Photos, pixelisation et floutage

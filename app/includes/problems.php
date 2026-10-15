@@ -603,3 +603,47 @@ function problem_suggestion_dismiss($db, $key, $login)
                                      VALUES ('" . mysqli_real_escape_string($db, $key) . "', " . time() . ",
                                              '" . mysqli_real_escape_string($db, (string) $login) . "')");
 }
+
+/*
+ * Problems of a report (section of admin/report.php, administrators only): the problems
+ * having observations among those of the report, with their number in the report and in
+ * total, first and last dates in the report. The internal notes are never part of it.
+ */
+function problem_report_rows($db, $observations)
+{
+    $in_report = array();
+    foreach ($observations as $obs) {
+        $in_report[intval($obs['id'])] = intval($obs['time']);
+    }
+    if (!$in_report) {
+        return array();
+    }
+    $rows  = array();
+    $query = mysqli_query($db, "SELECT obs_problems.*, obs_problem_observations.po_obsid
+                                FROM obs_problem_observations
+                                INNER JOIN obs_problems ON obs_problems.problem_id = obs_problem_observations.po_problemid
+                                WHERE obs_problem_observations.po_obsid IN (" . implode(',', array_keys($in_report)) . ")");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $id   = intval($row['problem_id']);
+        $time = $in_report[intval($row['po_obsid'])];
+        if (!isset($rows[$id])) {
+            unset($row['po_obsid']);
+            $rows[$id] = array('problem' => $row, 'count' => 0, 'first' => $time, 'last' => $time);
+        }
+        $rows[$id]['count']++;
+        $rows[$id]['first'] = min($rows[$id]['first'], $time);
+        $rows[$id]['last']  = max($rows[$id]['last'], $time);
+    }
+    $totals = problem_observation_counts($db);
+    foreach ($rows as $id => &$row) {
+        $row['total'] = isset($totals[$id]) ? $totals[$id] : $row['count'];
+    }
+    unset($row);
+    usort($rows, function ($a, $b) {
+        if ($a['problem']['problem_priority'] != $b['problem']['problem_priority']) {
+            return intval($b['problem']['problem_priority']) - intval($a['problem']['problem_priority']);
+        }
+        return $b['count'] - $a['count'];
+    });
+    return array_values($rows);
+}

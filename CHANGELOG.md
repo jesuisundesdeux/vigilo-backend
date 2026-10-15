@@ -27,6 +27,8 @@
   proches, selon des seuils réglables (page Configuration : nombre minimal, distance, période) ; « Créer le problème »
   ouvre le formulaire prérempli, « Ignorer » ne la propose plus (journal `problem_suggestion_dismiss`). Aucun problème
   n'est créé automatiquement.
+- **Rapport pour une collectivité** : section « Problèmes suivis » (administrateurs, case du formulaire), avec l'état,
+  la priorité et le nombre d'observations de chaque problème du rapport ; jamais les notes internes.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
   l'instant), colonne `obs_notes.note_problemid`,
   table `obs_problem_suggestions_dismissed`. Rien ne change pour l'API publique ni pour l'application web.

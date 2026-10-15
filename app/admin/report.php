@@ -36,6 +36,7 @@ require_once('../includes/common.php');
 require_once('../includes/functions.php');
 require_once('../includes/handle.php');
 require_once('../includes/report.php');
+require_once('../includes/problems.php');
 
 $allowed = ($_SESSION['role'] == 'citystaff') ? getRoleCityIds($db, (string) $_SESSION['login']) : null;
 $filters = report_filters($_GET, $allowed);
@@ -68,6 +69,8 @@ $observations = report_observations($db, $filters);
 $previous     = count(report_observations($db, $filters, $start - ($end - $start + 1), $start - 1));
 $groups       = report_groups($observations, $filters['radius']);
 $stats        = report_stats($observations, $groups, $filters, $previous, $population);
+// Problems (#327): administrators only, on request of the form; never the internal notes
+$problem_rows = ($_SESSION['role'] == 'admin' && !empty($_GET['problems'])) ? problem_report_rows($db, $observations) : array();
 
 /* Texts of the report */
 $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' ? $config['VIGILO_NAME'] : 'Vigilo';
@@ -273,6 +276,28 @@ $section = function ($title, $content, $class = '') use ($slides) {
         }
       } else {
         echo $section('Lieux récurrents', '<p>Aucun lieu n\'a été signalé plusieurs fois sur la période.</p>');
+      }
+
+      if ($problem_rows) {
+        $statuses   = problem_statuses();
+        $priorities = problem_priorities();
+        $chunks     = $slides ? array_chunk($problem_rows, 6) : array($problem_rows);
+        foreach ($chunks as $i => $chunk) {
+          $html = '<table class="problems-table"><thead><tr><th>Problème</th><th>État</th><th>Priorité</th><th>Observations</th><th>Période</th></tr></thead><tbody>';
+          foreach ($chunk as $row) {
+            $problem = $row['problem'];
+            $status  = isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : $problem['problem_status'];
+            $prio    = isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '';
+            $html .= '<tr><td><strong>' . h($problem['problem_title']) . '</strong>'
+              . ($problem['problem_description'] !== '' ? '<div class="note">' . h(vigilo_report_truncate($problem['problem_description'], $slides ? 120 : 300)) . '</div>' : '')
+              . '</td><td data-label="État">' . h($status) . '</td><td data-label="Priorité">' . h($prio) . '</td><td data-label="Observations">' . report_number($row['count'])
+              . ($row['total'] != $row['count'] ? ' <span class="note">(' . report_number($row['total']) . ' au total)</span>' : '') . '</td>'
+              . '<td data-label="Période">' . h(report_date($row['first'])) . ($row['last'] != $row['first'] ? ' – ' . h(report_date($row['last'])) : '') . '</td></tr>';
+          }
+          $html .= '</tbody></table>';
+          echo $section('Problèmes suivis' . (count($chunks) > 1 ? ' (' . ($i + 1) . '/' . count($chunks) . ')' : ''),
+            ($i == 0 && !$slides ? '<p class="note">Observations regroupées par l\'association en problèmes (même lieu, même type) : nombre d\'observations du rapport et état de leur suivi.</p>' : '') . $html, 'problems-section');
+        }
       }
     }
     echo $section('Méthode', '<p class="note">' . h($method_text) . '</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). Fond de carte © contributeurs OpenStreetMap.</p>', 'method');
