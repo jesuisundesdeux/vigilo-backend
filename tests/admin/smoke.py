@@ -84,7 +84,7 @@ def main():
     check(url.endswith('index.php'), 'admin login redirects to the admin')
     clean('dashboard', status, page)
 
-    pages = ['dashboard', 'observations', 'resolutions', 'cities', 'accounts', 'scopes', 'categories', 'settings', 'webhooks', 'audit', 'update']
+    pages = ['dashboard', 'observations', 'resolutions', 'problems', 'cities', 'accounts', 'scopes', 'categories', 'settings', 'webhooks', 'audit', 'update']
     for name in pages:
         status, _, page = admin.request('index.php?page=' + name)
         clean('page ' + name, status, page)
@@ -444,9 +444,62 @@ def main():
     status, _, page = admin.request('index.php?page=resolutions&resolved=1')
     check('R_RES00002' in page, 'resolution validated in bulk')
 
+    # Problems (#327): create, refused values, list filters, edit, delete
+    status, _, page = admin.request('index.php?page=problems&edit=new')
+    clean('problem form', status, page)
+    check('data-problem-map' in page and 'name="problem_categories[]"' in page, 'problem form with map and categories')
+    problem = {'csrf_token': admin.token(page), 'problem_id': '0', 'problem_title': 'Piste <b>bloquée</b>', 'problem_description': 'Gare',
+               'problem_categories[]': ['2', '99999'], 'problem_zone': 'circle', 'problem_lat': '43.6', 'problem_lon': '3.9',
+               'problem_radius': '100', 'problem_polygon': '', 'problem_start': '2020-01-01', 'problem_end': '',
+               'problem_priority': '3', 'problem_status': 'open', 'problem_save': '1'}
+    status, _, page = admin.request('index.php?page=problems', dict(problem, problem_title='', problem_radius='1'))
+    clean('problem refused', status, page)
+    check('Le titre est obligatoire' in page and 'Le rayon doit' in page, 'problem without title and with a too small radius refused')
+    status, _, page = admin.request('index.php?page=problems', dict(problem, problem_zone='polygon', problem_polygon='[[43.6,3.9],[43.61,3.9]]'))
+    check('Le polygone doit avoir' in page, 'polygon of 2 points refused')
+    status, _, page = admin.request('index.php?page=problems', problem)
+    clean('problem create', status, page)
+    check('Problème <strong>Piste &lt;b&gt;bloquée&lt;/b&gt;</strong> enregistré' in page, 'problem created and escaped')
+    check('Cercle de 100 m' in page and 'Depuis le 01/01/2020' in page and '>Haute</span>' in page, 'problem listed with zone, period and priority')
+    polygon = dict(problem, problem_title='Travaux du centre', problem_description='', problem_zone='polygon', problem_priority='1', problem_status='closed',
+                   problem_polygon='[[43.59,3.89],[43.61,3.89],[43.61,3.91],[43.59,3.91]]', problem_end='2021-12-31')
+    polygon['problem_categories[]'] = ['3']
+    status, _, page = admin.request('index.php?page=problems', polygon)
+    check('Polygone de 4 points' in page and 'Du 01/01/2020 au 31/12/2021' in page, 'polygon problem created')
+    for query, shown, hidden in [('q=gare', 'Piste', 'Travaux du centre'), ('status=active', 'Piste', 'Travaux du centre'),
+                                 ('status=closed', 'Travaux du centre', 'Piste'), ('priority=1', 'Travaux du centre', 'Piste'),
+                                 ('category=3', 'Travaux du centre', 'Piste'), ('q=%25', None, None)]:
+        status, _, page = admin.request('index.php?page=problems&' + query)
+        clean('problems ' + query, status, page)
+        if shown:
+            check(shown in page and hidden not in page, 'problems filter ' + query)
+        else:
+            check('Aucun problème ne correspond' in page, 'problems search of a literal %')
+    status, _, page = admin.request('index.php?page=problems')
+    # Sorted by priority: the high priority problem first
+    edit = [l for l in links(page, 'edit=') if 'edit=new' not in l]
+    check(len(edit) == 2, 'problem edit links')
+    if edit:
+        status, _, page = admin.request('index.php' + edit[0] if edit[0].startswith('?') else edit[0])
+        clean('problem edit form', status, page)
+        m = re.search(r'name="problem_id" value="(\d+)"', page)
+        check(m is not None and 'value="Piste &lt;b&gt;bloquée&lt;/b&gt;"' in page and 'value="2020-01-01"' in page, 'problem edit form filled')
+        if m:
+            status, _, page = admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_id=m.group(1),
+                                                                            problem_status='in_progress', problem_radius='150'))
+            check('Cercle de 150 m' in page and '>En cours</span>' in page and 'Cercle de 100 m' not in page
+                  and len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
+    delete = [l for l in links(page, 'action=delete') if 'problemid=' in l]
+    check(len(delete) == 2, 'problem delete links')
+    if delete:
+        status, _, page = admin.request('index.php' + delete[-1] if delete[-1].startswith('?') else delete[-1])
+        clean('problem delete', status, page)
+        check('supprimé' in page, 'problem deleted')
+
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
-    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive']:
+    for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
+                   'problem_create', 'problem_edit', 'problem_delete']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout
@@ -460,7 +513,7 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
-    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories']:
+    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories', 'problems']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
     status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&cities[]=2')

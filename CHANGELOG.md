@@ -1,6 +1,19 @@
 # Changelog
 
-## 0.0.33
+## 0.0.32
+
+### Problèmes (lot 1, première partie)
+- Nouvelle page **Problèmes** dans l'admin (administrateurs seulement, issue #327) : un problème regroupe les
+  observations publiées d'une **zone** (cercle ou polygone tracé sur la carte), d'une ou plusieurs **catégories** (les
+  catégories nationales et celles de l'instance) et d'une **période** (début, fin facultative, sur la date des
+  observations), avec une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en cours, en
+  attente, résolu, clos).
+- Liste avec recherche (titre, description) et filtres (statut, priorité, catégorie), création, modification et
+  suppression (les observations sont conservées). Les actions sont inscrites au journal (`problem_create`,
+  `problem_edit` avec les valeurs modifiées, `problem_delete`).
+- Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
+  l'instant). Le rattachement des observations suivra ; rien ne change pour l'API publique
+  ni pour l'application web.
 
 ### Plus ancienne version prise en charge : 0.0.17
 - Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à
@@ -9,8 +22,6 @@
   sans être modifiée ; les procédures de mise à jour des versions antérieures (branches, 0.0.13) sont retirées de la
   documentation.
 - La mise à jour depuis l'admin supprime les anciens fichiers de migration (`scripts/obsolete-paths.txt`).
-
-## 0.0.32
 
 ### Webhooks : un événement par webhook
 - Le formulaire des webhooks ne propose plus qu'**un seul événement** par webhook (boutons radio) : le corps et les

@@ -24,7 +24,7 @@ chaque instance peut en désactiver et ajouter les siennes (voir [Catégories](#
 
 | Rôle | Accès |
 |---|---|
-| `admin` | Tout : observations, résolutions, villes, comptes, scopes, catégories, réglages, webhooks, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
+| `admin` | Tout : observations, résolutions, problèmes, villes, comptes, scopes, catégories, réglages, webhooks, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
 | `moderator` | Modération (approbation, modification, suppression) depuis l'application web (mode admin) et par l'API, avec sa clé ; pas d'accès au panneau d'administration. |
 | `citystaff` | Panneau d'administration limité à l'accueil, aux observations et aux résolutions des villes associées au compte (statuts « prise en compte », « en cours »). |
 | `guest` | Compte sans droit (en attente d'attribution). |
@@ -42,6 +42,18 @@ existantes gardent leur catégorie) et ajouter les siennes (numéros à partir d
 résolvable, active) ; une catégorie de l'instance utilisée par des observations ne peut pas être supprimée, seulement
 désactivée. La liste de l'instance est publiée sur `get_categories.php` (format de `categorielist.json`), que
 l'application web utilise ; les applications qui ne la lisent pas utilisent la liste nationale.
+
+## Problèmes
+
+Les administrateurs regroupent des observations sous un **problème** (page **Problèmes** de l'admin, issue #327) :
+par exemple « Stationnement sur la piste cyclable de l'avenue X ». Un problème a un titre, une description, une ou
+plusieurs **catégories** (nationales ou de l'instance), une **zone** (cercle ou polygone tracé sur la carte), une
+**période** (début, fin facultative), une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en
+cours, en attente, résolu, clos).
+
+Une observation correspond à un problème si elle est **publiée**, de l'**une** de ses catégories, dans sa zone et
+dans sa période (date de l'observation). Une observation appartient à un seul problème. Les problèmes ne sont visibles
+que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
 
 ## Photos, pixelisation et floutage
 
