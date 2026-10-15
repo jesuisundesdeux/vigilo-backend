@@ -939,7 +939,7 @@ class T13WebhookEvents(unittest.TestCase):
         self.assertIn('était abonné à plusieurs événements', page)
         self.assertRegex(page, r'type="radio" name="webhook_event" id="event_observation_created" value="observation.created" checked',
                          'first event of the list chosen')
-        self.assertEqual(page.count('name="webhook_event"'), 5, 'one radio button per event')
+        self.assertEqual(page.count('name="webhook_event"'), 6, 'one radio button per event')
 
 
 class T11Categories(unittest.TestCase):
@@ -1230,6 +1230,74 @@ class T14Problems(unittest.TestCase):
                                          "AND audit_target = 'problem:%s'" % problem))
         sql("DELETE obs_resolutions_tokens, obs_resolutions FROM obs_resolutions_tokens INNER JOIN obs_resolutions ON resolution_id = restok_resolutionid "
             "INNER JOIN obs_list ON obs_id = restok_observationid WHERE obs_token IN ('%s', '%s')" % (free, other))
+
+    def test_broadcast(self):
+        problem = self.problem('diffusion', 43.616, 3.916)
+        token = self.observation(43.6161, 3.9161)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        receiver = WebhookReceiver()
+        try:
+            hook = add_webhook('broadcast', receiver.base + '/problem', events='problem.broadcast',
+                               body='{"event": "{{event}}", "id": "{{problem_id}}", "title": "{{problem_title}}", "status": "{{problem_status}}", '
+                                    '"count": "{{problem_observations}}", "tokens": "{{problem_tokens}}", "token": "{{token}}", "zone": "{{problem_zone}}", '
+                                    '"url": "{{problem_url}}", "description": "{{event_description}}"}')
+            jar = http.cookiejar.CookieJar()
+            opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+            def admin(path, data=None):
+                body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+                return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+            def csrf(page):
+                return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+            page = admin('login.php')
+            admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': csrf(page)})
+            page = admin('index.php?page=problems')
+            self.assertIn('name="problem_broadcast" value="%s"' % problem, page)
+            page = admin('index.php?page=problems', {'csrf_token': csrf(page), 'problem_broadcast': problem})
+            self.assertIn('diffusé (1 webhook(s)) et passé « En attente »', page)
+            body = json.loads(receiver.wait(1)[0]['body'])
+            self.assertEqual((body['event'], body['id'], body['title'], body['status'], body['count'], body['tokens'], body['token']),
+                             ('problem.broadcast', problem, 'T14 diffusion', 'waiting', '1', token, token))
+            self.assertEqual(body['zone'], 'Cercle de 200 m')
+            self.assertTrue(body['url'].endswith('/admin/index.php?page=problems&view=' + problem))
+            self.assertTrue(body['description'].startswith('Problème « T14 diffusion » : 1 observation du '), body['description'])
+            self.assertEqual(sql("SELECT problem_status FROM obs_problems WHERE problem_id = " + problem), 'waiting')
+            self.assertEqual(sql("SELECT delivery_token FROM obs_webhook_deliveries WHERE delivery_webhookid = " + hook), 'P' + problem)
+            self.assertIn('"webhooks":1', sql("SELECT audit_details FROM obs_audit_log WHERE audit_action = 'problem_broadcast' AND audit_target = 'problem:%s'" % problem))
+        finally:
+            sql("DELETE FROM obs_webhooks WHERE webhook_name = 'broadcast'")
+            receiver.close()
+
+    def test_archived_observations_only_when_asked(self):
+        problem = self.problem('archives', 43.617, 3.917)
+        token = self.observation(43.6171, 3.9171)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        sql("DELETE FROM obs_problem_observations WHERE po_obsid = (SELECT obs_id FROM obs_list WHERE obs_token = '%s')" % token)
+        sql("UPDATE obs_list SET obs_archived = 1 WHERE obs_token = '%s'" % token)
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def admin(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+        def csrf(page):
+            return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': csrf(page)})
+        url = 'index.php?page=problems&view=' + problem
+        page = admin(url)
+        page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1'})
+        self.assertIn('<strong>0</strong> observation(s) publiée(s)', page, 'archived observation not counted by default')
+        page = admin(url, {'csrf_token': csrf(page), 'problem_attach_retro': '1'})
+        self.assertEqual(self.link(token), '', 'archived observation not attached by default')
+        page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1', 'include_archived': '1'})
+        self.assertIn('<strong>1</strong> observation(s) publiée(s)', page)
+        self.assertIn('id="include_archived" checked', page)
+        page = admin(url, {'csrf_token': csrf(page), 'problem_attach_retro': '1', 'include_archived': '1'})
+        self.assertEqual(self.link(token), problem + ':retro', 'archived observation attached when asked')
+        sql("UPDATE obs_list SET obs_archived = 0 WHERE obs_token = '%s'" % token)
 
 
 def main():

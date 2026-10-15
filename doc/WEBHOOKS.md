@@ -276,3 +276,33 @@ Informer un canal ou mettre à jour un ticket quand une résolution est déclar�
 Les variables de l'observation (`{{token}}`, `{{address}}`, `{{categorie_code}}`…) sont celles de la première
 observation liée ; `{{resolution_observations}}` donne la liste de toutes. Une résolution déclarée dans l'application
 est envoyée à sa création, avant sa photo (`{{resolution_photo_url}}` vide).
+
+## Diffusion d'un problème
+
+Transmettre un problème (observations regroupées par l'association) à la collectivité ou à un canal, avec le bouton
+**Diffuser** de la page Problèmes de l'admin (backend ≥ 0.0.34) : le problème passe ensuite « En attente ».
+Événement : **Diffusion d'un problème** (`problem.broadcast`).
+
+```json
+{
+  "event": "{{event}}",
+  "problem": {{problem_id}},
+  "title": "{{problem_title}}",
+  "description": "{{problem_description}}",
+  "summary": "{{event_description}}",
+  "status": "{{problem_status_name}}",
+  "priority": "{{problem_priority_name}}",
+  "categories": "{{problem_categories}}",
+  "zone": "{{problem_zone}}",
+  "lat": "{{problem_lat}}",
+  "lon": "{{problem_lon}}",
+  "observations": {{problem_observations}},
+  "tokens": "{{problem_tokens}}",
+  "first": "{{problem_first_date}}",
+  "last": "{{problem_last_date}}",
+  "last_photo": "{{photo_url}}"
+}
+```
+
+Les variables de l'observation (`{{token}}`, `{{photo_url}}`, `{{categorie_code}}`…) sont celles de la **dernière**
+observation rattachée. `{{problem_url}}` renvoie vers la fiche du problème dans l'admin (connexion nécessaire).

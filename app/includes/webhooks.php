@@ -44,6 +44,7 @@ define('VIGILO_WEBHOOK_EVENT_APPROVED', 'observation.approved');
 define('VIGILO_WEBHOOK_EVENT_DISAPPROVED', 'observation.disapproved');
 define('VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED', 'resolution.created');
 define('VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS', 'resolution.status_changed');
+define('VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST', 'problem.broadcast');
 define('VIGILO_WEBHOOK_LOG_KEEP', 500);
 
 /* Events a webhook can subscribe to, with their description (admin page) */
@@ -55,6 +56,7 @@ function webhook_events()
         VIGILO_WEBHOOK_EVENT_DISAPPROVED       => 'Observation refusée (désapprouvée)',
         VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED => 'Nouvelle résolution',
         VIGILO_WEBHOOK_EVENT_RESOLUTION_STATUS => 'Changement d\'état d\'une résolution',
+        VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST => 'Diffusion d\'un problème (bouton « Diffuser » de l\'admin)',
     );
 }
 
@@ -81,6 +83,13 @@ function webhook_event_label($event)
 function webhook_event_description(&$values)
 {
     $event = $values['event'];
+    if ($event == VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST) {
+        $count = intval($values['problem_observations']);
+        return 'Problème « ' . $values['problem_title'] . ' » : ' . $count . ' observation' . ($count > 1 ? 's' : '')
+            . ($values['problem_first_date'] !== '' ? ' du ' . date('d/m/Y', strtotime($values['problem_first_date'])) . ' au ' . date('d/m/Y', strtotime($values['problem_last_date'])) : '')
+            . ($values['problem_categories'] !== '' ? ', ' . $values['problem_categories'] : '') . ' (' . $values['problem_zone'] . ', priorité '
+            . mb_strtolower($values['problem_priority_name'], 'UTF-8') . ').';
+    }
     if (strpos($event, 'resolution.') === 0) {
         $count = $values['resolution_observations'] === '' ? 0 : count(explode(',', $values['resolution_observations']));
         $observations = $count . ' observation' . ($count > 1 ? 's' : '');
@@ -114,7 +123,7 @@ function webhook_resolution_status_name($status)
 function webhook_variables()
 {
     return array(
-        'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed)',
+        'event'           => 'Événement (observation.created, observation.approved, observation.disapproved, resolution.created, resolution.status_changed, problem.broadcast)',
         'event_label'     => 'Nom de l\'événement (ex. « Observation publiée (approuvée) »)',
         'event_description' => 'Description de l\'action en une phrase (ex. « Observation ABCD1234 publiée : Véhicule ou objet gênant, Rue de la Gare (Montpellier). »)',
         'token'           => 'Identifiant de l\'observation',
@@ -143,6 +152,21 @@ function webhook_variables()
         'resolution_date'            => 'Résolution : date (ISO 8601)',
         'resolution_photo_url'       => 'Résolution : lien vers la photo (vide sans photo)',
         'resolution_observations'    => 'Résolution : identifiants des observations liées, séparés par des virgules ; les variables de l\'observation sont celles de la première',
+        'problem_id'            => 'Problème : numéro (problem.broadcast ; les variables de l\'observation sont celles de sa dernière observation)',
+        'problem_title'         => 'Problème : titre',
+        'problem_description'   => 'Problème : description',
+        'problem_status'        => 'Problème : statut (open, in_progress, waiting, resolved, closed)',
+        'problem_status_name'   => 'Problème : nom du statut',
+        'problem_priority_name' => 'Problème : priorité (Basse, Normale, Haute, Critique)',
+        'problem_categories'    => 'Problème : noms des catégories',
+        'problem_zone'          => 'Problème : zone (ex. « Cercle de 100 m », « Rue : Rue de la Gare, Ville »)',
+        'problem_lat'           => 'Problème : latitude du centre de la zone (rues : moyenne des observations)',
+        'problem_lon'           => 'Problème : longitude du centre de la zone',
+        'problem_observations'  => 'Problème : nombre d\'observations rattachées',
+        'problem_tokens'        => 'Problème : identifiants des observations rattachées (200 au plus), séparés par des virgules',
+        'problem_first_date'    => 'Problème : date de la première observation (ISO 8601)',
+        'problem_last_date'     => 'Problème : date de la dernière observation (ISO 8601)',
+        'problem_url'           => 'Problème : lien vers sa fiche dans l\'admin (connexion nécessaire)',
         'instance_name'   => 'Nom de l\'instance',
         'instance_url'    => 'Adresse de l\'instance',
     );
@@ -198,6 +222,9 @@ function webhook_observation_values($db, $token, $event = VIGILO_WEBHOOK_EVENT_A
         'resolution_date'            => '',
         'resolution_photo_url'       => '',
         'resolution_observations'    => '',
+        'problem_id' => '', 'problem_title' => '', 'problem_description' => '', 'problem_status' => '', 'problem_status_name' => '',
+        'problem_priority_name' => '', 'problem_categories' => '', 'problem_zone' => '', 'problem_lat' => '', 'problem_lon' => '',
+        'problem_observations' => '', 'problem_tokens' => '', 'problem_first_date' => '', 'problem_last_date' => '', 'problem_url' => '',
         'instance_name'   => isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '',
         'instance_url'    => $instance_url,
         // Not a variable: category and city of the observation(s), for the filters of the webhooks
@@ -247,6 +274,88 @@ function webhook_resolution_values($db, $resolutionid, $event, $previous_status 
     // A resolution matches the filters of a webhook when one of its observations does
     $values['_filter']                    = $filter;
     return $values;
+}
+
+/*
+ * Values of the variables for a problem (problem.broadcast): those of its last observation,
+ * plus the problem_* ones. Null if the problem does not exist.
+ */
+function webhook_problem_values($db, $problem_id, $event = VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST)
+{
+    global $config;
+    require_once(dirname(__FILE__) . '/problems.php');
+    $problem = problem_load($db, $problem_id);
+    if (!$problem) {
+        return null;
+    }
+    $tokens = array();
+    $filter = array();
+    $times  = array();
+    $lats   = array();
+    $lons   = array();
+    $query  = mysqli_query($db, "SELECT obs_list.obs_token, obs_list.obs_categorie, obs_list.obs_city, obs_list.obs_time, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon
+                                 FROM obs_problem_observations INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                 WHERE obs_problem_observations.po_problemid = " . intval($problem_id) . " ORDER BY obs_list.obs_time DESC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $tokens[] = (string) $row['obs_token'];
+        $filter[] = array(intval($row['obs_categorie']), intval($row['obs_city']));
+        $times[]  = intval($row['obs_time']);
+        $lats[]   = (float) $row['obs_coordinates_lat'];
+        $lons[]   = (float) $row['obs_coordinates_lon'];
+    }
+    $values = $tokens ? webhook_observation_values($db, $tokens[0], $event) : null;
+    $proto  = (isset($config['HTTP_PROTOCOL']) && $config['HTTP_PROTOCOL'] !== '') ? $config['HTTP_PROTOCOL'] : 'https';
+    if (!$values) {
+        $values = array_fill_keys(array_keys(webhook_variables()), '');
+        $values['event']         = $event;
+        $values['event_label']   = webhook_event_label($event);
+        $values['instance_name'] = isset($config['VIGILO_NAME']) ? (string) $config['VIGILO_NAME'] : '';
+        $values['instance_url']  = $proto . '://' . (isset($config['URLBASE']) ? $config['URLBASE'] : '');
+    }
+    $values['event_description'] = null;
+    $names = array();
+    foreach ((array) getCategoriesList() as $category) {
+        if (isset($category['catid'], $category['catname']) && in_array(intval($category['catid']), problem_category_ids($problem), true)) {
+            $names[] = (string) $category['catname'];
+        }
+    }
+    $statuses   = problem_statuses();
+    $priorities = problem_priorities();
+    $lat = (float) $problem['problem_lat'];
+    $lon = (float) $problem['problem_lon'];
+    if ($problem['problem_zone'] == 'streets' && $lats) {
+        $lat = round(array_sum($lats) / count($lats), 6);
+        $lon = round(array_sum($lons) / count($lons), 6);
+    }
+    $values['problem_id']            = (string) intval($problem['problem_id']);
+    $values['problem_title']         = (string) $problem['problem_title'];
+    $values['problem_description']   = (string) $problem['problem_description'];
+    $values['problem_status']        = (string) $problem['problem_status'];
+    $values['problem_status_name']   = isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : '';
+    $values['problem_priority_name'] = isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '';
+    $values['problem_categories']    = implode(', ', $names);
+    $values['problem_zone']          = problem_zone_label($problem);
+    $values['problem_lat']           = ($lat || $lon) ? (string) $lat : '';
+    $values['problem_lon']           = ($lat || $lon) ? (string) $lon : '';
+    $values['problem_observations']  = (string) count($tokens);
+    $values['problem_tokens']        = implode(',', array_slice($tokens, 0, 200));
+    $values['problem_first_date']    = $times ? date('c', min($times)) : '';
+    $values['problem_last_date']     = $times ? date('c', max($times)) : '';
+    $values['problem_url']           = $values['instance_url'] . '/admin/index.php?page=problems&view=' . intval($problem['problem_id']);
+    // A problem matches the filters of a webhook when one of its observations does
+    $values['_filter']               = $filter;
+    return $values;
+}
+
+/* Calls the webhooks of the broadcast of a problem */
+function webhooks_for_problem($db, $problem_id, $event = VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST)
+{
+    $hooks = webhooks_for_event($db, $event);
+    if (empty($hooks)) {
+        return array();
+    }
+    $values = webhook_problem_values($db, $problem_id, $event);
+    return $values ? webhooks_deliver($db, $hooks, $values) : array();
 }
 
 /* Value of a variable, computing the remote ones on first use */
@@ -458,6 +567,9 @@ function webhooks_deliver($db, $hooks, $values)
 
     // Logged token: the resolution for its events, else the observation
     $log_token = (strpos($values['event'], 'resolution.') === 0 && !empty($values['resolution_token'])) ? $values['resolution_token'] : $values['token'];
+    if (strpos($values['event'], 'problem.') === 0 && !empty($values['problem_id'])) {
+        $log_token = 'P' . $values['problem_id'];
+    }
     foreach ($results as $id => $result) {
         list($code, $error, $duration, $response) = $result;
         mysqli_query($db, "INSERT INTO obs_webhook_deliveries (delivery_webhookid, delivery_time, delivery_event, delivery_token, delivery_http_code, delivery_error, delivery_duration_ms, delivery_response)

@@ -796,6 +796,21 @@ if (count($observations) > 0 && in_array($current_role, $actions_acl['notes']['a
   }
 }
 
+/* Problem of each displayed observation (link to the page Problèmes, admin and citystaff) */
+$obs_problems = array();
+if (count($observations) > 0 && isset($menu['problems']) && in_array($current_role, $menu['problems']['access'])) {
+  $obsids = array();
+  foreach ($observations as $result_obs) {
+    $obsids[] = intval($result_obs['obs_id']);
+  }
+  $problems_query = mysqli_query($db, "SELECT obs_problem_observations.po_obsid, obs_problems.problem_id, obs_problems.problem_title
+                                       FROM obs_problem_observations INNER JOIN obs_problems ON obs_problems.problem_id = obs_problem_observations.po_problemid
+                                       WHERE obs_problem_observations.po_obsid IN (" . implode(',', $obsids) . ")");
+  while ($problems_query && $row = mysqli_fetch_assoc($problems_query)) {
+    $obs_problems[intval($row['po_obsid'])] = array(intval($row['problem_id']), (string) $row['problem_title']);
+  }
+}
+
 $listurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagenb > 1 ? '&pagenb=' . $pagenb : '') . $urlsuffix;
 ?>
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -940,6 +955,7 @@ foreach ($observations as $result_obs) {
             );
             $badge = isset($resolution_badges[$resolution_status]) ? $resolution_badges[$resolution_status] : $resolution_badges[2];
           ?><br /><span class="badge <?= h($badge[0]) ?> mt-1"><i class="bi <?= h($badge[1]) ?>"></i> <?= h($badge[2]) ?></span><?php } ?>
+          <?php if (isset($obs_problems[$obs_id])) { ?><br /><a class="badge text-bg-light border text-decoration-none text-wrap text-start mt-1" href="?page=problems&amp;view=<?= intval($obs_problems[$obs_id][0]) ?>" title="Problème auquel l'observation est rattachée"><i class="bi bi-diagram-3"></i> <?= h(vigilo_truncate($obs_problems[$obs_id][1], 60)) ?></a><?php } ?>
         </td>
         <td>
           <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" data-photo data-photo-title="Observation <?= h($obs_token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>

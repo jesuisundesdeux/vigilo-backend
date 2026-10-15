@@ -69,13 +69,18 @@ function webhook_admin_load($db, $id)
 
 /*
  * Values used to test a webhook for an event: the last resolution for the resolution
- * events, the last observation in the state of the event (new, refused), else the last
+ * events, the last problem for problem.broadcast, the last observation in the state of the event (new, refused), else the last
  * published observation, or an example
  */
 function webhook_admin_test_values($db, $event = VIGILO_WEBHOOK_EVENT_APPROVED)
 {
     global $config;
     $values = null;
+    if ($event == VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST) {
+        $query  = mysqli_query($db, "SELECT problem_id FROM obs_problems ORDER BY problem_id DESC LIMIT 1");
+        $row    = $query ? mysqli_fetch_assoc($query) : null;
+        $values = $row ? webhook_problem_values($db, $row['problem_id'], $event) : null;
+    }
     if (strpos($event, 'resolution.') === 0) {
         $query  = mysqli_query($db, "SELECT resolution_id, resolution_status FROM obs_resolutions ORDER BY resolution_id DESC LIMIT 1");
         $row    = $query ? mysqli_fetch_assoc($query) : null;
