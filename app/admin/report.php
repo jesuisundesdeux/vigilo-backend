@@ -210,7 +210,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   }
   $photos  = '<h3>Dernières photos</h3><div class="problem-photos">' . $photos . '</div>';
   $charts  = problem_time_charts(problem_time_stats($row['observations']));
-  $timing  = '<h3>Chronologie (observations par mois)</h3>' . $charts['timeline']
+  $timing  = '<h3>Frise chronologique</h3>' . $charts['timeline']
     . '<h3>Jours et heures</h3>' . $charts['heatmap'];
   $title = 'Problème : ' . $problem['problem_title'];
   if ($slides) {

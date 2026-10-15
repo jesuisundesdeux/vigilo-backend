@@ -5,7 +5,9 @@
 ### Problèmes
 - Rattachement des observations existantes (**Compter** / **Rattacher**) : les observations **archivées** ne sont
   prises en compte que si la case « Inclure les observations archivées » est cochée (décochée par défaut).
-- Fiche d'un problème : **frise chronologique** (observations par mois) et **matrice jours × heures** (une case par
+- Fiche d'un problème : **frise chronologique** compacte et horizontale (une case par mois, par trimestre au-delà de
+  4 ans, par année au-delà de 12 ans, d'autant plus foncée que les observations y sont nombreuses) et **matrice jours ×
+  heures** (une case par
   jour et par heure, d'autant plus foncée que les observations y sont nombreuses, comme les statistiques de
   l'application web) ; **pagination** des observations rattachées (20 par page).
 - Onglet **Carte** de la page Problèmes : zones des problèmes (filtres de la liste), couleur du statut, lien vers leur
@@ -21,7 +23,7 @@
   cocher » / « Tout décocher ». Les anciens liens (`problems=1`) restent valides.
 - Nouvelle section **Détail de chaque problème** (administrateurs) : statut, priorité, date de création, catégories,
   zone, nombre et période des observations, description, **carte** (zone et observations du rapport), dernières
-  **photos**, **frise chronologique** par mois, **matrice jours × heures** (deux diapositives en diaporama). Jamais
+  **photos**, **frise chronologique** compacte, **matrice jours × heures** (deux diapositives en diaporama). Jamais
   les notes internes.
 - Section « Jours et heures » : matrice jours × heures (à la place des deux histogrammes).
 - Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).

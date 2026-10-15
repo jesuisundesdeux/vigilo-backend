@@ -416,7 +416,7 @@ function report_week_grid($observations)
  */
 function report_svg_heatmap($grid, $title)
 {
-    $ramp  = array('#f4f5f7', '#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#104281');
+    $ramp  = report_heat_ramp();
     $days  = array('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
     $cell  = 26;
     $gap   = 3;
@@ -437,7 +437,7 @@ function report_svg_heatmap($grid, $title)
         $y = $top + $d * ($cell + $gap);
         $svg .= '<text x="' . ($left - 6) . '" y="' . ($y + $cell / 2 + 4) . '" text-anchor="end" class="axis">' . report_svg_escape(substr($days[$d], 0, 3) . '.') . '</text>';
         foreach ($row as $h => $count) {
-            $step = $count == 0 ? 0 : min(count($ramp) - 1, 1 + (int) floor($count / $max * (count($ramp) - 1) - 1e-9));
+            $step = report_heat_step($count, $max);
             $tip  = $days[$d] . ' ' . $h . ' h – ' . ($h + 1) . ' h : ' . $count . ' observation' . ($count > 1 ? 's' : '');
             $svg .= '<rect x="' . ($left + $h * ($cell + $gap)) . '" y="' . $y . '" width="' . $cell . '" height="' . $cell . '" rx="4" fill="' . $ramp[$step] . '"'
                   . ($step == 0 ? ' class="empty"' : '') . '><title>' . report_svg_escape($tip) . '</title></rect>';
@@ -456,6 +456,94 @@ function report_svg_heatmap($grid, $title)
     $svg .= '<text x="' . ($x + (count($ramp) - 1) * 16 + 4) . '" y="' . ($y + 11) . '" class="axis">plus</text>';
     if ($busiest[0] > 0) {
         $svg .= '<text x="0" y="' . ($y + 11) . '" class="axis">Le plus fréquent : ' . report_svg_escape($busiest[1]) . '</text>';
+    }
+    return $svg . '</svg>';
+}
+
+/* Ramp of the matrices and timelines (same as the statistics of the web application) and step of a number */
+function report_heat_ramp()
+{
+    return array('#f4f5f7', '#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#104281');
+}
+
+function report_heat_step($count, $max)
+{
+    $n = count(report_heat_ramp());
+    return $count == 0 || $max == 0 ? 0 : min($n - 1, 1 + (int) floor($count / $max * ($n - 1) - 1e-9));
+}
+
+/*
+ * Compact horizontal timeline: one square per period, darker with the number of observations;
+ * $months 'YYYY-MM' => number, grouped by quarter beyond 4 years and by year beyond 12 years.
+ * Years below, scale and busiest period.
+ */
+function report_svg_strip($months, $title)
+{
+    $ramp  = report_heat_ramp();
+    $names = array(1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre');
+    $unit  = count($months) > 144 ? 'year' : (count($months) > 48 ? 'quarter' : 'month');
+    // Periods: key => array(year, label, number)
+    $periods = array();
+    foreach ($months as $month => $count) {
+        $year = substr($month, 0, 4);
+        $m    = intval(substr($month, 5, 2));
+        if ($unit == 'year') {
+            $key = $year;
+            $label = $year;
+        } elseif ($unit == 'quarter') {
+            $q = intval(ceil($m / 3));
+            $key = $year . '-T' . $q;
+            $label = $q . ($q == 1 ? 'er' : 'e') . ' trimestre ' . $year;
+        } else {
+            $key = $month;
+            $label = $names[$m] . ' ' . $year;
+        }
+        if (!isset($periods[$key])) {
+            $periods[$key] = array($year, $label, 0);
+        }
+        $periods[$key][2] += $count;
+    }
+    $n     = max(1, count($periods));
+    $width = 760;
+    $gap   = 2;
+    $cell  = min(28, ($width - ($n - 1) * $gap) / $n);
+    $max   = 0;
+    foreach ($periods as $period) {
+        $max = max($max, $period[2]);
+    }
+    $svg   = '<svg viewBox="0 0 ' . $width . ' 64" role="img" aria-label="' . report_svg_escape($title) . '" class="report-chart report-heatmap report-strip">';
+    $i     = 0;
+    $last_label = -1000;
+    $last_year  = '';
+    $busiest    = array(0, '');
+    foreach ($periods as $period) {
+        list($year, $label, $count) = $period;
+        $x    = round($i * ($cell + $gap), 2);
+        $step = report_heat_step($count, $max);
+        $svg .= '<rect x="' . $x . '" y="0" width="' . round($cell, 2) . '" height="26" rx="' . ($cell > 8 ? 3 : 1) . '" fill="' . $ramp[$step] . '"'
+              . ($step == 0 ? ' class="empty"' : '') . '><title>' . report_svg_escape($label . ' : ' . $count . ' observation' . ($count > 1 ? 's' : '')) . '</title></rect>';
+        // Year at its first period, unless too close to the previous label
+        if ($year !== $last_year && $x - $last_label >= 34) {
+            $svg .= '<line x1="' . $x . '" x2="' . $x . '" y1="28" y2="34" class="grid"/>'
+                  . '<text x="' . $x . '" y="45" class="axis">' . report_svg_escape($year) . '</text>';
+            $last_label = $x;
+        }
+        $last_year = $year;
+        if ($count > $busiest[0]) {
+            $busiest = array($count, $label);
+        }
+        $i++;
+    }
+    $x = $width - (count($ramp) - 1) * 16 - 32;
+    $svg .= '<text x="' . ($x - 6) . '" y="61" text-anchor="end" class="axis">moins</text>';
+    for ($k = 1; $k < count($ramp); $k++) {
+        $svg .= '<rect x="' . ($x + ($k - 1) * 16) . '" y="51" width="13" height="13" rx="3" fill="' . $ramp[$k] . '"/>';
+    }
+    $svg .= '<text x="' . ($x + (count($ramp) - 1) * 16 + 4) . '" y="61" class="axis">plus</text>';
+    if ($busiest[0] > 0) {
+        $what = array('month' => 'Mois', 'quarter' => 'Trimestre', 'year' => 'Année');
+        $svg .= '<text x="0" y="61" class="axis">' . $what[$unit] . ' le plus chargé' . ($unit == 'year' ? 'e' : '') . ' : '
+              . report_svg_escape($busiest[1] . ' (' . $busiest[0] . ')') . '</text>';
     }
     return $svg . '</svg>';
 }
