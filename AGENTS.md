@@ -21,7 +21,7 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
 | Chemin | Contenu |
 |---|---|
 | `app/*.php` | Routes publiques de l'API (une route = un fichier), documentées dans `doc/REST_API.md` |
-| `app/includes/` | Code partagé : `common.php` (connexion, config), `functions.php`, `security.php`, `images.php`, `blur.php`, `webhooks.php`, `report.php` (rapport pour une collectivité), `updater.php`, `migrations.php`, `setup.php` (première installation), `version.php` |
+| `app/includes/` | Code partagé : `common.php` (connexion, config), `functions.php`, `security.php`, `images.php`, `blur.php`, `webhooks.php`, `report.php` (rapport pour une collectivité), `problems.php` (problèmes : zones, correspondance), `updater.php`, `migrations.php`, `setup.php` (première installation), `version.php` |
 | `app/admin/` | Panneau d'administration : `index.php` (menu, rôles autorisés par page), `inc/<page>.php`, `assets/` (Bootstrap 5, Leaflet, `admin.js`), `js/` |
 | `app/migrations/` | `schema-0.0.17.sql` (base de départ d'une installation neuve, plus ancienne version prise en charge) puis `init-X.Y.Z.sql` : migrations appliquées dans l'ordre des versions |
 | `config/` | Modèles de configuration (`config.php.docker` lit les variables d'environnement) |

@@ -24,6 +24,10 @@ Instance d'une zone géographique au sein d'un backend permettant la coohabitati
 
 Un identifiant d'observation unique généré aléatoirement et affiché avec l'observation
 
+#### Problème
+
+Regroupement d'observations publiées par les administrateurs (zone, catégories, période, priorité, statut), visible seulement dans l'admin : voir [FONCTIONNEMENT.md](FONCTIONNEMENT.md#problèmes).
+
 #### Résolution
 
 Déclaration qu'une ou plusieurs observations sont résolues, avec une photo, validée par un administrateur.

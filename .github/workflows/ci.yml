@@ -25,6 +25,8 @@ jobs:
         run: |
           find app scripts -name '*.php' -print0 \
             | xargs -0 -n1 php -l > /tmp/lint.log 2>&1 || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
+      - name: Problem rules (zones, form)
+        run: php tests/problems/unit.php
 
   version:
     runs-on: ubuntu-latest

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.34
+
+### Problèmes (lot 1, première partie)
+- Nouvelle page **Problèmes** dans l'admin (administrateurs seulement, issue #327) : un problème regroupe les
+  observations publiées d'une **zone** (cercle ou polygone tracé sur la carte), d'une ou plusieurs **catégories** (les
+  catégories nationales et celles de l'instance) et d'une **période** (début, fin facultative, sur la date des
+  observations), avec une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en cours, en
+  attente, résolu, clos).
+- Liste avec recherche (titre, description) et filtres (statut, priorité, catégorie), création, modification et
+  suppression (les observations sont conservées). Les actions sont inscrites au journal (`problem_create`,
+  `problem_edit` avec les valeurs modifiées, `problem_delete`).
+- Migration 0.0.34 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
+  l'instant). Le rattachement des observations arrive dans les versions suivantes ; rien ne change pour l'API publique
+  ni pour l'application web.
+
 ## 0.0.33
 
 ### Plus ancienne version prise en charge : 0.0.17
