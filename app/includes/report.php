@@ -311,6 +311,51 @@ function report_stats($observations, $groups, $filters, $previous, $population)
     );
 }
 
+/*
+ * Sections of the report, in their order: key => array(title, administrators only,
+ * included by default). Chosen in the form (sections[], with s=1); without s (old links),
+ * the default ones, the problems only with problems=1.
+ */
+function report_sections()
+{
+    return array(
+        'kpis'            => array('Chiffres clés', false, true),
+        'monthly'         => array('Évolution mensuelle', false, true),
+        'categories'      => array('Types d\'observation', false, true),
+        'statuses'        => array('État de traitement', false, true),
+        'cities'          => array('Répartition par ville', false, true),
+        'streets'         => array('Rues les plus concernées', false, true),
+        'times'           => array('Jours et heures', false, true),
+        'map'             => array('Carte des lieux', false, true),
+        'groups'          => array('Lieux récurrents', false, true),
+        'problems'        => array('Problèmes suivis (tableau)', true, true),
+        'problem_details' => array('Détail de chaque problème (carte, chronologie, horaires, photos)', true, true),
+        'method'          => array('Méthode', false, true),
+    );
+}
+
+/* Sections chosen for a request: key => true */
+function report_chosen_sections($get, $is_admin)
+{
+    $chosen = array();
+    foreach (report_sections() as $key => $section) {
+        if ($section[1] && !$is_admin) {
+            continue;
+        }
+        if (isset($get['s'])) {
+            $on = isset($get['sections']) && is_array($get['sections']) && in_array($key, $get['sections'], true);
+        } elseif ($section[1]) {
+            $on = !empty($get['problems']);
+        } else {
+            $on = $section[2];
+        }
+        if ($on) {
+            $chosen[$key] = true;
+        }
+    }
+    return $chosen;
+}
+
 /* ---- SVG charts (no library: printed as they are seen) ---- */
 
 function report_svg_escape($text)

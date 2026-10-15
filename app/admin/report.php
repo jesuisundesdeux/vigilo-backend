@@ -69,8 +69,9 @@ $observations = report_observations($db, $filters);
 $previous     = count(report_observations($db, $filters, $start - ($end - $start + 1), $start - 1));
 $groups       = report_groups($observations, $filters['radius']);
 $stats        = report_stats($observations, $groups, $filters, $previous, $population);
-// Problems (#327): administrators only, on request of the form; never the internal notes
-$problem_rows = ($_SESSION['role'] == 'admin' && !empty($_GET['problems'])) ? problem_report_rows($db, $observations) : array();
+// Sections chosen in the form; problems (#327): administrators only, never the internal notes
+$sections     = report_chosen_sections($_GET, $_SESSION['role'] == 'admin');
+$problem_rows = (isset($sections['problems']) || isset($sections['problem_details'])) ? problem_report_rows($db, $observations) : array();
 
 /* Texts of the report */
 $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' ? $config['VIGILO_NAME'] : 'Vigilo';
@@ -181,6 +182,49 @@ function report_group_html($group, $categories, $cities_shown)
     . '<div class="group-tokens">' . h(implode(' ', $tokens)) . (count($group['observations']) > 8 ? ' …' : '') . '</div>'
     . '</div></article>';
 }
+/* Detail of a problem of the report (one block; two slides) */
+function report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section)
+{
+  $problem = $row['problem'];
+  $status  = isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : (string) $problem['problem_status'];
+  $prio    = isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '';
+  $names   = array();
+  foreach (problem_category_ids($problem) as $cat_id) {
+    $names[] = report_category($categories, $cat_id)['name'];
+  }
+  $info = '<dl class="problem-info">'
+    . '<dt>Statut</dt><dd>' . h($status) . '</dd><dt>Priorité</dt><dd>' . h($prio) . '</dd>'
+    . '<dt>Créé le</dt><dd>' . (intval($problem['problem_created_time']) ? h(report_date(intval($problem['problem_created_time']))) : '—') . '</dd>'
+    . '<dt>Catégories</dt><dd>' . h(implode(', ', $names)) . '</dd>'
+    . '<dt>Zone</dt><dd>' . h(problem_zone_label($problem)) . '</dd>'
+    . '<dt>Observations</dt><dd>' . report_number($row['count']) . ' dans le rapport' . ($row['total'] != $row['count'] ? ' (' . report_number($row['total']) . ' au total)' : '')
+    . ', du ' . h(report_date($row['first'])) . ' au ' . h(report_date($row['last'])) . '</dd>'
+    . '</dl>'
+    . ($problem['problem_description'] !== '' ? '<p class="problem-description">' . nl2br(h(vigilo_report_truncate($problem['problem_description'], $slides ? 300 : 1500))) . '</p>' : '');
+  $points = array();
+  foreach ($row['observations'] as $obs) {
+    $points[] = array('lat' => round($obs['lat'], 6), 'lon' => round($obs['lon'], 6), 'label' => $obs['token'] . ' — ' . report_date($obs['time']));
+  }
+  $map_data = array('zone' => $problem['problem_zone'], 'lat' => (float) $problem['problem_lat'], 'lon' => (float) $problem['problem_lon'],
+                    'radius' => intval($problem['problem_radius']), 'polygon' => problem_polygon_points($problem['problem_polygon']), 'points' => $points);
+  $map    = '<div class="report-problem-map" data-problem="' . h(json_encode($map_data)) . '" role="img" aria-label="Carte du problème ' . h($problem['problem_title']) . '"></div>';
+  $photos = '';
+  foreach (array_slice(array_reverse($row['observations']), 0, $slides ? 4 : 6) as $obs) {
+    $photos .= '<figure><img src="photo.php?s=300&amp;token=' . h(urlencode($obs['token'])) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
+      . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
+  }
+  $photos  = '<h3>Dernières photos</h3><div class="problem-photos">' . $photos . '</div>';
+  $charts  = problem_time_charts(problem_time_stats($row['observations']));
+  $timing  = '<h3>Chronologie (observations par mois)</h3>' . $charts['timeline']
+    . '<div class="two-cols"><div><h3>Jour de la semaine</h3>' . $charts['weekdays'] . '</div><div><h3>Heure</h3>' . $charts['hours'] . '</div></div>';
+  $title = 'Problème : ' . $problem['problem_title'];
+  if ($slides) {
+    return $section($title, '<div class="two-cols problem-slide"><div>' . $info . $photos . '</div><div>' . $map . '</div></div>', 'problem-detail')
+      . $section($title . ' — chronologie et horaires', $timing, 'problem-detail');
+  }
+  return $section($title, $info . '<div class="two-cols problem-top"><div>' . $map . '</div><div>' . $photos . '</div></div>' . $timing, 'problem-detail');
+}
+
 $cities_shown = count($filters['cities']) != 1;
 $filters_text = 'Période ' . $period_text . ' · ' . (count($city_names) ? 'Villes : ' . implode(', ', $city_names) : ($filters['restricted'] ? 'Vos villes' : 'Toutes les villes'))
   . ' · ' . (count($category_names) ? 'Types : ' . implode(', ', $category_names) : 'Tous les types d\'observation');
@@ -241,28 +285,41 @@ $section = function ($title, $content, $class = '') use ($slides) {
       $kpi_html .= '</div><p class="summary">' . h(report_number($stats['total'])) . ' observation(s) ' . h($period_text) . ', dont '
         . h(report_number($stats['resolved_rate'])) . ' % résolues. Type le plus fréquent : <strong>' . h($top_category) . '</strong>. '
         . h(report_number($stats['recurring'])) . ' lieu(x) signalé(s) plusieurs fois.</p>';
-      echo $section('Chiffres clés', $kpi_html, 'kpi-section');
-
-      echo $section('Évolution mensuelle', report_svg_columns($month_values, '#f2c200', 'Observations par mois'));
-      echo $section('Types d\'observation', report_svg_bars(array_slice($category_rows, 0, 12), 'Observations par type'));
+      if (isset($sections['kpis'])) {
+        echo $section('Chiffres clés', $kpi_html, 'kpi-section');
+      }
+      if (isset($sections['monthly'])) {
+        echo $section('Évolution mensuelle', report_svg_columns($month_values, '#f2c200', 'Observations par mois'));
+      }
+      if (isset($sections['categories'])) {
+        echo $section('Types d\'observation', report_svg_bars(array_slice($category_rows, 0, 12), 'Observations par type'));
+      }
       $status_html = report_svg_stack($status_rows, 'État de traitement des observations');
-      if ($slides) {
+      if (!isset($sections['statuses'])) {
+        // not shown
+      } elseif ($slides) {
         echo $section('État de traitement', $status_html);
       } else {
         echo $section('État de traitement', $status_html . '<p class="note">Résolue : problème corrigé (résolution validée). Indiquée résolue : signalée comme corrigée, à vérifier. En cours / prise en compte : une résolution est engagée. Sans suite : aucune résolution.</p>');
       }
-      if (count($city_rows) > 1) {
+      if (isset($sections['cities']) && count($city_rows) > 1) {
         echo $section('Répartition par ville', report_svg_bars($city_rows, 'Observations par ville'));
       }
-      if (count($street_rows)) {
+      if (isset($sections['streets']) && count($street_rows)) {
         echo $section('Rues les plus concernées', report_svg_bars($street_rows, 'Observations par rue'));
       }
-      echo $section('Jours et heures', '<div class="two-cols"><div><h3>Jour de la semaine</h3>' . report_svg_columns($weekday_values, '#3f6fb5', 'Observations par jour de la semaine')
-        . '</div><div><h3>Heure</h3>' . report_svg_columns($hour_values, '#3f6fb5', 'Observations par heure') . '</div></div>');
-      echo $section('Carte des lieux', '<div id="report-map" class="report-map" data-groups="' . h(json_encode($map_groups)) . '" role="img" aria-label="Carte des lieux des observations"></div>'
-        . '<p class="note">Un cercle par lieu ; sa taille dépend du nombre d\'observations, sa couleur de leur type.</p>');
+      if (isset($sections['times'])) {
+        echo $section('Jours et heures', '<div class="two-cols"><div><h3>Jour de la semaine</h3>' . report_svg_columns($weekday_values, '#3f6fb5', 'Observations par jour de la semaine')
+          . '</div><div><h3>Heure</h3>' . report_svg_columns($hour_values, '#3f6fb5', 'Observations par heure') . '</div></div>');
+      }
+      if (isset($sections['map'])) {
+        echo $section('Carte des lieux', '<div id="report-map" class="report-map" data-groups="' . h(json_encode($map_groups)) . '" role="img" aria-label="Carte des lieux des observations"></div>'
+          . '<p class="note">Un cercle par lieu ; sa taille dépend du nombre d\'observations, sa couleur de leur type.</p>');
+      }
 
-      if (count($top_groups)) {
+      if (!isset($sections['groups'])) {
+        // not shown
+      } elseif (count($top_groups)) {
         $per_slide = 4;
         $chunks = $slides ? array_chunk($top_groups, $per_slide) : array($top_groups);
         foreach ($chunks as $i => $chunk) {
@@ -278,9 +335,9 @@ $section = function ($title, $content, $class = '') use ($slides) {
         echo $section('Lieux récurrents', '<p>Aucun lieu n\'a été signalé plusieurs fois sur la période.</p>');
       }
 
-      if ($problem_rows) {
-        $statuses   = problem_statuses();
-        $priorities = problem_priorities();
+      $statuses   = problem_statuses();
+      $priorities = problem_priorities();
+      if ($problem_rows && isset($sections['problems'])) {
         $chunks     = $slides ? array_chunk($problem_rows, 6) : array($problem_rows);
         foreach ($chunks as $i => $chunk) {
           $html = '<table class="problems-table"><thead><tr><th>Problème</th><th>État</th><th>Priorité</th><th>Observations</th><th>Période</th></tr></thead><tbody>';
@@ -299,8 +356,16 @@ $section = function ($title, $content, $class = '') use ($slides) {
             ($i == 0 && !$slides ? '<p class="note">Observations regroupées par l\'association en problèmes (même lieu, même type) : nombre d\'observations du rapport et état de leur suivi.</p>' : '') . $html, 'problems-section');
         }
       }
+      // Detail of each problem: information, map, timeline, days and hours, photos (observations of the report)
+      if ($problem_rows && isset($sections['problem_details'])) {
+        foreach ($problem_rows as $row) {
+          echo report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section);
+        }
+      }
     }
-    echo $section('Méthode', '<p class="note">' . h($method_text) . '</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). Fond de carte © contributeurs OpenStreetMap.</p>', 'method');
+    if (isset($sections['method'])) {
+      echo $section('Méthode', '<p class="note">' . h($method_text) . '</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). Fond de carte © contributeurs OpenStreetMap.</p>', 'method');
+    }
     ?>
 
     <script src="assets/vendor/leaflet/leaflet.js"></script>

@@ -14,6 +14,16 @@
   `problem_broadcast`).
 - Page **Observations** : une observation rattachée à un problème affiche un lien vers ce problème.
 
+### Rapport pour une collectivité
+- Formulaire : liste des **sections** à cocher (chiffres clés, évolution mensuelle, types, état de traitement, villes,
+  rues, jours et heures, carte, lieux récurrents, problèmes suivis, détail de chaque problème, méthode) ; « Tout
+  cocher » / « Tout décocher ». Les anciens liens (`problems=1`) restent valides.
+- Nouvelle section **Détail de chaque problème** (administrateurs) : statut, priorité, date de création, catégories,
+  zone, nombre et période des observations, description, **carte** (zone et observations du rapport), dernières
+  **photos**, **frise chronologique** par mois, répartition par **jour** et par **heure** (deux diapositives en
+  diaporama). Jamais les notes internes.
+- Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).
+
 ## 0.0.33
 
 

@@ -322,6 +322,11 @@ def main():
     status, _, page = admin.request('index.php?page=reports')
     clean('reports page', status, page)
     check('action="report.php"' in page and 'name="cities[]"' in page and 'name="categories[]"' in page, 'report form')
+    check('name="sections[]" value="problem_details"' in page and 'name="sections[]" value="kpis"' in page, 'report form: sections to choose')
+    status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=kpis&sections[]=times')
+    clean('report chosen sections', status, page)
+    check('Chiffres clés' in page and 'Jours et heures' in page and 'Évolution mensuelle' not in page and 'report-map' not in page
+          and 'Méthode' not in page, 'report with the chosen sections only')
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&radius=50&format=document')
     clean('report document', status, page)
     check('Chiffres clés' in page and 'Lieux récurrents' in page and 'report-map' in page, 'report document sections')
@@ -600,6 +605,10 @@ def main():
         clean('report with problems', status, report)
         check('Problèmes suivis' in report and 'Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Travaux du centre' in report
               and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the notes')
+        check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'class="report-problem-map"' in report and 'Chronologie (observations par mois)' in report
+              and 'photo.php?s=300&amp;token=TOKA0001' in report and 'Créé le' in report, 'detail of each problem in the report')
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems')
+        check('Problèmes suivis' in report and 'report-problem-map' not in report, 'problems table without their detail')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31')
         check('Problèmes suivis' not in report, 'no problems in the report unless asked')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1&format=slides')
@@ -688,8 +697,10 @@ def main():
     status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
     check('Villes : Testville' in page and 'Saint-Exemple' not in page, 'citystaff report of their cities')
     check('Problèmes suivis' not in page, 'no problems in a citystaff report')
+    status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems&sections[]=problem_details&sections[]=kpis')
+    check('Problèmes suivis' not in page and 'report-problem-map' not in page and 'Chiffres clés' in page, 'no problem sections for a citystaff, even asked')
     status, _, page = staff.request('index.php?page=reports')
-    check('name="problems"' not in page, 'no problems option for a citystaff')
+    check('value="problems"' not in page and 'value="problem_details"' not in page and 'value="kpis"' in page, 'no problems option for a citystaff')
 
     # Problems: read only, those having observations in the cities of the citystaff
     status, _, page = staff.request('index.php?page=problems')

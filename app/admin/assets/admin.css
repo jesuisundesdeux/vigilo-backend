@@ -106,6 +106,12 @@ body {
   max-height: 260px;
   overflow-y: auto;
 }
+.report-sections {
+  columns: 2 16rem;
+}
+.report-sections .form-check {
+  break-inside: avoid;
+}
 
 /* Problems: map of the form (vertices of the polygon, observations of reference) */
 .problem-legend-dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; vertical-align: baseline; }

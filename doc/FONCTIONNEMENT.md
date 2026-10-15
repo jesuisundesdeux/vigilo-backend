@@ -86,9 +86,10 @@ catégorie et proches (même méthode que les lieux récurrents des rapports), s
 (nombre minimal, distance, période). Une suggestion ouvre un formulaire de création prérempli (titre, catégorie,
 cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun problème n'est créé automatiquement.
 
-**Rapport** : un administrateur peut ajouter au rapport pour une collectivité la section « Problèmes suivis » (problèmes
-ayant des observations dans le rapport, avec leur état, leur priorité et leur nombre d'observations), sans les notes
-internes. Les problèmes ne sont visibles
+**Rapport** : les sections du rapport pour une collectivité se choisissent dans son formulaire. Un administrateur peut
+y ajouter la section « Problèmes suivis » (problèmes ayant des observations dans le rapport, avec leur état, leur
+priorité et leur nombre d'observations) et le « Détail de chaque problème » (carte, chronologie, jours et heures,
+photos, date de création, statut), sans les notes internes. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal. Les comptes citystaff
 les consultent en lecture seule (problèmes ayant des observations dans leurs villes, sans les notes internes).
 
