@@ -144,6 +144,110 @@ function problem_admin_street_texts($problem)
     return array_map('problem_street_text', problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
 }
 
+/*
+ * Observations of a resolved problem not resolved yet (published ones only): 'free' (in no
+ * resolution: obs_id => token), 'resolutions' (not resolved resolutions holding some of them:
+ * resolution_id => token, status, time, number of observations of the problem and of others),
+ * 'resolved' (already in a resolved resolution)
+ */
+function problem_admin_resolution_plan($db, $problem_id)
+{
+    $plan  = array('free' => array(), 'resolutions' => array(), 'resolved' => 0);
+    $obs   = array();
+    $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_resolutions.resolution_id, obs_resolutions.resolution_token,
+                                       obs_resolutions.resolution_status, obs_resolutions.resolution_time
+                                FROM obs_problem_observations
+                                INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                LEFT JOIN obs_resolutions_tokens ON obs_resolutions_tokens.restok_observationid = obs_list.obs_id
+                                LEFT JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid
+                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id) . " AND obs_list.obs_approved = 1");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $id = intval($row['obs_id']);
+        if (!isset($obs[$id])) {
+            $obs[$id] = array('token' => (string) $row['obs_token'], 'resolutions' => array(), 'resolved' => false);
+        }
+        if ($row['resolution_id'] !== null) {
+            $obs[$id]['resolved'] = $obs[$id]['resolved'] || intval($row['resolution_status']) == 1;
+            $obs[$id]['resolutions'][intval($row['resolution_id'])] = $row;
+        }
+    }
+    foreach ($obs as $id => $item) {
+        if ($item['resolved']) {
+            $plan['resolved']++;
+        } elseif (!$item['resolutions']) {
+            $plan['free'][$id] = $item['token'];
+        } else {
+            foreach ($item['resolutions'] as $rid => $row) {
+                if (!isset($plan['resolutions'][$rid])) {
+                    $plan['resolutions'][$rid] = array('token' => (string) $row['resolution_token'], 'status' => intval($row['resolution_status']),
+                                                       'time' => intval($row['resolution_time']), 'here' => 0, 'others' => 0);
+                }
+                $plan['resolutions'][$rid]['here']++;
+            }
+        }
+    }
+    if ($plan['resolutions']) {
+        $query = mysqli_query($db, "SELECT restok_resolutionid, COUNT(*) AS nb FROM obs_resolutions_tokens
+                                    WHERE restok_resolutionid IN (" . implode(',', array_keys($plan['resolutions'])) . ") GROUP BY restok_resolutionid");
+        while ($query && ($row = mysqli_fetch_assoc($query))) {
+            $rid = intval($row['restok_resolutionid']);
+            $plan['resolutions'][$rid]['others'] = max(0, intval($row['nb']) - $plan['resolutions'][$rid]['here']);
+        }
+    }
+    return $plan;
+}
+
+/*
+ * Observations of a resolved problem set as resolved: those in no resolution are grouped in a
+ * new resolution (status resolved, dated now), the resolutions holding the others are set to
+ * resolved (dated now if they had no date). Same functions, journal and webhooks as the pages
+ * Observations and Résolutions. Returns array(new resolution token or '', updated tokens, failures).
+ */
+function problem_admin_resolve_observations($db, $problem, $plan, &$messages)
+{
+    $now     = time();
+    $created = '';
+    $updated = array();
+    $failed  = array();
+    $webhook_failure = function ($deliveries, $label) use (&$messages) {
+        foreach ($deliveries as $hook_id => $delivery) {
+            if ($delivery[1] !== '') {
+                $messages[] = array('warning', 'Webhook <strong>#' . intval($hook_id) . '</strong> en échec pour ' . h($label) . ' : ' . h($delivery[1]) . ' (voir la page Webhooks).');
+            }
+        }
+    };
+    if ($plan['free']) {
+        $token  = 'R_' . tokenGenerator(4);
+        $fields = array('resolution_token' => $token, 'resolution_secretid' => str_replace('.', '', uniqid('', true)),
+                        'resolution_app_version' => 'admin',
+                        'resolution_comment' => mysqli_real_escape_string($db, vigilo_truncate('Problème résolu : ' . $problem['problem_title'], 255)),
+                        'resolution_time' => $now, 'resolution_status' => 1);
+        if (addResolution($fields, array_keys($plan['free']))) {
+            $created = $token;
+            $rid     = getResolutionIdByResolutionToken($token);
+            flushImagesCacheResolution($rid);
+            audit_log('resolution_create', $token, array('obs_tokens' => array_values($plan['free']), 'problem' => intval($problem['problem_id'])));
+            $webhook_failure(webhooks_for_resolution($db, VIGILO_WEBHOOK_EVENT_RESOLUTION_CREATED, $rid), 'la résolution ' . $token);
+        }
+    }
+    foreach ($plan['resolutions'] as $rid => $resolution) {
+        try {
+            if ($resolution['time'] == 0) {
+                updateResolution(array('resolution_time' => $now), $rid);
+            }
+            updateResolution(array('resolution_status' => 1), $rid);
+            $updated[] = $resolution['token'];
+            audit_log('resolution_status', 'resolution:' . intval($rid), 'new_status:1');
+            $webhook_failure(webhooks_on_resolution_status($db, $rid, $resolution['status'], 1), 'la résolution ' . $resolution['token']);
+        } catch (Exception $e) {
+            $failed[] = $resolution['token'] . ' (' . $e->getMessage() . ')';
+        }
+    }
+    audit_log('problem_resolve_observations', 'problem:' . intval($problem['problem_id']),
+              array('created' => $created, 'observations' => count($plan['free']), 'resolutions' => $updated, 'failed' => $failed));
+    return array($created, $updated, $failed);
+}
+
 $empty_problem = array('problem_id' => 0, 'problem_title' => '', 'problem_description' => '', 'problem_categories' => '',
                        'problem_zone' => 'circle', 'problem_lat' => 0, 'problem_lon' => 0, 'problem_radius' => 100,
                        'problem_polygon' => '', 'problem_streets' => '', 'problem_start' => 0, 'problem_end' => null, 'problem_priority' => 2,
@@ -226,6 +330,14 @@ if (isset($_POST['problem_save'])) {
         }
         if ($ok) {
             $messages[] = array('success', 'Problème <strong>' . h($edit['problem_title']) . '</strong> enregistré.');
+            // Problem now resolved: setting its observations as resolved is proposed on its detail
+            if ($edit['problem_status'] == 'resolved' && (!$existing || $existing['problem_status'] != 'resolved')) {
+                $plan = problem_admin_resolution_plan($db, $edit['problem_id']);
+                if ($plan['free'] || $plan['resolutions']) {
+                    $messages[] = array('info', 'Le problème est résolu : ses observations peuvent être passées en résolues depuis
+                                                 <a class="alert-link" href="' . h($self_url . '&view=' . intval($edit['problem_id'])) . '#resolve">sa fiche</a>.');
+                }
+            }
             $edit = null;
         } else {
             $messages[] = array('danger', 'Impossible d\'enregistrer le problème.');
@@ -305,6 +417,26 @@ if ($view) {
     };
     if (isset($_POST['problem_count'])) {
         $count = problem_count($db, $view);
+    }
+    // Resolved problem: its observations set as resolved (resolutions), after confirmation
+    if (isset($_POST['problem_resolve_observations'])) {
+        $plan = problem_admin_resolution_plan($db, $view_id);
+        if ($view['problem_status'] != 'resolved') {
+            $messages[] = array('warning', 'Le problème n\'est pas résolu.');
+        } elseif (!$plan['free'] && !$plan['resolutions']) {
+            $messages[] = array('info', 'Toutes les observations du problème sont déjà résolues.');
+        } else {
+            list($created, $updated, $failed) = problem_admin_resolve_observations($db, $view, $plan, $messages);
+            if ($created !== '') {
+                $messages[] = array('success', 'Résolution <strong>' . h($created) . '</strong> créée (résolue) avec ' . count($plan['free']) . ' observation(s).');
+            }
+            if ($updated) {
+                $messages[] = array('success', 'Résolution(s) passée(s) à « Résolue » : <strong>' . h(implode(', ', $updated)) . '</strong>.');
+            }
+            if ($failed) {
+                $messages[] = array('danger', 'Résolution(s) non modifiée(s) : ' . h(implode(' ; ', $failed)) . '.');
+            }
+        }
     }
     // Status and priority changed from the detail
     if (isset($_POST['problem_quick'])) {
@@ -657,6 +789,38 @@ if ($edit !== null) {
     </div>
   </div>
 </div>
+
+<?php if (!$readonly && $view['problem_status'] == 'resolved') {
+    $plan = problem_admin_resolution_plan($db, $view_id);
+    $to_resolve = count($plan['free']);
+    foreach ($plan['resolutions'] as $resolution) {
+        $to_resolve += $resolution['here'];
+    }
+    $others = 0;
+    foreach ($plan['resolutions'] as $resolution) {
+        $others += $resolution['others'];
+    }
+    if ($to_resolve) { ?>
+<div class="card shadow-sm mb-4 border-success" id="resolve">
+  <div class="card-header fw-semibold"><i class="bi bi-check2-all"></i> Problème résolu : passer ses observations en résolues ?</div>
+  <div class="card-body">
+    <p class="mb-2"><strong><?= intval($to_resolve) ?></strong> observation(s) publiée(s) du problème ne sont pas résolues<?= $plan['resolved'] ? ' (' . intval($plan['resolved']) . ' déjà résolue(s))' : '' ?> :</p>
+    <ul class="small">
+      <?php if ($plan['free']) { ?><li><?= count($plan['free']) ?> sans résolution : une résolution « Résolue », datée d'aujourd'hui, sera créée pour elles (<?= h(implode(', ', array_slice($plan['free'], 0, 20))) ?><?= count($plan['free']) > 20 ? '…' : '' ?>) ;</li><?php } ?>
+      <?php foreach ($plan['resolutions'] as $resolution) { ?>
+      <li>résolution <strong><?= h($resolution['token']) ?></strong> (<?= intval($resolution['here']) ?> observation(s) du problème<?= $resolution['others'] ? ', <strong>' . intval($resolution['others']) . ' autre(s)</strong>' : '' ?>) : passera à « Résolue » ;</li>
+      <?php } ?>
+    </ul>
+    <?php if ($others) { ?><p class="small text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> <?= intval($others) ?> observation(s) hors de ce problème, dans ces résolutions, seront aussi résolues.</p><?php } ?>
+    <p class="small text-body-secondary">Les observations résolues apparaissent comme telles dans l'application ; les webhooks des résolutions sont appelés.</p>
+    <form method="POST" action="<?= h($view_url) ?>#resolve" class="m-0">
+      <?= csrf_field() ?>
+      <button class="btn btn-success" type="submit" name="problem_resolve_observations" value="1" data-confirm="Passer <?= intval($to_resolve) ?> observation(s) en résolues ?"><i class="bi bi-check2-all"></i> Passer <?= intval($to_resolve) ?> observation(s) en résolues</button>
+    </form>
+  </div>
+</div>
+<?php }
+} ?>
 
 <?php if (!$readonly) { ?>
 <div class="card shadow-sm mb-4">

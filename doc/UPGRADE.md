@@ -175,6 +175,10 @@ appliquée automatiquement, ajoute les tables des problèmes (page Problèmes de
 Aucune action manuelle. La migration 0.0.33, appliquée automatiquement, ajoute la colonne des rues d'un problème
 (`obs_problems.problem_streets`).
 
+### Passage à la 0.0.34
+
+Aucune action manuelle ni migration de base.
+
 ### Publier une version (mainteneurs)
 
 Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).

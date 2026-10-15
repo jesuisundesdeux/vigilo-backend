@@ -1190,6 +1190,47 @@ class T14Problems(unittest.TestCase):
         self.assertEqual(self.link(tokens['other_city']), '', 'other city')
         self.assertEqual(self.link(tokens['other_street']), '', 'other street')
 
+    def test_resolved_problem_resolves_its_observations(self):
+        problem = self.problem('résolu', 43.615, 3.915)
+        free, other = self.observation(43.6151, 3.9151), self.observation(43.6152, 3.9152)
+        for token in (free, other):
+            self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+            self.assertEqual(self.link(token), problem + ':auto')
+        # "other" in a resolution taken into account, without date
+        sql("INSERT INTO obs_resolutions (resolution_token, resolution_secretid, resolution_app_version, resolution_comment, resolution_time, "
+            "resolution_status) VALUES ('R_T14RES', 'X', 1, '', 0, 2)")
+        sql("INSERT INTO obs_resolutions_tokens (restok_resolutionid, restok_observationid) SELECT resolution_id, "
+            "(SELECT obs_id FROM obs_list WHERE obs_token = '%s') FROM obs_resolutions WHERE resolution_token = 'R_T14RES'" % other)
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def admin(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+        def csrf(page):
+            return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': csrf(page)})
+        url = 'index.php?page=problems&view=' + problem
+        page = admin(url)
+        self.assertNotIn('id="resolve"', page, 'nothing proposed while the problem is open')
+        page = admin(url, {'csrf_token': csrf(page), 'problem_quick': '1', 'problem_status': 'resolved', 'problem_priority': '2'})
+        self.assertIn('Passer 2 observation(s) en résolues', page)
+        self.assertIn('R_T14RES', page)
+        page = admin(url, {'csrf_token': csrf(page), 'problem_resolve_observations': '1'})
+        self.assertNotIn('id="resolve"', page)
+        self.assertEqual(sql("SELECT CONCAT(resolution_status, ':', resolution_time > 0, ':', resolution_comment) FROM obs_resolutions "
+                             "INNER JOIN obs_resolutions_tokens ON restok_resolutionid = resolution_id INNER JOIN obs_list ON obs_id = restok_observationid "
+                             "WHERE obs_token = '%s'" % free), '1:1:Problème résolu : T14 résolu', 'new resolution, resolved and dated')
+        self.assertEqual(sql("SELECT CONCAT(resolution_status, ':', resolution_time > 0) FROM obs_resolutions WHERE resolution_token = 'R_T14RES'"), '1:1',
+                         'existing resolution resolved and dated')
+        self.assertEqual(json.loads(call('get_issues.php', {'token': free}).text)[0]['status'], 1, 'observation resolved in the API')
+        self.assertIn('"failed":[]', sql("SELECT audit_details FROM obs_audit_log WHERE audit_action = 'problem_resolve_observations' "
+                                         "AND audit_target = 'problem:%s'" % problem))
+        sql("DELETE obs_resolutions_tokens, obs_resolutions FROM obs_resolutions_tokens INNER JOIN obs_resolutions ON resolution_id = restok_resolutionid "
+            "INNER JOIN obs_list ON obs_id = restok_observationid WHERE obs_token IN ('%s', '%s')" % (free, other))
+
 
 def main():
     global BASE
