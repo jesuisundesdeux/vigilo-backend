@@ -171,3 +171,5 @@ body.presenting .slide.current { display: flex; }
 }
 @page { margin: 14mm; }
 @page :first { margin-top: 12mm; }
+.report-heatmap { max-width: 760px; }
+.report-heatmap .empty { stroke: #e9ecef; stroke-width: 1; }

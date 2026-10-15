@@ -325,6 +325,7 @@ def main():
     check('name="sections[]" value="problem_details"' in page and 'name="sections[]" value="kpis"' in page, 'report form: sections to choose')
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=kpis&sections[]=times')
     clean('report chosen sections', status, page)
+    check('report-heatmap' in page and 'moins</text>' in page, 'report: matrix days × hours')
     check('Chiffres clés' in page and 'Jours et heures' in page and 'Évolution mensuelle' not in page and 'report-map' not in page
           and 'Méthode' not in page, 'report with the chosen sections only')
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&radius=50&format=document')
@@ -580,7 +581,8 @@ def main():
         status, _, page = admin.request('index.php?page=observations&approved=1')
         check('href="?page=problems&amp;view=' + pb_gare + '"' in page and 'bi-diagram-3' in page, 'observation linked to its problem on the page Observations')
         status, _, page = admin.request(gare_url)
-        check('id="timeline"' in page and 'Observations par heure' in page and 'Observations par mois' in page, 'timeline and hours of the observations of the problem')
+        check('id="timeline"' in page and 'class="report-chart report-heatmap"' in page and 'Observations par mois' in page
+              and page.count('<rect') >= 7 * 24, 'timeline and matrix days × hours of the observations of the problem')
         for query in ['tab=map', 'tab=map&status=active']:
             status, _, page = admin.request('index.php?page=problems&' + query)
             clean('problems ' + query, status, page)

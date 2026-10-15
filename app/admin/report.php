@@ -126,11 +126,6 @@ $street_rows = array();
 foreach ($stats['by_street'] as $street => $count) {
   $street_rows[] = array($street, $count, '#7b8794');
 }
-$weekday_values = array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), array_values($stats['weekdays']));
-$hour_values = array();
-foreach ($stats['hours'] as $hour => $count) {
-  $hour_values[$hour . ' h'] = $count;
-}
 
 /* Groups on the map (all of them) and in the lists (the recurrent ones first) */
 $map_groups = array();
@@ -216,7 +211,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   $photos  = '<h3>Dernières photos</h3><div class="problem-photos">' . $photos . '</div>';
   $charts  = problem_time_charts(problem_time_stats($row['observations']));
   $timing  = '<h3>Chronologie (observations par mois)</h3>' . $charts['timeline']
-    . '<div class="two-cols"><div><h3>Jour de la semaine</h3>' . $charts['weekdays'] . '</div><div><h3>Heure</h3>' . $charts['hours'] . '</div></div>';
+    . '<h3>Jours et heures</h3>' . $charts['heatmap'];
   $title = 'Problème : ' . $problem['problem_title'];
   if ($slides) {
     return $section($title, '<div class="two-cols problem-slide"><div>' . $info . $photos . '</div><div>' . $map . '</div></div>', 'problem-detail')
@@ -309,8 +304,8 @@ $section = function ($title, $content, $class = '') use ($slides) {
         echo $section('Rues les plus concernées', report_svg_bars($street_rows, 'Observations par rue'));
       }
       if (isset($sections['times'])) {
-        echo $section('Jours et heures', '<div class="two-cols"><div><h3>Jour de la semaine</h3>' . report_svg_columns($weekday_values, '#3f6fb5', 'Observations par jour de la semaine')
-          . '</div><div><h3>Heure</h3>' . report_svg_columns($hour_values, '#3f6fb5', 'Observations par heure') . '</div></div>');
+        echo $section('Jours et heures', report_svg_heatmap(report_week_grid($observations), 'Observations par jour de la semaine et par heure')
+          . ($slides ? '' : '<p class="note">Une case par jour et par heure, d\'autant plus foncée que les observations y sont nombreuses.</p>'));
       }
       if (isset($sections['map'])) {
         echo $section('Carte des lieux', '<div id="report-map" class="report-map" data-groups="' . h(json_encode($map_groups)) . '" role="img" aria-label="Carte des lieux des observations"></div>'

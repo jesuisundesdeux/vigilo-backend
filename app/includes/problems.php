@@ -829,7 +829,8 @@ function problem_report_rows($db, $observations)
  */
 function problem_time_stats($observations)
 {
-    $stats = array('months' => array(), 'weekdays' => array_fill(0, 7, 0), 'hours' => array_fill(0, 24, 0), 'count' => 0);
+    $stats = array('months' => array(), 'weekdays' => array_fill(0, 7, 0), 'hours' => array_fill(0, 24, 0),
+                   'grid' => array_fill(0, 7, array_fill(0, 24, 0)), 'count' => 0);
     $times = array();
     foreach ($observations as $obs) {
         $time = intval(isset($obs['obs_time']) ? $obs['obs_time'] : (isset($obs['time']) ? $obs['time'] : 0));
@@ -856,12 +857,13 @@ function problem_time_stats($observations)
         }
         $stats['weekdays'][intval(date('N', $time)) - 1]++;
         $stats['hours'][intval(date('G', $time))]++;
+        $stats['grid'][intval(date('N', $time)) - 1][intval(date('G', $time))]++;
     }
     $stats['count'] = count($times);
     return $stats;
 }
 
-/* Charts of problem_time_stats() (SVG of report.php): timeline per month, days of the week, hours */
+/* Charts of problem_time_stats() (SVG of report.php): timeline per month, matrix days × hours (and the two distributions) */
 function problem_time_charts($stats, $color = '#3f6fb5')
 {
     require_once(dirname(__FILE__) . '/report.php');
@@ -878,5 +880,6 @@ function problem_time_charts($stats, $color = '#3f6fb5')
         'timeline' => report_svg_columns($months, '#f2c200', 'Observations par mois'),
         'weekdays' => report_svg_columns(array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), $stats['weekdays']), $color, 'Observations par jour de la semaine'),
         'hours'    => report_svg_columns($hours, $color, 'Observations par heure'),
+        'heatmap'  => report_svg_heatmap($stats['grid'], 'Observations par jour de la semaine et par heure'),
     );
 }
