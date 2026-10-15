@@ -521,3 +521,85 @@ function problems_ambiguous($db)
         return count($observation['problems']) > 1;
     }));
 }
+
+/* Thresholds of the suggestions (page Configuration), within sensible bounds */
+function problem_suggest_settings($db)
+{
+    $settings = array('min' => 3, 'radius' => 50, 'months' => 12);
+    $keys     = array('vigilo_problem_suggest_min' => 'min', 'vigilo_problem_suggest_radius' => 'radius', 'vigilo_problem_suggest_months' => 'months');
+    $query    = mysqli_query($db, "SELECT config_param, config_value FROM obs_config WHERE config_param IN ('" . implode("','", array_keys($keys)) . "')");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        if ($row['config_value'] !== '' && is_numeric($row['config_value'])) {
+            $settings[$keys[$row['config_param']]] = intval($row['config_value']);
+        }
+    }
+    $settings['min']    = max(2, min(1000, $settings['min']));
+    $settings['radius'] = max(10, min(1000, $settings['radius']));
+    $settings['months'] = max(1, min(120, $settings['months']));
+    return $settings;
+}
+
+/*
+ * Suggestions of problems: groups of published observations in no problem, of the same
+ * category and close (report_groups() of report.php), of the last months, with at least
+ * the minimal number of observations, not dismissed. Never creates anything. Each one:
+ * key (category and first observation), category, address, count, first / last dates,
+ * center, radius covering the group, tokens. At most VIGILO_PROBLEM_SUGGEST_MAX recent
+ * observations are analysed.
+ */
+define('VIGILO_PROBLEM_SUGGEST_MAX', 3000);
+
+function problem_suggestions($db, $settings)
+{
+    require_once(dirname(__FILE__) . '/report.php');
+    $dismissed = array();
+    $query     = mysqli_query($db, "SELECT sd_key FROM obs_problem_suggestions_dismissed");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $dismissed[(string) $row['sd_key']] = true;
+    }
+    $observations = array();
+    $query = mysqli_query($db, "SELECT * FROM (
+                                  SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
+                                         obs_list.obs_address_string, obs_list.obs_time, obs_list.obs_categorie
+                                  FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                  WHERE obs_problem_observations.po_obsid IS NULL AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1
+                                    AND obs_list.obs_time >= " . intval(strtotime('-' . intval($settings['months']) . ' months')) . "
+                                  ORDER BY obs_list.obs_time DESC LIMIT " . VIGILO_PROBLEM_SUGGEST_MAX . "
+                                ) recent ORDER BY obs_time ASC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $observations[] = array('id' => intval($row['obs_id']), 'token' => (string) $row['obs_token'],
+                                'lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
+                                'address' => (string) $row['obs_address_string'], 'time' => intval($row['obs_time']),
+                                'category' => intval($row['obs_categorie']), 'city' => '', 'status' => 0);
+    }
+    $suggestions = array();
+    foreach (report_groups($observations, $settings['radius']) as $group) {
+        if ($group['count'] < $settings['min']) {
+            continue;
+        }
+        $key = $group['category'] . ':' . $group['observations'][0]['id'];
+        if (isset($dismissed[$key])) {
+            continue;
+        }
+        $radius = $settings['radius'];
+        $tokens = array();
+        foreach ($group['observations'] as $obs) {
+            $radius   = max($radius, (int) ceil(distance($group['center'][0], $group['center'][1], $obs['lat'], $obs['lon'], 'm')) + 10);
+            $tokens[] = $obs['token'];
+        }
+        $suggestions[] = array('key' => $key, 'category' => $group['category'], 'address' => $group['address'], 'count' => $group['count'],
+                               'first' => $group['first'], 'last' => $group['last'], 'lat' => round($group['center'][0], 6),
+                               'lon' => round($group['center'][1], 6), 'radius' => min(VIGILO_PROBLEM_RADIUS_MAX, $radius), 'tokens' => $tokens);
+    }
+    return array('suggestions' => $suggestions, 'analysed' => count($observations));
+}
+
+function problem_suggestion_dismiss($db, $key, $login)
+{
+    if (!preg_match('/^[0-9]+:[0-9]+$/', (string) $key)) {
+        return false;
+    }
+    return (bool) mysqli_query($db, "INSERT IGNORE INTO obs_problem_suggestions_dismissed (sd_key, sd_time, sd_login)
+                                     VALUES ('" . mysqli_real_escape_string($db, $key) . "', " . time() . ",
+                                             '" . mysqli_real_escape_string($db, (string) $login) . "')");
+}

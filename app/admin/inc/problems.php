@@ -155,10 +155,32 @@ if (isset($_POST['problem_save'])) {
 if ($edit === null && isset($_GET['edit'])) {
     if ($_GET['edit'] === 'new') {
         $edit = $empty_problem;
+        // Created from a suggestion: fields prefilled (validated again when saved)
+        if (isset($_GET['suggestion'])) {
+            $get = function ($key) { return isset($_GET[$key]) && is_scalar($_GET[$key]) ? (string) $_GET[$key] : ''; };
+            $edit['problem_title']      = vigilo_truncate($get('title'), 200);
+            $edit['problem_categories'] = ctype_digit($get('catid')) ? $get('catid') : '';
+            $edit['problem_lat']        = is_numeric($get('lat')) ? (float) $get('lat') : 0;
+            $edit['problem_lon']        = is_numeric($get('lon')) ? (float) $get('lon') : 0;
+            $edit['problem_radius']     = is_numeric($get('radius')) ? intval($get('radius')) : 100;
+            $edit['start_day']          = preg_match('/^\d{4}-\d{2}-\d{2}$/', $get('start')) ? $get('start') : $edit['start_day'];
+        }
     } else {
         $edit = problem_load($db, $_GET['edit']);
         $edit = $edit ? problem_admin_form_values($edit) : null;
     }
+}
+
+/* Suggestions: computed on request (can be long on a large instance), dismissable */
+$suggest = null;
+if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_suggestion_dismiss'])) {
+    if (problem_suggestion_dismiss($db, $_POST['problem_suggestion_dismiss'], $login)) {
+        audit_log('problem_suggestion_dismiss', 'suggestion:' . $_POST['problem_suggestion_dismiss']);
+        $messages[] = array('success', 'Suggestion ignorée : elle ne sera plus proposée.');
+    }
+}
+if (isset($_POST['problem_suggest']) || isset($_POST['problem_suggestion_dismiss'])) {
+    $suggest = problem_suggestions($db, problem_suggest_settings($db));
 }
 
 /* Observation matching several active problems: attached to the one chosen (#327) */
@@ -622,7 +644,51 @@ if ($ambiguous) {
     <?php } ?>
   </ul>
 </div>
-<?php } ?>
+<?php }
+$suggest_settings = problem_suggest_settings($db); ?>
+<div class="card shadow-sm mb-4" id="suggestions">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-lightbulb"></i> Suggestions<?= $suggest ? ' (' . count($suggest['suggestions']) . ')' : '' ?></span>
+    <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
+      <?= csrf_field() ?>
+      <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_suggest" value="1"><i class="bi bi-search"></i> Rechercher</button>
+    </form>
+  </div>
+  <div class="card-body<?= $suggest && $suggest['suggestions'] ? ' pb-0' : '' ?>">
+    <p class="small text-body-secondary mb-0">
+      Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie, à moins de
+      <?= intval($suggest_settings['radius']) ?> m (ou dans la même rue), des <?= intval($suggest_settings['months']) ?> derniers mois
+      (<a href="?page=settings">réglages</a>). Rien n'est créé sans votre accord.
+      <?php if ($suggest) { ?><br><?= intval($suggest['analysed']) ?> observation(s) analysée(s)<?= $suggest['analysed'] >= VIGILO_PROBLEM_SUGGEST_MAX ? ' (les plus récentes)' : '' ?>.<?php } ?>
+    </p>
+    <?php if ($suggest && !$suggest['suggestions']) { ?><p class="mb-0 mt-2">Aucune suggestion.</p><?php } ?>
+  </div>
+  <?php if ($suggest && $suggest['suggestions']) { ?>
+  <ul class="list-group list-group-flush">
+    <?php foreach ($suggest['suggestions'] as $suggestion) {
+        $category = isset($problem_categories[$suggestion['category']]) ? $problem_categories[$suggestion['category']][0] : '#' . $suggestion['category'];
+        $create   = $self_url . '&edit=new&suggestion=1&' . http_build_query(array('title' => $category . ' – ' . $suggestion['address'], 'catid' => $suggestion['category'],
+                    'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']))); ?>
+    <li class="list-group-item">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="badge text-bg-primary"><?= intval($suggestion['count']) ?></span>
+        <span class="fw-semibold"><?= h($category) ?></span>
+        <span class="text-break me-auto"><?= h($suggestion['address']) ?></span>
+        <a class="btn btn-sm btn-primary" href="<?= h($create) ?>"><i class="bi bi-plus-lg"></i> Créer le problème</a>
+        <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
+          <?= csrf_field() ?>
+          <button class="btn btn-sm btn-outline-secondary" type="submit" name="problem_suggestion_dismiss" value="<?= h($suggestion['key']) ?>" data-confirm="Ignorer cette suggestion ? Elle ne sera plus proposée."><i class="bi bi-eye-slash"></i> Ignorer</button>
+        </form>
+      </div>
+      <div class="small text-body-secondary mt-1">
+        Du <?= h(date('d/m/Y', $suggestion['first'])) ?> au <?= h(date('d/m/Y', $suggestion['last'])) ?> ·
+        <?= h(implode(', ', array_slice($suggestion['tokens'], 0, 8))) ?><?= count($suggestion['tokens']) > 8 ? '…' : '' ?>
+      </div>
+    </li>
+    <?php } ?>
+  </ul>
+  <?php } ?>
+</div>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-diagram-3"></i> Problèmes</h2>

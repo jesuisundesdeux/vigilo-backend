@@ -47,4 +47,12 @@ PREPARE vigilo_stmt FROM @vigilo_sql;
 EXECUTE vigilo_stmt;
 DEALLOCATE PREPARE vigilo_stmt;
 
+-- Suggestions of problems dismissed by the administrators (key: category and first observation of the group)
+CREATE TABLE IF NOT EXISTS `obs_problem_suggestions_dismissed` (
+  `sd_key` varchar(64) NOT NULL,
+  `sd_time` bigint(20) NOT NULL DEFAULT 0,
+  `sd_login` varchar(60) NOT NULL DEFAULT '',
+  PRIMARY KEY (`sd_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 UPDATE `obs_config` SET `config_value` = '0.0.32' WHERE `obs_config`.`config_param` = 'vigilo_db_version';

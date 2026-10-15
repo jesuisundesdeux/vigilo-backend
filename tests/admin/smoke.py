@@ -145,7 +145,8 @@ def main():
     status, _, page = admin.request('index.php?page=settings')
     fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', page))
     fields.update(re.findall(r'name="(cfg\[[a-z_]+\])"[^>]*value="([^"]*)"', page))
-    fields.update({'csrf_token': admin.token(page), 'cfg[vigilo_resolved_hide_days]': '30'})
+    fields.update({'csrf_token': admin.token(page), 'cfg[vigilo_resolved_hide_days]': '30',
+                   'cfg[vigilo_problem_suggest_min]': '2', 'cfg[vigilo_problem_suggest_months]': '120'})
     for name, value in re.findall(r'<select[^>]*name="(cfg\[[a-z_]+\])"[^>]*>.*?<option[^>]*value="([^"]*)"[^>]*selected', page, re.S):
         fields.setdefault(name, value)
     status, _, page = admin.request('index.php?page=settings', fields)
@@ -444,6 +445,26 @@ def main():
     status, _, page = admin.request('index.php?page=resolutions&resolved=1')
     check('R_RES00002' in page, 'resolution validated in bulk')
 
+    # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal
+    status, _, page = admin.request('index.php?page=problems')
+    check('Groupes d\'au moins 2 observations' in page and '120 derniers mois' in page, 'suggestion settings shown')
+    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
+    clean('problem suggestions', status, page)
+    check('Suggestions (1)' in page and 'TOKA0001, TOKA0003' in page, 'suggestion of TOKA0001 and TOKA0003')
+    create = links(page, 'suggestion=1')
+    check(len(create) == 1, 'create link of the suggestion')
+    if create:
+        status, _, form = admin.request('index.php' + create[0] if create[0].startswith('?') else create[0])
+        clean('problem from suggestion', status, form)
+        check('value="2" checked' in form and 'value="2020-09-13"' in form and 'id="problem_lat" name="problem_lat" inputmode="decimal" value="43.6' in form
+              and 'ne correspond aux filtres' not in form, 'problem form prefilled by the suggestion (list not filtered)')
+    m = re.search(r'name="problem_suggestion_dismiss" value="([^"]+)"', page)
+    if m:
+        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})
+        check('Suggestion ignorée' in page and 'Aucune suggestion' in page, 'suggestion dismissed')
+    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': "1' OR '1"})
+    check('Suggestion ignorée' not in page, 'invalid suggestion key refused')
+
     # Problems (#327): create, refused values, list filters, edit, delete
     status, _, page = admin.request('index.php?page=problems&edit=new')
     clean('problem form', status, page)
@@ -578,7 +599,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss']:
         check(action in page, 'audit log contains ' + action)
 
     # Logout

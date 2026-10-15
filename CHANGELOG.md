@@ -23,8 +23,13 @@
 - Fiche d'un problème : changement du statut et de la priorité, **notes internes** (table `obs_notes`, colonne
   `note_problemid`), jamais publiées ni reprises dans les rapports. Le journal garde le texte d'une note supprimée
   (observation ou problème).
+- **Suggestions de problèmes** (sur demande) : groupes d'observations publiées sans problème, de même catégorie et
+  proches, selon des seuils réglables (page Configuration : nombre minimal, distance, période) ; « Créer le problème »
+  ouvre le formulaire prérempli, « Ignorer » ne la propose plus (journal `problem_suggestion_dismiss`). Aucun problème
+  n'est créé automatiquement.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
-  l'instant), colonne `obs_notes.note_problemid`. Rien ne change pour l'API publique ni pour l'application web.
+  l'instant), colonne `obs_notes.note_problemid`,
+  table `obs_problem_suggestions_dismissed`. Rien ne change pour l'API publique ni pour l'application web.
 
 ### Plus ancienne version prise en charge : 0.0.17
 - Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à

@@ -67,7 +67,12 @@ s'il n'y en a qu'un. Si plusieurs correspondent, elle n'est pas rattachée et ap
 la page Problèmes, où l'administrateur choisit son problème. Une observation déjà rattachée n'est jamais changée.
 
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
-table que les notes des observations), jamais publiées ni reprises dans les rapports. Les problèmes ne sont visibles
+table que les notes des observations), jamais publiées ni reprises dans les rapports.
+
+**Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
+catégorie et proches (même méthode que les lieux récurrents des rapports), selon les réglages de la page Configuration
+(nombre minimal, distance, période). Une suggestion ouvre un formulaire de création prérempli (titre, catégorie,
+cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun problème n'est créé automatiquement. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
 
 ## Photos, pixelisation et floutage
