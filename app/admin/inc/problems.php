@@ -29,6 +29,17 @@ $statuses   = problem_statuses();
 $priorities = problem_priorities();
 $login      = isset($_SESSION['login']) ? (string) $_SESSION['login'] : '';
 
+/*
+ * Citystaff accounts: read only, limited to the problems having observations in their
+ * cities (and to these observations). No change, no notes, no suggestions.
+ */
+$readonly     = $_SESSION['role'] !== 'admin';
+$staff_cities = $readonly ? getRoleCityIds($db, $login) : null;
+if ($readonly) {
+    $_POST = array();
+    unset($_GET['action'], $_GET['edit']);
+}
+
 /* Categories that can be chosen: id => array(name, disabled) */
 $problem_categories = array();
 foreach ((array) getCategoriesList() as $category) {
@@ -155,10 +166,32 @@ if (isset($_POST['problem_save'])) {
 if ($edit === null && isset($_GET['edit'])) {
     if ($_GET['edit'] === 'new') {
         $edit = $empty_problem;
+        // Created from a suggestion: fields prefilled (validated again when saved)
+        if (isset($_GET['suggestion'])) {
+            $get = function ($key) { return isset($_GET[$key]) && is_scalar($_GET[$key]) ? (string) $_GET[$key] : ''; };
+            $edit['problem_title']      = vigilo_truncate($get('title'), 200);
+            $edit['problem_categories'] = ctype_digit($get('catid')) ? $get('catid') : '';
+            $edit['problem_lat']        = is_numeric($get('lat')) ? (float) $get('lat') : 0;
+            $edit['problem_lon']        = is_numeric($get('lon')) ? (float) $get('lon') : 0;
+            $edit['problem_radius']     = is_numeric($get('radius')) ? intval($get('radius')) : 100;
+            $edit['start_day']          = preg_match('/^\d{4}-\d{2}-\d{2}$/', $get('start')) ? $get('start') : $edit['start_day'];
+        }
     } else {
         $edit = problem_load($db, $_GET['edit']);
         $edit = $edit ? problem_admin_form_values($edit) : null;
     }
+}
+
+/* Suggestions: computed on request (can be long on a large instance), dismissable */
+$suggest = null;
+if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_suggestion_dismiss'])) {
+    if (problem_suggestion_dismiss($db, $_POST['problem_suggestion_dismiss'], $login)) {
+        audit_log('problem_suggestion_dismiss', 'suggestion:' . $_POST['problem_suggestion_dismiss']);
+        $messages[] = array('success', 'Suggestion ignorée : elle ne sera plus proposée.');
+    }
+}
+if (isset($_POST['problem_suggest']) || isset($_POST['problem_suggestion_dismiss'])) {
+    $suggest = problem_suggestions($db, problem_suggest_settings($db));
 }
 
 /* Observation matching several active problems: attached to the one chosen (#327) */
@@ -177,6 +210,9 @@ if (isset($_POST['problem_arbitrate']) && isset($_POST['obs_id'])) {
 
 /* Detail of a problem: count, attribution, manual attach / detach */
 $view   = isset($_GET['view']) ? problem_load($db, $_GET['view']) : null;
+if ($view && $readonly && !problem_observations($db, $view['problem_id'], $staff_cities)) {
+    $view = null;
+}
 $count  = null;
 if ($view) {
     $view_id  = intval($view['problem_id']);
@@ -294,12 +330,16 @@ if ($f_priority) {
 if ($f_category) {
     $where[] = "FIND_IN_SET(" . intval($f_category) . ", problem_categories)";
 }
+if ($readonly) {
+    $where[] = "problem_id IN (SELECT po_problemid FROM obs_problem_observations INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                               WHERE " . problem_city_condition($staff_cities) . ")";
+}
 $problems = array();
 $query    = mysqli_query($db, "SELECT * FROM obs_problems WHERE " . implode(' AND ', $where) . " ORDER BY problem_priority DESC, problem_updated_time DESC, problem_id DESC");
 while ($query && ($row = mysqli_fetch_assoc($query))) {
     $problems[] = $row;
 }
-$counts   = problem_observation_counts($db);
+$counts   = problem_observation_counts($db, $staff_cities);
 $filtered = $f_q !== '' || $f_status !== '' || $f_priority || $f_category;
 
 /* Initial view of the map of a new problem: center of the first scope */
@@ -431,7 +471,7 @@ if ($edit !== null) {
 <?php } ?>
 
 <?php if ($view && $edit === null) {
-    $attached = problem_observations($db, $view_id);
+    $attached = problem_observations($db, $view_id, $staff_cities);
     $priority = isset($priorities[intval($view['problem_priority'])]) ? $priorities[intval($view['problem_priority'])] : array('?', 'secondary');
     $status   = isset($statuses[$view['problem_status']]) ? $statuses[$view['problem_status']] : array($view['problem_status'], 'secondary');
     $modes    = array('retro' => 'Rétroactif', 'auto' => 'Automatique', 'manual' => 'Manuel');
@@ -457,7 +497,7 @@ if ($edit !== null) {
     <div class="d-flex gap-2 align-items-center">
       <span class="badge text-bg-<?= h($priority[1]) ?>"><?= h($priority[0]) ?></span>
       <span class="badge text-bg-<?= h($status[1]) ?>"><?= h($status[0]) ?></span>
-      <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a>
+      <?php if (!$readonly) { ?><a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a><?php } ?>
     </div>
   </div>
   <div class="card-body">
@@ -468,6 +508,7 @@ if ($edit !== null) {
       <dt class="col-sm-3">Période</dt><dd class="col-sm-9"><?= h(problem_admin_period($view)) ?></dd>
       <dt class="col-sm-3">Création</dt><dd class="col-sm-9"><?= h(date('d/m/Y H:i', intval($view['problem_created_time']))) ?> par <?= h($view['problem_created_login']) ?></dd>
     </dl>
+    <?php if (!$readonly) { ?>
     <form method="POST" action="<?= h($view_url) ?>" class="row g-2 align-items-end mb-3">
       <?= csrf_field() ?>
       <div class="col-6 col-sm-auto">
@@ -486,6 +527,7 @@ if ($edit !== null) {
         <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_quick" value="1"><i class="bi bi-check-lg"></i> Enregistrer</button>
       </div>
     </form>
+    <?php } ?>
     <div class="problem-view-map rounded border" data-problem-view="<?= h(json_encode($map_data)) ?>" style="height: 320px;"></div>
     <div class="form-text">
       <span class="text-success"><i class="bi bi-circle-fill"></i> rattachées</span>
@@ -494,6 +536,7 @@ if ($edit !== null) {
   </div>
 </div>
 
+<?php if (!$readonly) { ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header fw-semibold">Rattachement des observations existantes</div>
   <div class="card-body">
@@ -519,16 +562,19 @@ if ($edit !== null) {
     <?php } ?>
   </div>
 </div>
+<?php } ?>
 
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <span class="fw-semibold">Observations rattachées (<?= count($attached) ?>)</span>
+    <?php if (!$readonly) { ?>
     <form method="POST" action="<?= h($view_url) ?>" class="d-flex gap-2">
       <?= csrf_field() ?>
       <label class="visually-hidden" for="obs_token">Token de l'observation</label>
       <input class="form-control form-control-sm" id="obs_token" name="obs_token" placeholder="Token" maxlength="20" required style="max-width: 9rem;">
       <button class="btn btn-sm btn-outline-primary text-nowrap" type="submit" name="problem_attach_token" value="1"><i class="bi bi-plus-lg"></i> Rattacher</button>
     </form>
+    <?php } ?>
   </div>
   <?php if (empty($attached)) { ?>
     <div class="card-body"><p class="text-body-secondary mb-0">Aucune observation rattachée.</p></div>
@@ -551,7 +597,7 @@ if ($edit !== null) {
           </td>
           <td class="small" data-label="Catégorie"><?= h(isset($problem_categories[$catid]) ? $problem_categories[$catid][0] : '#' . $catid) ?></td>
           <td class="small" data-label="Rattachement"><?= h(isset($modes[$row['po_mode']]) ? $modes[$row['po_mode']] : $row['po_mode']) ?>, <?= h(date('d/m/Y', intval($row['po_time']))) ?><?= $row['po_login'] !== '' ? ' (' . h($row['po_login']) . ')' : '' ?></td>
-          <td class="text-end"><a class="btn btn-sm btn-outline-danger text-nowrap" href="<?= h($view_url) ?>&amp;action=detach&amp;obsid=<?= intval($row['obs_id']) ?><?= h(csrf_query()) ?>" data-confirm="Détacher l'observation <?= h($token) ?> du problème ?"><i class="bi bi-x-lg"></i> Détacher</a></td>
+          <td class="text-end"><?php if (!$readonly) { ?><a class="btn btn-sm btn-outline-danger text-nowrap" href="<?= h($view_url) ?>&amp;action=detach&amp;obsid=<?= intval($row['obs_id']) ?><?= h(csrf_query()) ?>" data-confirm="Détacher l'observation <?= h($token) ?> du problème ?"><i class="bi bi-x-lg"></i> Détacher</a><?php } ?></td>
         </tr>
       <?php } ?>
       </tbody>
@@ -559,6 +605,7 @@ if ($edit !== null) {
   </div>
   <?php } ?>
 </div>
+<?php if (!$readonly) { ?>
 <?php
     $notes = array();
     $query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_problemid = " . $view_id . " ORDER BY note_time ASC, note_id ASC");
@@ -590,12 +637,13 @@ if ($edit !== null) {
     </form>
   </div>
 </div>
+<?php } ?>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
 <script src="js/problem-map.js?v=<?= intval(@filemtime(__DIR__ . '/../js/problem-map.js')) ?>"></script>
 <?php } else { ?>
 <?php
-$ambiguous = $edit === null ? problems_ambiguous($db) : array();
+$ambiguous = ($edit === null && !$readonly) ? problems_ambiguous($db) : array();
 if ($ambiguous) {
     $titles = problem_titles($db); ?>
 <div class="card shadow-sm mb-4 border-warning" id="arbitrate">
@@ -622,17 +670,64 @@ if ($ambiguous) {
     <?php } ?>
   </ul>
 </div>
+<?php }
+$suggest_settings = problem_suggest_settings($db);
+if (!$readonly) { ?>
+<div class="card shadow-sm mb-4" id="suggestions">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-lightbulb"></i> Suggestions<?= $suggest ? ' (' . count($suggest['suggestions']) . ')' : '' ?></span>
+    <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
+      <?= csrf_field() ?>
+      <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_suggest" value="1"><i class="bi bi-search"></i> Rechercher</button>
+    </form>
+  </div>
+  <div class="card-body<?= $suggest && $suggest['suggestions'] ? ' pb-0' : '' ?>">
+    <p class="small text-body-secondary mb-0">
+      Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie, à moins de
+      <?= intval($suggest_settings['radius']) ?> m (ou dans la même rue), des <?= intval($suggest_settings['months']) ?> derniers mois
+      (<a href="?page=settings">réglages</a>). Rien n'est créé sans votre accord.
+      <?php if ($suggest) { ?><br><?= intval($suggest['analysed']) ?> observation(s) analysée(s)<?= $suggest['analysed'] >= VIGILO_PROBLEM_SUGGEST_MAX ? ' (les plus récentes)' : '' ?>.<?php } ?>
+    </p>
+    <?php if ($suggest && !$suggest['suggestions']) { ?><p class="mb-0 mt-2">Aucune suggestion.</p><?php } ?>
+  </div>
+  <?php if ($suggest && $suggest['suggestions']) { ?>
+  <ul class="list-group list-group-flush">
+    <?php foreach ($suggest['suggestions'] as $suggestion) {
+        $category = isset($problem_categories[$suggestion['category']]) ? $problem_categories[$suggestion['category']][0] : '#' . $suggestion['category'];
+        $create   = $self_url . '&edit=new&suggestion=1&' . http_build_query(array('title' => $category . ' – ' . $suggestion['address'], 'catid' => $suggestion['category'],
+                    'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']))); ?>
+    <li class="list-group-item">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="badge text-bg-primary"><?= intval($suggestion['count']) ?></span>
+        <span class="fw-semibold"><?= h($category) ?></span>
+        <span class="text-break me-auto"><?= h($suggestion['address']) ?></span>
+        <a class="btn btn-sm btn-primary" href="<?= h($create) ?>"><i class="bi bi-plus-lg"></i> Créer le problème</a>
+        <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
+          <?= csrf_field() ?>
+          <button class="btn btn-sm btn-outline-secondary" type="submit" name="problem_suggestion_dismiss" value="<?= h($suggestion['key']) ?>" data-confirm="Ignorer cette suggestion ? Elle ne sera plus proposée."><i class="bi bi-eye-slash"></i> Ignorer</button>
+        </form>
+      </div>
+      <div class="small text-body-secondary mt-1">
+        Du <?= h(date('d/m/Y', $suggestion['first'])) ?> au <?= h(date('d/m/Y', $suggestion['last'])) ?> ·
+        <?= h(implode(', ', array_slice($suggestion['tokens'], 0, 8))) ?><?= count($suggestion['tokens']) > 8 ? '…' : '' ?>
+      </div>
+    </li>
+    <?php } ?>
+  </ul>
+  <?php } ?>
+</div>
 <?php } ?>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <h2 class="h5 mb-0"><i class="bi bi-diagram-3"></i> Problèmes</h2>
-    <a class="btn btn-sm btn-primary" href="<?= h($self_url) ?>&amp;edit=new"><i class="bi bi-plus-lg"></i> Nouveau problème</a>
+    <?php if (!$readonly) { ?><a class="btn btn-sm btn-primary" href="<?= h($self_url) ?>&amp;edit=new"><i class="bi bi-plus-lg"></i> Nouveau problème</a><?php } ?>
   </div>
   <div class="card-body pb-0">
     <p class="small text-body-secondary">
       Un problème regroupe les observations publiées d'une zone (cercle ou polygone), de catégories et d'une période.
       À sa publication, une observation est rattachée automatiquement au problème actif (ouvert, en cours, en attente)
       qui lui correspond, s'il n'y en a qu'un. Les problèmes ne sont visibles que dans l'admin.
+      <?php if ($readonly) { ?><br>Consultation seulement : problèmes ayant des observations dans vos villes, gérés par les administrateurs.<?php } ?>
     </p>
     <form class="row g-2 align-items-end mb-3" method="GET" action="">
       <input type="hidden" name="page" value="<?= h($page_name) ?>">
@@ -692,8 +787,12 @@ if ($ambiguous) {
           <td><span class="badge text-bg-<?= h($status[1]) ?>"><?= h($status[0]) ?></span></td>
           <td data-label="Observations"><?= isset($counts[$id]) ? intval($counts[$id]) : 0 ?></td>
           <td class="text-end text-nowrap">
+            <?php if (!$readonly) { ?>
             <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $id ?>"><i class="bi bi-pencil"></i> Modifier</a>
             <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;problemid=<?= $id ?><?= h(csrf_query()) ?>" data-confirm="Supprimer le problème « <?= h($problem['problem_title']) ?> » ? Ses observations sont conservées." aria-label="Supprimer"><i class="bi bi-trash"></i></a>
+            <?php } else { ?>
+            <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;view=<?= $id ?>"><i class="bi bi-eye"></i> Voir</a>
+            <?php } ?>
           </td>
         </tr>
       <?php } ?>

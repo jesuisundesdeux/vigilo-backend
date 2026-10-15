@@ -3,7 +3,7 @@
 ## 0.0.32
 
 ### Problèmes (lot 1, première partie)
-- Nouvelle page **Problèmes** dans l'admin (administrateurs seulement, issue #327) : un problème regroupe les
+- Nouvelle page **Problèmes** dans l'admin (gérée par les administrateurs, issue #327) : un problème regroupe les
   observations publiées d'une **zone** (cercle ou polygone tracé sur la carte), d'une ou plusieurs **catégories** (les
   catégories nationales et celles de l'instance) et d'une **période** (début, fin facultative, sur la date des
   observations), avec une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en cours, en
@@ -23,8 +23,17 @@
 - Fiche d'un problème : changement du statut et de la priorité, **notes internes** (table `obs_notes`, colonne
   `note_problemid`), jamais publiées ni reprises dans les rapports. Le journal garde le texte d'une note supprimée
   (observation ou problème).
+- **Suggestions de problèmes** (sur demande) : groupes d'observations publiées sans problème, de même catégorie et
+  proches, selon des seuils réglables (page Configuration : nombre minimal, distance, période) ; « Créer le problème »
+  ouvre le formulaire prérempli, « Ignorer » ne la propose plus (journal `problem_suggestion_dismiss`). Aucun problème
+  n'est créé automatiquement.
+- **Rapport pour une collectivité** : section « Problèmes suivis » (administrateurs, case du formulaire), avec l'état,
+  la priorité et le nombre d'observations de chaque problème du rapport ; jamais les notes internes.
+- Comptes **citystaff** : page Problèmes en **lecture seule**, limitée aux problèmes qui ont des observations dans
+  leurs villes (et à ces observations), sans les notes internes ni aucune action.
 - Migration 0.0.32 : tables `obs_problems` et `obs_problem_observations` (une observation dans un seul problème pour
-  l'instant), colonne `obs_notes.note_problemid`. Rien ne change pour l'API publique ni pour l'application web.
+  l'instant), colonne `obs_notes.note_problemid`,
+  table `obs_problem_suggestions_dismissed`. Rien ne change pour l'API publique ni pour l'application web.
 
 ### Plus ancienne version prise en charge : 0.0.17
 - Aucune instance en service n'est plus ancienne que la 0.0.17 (issue #328). Les migrations `init-0.0.2.sql` à

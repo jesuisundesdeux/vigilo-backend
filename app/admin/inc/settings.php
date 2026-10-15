@@ -37,6 +37,7 @@ $settings_cards = array(
   'publication' => array('title' => 'Publication', 'icon' => 'megaphone'),
   'photos' => array('title' => 'Photos', 'icon' => 'image'),
   'antispam' => array('title' => 'Anti-spam', 'icon' => 'shield-check'),
+  'problems' => array('title' => 'Suggestions de problèmes', 'icon' => 'diagram-3'),
 );
 
 $settings_fields = array(
@@ -75,6 +76,16 @@ $settings_fields = array(
   'vigilo_ratelimit_create' => array(
     'card' => 'antispam', 'type' => 'int', 'label' => 'Observations créées max. par IP et par 10 minutes', 'default' => '60',
     'help' => 'Au-delà, les créations depuis la même adresse IP sont refusées temporairement. 0 = pas de limite.'),
+
+  'vigilo_problem_suggest_min' => array(
+    'card' => 'problems', 'type' => 'int', 'label' => 'Nombre minimal d\'observations', 'default' => '3', 'suffix' => 'observations',
+    'help' => 'Un groupe d\'observations publiées, sans problème, de même catégorie et proches est proposé comme problème à partir de ce nombre (2 au moins).'),
+  'vigilo_problem_suggest_radius' => array(
+    'card' => 'problems', 'type' => 'int', 'label' => 'Distance de regroupement', 'default' => '50', 'suffix' => 'mètres',
+    'help' => 'Observations à moins de cette distance (ou dans la même rue) regroupées, comme pour les lieux récurrents des rapports (10 à 1 000 m).'),
+  'vigilo_problem_suggest_months' => array(
+    'card' => 'problems', 'type' => 'int', 'label' => 'Période analysée', 'default' => '12', 'suffix' => 'mois',
+    'help' => 'Seules les observations de cette période sont analysées (1 à 120 mois).'),
 
 );
 

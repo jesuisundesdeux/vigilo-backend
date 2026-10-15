@@ -145,7 +145,8 @@ def main():
     status, _, page = admin.request('index.php?page=settings')
     fields = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)"', page))
     fields.update(re.findall(r'name="(cfg\[[a-z_]+\])"[^>]*value="([^"]*)"', page))
-    fields.update({'csrf_token': admin.token(page), 'cfg[vigilo_resolved_hide_days]': '30'})
+    fields.update({'csrf_token': admin.token(page), 'cfg[vigilo_resolved_hide_days]': '30',
+                   'cfg[vigilo_problem_suggest_min]': '2', 'cfg[vigilo_problem_suggest_months]': '120'})
     for name, value in re.findall(r'<select[^>]*name="(cfg\[[a-z_]+\])"[^>]*>.*?<option[^>]*value="([^"]*)"[^>]*selected', page, re.S):
         fields.setdefault(name, value)
     status, _, page = admin.request('index.php?page=settings', fields)
@@ -444,6 +445,26 @@ def main():
     status, _, page = admin.request('index.php?page=resolutions&resolved=1')
     check('R_RES00002' in page, 'resolution validated in bulk')
 
+    # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal
+    status, _, page = admin.request('index.php?page=problems')
+    check('Groupes d\'au moins 2 observations' in page and '120 derniers mois' in page, 'suggestion settings shown')
+    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
+    clean('problem suggestions', status, page)
+    check('Suggestions (1)' in page and 'TOKA0001, TOKA0003' in page, 'suggestion of TOKA0001 and TOKA0003')
+    create = links(page, 'suggestion=1')
+    check(len(create) == 1, 'create link of the suggestion')
+    if create:
+        status, _, form = admin.request('index.php' + create[0] if create[0].startswith('?') else create[0])
+        clean('problem from suggestion', status, form)
+        check('value="2" checked' in form and 'value="2020-09-13"' in form and 'id="problem_lat" name="problem_lat" inputmode="decimal" value="43.6' in form
+              and 'ne correspond aux filtres' not in form, 'problem form prefilled by the suggestion (list not filtered)')
+    m = re.search(r'name="problem_suggestion_dismiss" value="([^"]+)"', page)
+    if m:
+        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})
+        check('Suggestion ignorée' in page and 'Aucune suggestion' in page, 'suggestion dismissed')
+    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': "1' OR '1"})
+    check('Suggestion ignorée' not in page, 'invalid suggestion key refused')
+
     # Problems (#327): create, refused values, list filters, edit, delete
     status, _, page = admin.request('index.php?page=problems&edit=new')
     clean('problem form', status, page)
@@ -556,6 +577,16 @@ def main():
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Relance <b>mairie</b>\nle 3'})
         clean('problem note', status, page)
         check('Notes internes (1)' in page and 'Relance &lt;b&gt;mairie&lt;/b&gt;<br />' in page, 'problem note added and escaped')
+        # Report: section of the problems (administrators, on request), never the internal notes
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
+        clean('report with problems', status, report)
+        check('Problèmes suivis' in report and 'Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Travaux du centre' in report
+              and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the notes')
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31')
+        check('Problèmes suivis' not in report, 'no problems in the report unless asked')
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1&format=slides')
+        clean('report slides with problems', status, report)
+        check('Problèmes suivis' in report, 'problems in the slides')
         m = re.search(r'name="note_id" value="(\d+)"', page)
         if m:
             status, _, obs_page = admin.request('index.php?page=observations&approved=1', {'csrf_token': admin.token(page), 'note_action': 'delete', 'note_id': m.group(1)})
@@ -578,8 +609,12 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss']:
         check(action in page, 'audit log contains ' + action)
+
+    # A problem without observation: not shown to a citystaff
+    status, _, page = admin.request('index.php?page=problems&edit=new')
+    admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_title='Sans observation'))
 
     # Logout
     status, _, page = admin.request('index.php')
@@ -592,13 +627,35 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
-    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories', 'problems']:
+    for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
     status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&cities[]=2')
     check('Aucune observation' in page, 'citystaff report limited to their cities')
-    status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31')
+    status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
     check('Villes : Testville' in page and 'Saint-Exemple' not in page, 'citystaff report of their cities')
+    check('Problèmes suivis' not in page, 'no problems in a citystaff report')
+    status, _, page = staff.request('index.php?page=reports')
+    check('name="problems"' not in page, 'no problems option for a citystaff')
+
+    # Problems: read only, those having observations in the cities of the citystaff
+    status, _, page = staff.request('index.php?page=problems')
+    clean('citystaff problems', status, page)
+    check('Piste &lt;b&gt;bloquée&lt;/b&gt;' in page and 'Sans observation' not in page, 'citystaff sees the problems of their cities only')
+    check('edit=new' not in page and 'action=delete' not in page and 'Suggestions' not in page and 'Consultation seulement' in page, 'citystaff problems read only')
+    m = re.search(r'view=(\d+)">Piste', page)
+    if m:
+        status, _, page = staff.request('index.php?page=problems&view=' + m.group(1))
+        clean('citystaff problem detail', status, page)
+        check('TOKA0001' in page and 'Notes internes' not in page and 'problem_quick' not in page and 'action=detach' not in page
+              and 'problem_count' not in page and 'problem_attach_token' not in page, 'citystaff problem detail read only, without notes')
+        status, _, page = staff.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': staff.token(page), 'problem_note_add': '1', 'note_text': 'x',
+                                                                                   'problem_quick': '1', 'problem_status': 'closed', 'problem_priority': '1'})
+        check('Note ajoutée' not in page and 'enregistrés' not in page, 'citystaff changes refused')
+        status, _, page = staff.request('index.php?page=problems&view=' + m.group(1) + '&action=detach&obsid=1' + '&csrf_token=' + staff.token(page))
+        check('détachée' not in page and 'TOKA0001' in page, 'citystaff detach refused')
+    status, _, page = staff.request('index.php?page=problems&edit=new')
+    check('name="problem_save"' not in page, 'citystaff has no problem form')
     status, _, page = staff.request('index.php?page=observations&approved=1')
     clean('citystaff observations', status, page)
     check('TOKA0001' in page and 'TOKA0003' not in page, 'citystaff only sees the observations of Testville')

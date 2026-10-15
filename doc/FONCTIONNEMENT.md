@@ -26,7 +26,7 @@ chaque instance peut en désactiver et ajouter les siennes (voir [Catégories](#
 |---|---|
 | `admin` | Tout : observations, résolutions, problèmes, villes, comptes, scopes, catégories, réglages, webhooks, journal, mises à jour. Clé API pour l'approbation et la modification par l'API. |
 | `moderator` | Modération (approbation, modification, suppression) depuis l'application web (mode admin) et par l'API, avec sa clé ; pas d'accès au panneau d'administration. |
-| `citystaff` | Panneau d'administration limité à l'accueil, aux observations et aux résolutions des villes associées au compte (statuts « prise en compte », « en cours »). |
+| `citystaff` | Panneau d'administration limité à l'accueil, aux observations et aux résolutions des villes associées au compte (statuts « prise en compte », « en cours »), et à la consultation des problèmes qui ont des observations dans ces villes. |
 | `guest` | Compte sans droit (en attente d'attribution). |
 
 Chaque compte a une **clé API**, générée à sa création et régénérable dans l'admin (page **Comptes**), passée en
@@ -67,8 +67,18 @@ s'il n'y en a qu'un. Si plusieurs correspondent, elle n'est pas rattachée et ap
 la page Problèmes, où l'administrateur choisit son problème. Une observation déjà rattachée n'est jamais changée.
 
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
-table que les notes des observations), jamais publiées ni reprises dans les rapports. Les problèmes ne sont visibles
-que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal.
+table que les notes des observations), jamais publiées ni reprises dans les rapports.
+
+**Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
+catégorie et proches (même méthode que les lieux récurrents des rapports), selon les réglages de la page Configuration
+(nombre minimal, distance, période). Une suggestion ouvre un formulaire de création prérempli (titre, catégorie,
+cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun problème n'est créé automatiquement.
+
+**Rapport** : un administrateur peut ajouter au rapport pour une collectivité la section « Problèmes suivis » (problèmes
+ayant des observations dans le rapport, avec leur état, leur priorité et leur nombre d'observations), sans les notes
+internes. Les problèmes ne sont visibles
+que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal. Les comptes citystaff
+les consultent en lecture seule (problèmes ayant des observations dans leurs villes, sans les notes internes).
 
 ## Photos, pixelisation et floutage
 

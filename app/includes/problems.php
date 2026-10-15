@@ -207,11 +207,14 @@ function problem_matching_observations($db, $problem)
     return $list;
 }
 
-/* Number of observations attached to each problem: problem_id => count */
-function problem_observation_counts($db)
+/* Number of observations attached to each problem: problem_id => count (of the cities $city_ids if not null) */
+function problem_observation_counts($db, $city_ids = null)
 {
     $counts = array();
-    $query  = mysqli_query($db, "SELECT po_problemid, COUNT(*) AS nb FROM obs_problem_observations GROUP BY po_problemid");
+    $query  = mysqli_query($db, "SELECT po_problemid, COUNT(*) AS nb FROM obs_problem_observations"
+                               . ($city_ids === null ? "" : " INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
+                                                             WHERE " . problem_city_condition($city_ids)) . "
+                                 GROUP BY po_problemid");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $counts[intval($row['po_problemid'])] = intval($row['nb']);
     }
@@ -404,8 +407,15 @@ function problem_attach_retro($db, $problem, $login)
     return $result;
 }
 
-/* Observations attached to a problem, with the details of the attachment */
-function problem_observations($db, $problem_id)
+/* SQL condition on obs_list.obs_city: the cities of a citystaff account (none: nothing) */
+function problem_city_condition($city_ids)
+{
+    $ids = array_values(array_filter(array_map('intval', (array) $city_ids)));
+    return $ids ? "obs_list.obs_city IN (" . implode(',', $ids) . ")" : "0";
+}
+
+/* Observations attached to a problem, with the details of the attachment (of the cities $city_ids if not null) */
+function problem_observations($db, $problem_id, $city_ids = null)
 {
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
@@ -414,7 +424,8 @@ function problem_observations($db, $problem_id)
                                        obs_problem_observations.po_mode, obs_problem_observations.po_time, obs_problem_observations.po_login
                                 FROM obs_problem_observations
                                 INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid
-                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id) . "
+                                WHERE obs_problem_observations.po_problemid = " . intval($problem_id)
+                                . ($city_ids === null ? "" : " AND " . problem_city_condition($city_ids)) . "
                                 ORDER BY obs_list.obs_time DESC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $list[] = $row;
@@ -520,4 +531,130 @@ function problems_ambiguous($db)
     return array_values(array_filter($observations, function ($observation) {
         return count($observation['problems']) > 1;
     }));
+}
+
+/* Thresholds of the suggestions (page Configuration), within sensible bounds */
+function problem_suggest_settings($db)
+{
+    $settings = array('min' => 3, 'radius' => 50, 'months' => 12);
+    $keys     = array('vigilo_problem_suggest_min' => 'min', 'vigilo_problem_suggest_radius' => 'radius', 'vigilo_problem_suggest_months' => 'months');
+    $query    = mysqli_query($db, "SELECT config_param, config_value FROM obs_config WHERE config_param IN ('" . implode("','", array_keys($keys)) . "')");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        if ($row['config_value'] !== '' && is_numeric($row['config_value'])) {
+            $settings[$keys[$row['config_param']]] = intval($row['config_value']);
+        }
+    }
+    $settings['min']    = max(2, min(1000, $settings['min']));
+    $settings['radius'] = max(10, min(1000, $settings['radius']));
+    $settings['months'] = max(1, min(120, $settings['months']));
+    return $settings;
+}
+
+/*
+ * Suggestions of problems: groups of published observations in no problem, of the same
+ * category and close (report_groups() of report.php), of the last months, with at least
+ * the minimal number of observations, not dismissed. Never creates anything. Each one:
+ * key (category and first observation), category, address, count, first / last dates,
+ * center, radius covering the group, tokens. At most VIGILO_PROBLEM_SUGGEST_MAX recent
+ * observations are analysed.
+ */
+define('VIGILO_PROBLEM_SUGGEST_MAX', 3000);
+
+function problem_suggestions($db, $settings)
+{
+    require_once(dirname(__FILE__) . '/report.php');
+    $dismissed = array();
+    $query     = mysqli_query($db, "SELECT sd_key FROM obs_problem_suggestions_dismissed");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $dismissed[(string) $row['sd_key']] = true;
+    }
+    $observations = array();
+    $query = mysqli_query($db, "SELECT * FROM (
+                                  SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
+                                         obs_list.obs_address_string, obs_list.obs_time, obs_list.obs_categorie
+                                  FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                  WHERE obs_problem_observations.po_obsid IS NULL AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1
+                                    AND obs_list.obs_time >= " . intval(strtotime('-' . intval($settings['months']) . ' months')) . "
+                                  ORDER BY obs_list.obs_time DESC LIMIT " . VIGILO_PROBLEM_SUGGEST_MAX . "
+                                ) recent ORDER BY obs_time ASC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $observations[] = array('id' => intval($row['obs_id']), 'token' => (string) $row['obs_token'],
+                                'lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
+                                'address' => (string) $row['obs_address_string'], 'time' => intval($row['obs_time']),
+                                'category' => intval($row['obs_categorie']), 'city' => '', 'status' => 0);
+    }
+    $suggestions = array();
+    foreach (report_groups($observations, $settings['radius']) as $group) {
+        if ($group['count'] < $settings['min']) {
+            continue;
+        }
+        $key = $group['category'] . ':' . $group['observations'][0]['id'];
+        if (isset($dismissed[$key])) {
+            continue;
+        }
+        $radius = $settings['radius'];
+        $tokens = array();
+        foreach ($group['observations'] as $obs) {
+            $radius   = max($radius, (int) ceil(distance($group['center'][0], $group['center'][1], $obs['lat'], $obs['lon'], 'm')) + 10);
+            $tokens[] = $obs['token'];
+        }
+        $suggestions[] = array('key' => $key, 'category' => $group['category'], 'address' => $group['address'], 'count' => $group['count'],
+                               'first' => $group['first'], 'last' => $group['last'], 'lat' => round($group['center'][0], 6),
+                               'lon' => round($group['center'][1], 6), 'radius' => min(VIGILO_PROBLEM_RADIUS_MAX, $radius), 'tokens' => $tokens);
+    }
+    return array('suggestions' => $suggestions, 'analysed' => count($observations));
+}
+
+function problem_suggestion_dismiss($db, $key, $login)
+{
+    if (!preg_match('/^[0-9]+:[0-9]+$/', (string) $key)) {
+        return false;
+    }
+    return (bool) mysqli_query($db, "INSERT IGNORE INTO obs_problem_suggestions_dismissed (sd_key, sd_time, sd_login)
+                                     VALUES ('" . mysqli_real_escape_string($db, $key) . "', " . time() . ",
+                                             '" . mysqli_real_escape_string($db, (string) $login) . "')");
+}
+
+/*
+ * Problems of a report (section of admin/report.php, administrators only): the problems
+ * having observations among those of the report, with their number in the report and in
+ * total, first and last dates in the report. The internal notes are never part of it.
+ */
+function problem_report_rows($db, $observations)
+{
+    $in_report = array();
+    foreach ($observations as $obs) {
+        $in_report[intval($obs['id'])] = intval($obs['time']);
+    }
+    if (!$in_report) {
+        return array();
+    }
+    $rows  = array();
+    $query = mysqli_query($db, "SELECT obs_problems.*, obs_problem_observations.po_obsid
+                                FROM obs_problem_observations
+                                INNER JOIN obs_problems ON obs_problems.problem_id = obs_problem_observations.po_problemid
+                                WHERE obs_problem_observations.po_obsid IN (" . implode(',', array_keys($in_report)) . ")");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $id   = intval($row['problem_id']);
+        $time = $in_report[intval($row['po_obsid'])];
+        if (!isset($rows[$id])) {
+            unset($row['po_obsid']);
+            $rows[$id] = array('problem' => $row, 'count' => 0, 'first' => $time, 'last' => $time);
+        }
+        $rows[$id]['count']++;
+        $rows[$id]['first'] = min($rows[$id]['first'], $time);
+        $rows[$id]['last']  = max($rows[$id]['last'], $time);
+    }
+    $totals = problem_observation_counts($db);
+    foreach ($rows as $id => &$row) {
+        $row['total'] = isset($totals[$id]) ? $totals[$id] : $row['count'];
+    }
+    unset($row);
+    usort($rows, function ($a, $b) {
+        if ($a['problem']['problem_priority'] != $b['problem']['problem_priority']) {
+            return intval($b['problem']['problem_priority']) - intval($a['problem']['problem_priority']);
+        }
+        return $b['count'] - $a['count'];
+    });
+    return array_values($rows);
 }

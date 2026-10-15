@@ -101,6 +101,16 @@ foreach (getCategoriesList() as $categorie) {
         </select>
         <div class="form-text">Les observations de la même catégorie dans la même rue sont aussi regroupées.</div>
       </div>
+      <?php if ($_SESSION['role'] == 'admin') { ?>
+      <div class="col-sm-6 col-lg-4">
+        <span class="form-label fw-semibold d-block">Problèmes</span>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="problems" value="1" id="report_problems" checked>
+          <label class="form-check-label" for="report_problems">Inclure les problèmes suivis</label>
+        </div>
+        <div class="form-text">Problèmes ayant des observations dans le rapport, avec leur état ; jamais les notes internes.</div>
+      </div>
+      <?php } ?>
       <fieldset class="col-sm-6 col-lg-4">
         <legend class="form-label fw-semibold fs-6">Format</legend>
         <div class="form-check">
