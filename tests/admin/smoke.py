@@ -96,6 +96,16 @@ def main():
                   'filterpbaddress=1', 'filtercityunknown=1']:
         status, _, page = admin.request('index.php?page=observations&' + query)
         clean('observations ' + query, status, page)
+    # Only the actions that make sense: not the current moderation state, resolutions for published ones
+    status, _, page = admin.request('index.php?page=observations&approved=1')
+    check('approveto=1' not in page and 'approveto=2' in page and 'action=resolve' in page
+          and '<option value="approve"' not in page and '<option value="disapprove"' in page and '<option value="unarchive"' not in page,
+          'approved observations: no "Approuver" button nor bulk action')
+    status, _, page = admin.request('index.php?page=observations&approved=0')
+    check('approveto=1' in page and 'action=resolve' not in page and '<option value="pending"' not in page
+          and '<option value="resolution_new"' not in page, 'observations to moderate: no resolution, no "Remettre à qualifier"')
+    status, _, page = admin.request('index.php?page=observations&approved=2')
+    check('approveto=2' not in page and 'approveto=1' in page and '<option value="disapprove"' not in page, 'disapproved observations: no "Désapprouver"')
     for query in ['resolved=1', 'resolved=2', 'resolved=3', 'resolved=4']:
         status, _, page = admin.request('index.php?page=resolutions&' + query)
         clean('resolutions ' + query, status, page)
