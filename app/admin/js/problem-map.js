@@ -428,7 +428,8 @@
     // Layers built first: the view is set before they are added (Leaflet fails on circles
     // added together to a map without a view)
     var items = data.problems.map(function (p) {
-      var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: 0.25 };
+      // One color per problem; resolved or closed: dashed and lighter
+      var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: p.active ? 0.25 : 0.1, dashArray: p.active ? null : '6 4' };
       var layer;
       if (p.zone === 'polygon') {
         layer = L.polygon(p.polygon, style);
@@ -480,7 +481,7 @@
       // replace the observations, kept when no street is found (Overpass unreachable, unknown name)
       pending = pending.then(function () {
         var area = p.points.length ? layer.getBounds() : null;
-        return window.vigiloStreetLines(map, p.streets, { bbox: area, style: { color: p.color, weight: 5 } }).then(function (group) {
+        return window.vigiloStreetLines(map, p.streets, { bbox: area, style: { color: p.color, weight: 5, dashArray: p.active ? null : '8 6' } }).then(function (group) {
           if (!group.getLayers().length) {
             return;
           }
