@@ -162,7 +162,7 @@
         fitThis();
       });
     }
-    problemMaps.push({ map: m, fit: fitThis });
+    problemMaps.push({ map: m, fit: fitThis, el: el });
   });
 
   function refreshMap() {
@@ -173,8 +173,16 @@
   }
   // Printing: the map gets its printed size (see report.css) and is centered for it, then back
   var printing = false;
+  // Printed width of the maps of the problems (document): the page is narrower than the screen
+  function printSize(p, on) {
+    if (document.body.classList.contains('report-document')) {
+      p.el.style.width = on ? (p.el.closest('.two-cols') ? '88mm' : '182mm') : '';
+    }
+    p.map.invalidateSize();
+    p.fit();
+  }
   window.addEventListener('beforeprint', function () {
-    problemMaps.forEach(function (p) { p.map.invalidateSize(); p.fit(); });
+    problemMaps.forEach(function (p) { printSize(p, true); });
     if (!map) {
       return;
     }
@@ -186,7 +194,7 @@
     fitMap();
   });
   window.addEventListener('afterprint', function () {
-    problemMaps.forEach(function (p) { p.map.invalidateSize(); p.fit(); });
+    problemMaps.forEach(function (p) { printSize(p, false); });
     if (!map) {
       return;
     }

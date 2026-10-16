@@ -89,6 +89,12 @@ deux) ou vers un autre problème. Un problème peut aussi être fusionné dans u
 passent, ses catégories s'y ajoutent, la période couvre les deux, la zone du problème choisi est gardée, et il est
 supprimé. L'accueil de l'admin affiche le nombre de problèmes et la part des observations publiées rattachées.
 
+**Rapport d'un problème** : le bouton « Rapport » de la fiche produit un rapport imprimable (PDF par l'impression du
+navigateur), en document ou en diaporama, qui analyse ses observations : quand (période, rythme, tendance récente, jours
+et heures) et où (carte, dispersion autour de leur centre, rues, points chauds, observations hors de la zone), avec
+des constats rédigés. Il ne contient jamais les notes internes ; un compte citystaff n'y voit que les observations de
+ses villes.
+
 **Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
 catégorie et proches (même méthode que les lieux récurrents des rapports), selon les réglages de la page Configuration
 (nombre minimal, distance, période). Une suggestion ouvre un formulaire de création prérempli (titre, catégorie,

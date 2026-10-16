@@ -124,5 +124,31 @@ check(report_week_grid(array(array('time' => mktime(23, 0, 0, 1, 3, 2021))))[6][
 
 check(problem_active_statuses() === array('open', 'in_progress', 'waiting'), 'active statuses');
 
+// Analysis of the observations of a problem (report of a problem)
+date_default_timezone_set('Europe/Paris');
+$zone = array('problem_zone' => 'circle', 'problem_lat' => 43.6, 'problem_lon' => 3.9, 'problem_radius' => 100, 'problem_polygon' => '', 'problem_streets' => '');
+$obs  = function ($token, $date, $lat, $lon, $address, $status = 0) {
+    return array('id' => 0, 'token' => $token, 'time' => strtotime($date), 'lat' => $lat, 'lon' => $lon, 'address' => $address,
+                 'city' => 'Testville', 'category' => 2, 'status' => $status, 'resolved_time' => $status == 1 ? strtotime($date . ' +10 days') : 0, 'comment' => '');
+};
+$list = array(
+    $obs('A1', '2026-01-05 08:10', 43.6, 3.9, '1 Rue de la Gare'),           // Monday morning
+    $obs('A2', '2026-01-06 08:40', 43.60005, 3.90005, 'Rue de la Gare'),     // Tuesday morning, 7 m from A1
+    $obs('A3', '2026-03-03 18:00', 43.6003, 3.9003, '5 Rue de la Gare', 1),  // Tuesday evening, resolved
+    $obs('A4', '2026-06-13 23:30', 43.61, 3.91, 'Avenue Loin'),               // Saturday night, outside the zone
+);
+$an = problem_analysis($zone, $list, strtotime('2026-07-01'));
+check($an['count'] == 4 && count($an['time']['months']) == 6 && $an['time']['active_months'] == 3, 'analysis: months of the problem (6, 3 with observations)');
+check(abs($an['time']['weekday_share'] - 75) < 0.01 && $an['time']['top_day'] === 'mardi', 'analysis: share of weekdays, most frequent day');
+check(key($an['time']['bands']) === 'Matin (6 h – 10 h)' && $an['time']['bands']['Matin (6 h – 10 h)'] == 2, 'analysis: most frequent time of day');
+check($an['time']['recent'] == 1 && $an['time']['before'] == 3 && round($an['time']['longest_gap'][0]) == 102, 'analysis: last 3 months, previous ones, longest gap');
+check($an['geo']['outside'] == 1 && $an['geo']['street_count'] == 2 && key($an['geo']['streets']) === 'Rue de la Gare', 'analysis: outside the zone, streets');
+check(count($an['geo']['hotspots']) == 1 && $an['geo']['hotspots'][0]['count'] == 3, 'analysis: hot spot of the 3 observations of the street');
+check($an['follow']['resolved'] == 1 && round($an['follow']['delay']) == 10, 'analysis: resolved observations, delay');
+check(count($an['findings']['summary']) == 4 && count($an['findings']['time']) >= 4 && count($an['findings']['geo']) >= 3 && strpos(implode(' ', $an['findings']['geo']), 'hors de la zone') !== false,
+      'analysis: sentences of the report');
+$empty = problem_analysis($zone, array(), time());
+check($empty['count'] == 0 && $empty['findings']['time'] === array(), 'analysis without observation');
+
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);
