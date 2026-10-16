@@ -52,7 +52,8 @@ ou plusieurs **rues**), une
 **période** (début, fin facultative), une **priorité** (basse, normale, haute, critique) et un **statut** (ouvert, en
 cours, en attente, résolu, clos).
 
-Une observation correspond à un problème si elle est **publiée**, de l'**une** de ses catégories, dans sa zone et
+Une observation correspond à un problème si elle est **publiée**, de l'**une** de ses catégories (toutes s'il n'en a
+aucune), dans sa zone et
 dans sa période (date de l'observation). Une observation appartient à un seul problème. Pour une zone de rues,
 l'adresse de l'observation doit être dans l'une des rues (sans tenir compte des majuscules, des accents ni du numéro)
 et, si la rue précise une ville, dans cette ville (ville de l'adresse, ou ville de l'observation).
@@ -87,7 +88,7 @@ rapports.
 **Séparer et fusionner** : depuis la fiche, des observations cochées peuvent être déplacées vers un nouveau problème
 (copie du problème, dont il faut ensuite ajuster la zone pour que les nouvelles observations ne correspondent pas aux
 deux) ou vers un autre problème. Un problème peut aussi être fusionné dans un autre : ses observations et ses notes y
-passent, ses catégories s'y ajoutent, la période couvre les deux, la zone du problème choisi est gardée, et il est
+passent, ses catégories s'y ajoutent (toutes si l'un des deux n'en a pas), la période couvre les deux, la zone du problème choisi est gardée, et il est
 supprimé. L'accueil de l'admin affiche le nombre de problèmes et la part des observations publiées rattachées.
 
 **Rapport d'un problème** : le bouton « Rapport » de la fiche produit un rapport imprimable (PDF par l'impression du

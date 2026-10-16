@@ -518,9 +518,10 @@ def main():
     check('Problème <strong>Piste &lt;b&gt;bloquée&lt;/b&gt;</strong> enregistré' in page, 'problem created and escaped')
     # Window after the creation: observations counted, attachment proposed (posted to the detail)
     check('id="attachModal"' in page and 'data-reopen-modal="#attachModal"' in page and '<strong>2</strong> observation(s) publiée(s)' in page
-          and 'TOKA0001, TOKA0003' in page and re.search(r'action="\?page=problems&amp;view=\d+"[^>]*>\s*<input type="hidden" name="csrf_token"', page) is not None
+          and 'TOKA0001, TOKA0003' in page and re.search(r'action="\?page=problems&amp;view=\d+#attach"[^>]*>\s*<input type="hidden" name="csrf_token"', page) is not None
           and 'name="problem_attach_retro"' in page and 'id="created-include_archived"' in page, 'existing observations counted after the creation')
-    check('Cercle de 100 m' in page and 'Depuis le 01/01/2020' in page and '>Haute</span>' in page, 'problem listed with zone, period and priority')
+    check('Cercle de 100 m' in page and 'Depuis le 01/01/2020' in page and '>Haute</span>' in page, 'problem shown with zone, period and priority')
+    check('Tous les problèmes' in page and 'id="attach"' in page, 'detail of the problem shown after its creation (not the list)')
     polygon = dict(problem, problem_title='Travaux du centre', problem_description='', problem_zone='polygon', problem_priority='1', problem_status='closed',
                    problem_polygon='[[43.59,3.89],[43.61,3.89],[43.61,3.91],[43.59,3.91]]', problem_end='2021-12-31')
     polygon['problem_categories[]'] = ['3']
@@ -551,8 +552,12 @@ def main():
             status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_id=m.group(1),
                                                                             problem_status='in_progress', problem_radius='150'))
             check('Cercle de 150 m' in page and '>En cours</span>' in page and 'Cercle de 100 m' not in page
-                  and len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
+                  and 'Tous les problèmes' in page, 'problem updated, its detail shown (not the list)')
             check('attachModal' not in page, 'no attachment window after an update')
+            check(re.search(r'<form[^>]*action="\?page=problems&amp;view=' + m.group(1) + r'"', admin.request('index.php?page=problems&edit=' + m.group(1))[2]) is not None,
+                  'edit form posted to the detail')
+            status, _, page = admin.request('index.php?page=problems&status=all')
+            check(len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
 
     # Problem detail: count (no change), retroactive attribution (idempotent, conflicts kept),
     # manual attach and detach
@@ -582,6 +587,7 @@ def main():
         clean('problem attach', status, page)
         check('<strong>1</strong> observation(s) rattachée(s), 0 déjà' in page and 'laissée(s) dans un autre problème' in page
               and 'Observations rattachées (1)' in page, 'retroactive attribution, conflict left in the other problem')
+        check(page.find('id="attach"') < page.find('observation(s) rattachée(s), 0 déjà'), 'attribution message shown in its card (page back to it)')
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
         check('<strong>0</strong> observation(s) rattachée(s), 1 déjà' in page, 'retroactive attribution is idempotent')
         status, _, page = admin.request('index.php?page=problems&status=all')
@@ -593,6 +599,8 @@ def main():
             status, _, page = admin.request('index.php' + detach[0] if detach[0].startswith('?') else detach[0])
             clean('problem detach', status, page)
             check('<strong>TOKA0001</strong> détachée' in page and 'Observations rattachées (0)' in page, 'observation detached')
+            check(detach[0].endswith('#observations') and page.find('id="observations"') < page.find('<strong>TOKA0001</strong> détachée'),
+                  'detach message shown in the card of the observations (page back to it)')
         status, _, page = admin.request(gare_url + '&action=detach&obsid=1')
         check('jeton de sécurité' in page, 'detach without CSRF token refused')
         # Automatic attachment when TOKA0001 is published again from the admin
@@ -607,7 +615,8 @@ def main():
         detach = links(page, 'action=detach')
         if detach:
             admin.request('index.php' + detach[0] if detach[0].startswith('?') else detach[0])
-        status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Gare bis', problem_radius='50'))
+        admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Gare bis', problem_radius='50'))
+        status, _, page = admin.request('index.php?page=problems&status=all')
         check('Gare bis' in page and 'À arbitrer (1)' in page and 'name="problem_arbitrate"' in page, 'observation of two active problems to arbitrate')
         status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_arbitrate': pb_gare, 'obs_id': '1'})
         clean('problem arbitrate', status, page)
@@ -742,6 +751,7 @@ def main():
     status, _, page = admin.request('index.php?page=problems&status=all', dict(streets, **{'problem_streets[]': ['rue des lilas, bourgade', 'Rue <b>X</b>']}))
     clean('problem streets create', status, page)
     check('Rues : rue des lilas, bourgade ; Rue &lt;b&gt;X&lt;/b&gt;' in page, 'problem of streets created and escaped')
+    status, _, page = admin.request('index.php?page=problems&status=all')
     m = re.search(r'view=(\d+)">Rue des Lilas</a>', page)
     check(m is not None, 'problem of streets listed')
     if m:
@@ -755,6 +765,25 @@ def main():
         check('value="rue des lilas, bourgade"' in page and 'id="problem_zone_streets" value="streets" checked' in page
               and '&quot;kind&quot;:&quot;attached&quot;' not in page, 'problem of streets: edit form filled')
         status, _, page = admin.request('index.php?page=problems&status=all')
+        delete = [l for l in links(page, 'action=delete') if re.search(r'problemid=' + m.group(1) + r'(&|$)', l)]
+        if delete:
+            admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
+        status, _, page = admin.request('index.php?page=problems&status=all')
+
+    # No category checked: all categories
+    status, _, page = admin.request('index.php?page=problems&edit=new')
+    every = dict(problem, csrf_token=admin.token(page), problem_title='Toutes catégories', problem_status='closed')
+    every.pop('problem_categories[]')
+    status, _, page = admin.request('index.php?page=problems&status=all', every)
+    clean('problem without category', status, page)
+    check('Toutes catégories</strong> enregistré' in page and 'Toutes les catégories' in page and '(aucune cochée : toutes)' not in page,
+          'problem without category created, on all categories')
+    m = re.search(r'&amp;edit=(\d+)"', page)
+    if m:
+        status, _, page = admin.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': admin.token(page), 'problem_count': '1'})
+        check(re.search(r'<strong>[1-9]\d*</strong> observation\(s\) publiée\(s\) correspondent', page) is not None, 'problem without category: observations of any category counted')
+        status, _, page = admin.request('index.php?page=problems&status=closed&category=4')
+        check('Toutes catégories' in page, 'problem without category listed with the filter of any category')
         delete = [l for l in links(page, 'action=delete') if re.search(r'problemid=' + m.group(1) + r'(&|$)', l)]
         if delete:
             admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
