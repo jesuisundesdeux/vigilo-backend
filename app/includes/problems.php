@@ -109,13 +109,7 @@ function problem_polygon_points($json)
  */
 function problem_street_key($name)
 {
-    $name = preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/iu', '', (string) $name);
-    $name = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
-    $name = strtr($name, array('à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e',
-                               'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ó' => 'o', 'ò' => 'o',
-                               'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
-                               'œ' => 'oe', 'æ' => 'ae', 'ß' => 'ss'));
-    return preg_replace('/[^a-z0-9]+/', '', $name);
+    return vigilo_street_key($name);
 }
 
 /* Street and city of an address of observation ("Rue X, Ville"): array(street, city) */
@@ -1112,7 +1106,6 @@ function problem_analysis($problem, $observations, $now)
     $south = $north = $observations[0]['lat'];
     $west = $east = $observations[0]['lon'];
     $outside = 0;
-    $streets = array();
     $cities = array();
     foreach ($observations as $obs) {
         $distances[] = distance($center[0], $center[1], $obs['lat'], $obs['lon'], 'm');
@@ -1123,15 +1116,11 @@ function problem_analysis($problem, $observations, $now)
         if (!problem_location_matches($problem, $obs['lat'], $obs['lon'], $obs['address'], $obs['city'])) {
             $outside++;
         }
-        $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\s*,?\s*/i', '', $obs['address']));
-        if ($street !== '') {
-            $streets[$street] = (isset($streets[$street]) ? $streets[$street] : 0) + 1;
-        }
         $city = $obs['city'] !== '' ? $obs['city'] : 'Ville non renseignée';
         $cities[$city] = (isset($cities[$city]) ? $cities[$city] : 0) + 1;
     }
     sort($distances);
-    arsort($streets);
+    $streets = vigilo_count_streets(array_map(function ($obs) { return $obs['address']; }, $observations));
     arsort($cities);
     $median = report_median($distances);
     $p90 = $distances[min($count - 1, intval(ceil(0.9 * $count)) - 1)];
