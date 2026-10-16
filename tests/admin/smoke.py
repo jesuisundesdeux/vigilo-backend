@@ -337,6 +337,7 @@ def main():
     clean('reports page', status, page)
     check('action="report.php"' in page and 'name="cities[]"' in page and 'name="categories[]"' in page, 'report form')
     check('name="sections[]" value="problem_details"' in page and 'name="sections[]" value="kpis"' in page, 'report form: sections to choose')
+    check('name="problem_status[]" value="resolved"' in page, 'report form: statuses of the problems')
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=kpis&sections[]=times')
     clean('report chosen sections', status, page)
     check('report-heatmap' in page and 'moins</text>' in page, 'report: matrix days × hours')
@@ -466,9 +467,9 @@ def main():
     check('R_RES00002' in page, 'resolution validated in bulk')
 
     # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal
-    status, _, page = admin.request('index.php?page=problems')
+    status, _, page = admin.request('index.php?page=problems&status=all')
     check('Groupes d\'au moins 2 observations' in page and '120 derniers mois' in page, 'suggestion settings shown')
-    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
+    status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
     clean('problem suggestions', status, page)
     check('Suggestions (1)' in page and 'TOKA0001, TOKA0003' in page, 'suggestion of TOKA0001 and TOKA0003')
     create = links(page, 'suggestion=1')
@@ -482,9 +483,9 @@ def main():
               and 'value="Rue des Lilas, Bourgade"' in form, 'observations of the suggestion on the map, their streets proposed')
     m = re.search(r'name="problem_suggestion_dismiss" value="([^"]+)"', page)
     if m:
-        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})
+        status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})
         check('Suggestion ignorée' in page and 'Aucune suggestion' in page, 'suggestion dismissed')
-    status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': "1' OR '1"})
+    status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': "1' OR '1"})
     check('Suggestion ignorée' not in page, 'invalid suggestion key refused')
 
     # Problems (#327): create, refused values, list filters, edit, delete
@@ -495,12 +496,12 @@ def main():
                'problem_categories[]': ['2', '99999'], 'problem_zone': 'circle', 'problem_lat': '43.6', 'problem_lon': '3.9',
                'problem_radius': '100', 'problem_polygon': '', 'problem_start': '2020-01-01', 'problem_end': '',
                'problem_priority': '3', 'problem_status': 'open', 'problem_save': '1'}
-    status, _, page = admin.request('index.php?page=problems', dict(problem, problem_title='', problem_radius='1'))
+    status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, problem_title='', problem_radius='1'))
     clean('problem refused', status, page)
     check('Le titre est obligatoire' in page and 'Le rayon doit' in page, 'problem without title and with a too small radius refused')
-    status, _, page = admin.request('index.php?page=problems', dict(problem, problem_zone='polygon', problem_polygon='[[43.6,3.9],[43.61,3.9]]'))
+    status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, problem_zone='polygon', problem_polygon='[[43.6,3.9],[43.61,3.9]]'))
     check('Le polygone doit avoir' in page, 'polygon of 2 points refused')
-    status, _, page = admin.request('index.php?page=problems', problem)
+    status, _, page = admin.request('index.php?page=problems&status=all', problem)
     clean('problem create', status, page)
     check('Problème <strong>Piste &lt;b&gt;bloquée&lt;/b&gt;</strong> enregistré' in page, 'problem created and escaped')
     # Window after the creation: observations counted, attachment proposed (posted to the detail)
@@ -511,18 +512,21 @@ def main():
     polygon = dict(problem, problem_title='Travaux du centre', problem_description='', problem_zone='polygon', problem_priority='1', problem_status='closed',
                    problem_polygon='[[43.59,3.89],[43.61,3.89],[43.61,3.91],[43.59,3.91]]', problem_end='2021-12-31')
     polygon['problem_categories[]'] = ['3']
-    status, _, page = admin.request('index.php?page=problems', polygon)
+    status, _, page = admin.request('index.php?page=problems&status=all', polygon)
     check('Polygone de 4 points' in page and 'Du 01/01/2020 au 31/12/2021' in page, 'polygon problem created')
+    # Active problems only by default ("Travaux du centre" is closed)
+    status, _, page = admin.request('index.php?page=problems')
+    check('Piste &lt;b&gt;bloquée&lt;/b&gt;' in page and 'Travaux du centre' not in page and '<option value="active" selected>' in page, 'problems list: active ones by default')
     for query, shown, hidden in [('q=gare', 'Piste', 'Travaux du centre'), ('status=active', 'Piste', 'Travaux du centre'),
                                  ('status=closed', 'Travaux du centre', 'Piste'), ('priority=1', 'Travaux du centre', 'Piste'),
                                  ('category=3', 'Travaux du centre', 'Piste'), ('q=%25', None, None)]:
-        status, _, page = admin.request('index.php?page=problems&' + query)
+        status, _, page = admin.request('index.php?page=problems&' + query + ('' if 'status=' in query else '&status=all'))
         clean('problems ' + query, status, page)
         if shown:
             check(shown in page and hidden not in page, 'problems filter ' + query)
         else:
             check('Aucun problème ne correspond' in page, 'problems search of a literal %')
-    status, _, page = admin.request('index.php?page=problems')
+    status, _, page = admin.request('index.php?page=problems&status=all')
     # Sorted by priority: the high priority problem first
     edit = [l for l in links(page, 'edit=') if 'edit=new' not in l]
     check(len(edit) == 2, 'problem edit links')
@@ -532,7 +536,7 @@ def main():
         m = re.search(r'name="problem_id" value="(\d+)"', page)
         check(m is not None and 'value="Piste &lt;b&gt;bloquée&lt;/b&gt;"' in page and 'value="2020-01-01"' in page, 'problem edit form filled')
         if m:
-            status, _, page = admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_id=m.group(1),
+            status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_id=m.group(1),
                                                                             problem_status='in_progress', problem_radius='150'))
             check('Cercle de 150 m' in page and '>En cours</span>' in page and 'Cercle de 100 m' not in page
                   and len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
@@ -568,7 +572,7 @@ def main():
               and 'Observations rattachées (1)' in page, 'retroactive attribution, conflict left in the other problem')
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
         check('<strong>0</strong> observation(s) rattachée(s), 1 déjà' in page, 'retroactive attribution is idempotent')
-        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems&status=all')
         check(re.search(r'data-label="Observations">1<', page) is not None, 'number of observations in the list')
         status, _, page = admin.request(gare_url)
         detach = [l for l in links(page, 'action=detach')]
@@ -591,9 +595,9 @@ def main():
         detach = links(page, 'action=detach')
         if detach:
             admin.request('index.php' + detach[0] if detach[0].startswith('?') else detach[0])
-        status, _, page = admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_title='Gare bis', problem_radius='50'))
+        status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Gare bis', problem_radius='50'))
         check('Gare bis' in page and 'À arbitrer (1)' in page and 'name="problem_arbitrate"' in page, 'observation of two active problems to arbitrate')
-        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_arbitrate': pb_gare, 'obs_id': '1'})
+        status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_arbitrate': pb_gare, 'obs_id': '1'})
         clean('problem arbitrate', status, page)
         check('Observation <strong>TOKA0001</strong> rattachée au problème <strong>Piste' in page and 'À arbitrer' not in page, 'observation arbitrated')
         # Problem of the observation on the page Observations, timeline of the detail, map tab
@@ -609,8 +613,8 @@ def main():
         status, _, page = admin.request('index.php?page=problems&tab=map&q=nothing-matches')
         check('data-problems-map=' not in page and 'Aucun problème ne correspond' in page, 'problems map tab without problem')
         # Broadcast without webhook of the event: status set to "En attente", warning
-        status, _, page = admin.request('index.php?page=problems')
-        status, _, page = admin.request('index.php?page=problems', {'csrf_token': admin.token(page), 'problem_broadcast': pb_works})
+        status, _, page = admin.request('index.php?page=problems&status=all')
+        status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_broadcast': pb_works})
         clean('problem broadcast', status, page)
         check('aucun webhook actif' in page and 'passé « En attente »' in page, 'problem broadcast without webhook')
         # Status and priority from the detail, internal notes (obs_notes shared with the observations)
@@ -628,6 +632,11 @@ def main():
               and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the notes')
         check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'class="report-problem-map"' in report and 'Frise chronologique' in report and 'report-strip' in report
               and 'photo.php?s=300&amp;token=TOKA0001' in report and 'Créé le' in report, 'detail of each problem in the report')
+        # Problems of the chosen statuses only (both are "En attente" here)
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems&problem_status[]=waiting&problem_status[]=bad')
+        check('Problèmes suivis' in report and 'Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and '(problèmes : En attente)' in report, 'report: problems of the chosen status')
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems&sections[]=problem_details&problem_status[]=open')
+        check('Problèmes suivis' not in report and 'report-problem-map' not in report, 'report: no problem of the chosen status')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems')
         check('Problèmes suivis' in report and 'report-problem-map' not in report, 'problems table without their detail')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31')
@@ -679,19 +688,19 @@ def main():
         check('>Résolu</span>' in page and 'id="resolve"' not in page, 'resolved problem with resolved observations: nothing proposed')
         status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_resolve_observations': '1'})
         check('déjà résolues' in page, 'nothing to resolve')
-        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems&status=all')
         bis = [l for l in links(page, 'action=delete') if 'problemid=' in l and 'problemid=' + pb_gare not in l and 'problemid=' + pb_works not in l]
         if bis:
             admin.request('index.php' + bis[0] if bis[0].startswith('?') else bis[0])
-        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems&status=all')
 
     # Zone of streets: streets of the observations proposed, matching on the address
     status, _, page = admin.request('index.php?page=problems&edit=new')
     check('<option value="Rue des Lilas, Bourgade">' in page and 'value="streets"' in page, 'streets of the observations proposed')
     streets = dict(problem, csrf_token=admin.token(page), problem_title='Rue des Lilas', problem_zone='streets', problem_lat='', problem_lon='')
-    status, _, page = admin.request('index.php?page=problems', dict(streets, **{'problem_streets[]': ['', ' ']}))
+    status, _, page = admin.request('index.php?page=problems&status=all', dict(streets, **{'problem_streets[]': ['', ' ']}))
     check('Indiquer de 1 à' in page, 'zone of streets without street refused')
-    status, _, page = admin.request('index.php?page=problems', dict(streets, **{'problem_streets[]': ['rue des lilas, bourgade', 'Rue <b>X</b>']}))
+    status, _, page = admin.request('index.php?page=problems&status=all', dict(streets, **{'problem_streets[]': ['rue des lilas, bourgade', 'Rue <b>X</b>']}))
     clean('problem streets create', status, page)
     check('Rues : rue des lilas, bourgade ; Rue &lt;b&gt;X&lt;/b&gt;' in page, 'problem of streets created and escaped')
     m = re.search(r'view=(\d+)">Rue des Lilas</a>', page)
@@ -706,11 +715,11 @@ def main():
         status, _, page = admin.request('index.php?page=problems&edit=' + m.group(1))
         check('value="rue des lilas, bourgade"' in page and 'id="problem_zone_streets" value="streets" checked' in page
               and '&quot;kind&quot;:&quot;attached&quot;' not in page, 'problem of streets: edit form filled')
-        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems&status=all')
         delete = [l for l in links(page, 'action=delete') if re.search(r'problemid=' + m.group(1) + r'(&|$)', l)]
         if delete:
             admin.request('index.php' + delete[0] if delete[0].startswith('?') else delete[0])
-        status, _, page = admin.request('index.php?page=problems')
+        status, _, page = admin.request('index.php?page=problems&status=all')
 
     delete = [l for l in links(page, 'action=delete') if 'problemid=' in l]
     check(len(delete) == 2, 'problem delete links')
@@ -727,7 +736,7 @@ def main():
 
     # A problem without observation: not shown to a citystaff
     status, _, page = admin.request('index.php?page=problems&edit=new')
-    admin.request('index.php?page=problems', dict(problem, csrf_token=admin.token(page), problem_title='Sans observation'))
+    admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Sans observation'))
 
     # Logout
     status, _, page = admin.request('index.php')
@@ -752,10 +761,10 @@ def main():
     status, _, page = staff.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems&sections[]=problem_details&sections[]=kpis')
     check('Problèmes suivis' not in page and 'report-problem-map' not in page and 'Chiffres clés' in page, 'no problem sections for a citystaff, even asked')
     status, _, page = staff.request('index.php?page=reports')
-    check('value="problems"' not in page and 'value="problem_details"' not in page and 'value="kpis"' in page, 'no problems option for a citystaff')
+    check('value="problems"' not in page and 'value="problem_details"' not in page and 'problem_status[]' not in page and 'value="kpis"' in page, 'no problems option for a citystaff')
 
     # Problems: read only, those having observations in the cities of the citystaff
-    status, _, page = staff.request('index.php?page=problems')
+    status, _, page = staff.request('index.php?page=problems&status=all')
     clean('citystaff problems', status, page)
     check('Piste &lt;b&gt;bloquée&lt;/b&gt;' in page and 'Sans observation' not in page, 'citystaff sees the problems of their cities only')
     check('edit=new' not in page and 'action=delete' not in page and 'Suggestions' not in page and 'Consultation seulement' in page, 'citystaff problems read only')

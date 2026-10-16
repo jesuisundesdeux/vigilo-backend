@@ -779,6 +779,20 @@ function problem_suggestion_dismiss($db, $key, $login)
  * total, first and last dates in the report, and its observations of the report (rows of
  * report_observations()). The internal notes are never part of it.
  */
+/* Statuses of the problems chosen for a report (problem_status[]): none = all */
+function problem_report_statuses($get)
+{
+    $chosen = array();
+    if (isset($get['problem_status']) && is_array($get['problem_status'])) {
+        foreach ($get['problem_status'] as $status) {
+            if (is_string($status) && isset(problem_statuses()[$status])) {
+                $chosen[$status] = true;
+            }
+        }
+    }
+    return array_keys($chosen);
+}
+
 function problem_report_rows($db, $observations)
 {
     $in_report = array();
