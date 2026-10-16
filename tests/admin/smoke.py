@@ -612,11 +612,23 @@ def main():
             check('data-problems-map=' in page and '&quot;id&quot;:' + pb_gare in page and 'nav-tabs' in page, 'problems map tab ' + query)
         status, _, page = admin.request('index.php?page=problems&tab=map&q=nothing-matches')
         check('data-problems-map=' not in page and 'Aucun problème ne correspond' in page, 'problems map tab without problem')
-        # Broadcast without webhook of the event: status set to "En attente", warning
+        # Broadcast without webhook of the event: button disabled, refused (status unchanged)
         status, _, page = admin.request('index.php?page=problems&status=all')
+        check('name="problem_broadcast"' not in page and 'type="button" disabled><i class="bi bi-megaphone"></i> Diffuser' in page, 'broadcast disabled without webhook')
+        status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_broadcast': pb_works})
+        clean('problem broadcast refused', status, page)
+        check('non diffusé' in page and 'aucun webhook actif' in page and 'passé « En attente »' not in page, 'problem broadcast without webhook refused')
+        # With an active webhook of the event: broadcast, status set to "En attente" (delivery fails: nothing listens)
+        status, _, page = admin.request('index.php?page=webhooks&edit=new')
+        admin.request('index.php?page=webhooks', {'csrf_token': admin.token(page), 'webhook_id': '0', 'webhook_name': 'Diffusion', 'webhook_enabled': '1',
+                                                   'webhook_method': 'POST', 'webhook_url': 'http://127.0.0.1:9/problem', 'webhook_format': 'json',
+                                                   'webhook_headers': '', 'webhook_body': '{"title": "{{problem_title}}"}',
+                                                   'webhook_event': 'problem.broadcast', 'webhook_save': '1'})
+        status, _, page = admin.request('index.php?page=problems&status=all')
+        check('name="problem_broadcast" value="' + pb_works + '"' in page, 'broadcast enabled with an active webhook')
         status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_broadcast': pb_works})
         clean('problem broadcast', status, page)
-        check('aucun webhook actif' in page and 'passé « En attente »' in page, 'problem broadcast without webhook')
+        check('diffusé (1 webhook(s)) et passé « En attente »' in page and 'en échec' in page, 'problem broadcast with a webhook')
         # Status and priority from the detail, internal notes (obs_notes shared with the observations)
         status, _, page = admin.request(gare_url)
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_quick': '1', 'problem_status': 'waiting', 'problem_priority': '4'})

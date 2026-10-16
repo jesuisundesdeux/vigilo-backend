@@ -378,9 +378,15 @@ if (isset($_POST['problem_broadcast'])) {
     $problem = problem_load($db, $_POST['problem_broadcast']);
     if ($problem) {
         $id = intval($problem['problem_id']);
+        $hooks = webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST);
+    }
+    if ($problem && !$hooks) {
+        // Nothing to broadcast to: the status is not changed (the button is disabled)
+        $messages[] = array('warning', 'Problème <strong>' . h($problem['problem_title']) . '</strong> non diffusé : aucun webhook actif ne suit
+                                       l\'événement « Diffusion d\'un problème » (<a class="alert-link" href="?page=webhooks">Webhooks</a>).');
+    } elseif ($problem) {
         mysqli_query($db, "UPDATE obs_problems SET problem_status = 'waiting', problem_updated_time = " . time() . ",
                            problem_updated_login = '" . mysqli_real_escape_string($db, $login) . "' WHERE problem_id = " . $id);
-        $hooks      = webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST);
         $deliveries = webhooks_for_problem($db, $id);
         $failures   = array();
         foreach ($deliveries as $hook_id => $delivery) {
@@ -391,13 +397,8 @@ if (isset($_POST['problem_broadcast'])) {
         audit_log('problem_broadcast', 'problem:' . $id, array('title' => $problem['problem_title'],
                   'status' => array(isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : $problem['problem_status'], $statuses['waiting'][0]),
                   'webhooks' => count($deliveries), 'failures' => $failures));
-        if (!$hooks) {
-            $messages[] = array('warning', 'Problème <strong>' . h($problem['problem_title']) . '</strong> passé « En attente », mais aucun webhook actif ne suit
-                                           l\'événement « Diffusion d\'un problème » (<a class="alert-link" href="?page=webhooks">Webhooks</a>).');
-        } else {
-            $messages[] = array($failures ? 'warning' : 'success', 'Problème <strong>' . h($problem['problem_title']) . '</strong> diffusé (' . count($deliveries)
-                                . ' webhook(s)) et passé « En attente »' . ($failures ? ' ; en échec : ' . h(implode(', ', $failures)) . ' (voir la page Webhooks)' : '') . '.');
-        }
+        $messages[] = array($failures ? 'warning' : 'success', 'Problème <strong>' . h($problem['problem_title']) . '</strong> diffusé (' . count($deliveries)
+                            . ' webhook(s)) et passé « En attente »' . ($failures ? ' ; en échec : ' . h(implode(', ', $failures)) . ' (voir la page Webhooks)' : '') . '.');
     }
 }
 
@@ -727,6 +728,8 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
     $problems[] = $row;
 }
 $counts   = problem_observation_counts($db, $staff_cities);
+// "Diffuser" only when an active webhook follows the event
+$broadcast_hooks = $readonly ? 0 : count(webhooks_for_event($db, VIGILO_WEBHOOK_EVENT_PROBLEM_BROADCAST));
 $filtered = $f_q !== '' || $f_status !== 'active' || $f_priority || $f_category;
 $tab      = isset($_GET['tab']) && $_GET['tab'] === 'map' ? 'map' : 'list';
 $filter_query = '&' . http_build_query(array_filter(array('q' => $f_q, 'status' => $f_status !== 'active' ? $f_status : '', 'priority' => $f_priority ?: '', 'category' => $f_category ?: ''), 'strlen'));
@@ -1392,7 +1395,11 @@ if (!$readonly) { ?>
             <?php if (!$readonly) { ?>
             <form method="POST" action="<?= h($self_url . rtrim($filter_query, '&')) ?>" class="d-inline">
               <?= csrf_field() ?>
+              <?php if ($broadcast_hooks) { ?>
               <button class="btn btn-sm btn-outline-success" type="submit" name="problem_broadcast" value="<?= $id ?>" data-confirm="Diffuser le problème « <?= h($problem['problem_title']) ?> » (webhooks « Diffusion d'un problème ») et le passer « En attente » ?" title="Appelle les webhooks « Diffusion d'un problème » et passe le statut à « En attente »"><i class="bi bi-megaphone"></i> Diffuser</button>
+              <?php } else { ?>
+              <span class="d-inline-block" tabindex="0" title="Aucun webhook actif ne suit l'événement « Diffusion d'un problème » (page Webhooks)"><button class="btn btn-sm btn-outline-secondary" type="button" disabled><i class="bi bi-megaphone"></i> Diffuser</button></span>
+              <?php } ?>
             </form>
             <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $id ?>"><i class="bi bi-pencil"></i> Modifier</a>
             <a class="btn btn-sm btn-outline-danger" href="<?= h($self_url) ?>&amp;action=delete&amp;problemid=<?= $id ?><?= h(csrf_query()) ?>" data-confirm="Supprimer le problème « <?= h($problem['problem_title']) ?> » ? Ses observations sont conservées." aria-label="Supprimer"><i class="bi bi-trash"></i></a>

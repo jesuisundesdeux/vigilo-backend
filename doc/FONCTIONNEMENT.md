@@ -77,7 +77,8 @@ confirmer). Rien n'est fait sans confirmation.
 
 Le rattachement des observations existantes ignore les observations **archivées**, sauf si la case « Inclure les
 observations archivées » est cochée. Le bouton **Diffuser** d'un problème appelle les webhooks de l'événement
-`problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente ».
+`problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente » ; il est
+grisé tant qu'aucun webhook actif ne suit cet événement.
 
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
 table que les notes des observations ; bouton « Notes » de l'encart principal), jamais publiées ni reprises dans les

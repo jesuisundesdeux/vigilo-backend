@@ -8,6 +8,8 @@
 - Onglet **Carte** : un problème de rues est représenté par ses **rues surlignées** seules (ses observations seulement
   si aucune rue n'est trouvée), même sans observation rattachée (rues cherchées dans leur ville). Correction : la carte
   ne s'affichait pas quand elle contenait à la fois des cercles et des problèmes de rues.
+- Bouton **Diffuser** grisé tant qu'aucun webhook actif ne suit l'événement « Diffusion d'un problème » ; une
+  diffusion sans webhook est refusée et ne change plus le statut du problème.
 - Les réponses d'Overpass (rues surlignées) sont gardées dans le navigateur (7 jours, 1 jour quand aucune rue n'est
   trouvée ; jamais les échecs) pour ne pas l'interroger à chaque affichage.
 
