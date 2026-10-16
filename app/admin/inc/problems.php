@@ -293,10 +293,12 @@ function problem_admin_attach_panel($problem, $count, $include_archived, $titles
     return ob_get_clean();
 }
 
-function problem_admin_status_color($status)
+/* Color of the n-th problem of the map: hues spread by the golden angle, so that each problem has its own color */
+function problem_admin_map_color($index)
 {
-    $colors = array('open' => '#0d6efd', 'in_progress' => '#0dcaf0', 'waiting' => '#ffc107', 'resolved' => '#198754', 'closed' => '#6c757d');
-    return isset($colors[$status]) ? $colors[$status] : '#6c757d';
+    $hue = fmod($index * 137.508, 360);
+    $lightness = array(42, 34, 50)[$index % 3];
+    return 'hsl(' . round($hue) . ', 72%, ' . $lightness . '%)';
 }
 
 /*
@@ -328,7 +330,7 @@ function problem_admin_map_data($db, $problems, $counts, $statuses, $priorities,
         $id   = intval($problem['problem_id']);
         $item = array('id' => $id, 'title' => (string) $problem['problem_title'], 'zone' => $problem['problem_zone'],
                       'status' => isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : (string) $problem['problem_status'],
-                      'color' => problem_admin_status_color($problem['problem_status']),
+                      'active' => in_array($problem['problem_status'], problem_active_statuses(), true),
                       'priority' => isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '',
                       'count' => isset($counts[$id]) ? intval($counts[$id]) : 0);
         if ($problem['problem_zone'] == 'polygon') {
@@ -350,6 +352,7 @@ function problem_admin_map_data($db, $problems, $counts, $statuses, $priorities,
             $item['lon']    = (float) $problem['problem_lon'];
             $item['radius'] = intval($problem['problem_radius']);
         }
+        $item['color'] = problem_admin_map_color(count($shown));
         $shown[] = $item;
     }
     return array('shown' => $shown, 'hidden' => $hidden);
@@ -1360,9 +1363,15 @@ if (!$readonly) { ?>
       $map_problems = problem_admin_map_data($db, $problems, $counts, $statuses, $priorities, $staff_cities); ?>
   <div class="card-body pt-0">
     <div class="problem-list-map rounded border" data-problems-map="<?= h(json_encode(array('problems' => $map_problems['shown'], 'center' => $map_center, 'zoom' => $map_zoom))) ?>" style="height: 520px;"></div>
+    <ul class="problem-map-legend list-unstyled small d-flex flex-wrap gap-2 mt-2 mb-1">
+      <?php foreach ($map_problems['shown'] as $item) { ?>
+      <li class="text-nowrap mw-100 text-truncate"><span class="problem-legend-dot<?= $item['active'] ? '' : ' inactive' ?>" style="background: <?= h($item['color']) ?>;"></span>
+        <a href="<?= h($self_url . '&view=' . intval($item['id'])) ?>"><?= h($item['title']) ?></a> <span class="text-body-secondary">(<?= h($item['status']) ?>)</span></li>
+      <?php } ?>
+    </ul>
     <div class="form-text">
-      <?php foreach ($statuses as $key => $item) { ?><span class="me-2 text-nowrap"><span class="problem-legend-dot" style="background: <?= h(problem_admin_status_color($key)) ?>;"></span> <?= h($item[0]) ?></span><?php } ?>
-      · zone d'un problème de rues : ses observations rattachées.
+      Une couleur par problème ; contour en pointillés : problème résolu ou clos. Problème de rues : ses rues surlignées
+      (ses observations rattachées si elles ne sont pas trouvées).
       <?php if ($map_problems['hidden']) { ?><br><?= count($map_problems['hidden']) ?> problème(s) sans position (rues sans observation rattachée) : <?= h(implode(', ', $map_problems['hidden'])) ?>.<?php } ?>
     </div>
   </div>

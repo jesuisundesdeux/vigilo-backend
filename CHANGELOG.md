@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.36
+
+### Problèmes
+- Onglet **Carte** de la page Problèmes : **une couleur par problème** (au lieu d'une couleur par statut), légende
+  listant les problèmes avec leur couleur, leur statut et un lien vers leur fiche ; problème résolu ou clos en
+  pointillés.
+
 ## 0.0.35
 
 ### Problèmes

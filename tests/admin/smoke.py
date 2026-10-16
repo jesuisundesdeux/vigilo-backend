@@ -610,6 +610,8 @@ def main():
             status, _, page = admin.request('index.php?page=problems&' + query)
             clean('problems ' + query, status, page)
             check('data-problems-map=' in page and '&quot;id&quot;:' + pb_gare in page and 'nav-tabs' in page, 'problems map tab ' + query)
+            check('class="problem-map-legend' in page and '&quot;color&quot;:&quot;hsl(' in page and 'view=' + pb_gare + '">Piste' in page,
+                  'problems map tab: one color per problem, legend ' + query)
         status, _, page = admin.request('index.php?page=problems&tab=map&q=nothing-matches')
         check('data-problems-map=' not in page and 'Aucun problème ne correspond' in page, 'problems map tab without problem')
         # Broadcast without webhook of the event: button disabled, refused (status unchanged)
