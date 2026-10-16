@@ -64,15 +64,30 @@ en 0.0.24), reprenez-le depuis le dépôt en gardant votre `.env`.
 Pour développer avec le code du dépôt :
 `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`.
 
-### Passage à la 0.0.22 (dernière mise à jour manuelle)
+### Actions nécessaires selon la version de départ
+
+Les migrations de la base sont appliquées automatiquement (bouton de l'admin, ou démarrage du conteneur Docker) : une
+mise à jour ne demande une action que dans les cas ci-dessous. Les nouveautés de chaque version sont dans le
+[CHANGELOG](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/CHANGELOG.md).
+
+| Version de départ | Vers | Actions |
+|---|---|---|
+| 0.0.17 à 0.0.21 | 0.0.22 | Mise à jour manuelle (ci-dessous) |
+| 0.0.22 à 0.0.31 | 0.0.32 et suivantes | Webhooks à plusieurs événements ; Docker : `WATCHTOWER_TOKEN` (ci-dessous) |
+| 0.0.32, 0.0.33 | 0.0.34 et suivantes | Vérifier l'adresse de l'instance (ci-dessous) |
+| 0.0.34 et suivantes | dernière version | Aucune |
+
+Une mise à jour qui saute plusieurs versions cumule leurs actions.
+
+#### Depuis une version antérieure à 0.0.22 (dernière mise à jour manuelle)
 
 1. Sauvegardez la base et les répertoires `images/` et `caches/`.
 2. Mettez à jour le code :
-   - Docker : remplacez `docker-compose.yml` par celui de la 0.0.22, puis `docker compose pull && docker compose up -d` ;
+   - Docker : reprenez le `docker-compose.yml` du dépôt, puis `docker compose pull && docker compose up -d` ;
    - installation classique : remplacez le contenu de `app` (sans écraser `config/config.php`, `images`, `caches`).
 3. Appliquez les migrations (automatique avec Docker, sinon depuis l'admin « Mises à jour »).
-4. **Videz les répertoires `caches/` et `maps/`** : les versions précédentes pouvaient y écrire des panneaux non floutés
-   (les nouveaux fichiers de cache ont un nom différent) ; `maps/` (cartes MapQuest) et `panels/` ne servent plus et peuvent être supprimés.
+4. **Videz les répertoires `caches/` et `maps/`** : les versions précédentes pouvaient y écrire des panneaux non floutés.
+   `maps/` et `panels/` ne servent plus et peuvent être supprimés.
 5. Ouvrez la page « Mises à jour » : la rubrique « Vérifications de sécurité » doit être au vert. En particulier,
    `images/` et `caches/` ne doivent pas être accessibles depuis le web. Sous nginx, les `.htaccess` ne
    sont pas lus, ajoutez :
@@ -81,109 +96,20 @@ Pour développer avec le code du dépôt :
    location ~ ^/(images|caches|migrations)/ { deny all; return 403; }
    ```
 
-6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine (supprimé par les mises à jour depuis 0.0.31).
-7. Fonctionnalités retirées : publication sur Twitter (les comptes Twitter enregistrés sont supprimés de la base),
-   génération des panneaux et cartes MapQuest. `generate_panel.php` reste disponible et renvoie la photo de l'observation
-   (pixelisée tant qu'elle n'est pas approuvée) : les applications existantes continuent de fonctionner.
-8. Nouveaux réglages (admin « Configuration ») : limite anti-spam,
-   masquage des observations résolues anciennes, serveur de floutage.
-9. Floutage des photos : le réglage SGBlur devient « Serveur de floutage » (valeur reprise). Un serveur
-   de floutage est fourni (`blur-server/`) : visages et plaques masqués avant publication. Avec Docker :
-   `VIGILO_BLUR_URL=http://blur:8000/blur` dans `.env` et `docker compose --profile blur up -d` ;
-   sinon voir `blur-server/README.md`. Aucun serveur configuré : les photos sont publiées telles qu'envoyées.
-10. Docker : les répertoires `images/` et `caches/` des volumes sont rendus accessibles en écriture à Apache
-   au démarrage (installation neuve avec docker-compose).
+6. Vérifiez qu'il ne reste pas de fichier `install.php` à la racine.
 
-### Passage à la 0.0.23 et à la 0.0.24
+#### Vers 0.0.32 et suivantes
 
-Aucune action manuelle pour l'instance : la migration `init-0.0.23.sql` est appliquée automatiquement (Docker) ou
-depuis la page « Mises à jour ». Elle ajoute la page **Catégories** de l'admin et la correspondance des catégories des
-webhooks. Le champ « Texte de partage par défaut » des scopes est retiré (il servait à Twitter). En 0.0.24, avec Docker
-et Watchtower, changez l'image de Watchtower comme indiqué ci-dessus ; la migration `init-0.0.24.sql` (automatique)
-permet d'abonner un webhook à plusieurs événements, les webhooks existants restant abonnés à la publication.
+- **Webhooks** : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs événements sont signalés dans la
+  page Webhooks de l'admin (ils continuent d'être envoyés) : n'en garder qu'un, et créer un webhook pour chacun des
+  autres.
+- **Docker** : si vous reprenez le nouveau `docker-compose.yml` (Watchtower actif par défaut), définissez
+  `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans). L'ancien fichier continue de fonctionner.
 
-### Passage à la 0.0.25
+#### Vers 0.0.34 et suivantes
 
-Aucune action manuelle ni migration de base : correctif des webhooks (lien de la photo `{{photo_url}}` accessible
-avant modération, voir le CHANGELOG). Depuis la 0.0.24, le bouton de mise à jour de l'admin fonctionne avec Docker et
-Watchtower.
-
-### Passage à la 0.0.26
-
-Aucune action manuelle ni migration de base : nouvelle variable de webhook `{{photo_full_url}}` (lien signé vers la
-photo d'origine pour les modérateurs, voir le CHANGELOG). `mosaic.php` est supprimée (la mise à jour depuis l'admin
-retire le fichier) : l'application web affiche elle-même les observations similaires. Mise à jour depuis le bouton
-de l'admin.
-
-### Passage à la 0.0.27
-
-Aucune action manuelle ni migration de base :
-
-- nouvelles variables de webhook `{{event_label}}` (nom de l'événement) et `{{event_description}}` (l'action en une
-  phrase), voir le CHANGELOG ;
-- `{{photo_url}}` change à l'approbation (paramètre `v`) : Slack n'affiche plus la photo pixelisée gardée en cache ;
-- une observation liée à plusieurs résolutions n'apparaît plus qu'une fois dans `get_issues.php`, avec le statut le
-  plus avancé (une observation résolue n'est plus affichée « en résolution ») ; l'admin affiche l'état réel.
-
-Mise à jour depuis le bouton de l'admin.
-
-### Passage à la 0.0.28
-
-Migration de base automatique (`init-0.0.28.sql` : colonne `scope_association_url`), appliquée par la mise à jour
-depuis l'admin ou au démarrage du conteneur. Ensuite, renseigner le **site de l'association** sur la carte du scope
-(page Scopes de l'admin) : il s'affiche sur la page du territoire sur vigilo.city.
-
-### Passage à la 0.0.29
-
-Migration de base automatique (`init-0.0.29.sql` : colonne `obs_archived` des observations), appliquée par la mise à
-jour depuis l'admin ou au démarrage du conteneur. Aucune observation n'est archivée par la migration : l'archivage se
-fait ensuite depuis la page Observations de l'admin (une observation, une sélection, ou une période). Pour que les
-observations archivées restent dans les statistiques de l'application web, utiliser la version de l'application qui
-les demande (`get_issues.php?archived=1`).
-
-### Passage à la 0.0.30
-
-Migration de base automatique (`init-0.0.30.sql` : colonnes `webhook_categories` et `webhook_cities` des webhooks),
-appliquée par la mise à jour depuis l'admin ou au démarrage du conteneur. Les webhooks existants restent envoyés pour
-toutes les catégories et toutes les villes ; les filtres se choisissent ensuite dans la page Webhooks de l'admin.
-
-### Passage à la 0.0.31
-
-Aucune action manuelle ni migration de base. La première installation passe par l'assistant `admin/setup.php`
-(code d'installation, base de données, compte administrateur) : l'ancien `install.php` est retiré ; s'il est encore
-présent, il est supprimé au démarrage du conteneur Docker, à l'ouverture de l'accueil de l'admin et par la mise à jour
-depuis l'admin.
-
-### Passage à la 0.0.32
-
-Webhooks : un webhook ne suit plus qu'un événement. Ceux abonnés à plusieurs
-événements continuent d'être envoyés et sont signalés dans la page Webhooks de l'admin : les modifier pour n'en garder
-qu'un, et créer un webhook (avec un corps adapté) pour chacun des autres.
-
-Docker : le service `watchtower` est maintenant actif par défaut (plus de profil `watchtower`) et
-`VIGILO_WATCHTOWER_URL` vaut `http://watchtower:8080` par défaut. Si vous reprenez le nouveau `docker-compose.yml`,
-définissez `WATCHTOWER_TOKEN` dans `.env` (`docker compose` refuse de démarrer sans) ; votre ancien fichier continue
-de fonctionner tel quel. Le `docker-compose.yml` fonctionne seul, sans copie du dépôt.
-
-Migrations : les migrations 0.0.2 à 0.0.17 sont remplacées par le schéma `schema-0.0.17.sql`, appliqué seulement à
-une base vide (installation neuve) ; une base plus ancienne que la 0.0.17 est refusée (voir ci-dessous). La mise à jour
-depuis l'admin supprime les anciens fichiers `migrations/init-0.0.2.sql` à `init-0.0.17.sql`. La migration 0.0.32,
-appliquée automatiquement, ajoute les tables des problèmes (page Problèmes de l'admin).
-
-### Passage à la 0.0.33
-
-Aucune action manuelle. La migration 0.0.33, appliquée automatiquement, ajoute la colonne des rues d'un problème
-(`obs_problems.problem_streets`).
-
-### Passage à la 0.0.34
-
-Aucune action manuelle. La migration 0.0.34, appliquée automatiquement, ajoute la table des liens pour choisir un mot
-de passe (`obs_password_links`). Les liens utilisent l'adresse de l'instance (Configuration, `vigilo_urlbase`) :
-vérifier qu'elle est renseignée.
-
-### Passage à la 0.0.35
-
-Aucune action manuelle, pas de migration.
+- Vérifiez que l'**adresse de l'instance** est renseignée (Configuration, `vigilo_urlbase`) : les liens pour choisir
+  un mot de passe l'utilisent.
 
 ### Publier une version (mainteneurs)
 

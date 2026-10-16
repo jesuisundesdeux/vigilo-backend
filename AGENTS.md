@@ -106,6 +106,8 @@ nouvelle route, action d'admin ou règle (`tests/api/functional.py`, `tests/admi
    pour la mise à jour depuis l'admin) et les images Docker (`vigilobs/vigilo-backend` et
    `ghcr.io/jesuisundesdeux/vigilo-backend` : `X.Y.Z`, `X.Y`, `stable`, `latest` ; idem pour `vigilo-blur`).
 3. Sans tag, aucune image n'est publiée : `docker compose pull` installe la dernière version taguée.
+4. Une fois le tag posé, la première modification suivante passe `BACKEND_VERSION` à la version suivante et ouvre sa
+   section dans `CHANGELOG.md` (vérifier le dernier tag avec `git fetch --tags` avant de documenter un changement).
 
 ## Documentation à tenir à jour
 
@@ -113,7 +115,9 @@ nouvelle route, action d'admin ou règle (`tests/api/functional.py`, `tests/admi
   ou de l'admin).
 - `CHANGELOG.md` à chaque changement visible.
 - `doc/REST_API.md` pour toute évolution de l'API, et la spécification OpenAPI du site (`vigilo-website/data/openapi.yaml`).
-- `doc/FONCTIONNEMENT.md`, `doc/WEBHOOKS.md`, `doc/UPGRADE.md` selon le sujet ; la documentation utilisateur
+- `doc/UPGRADE.md` : seulement les **actions** qu'une mise à jour demande à l'administrateur d'une instance (tableau
+  par version de départ, versions sans action regroupées) ; les nouveautés vont dans `CHANGELOG.md`.
+- `doc/FONCTIONNEMENT.md`, `doc/WEBHOOKS.md` selon le sujet ; la documentation utilisateur
   (installation, configuration, administration) est sur le site, dans `vigilo-website/content/documentation/`
   (`doc/UPGRADE.md` y est recopié).
 
