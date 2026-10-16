@@ -192,8 +192,7 @@ function report_observations($db, $filters, $start = null, $end = null)
 /* Street of an address, to compare addresses ("12 rue X" and "rue X" are the same place) */
 function report_street($address)
 {
-    $street = preg_replace('/^\s*\d+\s*(bis|ter)?\s*,?\s*/i', '', (string) $address);
-    return flatstring($street);
+    return vigilo_street_key($address);
 }
 
 /*
@@ -323,14 +322,7 @@ function report_stats($observations, $groups, $filters, $previous, $population)
             $recurring_obs += $group['count'];
         }
     }
-    $streets = array();
-    foreach ($observations as $obs) {
-        $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\s*,?\s*/i', '', $obs['address']));
-        if ($street !== '') {
-            $streets[$street] = (isset($streets[$street]) ? $streets[$street] : 0) + 1;
-        }
-    }
-    arsort($streets);
+    $streets = vigilo_count_streets(array_map(function ($obs) { return $obs['address']; }, $observations));
     $in_progress = $statuses[2] + $statuses[3] + $statuses[4];
     return array(
         'total' => $total,

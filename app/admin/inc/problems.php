@@ -114,7 +114,7 @@ function problem_admin_known_streets($db)
                                   GROUP BY obs_list.obs_address_string, city_label ORDER BY nb DESC LIMIT 5000");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         list($street, $city) = problem_address_parts(problem_full_address($row['obs_address_string'], $row['city_label']));
-        $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i', '', $street));
+        $street = vigilo_street_name($street);
         $key    = problem_street_key($street) . '|' . problem_street_key($city);
         if (problem_street_key($street) === '') {
             continue;
@@ -784,7 +784,7 @@ if ($edit !== null) {
         $seen = array();
         foreach ($points as $point) {
             list($street, $city) = problem_address_parts($point['address']);
-            $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i', '', $street));
+            $street = vigilo_street_name($street);
             $key    = problem_street_key($street) . '|' . problem_street_key($city);
             if (problem_street_key($street) !== '' && !isset($seen[$key]) && count($seen) < VIGILO_PROBLEM_STREETS_MAX) {
                 $seen[$key]     = true;

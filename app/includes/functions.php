@@ -109,6 +109,58 @@ function getrole($privatekey, $acls)
     return False;
 }
 
+/*
+ * Street of an address without its house number ("5 bis, Avenue de Lodève" => "Avenue de Lodève"),
+ * spaces collapsed. vigilo_street_key() is the key to compare streets: without case, accents,
+ * spaces nor punctuation ("avenue de lodève" = "Avenue De Lodeve" = "5 avenue de lodeve").
+ */
+function vigilo_street_name($address)
+{
+    $street = preg_replace('/^\s*\d+\s*(?:[-\/]\s*\d+\s*)?(?:bis|ter|quater|[a-d](?![\p{L}\x{2019}\x27]))?\s*,?\s*/iu', '', (string) $address);
+    return trim(preg_replace('/\s+/u', ' ', $street));
+}
+
+function vigilo_street_key($address)
+{
+    $name = vigilo_street_name($address);
+    $name = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+    $name = strtr($name, array('à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e',
+                               'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ó' => 'o', 'ò' => 'o',
+                               'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
+                               'œ' => 'oe', 'æ' => 'ae', 'ß' => 'ss', 'À' => 'a', 'Â' => 'a', 'Ç' => 'c', 'É' => 'e', 'È' => 'e',
+                               'Ê' => 'e', 'Î' => 'i', 'Ï' => 'i', 'Ô' => 'o', 'Û' => 'u', 'Ù' => 'u', 'Œ' => 'oe'));
+    return preg_replace('/[^a-z0-9]+/', '', $name);
+}
+
+/*
+ * Observations per street: street name => count, the same street written differently grouped
+ * (vigilo_street_key()), shown with its most frequent spelling; sorted by count.
+ */
+function vigilo_count_streets($addresses)
+{
+    $groups = array();
+    foreach ($addresses as $address) {
+        $name = vigilo_street_name($address);
+        $key  = vigilo_street_key($name);
+        if ($key === '') {
+            continue;
+        }
+        if (!isset($groups[$key])) {
+            $groups[$key] = array('count' => 0, 'names' => array());
+        }
+        $groups[$key]['count']++;
+        $groups[$key]['names'][$name] = (isset($groups[$key]['names'][$name]) ? $groups[$key]['names'][$name] : 0) + 1;
+    }
+    $streets = array();
+    foreach ($groups as $group) {
+        arsort($group['names']);
+        reset($group['names']);
+        $streets[(string) key($group['names'])] = $group['count'];
+    }
+    arsort($streets);
+    return $streets;
+}
+
 function flatstring($string)
 {
     return str_replace(' ', '', str_replace('-', '', strtolower(trim($string))));
