@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.35
+
+### Problèmes
+- Liste des problèmes : seuls les problèmes **actifs** (ouvert, en cours, en attente) sont affichés par défaut ;
+  statut « Tous » pour les voir tous (`status=all`).
+- Onglet **Carte** : un problème de rues est représenté par ses **rues surlignées** seules (ses observations seulement
+  si aucune rue n'est trouvée), même sans observation rattachée (rues cherchées dans leur ville). Correction : la carte
+  ne s'affichait pas quand elle contenait à la fois des cercles et des problèmes de rues.
+- Les réponses d'Overpass (rues surlignées) sont gardées dans le navigateur (7 jours, 1 jour quand aucune rue n'est
+  trouvée ; jamais les échecs) pour ne pas l'interroger à chaque affichage.
+
+### Rapport pour une collectivité
+- **Problèmes à inclure** selon leur statut (cases « Ouvert », « En cours »… ; aucune cochée : tous), pour le tableau et
+  le détail des problèmes (paramètre `problem_status[]`).
+- Photo absente : image par défaut « Photo non disponible » (lieux récurrents, détail des problèmes), aussi à
+  l'impression.
+- Cartes du rapport : les points sont **plus petits quand ils se chevauchent** (nombreux lieux proches au zoom
+  affiché), recalculés à chaque zoom, à l'impression et en présentation.
+
 ## 0.0.34
 
 ### Problèmes
@@ -13,11 +32,9 @@
 - Problèmes de **rues** : les rues sont **surlignées** sur les cartes (fiche, formulaire, onglet Carte, détail du
   rapport), d'après OpenStreetMap (API Overpass, depuis le navigateur) : voies du même nom (sans tenir compte des
   majuscules, des accents ni de la ponctuation) autour des observations du problème, ou dans la ville de la rue. Sans
-  réponse d'Overpass, seules les observations sont affichées. Les réponses d'Overpass sont gardées dans le
-  navigateur (7 jours, 1 jour quand aucune rue n'est trouvée) pour ne pas l'interroger à chaque affichage.
+  réponse d'Overpass, seules les observations sont affichées.
 - Onglet **Carte** de la page Problèmes : zones des problèmes (filtres de la liste), couleur du statut, lien vers leur
-  fiche ; un problème de rues est représenté par ses rues surlignées (ses observations seulement si aucune rue n'est
-  trouvée), même sans observation rattachée (rues cherchées dans leur ville).
+  fiche ; un problème de rues est représenté par ses observations.
 - Bouton **Diffuser** sur chaque problème de la liste : appelle les webhooks du nouvel événement `problem.broadcast`
   (« Diffusion d'un problème », variables `problem_*`) et passe le problème « En attente » (journal
   `problem_broadcast`).
@@ -32,8 +49,6 @@
   nombre) de l'encart principal.
 - **Création** d'un problème : une fenêtre s'ouvre aussitôt avec le comptage des observations existantes qui lui
   correspondent et propose de les rattacher (même cadre que sur la fiche).
-- Liste des problèmes : seuls les problèmes **actifs** (ouvert, en cours, en attente) sont affichés par défaut ;
-  statut « Tous » pour les voir tous (`status=all`).
 - **Accueil** de l'admin : nombre de problèmes, avec la part des observations publiées rattachées à un problème et le
   nombre de problèmes actifs (limité à ses villes pour un citystaff).
 
@@ -52,12 +67,6 @@
   les notes internes.
 - Section « Jours et heures » : matrice jours × heures (à la place des deux histogrammes).
 - Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).
-- **Problèmes à inclure** selon leur statut (cases « Ouvert », « En cours »… ; aucune cochée : tous), pour le tableau et
-  le détail des problèmes (paramètre `problem_status[]`).
-- Photo absente : image par défaut « Photo non disponible » (lieux récurrents, détail des problèmes), aussi à
-  l'impression.
-- Cartes du rapport : les points sont **plus petits quand ils se chevauchent** (nombreux lieux proches au zoom
-  affiché), recalculés à chaque zoom, à l'impression et en présentation.
 
 ### Comptes : lien pour choisir son mot de passe
 - Page **Comptes** : à la création (ou à la modification) d'un compte admin ou citystaff avec login, case « Envoyer un

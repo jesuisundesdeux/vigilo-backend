@@ -181,6 +181,10 @@ Aucune action manuelle. La migration 0.0.34, appliquée automatiquement, ajoute 
 de passe (`obs_password_links`). Les liens utilisent l'adresse de l'instance (Configuration, `vigilo_urlbase`) :
 vérifier qu'elle est renseignée.
 
+### Passage à la 0.0.35
+
+Aucune action manuelle, pas de migration.
+
 ### Publier une version (mainteneurs)
 
 Voir le [guide du contributeur](https://github.com/jesuisundesdeux/vigilo-backend/blob/master/doc/GUIDE_CONTRIBUTION.md#publier-une-version).
