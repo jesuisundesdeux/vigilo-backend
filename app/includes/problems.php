@@ -272,6 +272,15 @@ function problem_zone_contains($problem, $lat, $lon)
     return $radius > 0 && distance((float) $problem['problem_lat'], (float) $problem['problem_lon'], $lat, $lon, 'm') <= $radius;
 }
 
+/* Period of the problem as a text ("Depuis le …" or "Du … au …") */
+function problem_period_text($problem)
+{
+    if ($problem['problem_end'] !== null && $problem['problem_end'] !== '') {
+        return 'Du ' . date('d/m/Y', intval($problem['problem_start'])) . ' au ' . date('d/m/Y', intval($problem['problem_end']));
+    }
+    return 'Depuis le ' . date('d/m/Y', intval($problem['problem_start']));
+}
+
 /* Is an observation (position, address, city name) in the zone of the problem? */
 function problem_location_matches($problem, $lat, $lon, $address, $cityname = '')
 {
@@ -987,4 +996,195 @@ function problem_home_stats($db, $city_ids = null)
         $stats['rate']      = $stats['published'] ? $stats['attached'] / $stats['published'] * 100 : 0;
     }
     return $stats;
+}
+
+/*
+ * Analysis of the observations of a problem (report of the problem): when (span, rhythm,
+ * trend, days and hours) and where (dispersion around their center, zone, streets, hot
+ * spots), with sentences summing it up. $observations: report_observations() of the
+ * problem; $now: time of the report. Pure function (no database).
+ */
+function problem_analysis($problem, $observations, $now)
+{
+    require_once(dirname(__FILE__) . '/report.php');
+    $day   = 86400;
+    $count = count($observations);
+    $a     = array('count' => $count, 'time' => array(), 'geo' => array(),
+                   'findings' => array('summary' => array(), 'time' => array(), 'geo' => array(), 'follow' => array()));
+    if (!$count) {
+        return $a;
+    }
+    usort($observations, function ($x, $y) { return $x['time'] - $y['time']; });
+    $times = array();
+    foreach ($observations as $obs) {
+        $times[] = $obs['time'];
+    }
+    $first = $times[0];
+    $last  = $times[$count - 1];
+    $stats = problem_time_stats($observations);
+    $months_fr = report_month_names();
+    $month_label = function ($key) use ($months_fr) {
+        return $months_fr[intval(substr($key, 5, 2))] . ' ' . substr($key, 0, 4);
+    };
+
+    /* When */
+    $active = count(array_filter($stats['months']));
+    $peak   = null;
+    foreach ($stats['months'] as $key => $n) {
+        if ($peak === null || $n > $peak[1]) {
+            $peak = array($key, $n);
+        }
+    }
+    $gaps = array();
+    $longest = null;
+    for ($i = 1; $i < $count; $i++) {
+        $gap = ($times[$i] - $times[$i - 1]) / $day;
+        $gaps[] = $gap;
+        if ($longest === null || $gap > $longest[0]) {
+            $longest = array($gap, $times[$i - 1], $times[$i]);
+        }
+    }
+    $recent = 0;
+    $before = 0;
+    foreach ($times as $time) {
+        if ($time > $now - 90 * $day) {
+            $recent++;
+        } elseif ($time > $now - 180 * $day) {
+            $before++;
+        }
+    }
+    $weekdays = array_sum(array_slice($stats['weekdays'], 0, 5));
+    $day_names = array('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche');
+    $top_day = array_keys($stats['weekdays'], max($stats['weekdays']));
+    $bands = array('Nuit (0 h – 6 h)' => array(0, 6), 'Matin (6 h – 10 h)' => array(6, 10), 'Journée (10 h – 16 h)' => array(10, 16),
+                   'Fin d\'après-midi (16 h – 20 h)' => array(16, 20), 'Soirée (20 h – 24 h)' => array(20, 24));
+    $band_counts = array();
+    foreach ($bands as $label => $range) {
+        $band_counts[$label] = array_sum(array_slice($stats['hours'], $range[0], $range[1] - $range[0]));
+    }
+    arsort($band_counts);
+    $years = array();
+    foreach ($times as $time) {
+        $years[date('Y', $time)] = (isset($years[date('Y', $time)]) ? $years[date('Y', $time)] : 0) + 1;
+    }
+    $months_span = max(1, count($stats['months']));
+    $a['time'] = array('first' => $first, 'last' => $last, 'span_days' => ($last - $first) / $day, 'months' => $stats['months'],
+                       'active_months' => $active, 'per_month' => $count / $months_span, 'peak' => $peak,
+                       'interval_median' => report_median($gaps), 'longest_gap' => $longest, 'recent' => $recent, 'before' => $before,
+                       'since_last' => max(0, ($now - $last) / $day), 'weekday_share' => $weekdays / $count * 100,
+                       'top_day' => $day_names[$top_day[0]], 'top_day_count' => max($stats['weekdays']), 'bands' => $band_counts,
+                       'years' => $years, 'stats' => $stats);
+    $f = &$a['findings']['time'];
+    $f[] = $count . ' observation(s) du ' . report_date($first) . ' au ' . report_date($last)
+        . ($count > 1 ? ', soit ' . report_number($a['time']['per_month'], 1) . ' par mois en moyenne sur ' . $months_span . ' mois (observées '
+            . $active . ' mois sur ' . $months_span . ')' : '') . '.';
+    if ($count > 1 && $peak[1] > 1) {
+        $f[] = 'Mois le plus chargé : ' . $month_label($peak[0]) . ' (' . $peak[1] . ' observations).';
+    }
+    if ($a['time']['since_last'] > 90) {
+        $f[] = $recent_sentence = 'Aucune observation depuis ' . report_number($a['time']['since_last']) . ' jours (dernière le ' . report_date($last) . ').';
+    } else {
+        $trend = $before == 0 ? ($recent > 0 ? 'nouvelles observations' : '') : ($recent > $before * 1.25 ? 'en hausse' : ($recent < $before * 0.75 ? 'en baisse' : 'stable'));
+        $f[] = $recent_sentence = '3 derniers mois : ' . $recent . ' observation(s), contre ' . $before . ' les 3 mois précédents' . ($trend !== '' ? ' (' . $trend . ')' : '') . '.';
+    }
+    if ($count > 2) {
+        $f[] = 'Intervalle médian entre deux observations : ' . report_number($a['time']['interval_median'], $a['time']['interval_median'] < 10 ? 1 : 0)
+            . ' jour(s) ; plus longue période sans observation : ' . report_number($longest[0]) . ' jours (du ' . report_date($longest[1]) . ' au ' . report_date($longest[2]) . ').';
+    }
+    $share = $a['time']['weekday_share'];
+    $f[] = report_number($share) . ' % des observations en semaine (lundi à vendredi'
+        . ($share >= 85 ? ', bien plus que la part des jours de semaine, 71 %' : ($share <= 55 ? ', nettement moins que la part des jours de semaine, 71 % : le week-end est très représenté' : ''))
+        . ') ; jour le plus fréquent : ' . $a['time']['top_day'] . ' (' . $a['time']['top_day_count'] . ').';
+    reset($band_counts);
+    $top_band = key($band_counts);
+    $f[] = 'Plage horaire la plus fréquente : ' . problem_lcfirst($top_band) . ', ' . report_number($band_counts[$top_band] / $count * 100) . ' % des observations.';
+    unset($f);
+
+    /* Where */
+    $lat = 0;
+    $lon = 0;
+    foreach ($observations as $obs) {
+        $lat += $obs['lat'];
+        $lon += $obs['lon'];
+    }
+    $center = array($lat / $count, $lon / $count);
+    $distances = array();
+    $south = $north = $observations[0]['lat'];
+    $west = $east = $observations[0]['lon'];
+    $outside = 0;
+    $streets = array();
+    $cities = array();
+    foreach ($observations as $obs) {
+        $distances[] = distance($center[0], $center[1], $obs['lat'], $obs['lon'], 'm');
+        $south = min($south, $obs['lat']);
+        $north = max($north, $obs['lat']);
+        $west  = min($west, $obs['lon']);
+        $east  = max($east, $obs['lon']);
+        if (!problem_location_matches($problem, $obs['lat'], $obs['lon'], $obs['address'], $obs['city'])) {
+            $outside++;
+        }
+        $street = trim(preg_replace('/^\s*\d+\s*(bis|ter)?\s*,?\s*/i', '', $obs['address']));
+        if ($street !== '') {
+            $streets[$street] = (isset($streets[$street]) ? $streets[$street] : 0) + 1;
+        }
+        $city = $obs['city'] !== '' ? $obs['city'] : 'Ville non renseignée';
+        $cities[$city] = (isset($cities[$city]) ? $cities[$city] : 0) + 1;
+    }
+    sort($distances);
+    arsort($streets);
+    arsort($cities);
+    $median = report_median($distances);
+    $p90 = $distances[min($count - 1, intval(ceil(0.9 * $count)) - 1)];
+    $hotspots = array_values(array_filter(report_groups($observations, 25), function ($g) { return $g['count'] > 1; }));
+    $a['geo'] = array('center' => $center, 'median' => $median, 'p90' => $p90, 'max' => end($distances),
+                      'width' => distance($center[0], $west, $center[0], $east, 'm'), 'height' => distance($south, $center[1], $north, $center[1], 'm'),
+                      'outside' => $outside, 'streets' => array_slice($streets, 0, 10, true), 'street_count' => count($streets),
+                      'cities' => $cities, 'hotspots' => array_slice($hotspots, 0, 8));
+    $f = &$a['findings']['geo'];
+    if ($count > 1) {
+        $spread = $median < 50 ? 'très concentrées' : ($median < 200 ? 'concentrées' : ($median < 600 ? 'assez dispersées' : 'dispersées'));
+        $f[] = 'Observations ' . $spread . ' : la moitié à moins de ' . report_number($median) . ' m de leur centre, 90 % à moins de '
+            . report_number($p90) . ' m (étendue ' . report_number($a['geo']['width']) . ' × ' . report_number($a['geo']['height']) . ' m).';
+    }
+    if ($streets) {
+        reset($streets);
+        $f[] = count($streets) . ' rue(s) concernée(s) ; la plus fréquente : ' . key($streets) . ' (' . current($streets) . ' observation(s), '
+            . report_number(current($streets) / $count * 100) . ' %).';
+    }
+    if (count($cities) > 1) {
+        $f[] = count($cities) . ' villes concernées.';
+    }
+    if ($hotspots) {
+        $f[] = count($hotspots) . ' point(s) chaud(s) : plusieurs observations de même type à moins de 25 m (le plus signalé : '
+            . ($hotspots[0]['address'] !== '' ? $hotspots[0]['address'] . ', ' : '') . $hotspots[0]['count'] . ' observations).';
+    }
+    if ($outside) {
+        $f[] = $outside . ' observation(s) hors de la zone actuelle du problème (rattachées à la main ou avant une modification de la zone).';
+    }
+    unset($f);
+
+    /* Follow-up */
+    $resolved = 0;
+    $delays = array();
+    foreach ($observations as $obs) {
+        if ($obs['status'] == 1) {
+            $resolved++;
+            if ($obs['resolved_time'] > $obs['time']) {
+                $delays[] = ($obs['resolved_time'] - $obs['time']) / $day;
+            }
+        }
+    }
+    $a['follow'] = array('resolved' => $resolved, 'delay' => report_median($delays));
+    $a['findings']['follow'][] = report_number($resolved / $count * 100) . ' % des observations résolues (' . $resolved . ')'
+        . ($delays ? ' ; délai médian de résolution : ' . report_number($a['follow']['delay']) . ' jours' : '') . '.';
+    // Summary: period and rhythm, recent activity, dispersion, follow-up
+    $a['findings']['summary'] = array_values(array_filter(array($a['findings']['time'][0], $recent_sentence,
+                                                                $count > 1 ? $a['findings']['geo'][0] : '', $a['findings']['follow'][0])));
+    return $a;
+}
+
+/* First letter in lower case (UTF-8 safe for the labels of this file, which start with ASCII letters) */
+function problem_lcfirst($text)
+{
+    return strtolower(substr($text, 0, 1)) . substr($text, 1);
 }

@@ -13,6 +13,19 @@
 - Les réponses d'Overpass (rues surlignées) sont gardées dans le navigateur (7 jours, 1 jour quand aucune rue n'est
   trouvée ; jamais les échecs) pour ne pas l'interroger à chaque affichage.
 
+### Rapport d'un problème
+- Bouton **Rapport** sur la fiche d'un problème : rapport imprimable (« Imprimer / PDF »), en document A4 ou en
+  diaporama, avec une **analyse** de ses observations :
+  - synthèse : chiffres clés et constats rédigés ;
+  - **temporalité** : période, rythme (moyenne par mois, intervalle médian, plus longue période sans observation),
+    tendance des 3 derniers mois, mois le plus chargé, frise, évolution par mois (par année au-delà de 3 ans), matrice
+    jours × heures, part des jours de semaine, moments de la journée ;
+  - **répartition géographique** : carte (zone, observations, rues surlignées), dispersion autour du centre (médiane,
+    90 %, étendue), rues et villes concernées, points chauds, observations hors de la zone ;
+  - types, état de traitement et délai de résolution, dernières photos ; jamais les notes internes.
+  Comptes citystaff : problèmes ayant des observations dans leurs villes, et ces observations seulement.
+- Rapports imprimés : les cartes des problèmes sont recentrées à leur largeur imprimée.
+
 ### Rapport pour une collectivité
 - **Problèmes à inclure** selon leur statut (cases « Ouvert », « En cours »… ; aucune cochée : tous), pour le tableau et
   le détail des problèmes (paramètre `problem_status[]`).

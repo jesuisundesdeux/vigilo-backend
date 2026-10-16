@@ -173,3 +173,17 @@ body.presenting .slide.current { display: flex; }
 @page :first { margin-top: 12mm; }
 .report-heatmap { max-width: 760px; }
 .report-heatmap .empty { stroke: #e9ecef; stroke-width: 1; }
+
+/* Report of a problem (problem_report.php) */
+.findings { margin: 4px 0 12px; padding-left: 18px; font-size: 13px; }
+.findings li { margin-bottom: 3px; }
+.report-problem-map.problem-map-large { height: 420px; margin-bottom: 6px; }
+.analysis h3 { font-size: 13px; margin: 14px 0 4px; }
+.report-slides .findings { font-size: 17px; }
+.report-slides .problem-slide .findings { font-size: 15px; }
+@media print {
+  .report-document .problem-map-large { height: 360px; }
+  .report-document .analysis { break-inside: auto; }
+  .report-document .analysis .report-chart { break-inside: avoid; }
+  .report-document .analysis h3 { break-after: avoid; }
+}

@@ -59,11 +59,7 @@ function problem_admin_category_names($problem, $known)
 
 function problem_admin_period($problem)
 {
-    $text = 'Depuis le ' . date('d/m/Y', intval($problem['problem_start']));
-    if ($problem['problem_end'] !== null && $problem['problem_end'] !== '') {
-        $text = 'Du ' . date('d/m/Y', intval($problem['problem_start'])) . ' au ' . date('d/m/Y', intval($problem['problem_end']));
-    }
-    return $text;
+    return problem_period_text($problem);
 }
 
 /* Fields of the form for a problem of the database */
@@ -968,6 +964,7 @@ if ($edit !== null) {
     <div class="d-flex gap-2 align-items-center">
       <span class="badge text-bg-<?= h($priority[1]) ?>"><?= h($priority[0]) ?></span>
       <span class="badge text-bg-<?= h($status[1]) ?>"><?= h($status[0]) ?></span>
+      <a class="btn btn-sm btn-outline-secondary text-nowrap" href="problem_report.php?id=<?= $view_id ?>" target="_blank" rel="noopener" title="Analyse des observations (dates, horaires, lieux) à imprimer ou enregistrer en PDF"><i class="bi bi-file-earmark-bar-graph"></i> Rapport</a>
       <?php if (!$readonly) { ?>
       <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-bs-toggle="modal" data-bs-target="#notesModal"><i class="bi bi-sticky"></i> Notes <span class="badge text-bg-secondary"><?= count($notes) ?></span></button>
       <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a>

@@ -637,6 +637,19 @@ def main():
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Relance <b>mairie</b>\nle 3'})
         clean('problem note', status, page)
         check('Notes de suivi (1)' in page and 'data-bs-target="#notesModal"><i class="bi bi-sticky"></i> Notes <span class="badge text-bg-secondary">1</span>' in page and 'data-reopen-modal="#notesModal"' in page and 'Relance &lt;b&gt;mairie&lt;/b&gt;<br />' in page, 'problem note added and escaped')
+        # Report of the problem (button "Rapport" of the detail): analysis of when and where, document and slides, never the notes
+        check('href="problem_report.php?id=' + pb_gare + '"' in page, 'problem detail: link to its report')
+        status, _, report = admin.request('problem_report.php?id=' + pb_gare)
+        clean('problem report', status, report)
+        check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Synthèse' in report and 'Analyse temporelle' in report
+              and 'Répartition géographique' in report and 'class="report-problem-map problem-map-large"' in report and 'report-heatmap' in report
+              and 'Moments de la journée' in report and 'class="findings"' in report and 'data-print' in report and 'Relance' not in report,
+              'problem report: synthesis, time and place analysis, printable, without the notes')
+        status, _, report = admin.request('problem_report.php?id=' + pb_gare + '&format=slides')
+        clean('problem report slides', status, report)
+        check('report-slides' in report and 'data-present' in report and report.count('<section class="slide') >= 8, 'problem report: slides')
+        status, _, report = admin.request('problem_report.php?id=999999')
+        check(status == 404, 'problem report of an unknown problem: 404')
         # Report: section of the problems (administrators, on request), never the internal notes
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
         clean('report with problems', status, report)
@@ -748,7 +761,8 @@ def main():
 
     # A problem without observation: not shown to a citystaff
     status, _, page = admin.request('index.php?page=problems&edit=new')
-    admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Sans observation'))
+    status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_title='Sans observation'))
+    m_none = re.search(r'view=(\d+)">Sans observation', page)
 
     # Logout
     status, _, page = admin.request('index.php')
@@ -791,6 +805,12 @@ def main():
         check('Note ajoutée' not in page and 'enregistrés' not in page, 'citystaff changes refused')
         status, _, page = staff.request('index.php?page=problems&view=' + m.group(1) + '&action=detach&obsid=1' + '&csrf_token=' + staff.token(page))
         check('détachée' not in page and 'TOKA0001' in page, 'citystaff detach refused')
+        status, _, report = staff.request('problem_report.php?id=' + m.group(1))
+        clean('citystaff problem report', status, report)
+        check('Analyse temporelle' in report and 'de vos villes' in report, 'citystaff problem report (their cities)')
+    if m_none:
+        status, _, report = staff.request('problem_report.php?id=' + m_none.group(1))
+        check(status == 404, 'citystaff problem report of a problem out of their cities: 404')
     status, _, page = staff.request('index.php?page=problems&edit=new')
     check('name="problem_save"' not in page, 'citystaff has no problem form')
     status, _, page = staff.request('index.php?page=observations&approved=1')

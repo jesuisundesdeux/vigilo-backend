@@ -24,6 +24,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 /* Status names of an observation (see resolution_status_from_rank()) */
+/* Names and colors of the categories: id => array(name, color) */
+function report_category_list()
+{
+    $categories = array();
+    foreach ((array) getCategoriesList() as $categorie) {
+        if (isset($categorie['catid'])) {
+            $categories[intval($categorie['catid'])] = array('name' => (string) $categorie['catname'],
+                'color' => isset($categorie['catcolor']) && $categorie['catcolor'] !== '' ? (string) $categorie['catcolor'] : '#9e9e9e');
+        }
+    }
+    return $categories;
+}
+
+function report_category($categories, $id)
+{
+    return isset($categories[$id]) ? $categories[$id] : array('name' => 'Catégorie ' . intval($id), 'color' => '#9e9e9e');
+}
+
+function report_month_names()
+{
+    return array(1 => 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.');
+}
+
+function report_date($time)
+{
+    return date('d/m/Y', $time);
+}
+
+function report_number($value, $decimals = 0)
+{
+    return number_format((float) $value, $decimals, ',', "\u{202F}");
+}
+
+/* Source of the photo of an observation (admin pages): the placeholder image when it has no photo file (printed as is) */
+function report_photo_src($token, $width)
+{
+    global $config;
+    $file = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename((string) $token) . '.jpg';
+    return file_exists($file) ? 'photo.php?s=' . intval($width) . '&token=' . urlencode($token) : 'assets/photo-missing.svg';
+}
+
 function report_status_names()
 {
     return array(0 => 'Sans suite', 2 => 'Prise en compte', 3 => 'En cours de résolution', 4 => 'Indiquée résolue', 1 => 'Résolue');
@@ -90,6 +131,11 @@ function report_where($filters)
     }
     if (count($filters['categories'])) {
         $where .= " AND obs_categorie IN (" . implode(',', array_map('intval', $filters['categories'])) . ")";
+    }
+    // Given observations only (report of a problem)
+    if (isset($filters['ids'])) {
+        $ids = array_values(array_filter(array_map('intval', (array) $filters['ids'])));
+        $where .= $ids ? " AND obs_id IN (" . implode(',', $ids) . ")" : " AND 0";
     }
     return $where;
 }

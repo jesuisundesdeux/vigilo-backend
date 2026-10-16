@@ -44,17 +44,7 @@ $slides  = isset($_GET['format']) && $_GET['format'] === 'slides';
 list($start, $end) = report_bounds($filters);
 
 /* Names and colors of the categories, names and population of the cities */
-$categories = array();
-foreach (getCategoriesList() as $categorie) {
-  if (isset($categorie['catid'])) {
-    $categories[intval($categorie['catid'])] = array('name' => (string) $categorie['catname'],
-      'color' => isset($categorie['catcolor']) && $categorie['catcolor'] !== '' ? (string) $categorie['catcolor'] : '#9e9e9e');
-  }
-}
-function report_category($categories, $id)
-{
-  return isset($categories[$id]) ? $categories[$id] : array('name' => 'Catégorie ' . intval($id), 'color' => '#9e9e9e');
-}
+$categories = report_category_list();
 $cities = array();
 $population = 0;
 $cities_query = mysqli_query($db, "SELECT city_id, city_name, city_population FROM obs_cities ORDER BY city_name");
@@ -100,15 +90,7 @@ $category_names = array();
 foreach ($filters['categories'] as $cat_id) {
   $category_names[] = report_category($categories, $cat_id)['name'];
 }
-$months_fr = array(1 => 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.');
-function report_date($time)
-{
-  return date('d/m/Y', $time);
-}
-function report_number($value, $decimals = 0)
-{
-  return number_format((float) $value, $decimals, ',', "\u{202F}");
-}
+$months_fr = report_month_names();
 $period_text = 'du ' . report_date($start) . ' au ' . report_date($end);
 
 /* Chart data */
@@ -184,14 +166,6 @@ function report_group_html($group, $categories, $cities_shown)
     . '<div class="group-tokens">' . h(implode(' ', $tokens)) . (count($group['observations']) > 8 ? ' …' : '') . '</div>'
     . '</div></article>';
 }
-/* Source of the photo of an observation: the placeholder image when it has no photo file (printed as is) */
-function report_photo_src($token, $width)
-{
-  global $config;
-  $file = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename((string) $token) . '.jpg';
-  return file_exists($file) ? 'photo.php?s=' . intval($width) . '&token=' . urlencode($token) : 'assets/photo-missing.svg';
-}
-
 /* Detail of a problem of the report (one block; two slides) */
 function report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section)
 {
