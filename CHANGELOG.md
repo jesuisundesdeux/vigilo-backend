@@ -28,6 +28,8 @@
   `problem_merge`).
 - Fiche d'un problème : les **notes de suivi** s'ouvrent dans une fenêtre, depuis le bouton « Notes » (avec leur
   nombre) de l'encart principal.
+- **Création** d'un problème : une fenêtre s'ouvre aussitôt avec le comptage des observations existantes qui lui
+  correspondent et propose de les rattacher (même cadre que sur la fiche).
 - **Accueil** de l'admin : nombre de problèmes, avec la part des observations publiées rattachées à un problème et le
   nombre de problèmes actifs (limité à ses villes pour un citystaff).
 
