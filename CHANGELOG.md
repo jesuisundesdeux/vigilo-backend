@@ -16,6 +16,8 @@
   La rue est affichée sous son orthographe la plus fréquente. L'API publique ne change pas.
 
 ### Problèmes
+- Formulaire d'un problème (création, suggestion, modification) : au survol d'une observation de la carte, l'infobulle
+  affiche aussi sa **photo** et sa **date** (en plus du token et de l'adresse).
 - Onglet **Carte** de la page Problèmes : **une couleur par problème** (au lieu d'une couleur par statut), légende
   listant les problèmes avec leur couleur, leur statut et un lien vers leur fiche ; problème résolu ou clos en
   pointillés.

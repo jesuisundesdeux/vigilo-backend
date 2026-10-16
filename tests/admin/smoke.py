@@ -491,6 +491,8 @@ def main():
               and 'ne correspond aux filtres' not in form, 'problem form prefilled by the suggestion (list not filtered)')
         check('name="reference_tokens" value="TOKA0001,TOKA0003"' in form and '&quot;token&quot;:&quot;TOKA0003&quot;' in form
               and 'value="Rue des Lilas, Bourgade"' in form, 'observations of the suggestion on the map, their streets proposed')
+        check(re.search(r'&quot;date&quot;:&quot;\d\d\\/\d\d\\/\d{4}&quot;', form) is not None and '&quot;photo&quot;:&quot;' in form,
+              'date and photo of the observations on the map (tooltip)')
     m = re.search(r'name="problem_suggestion_dismiss" value="([^"]+)"', page)
     if m:
         status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggestion_dismiss': m.group(1)})

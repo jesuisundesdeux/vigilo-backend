@@ -44,6 +44,28 @@
     return cut < 0 ? { street: value, city: '' } : { street: value.slice(0, cut).trim(), city: value.slice(cut + 1).trim() };
   }
 
+  // Tooltip of an observation of reference: photo, token, date and address (as text, not HTML)
+  function observationLabel(p) {
+    var label = document.createElement('div');
+    if (p.photo) {
+      var img = document.createElement('img');
+      img.setAttribute('data-src', p.photo);
+      img.alt = '';
+      img.onerror = function () { this.onerror = null; this.src = 'assets/photo-missing.svg'; };
+      label.appendChild(img);
+    }
+    var title = document.createElement('div');
+    title.className = 'fw-semibold';
+    title.textContent = p.token + (p.date ? ' · ' + p.date : '');
+    label.appendChild(title);
+    if (p.address) {
+      var address = document.createElement('div');
+      address.textContent = p.address;
+      label.appendChild(address);
+    }
+    return label;
+  }
+
   function setup(container) {
     var block = container.closest('.problem-map-block');
     var form = container.closest('form');
@@ -217,10 +239,15 @@
         if (match) { matching++; }
         var color = streetsZone ? (match ? '#198754' : '#6c757d') : (p.kind === 'attached' ? '#198754' : '#fd7e14');
         var dot = L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.9 }).addTo(referenceLayer);
-        // Token and address as text (not HTML)
-        var label = document.createElement('span');
-        label.textContent = p.token + (p.address ? ' – ' + p.address : '');
-        dot.bindTooltip(label);
+        dot.bindTooltip(observationLabel(p), { className: 'problem-obs-tooltip' });
+        // Photo loaded on first hover only (up to 200 observations)
+        dot.on('tooltipopen', function (e) {
+          var img = e.tooltip.getElement().querySelector('img[data-src]');
+          if (img) {
+            img.src = img.getAttribute('data-src');
+            img.removeAttribute('data-src');
+          }
+        });
         dot.on('click', function (e) {
           if (zone() !== 'streets') { return; }
           L.DomEvent.stopPropagation(e);
