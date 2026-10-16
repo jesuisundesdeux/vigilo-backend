@@ -22,6 +22,7 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
 }
 
 require_once(__DIR__ . '/../../includes/problems.php');
+require_once(__DIR__ . '/../../includes/report.php');
 
 $messages   = array();
 $self_url   = '?page=' . urlencode($page_name);
@@ -72,7 +73,7 @@ function problem_admin_form_values($problem)
 
 /*
  * Observations shown on the map of the form (by token, published only): those of a
- * suggestion, or those attached to the problem. List of array(lat, lon, token, address, kind).
+ * suggestion, or those attached to the problem. List of array(lat, lon, token, address, date, photo, kind).
  */
 function problem_admin_reference_points($db, $tokens, $problem_id)
 {
@@ -80,7 +81,8 @@ function problem_admin_reference_points($db, $tokens, $problem_id)
     if ($problem_id > 0) {
         foreach (problem_observations($db, $problem_id) as $row) {
             $points[] = array('lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
-                              'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']), 'kind' => 'attached');
+                              'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']),
+                              'date' => report_date(intval($row['obs_time'])), 'photo' => report_photo_src($row['obs_token'], 240), 'kind' => 'attached');
         }
         return $points;
     }
@@ -94,12 +96,13 @@ function problem_admin_reference_points($db, $tokens, $problem_id)
         return $points;
     }
     $query = mysqli_query($db, "SELECT obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon, obs_list.obs_address_string,
-                                       " . PROBLEM_CITY_SQL . " AS city_label
+                                       obs_list.obs_time, " . PROBLEM_CITY_SQL . " AS city_label
                                 FROM obs_list " . PROBLEM_CITY_JOIN . "
                                 WHERE obs_list.obs_token IN (" . implode(',', $list) . ") AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $points[] = array('lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
-                          'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']), 'kind' => 'suggestion');
+                          'token' => (string) $row['obs_token'], 'address' => problem_full_address($row['obs_address_string'], $row['city_label']),
+                          'date' => report_date(intval($row['obs_time'])), 'photo' => report_photo_src($row['obs_token'], 240), 'kind' => 'suggestion');
     }
     return $points;
 }
