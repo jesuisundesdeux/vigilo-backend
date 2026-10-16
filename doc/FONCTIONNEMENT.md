@@ -79,7 +79,14 @@ observations archivées » est cochée. Le bouton **Diffuser** d'un problème ap
 `problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente ».
 
 La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
-table que les notes des observations), jamais publiées ni reprises dans les rapports.
+table que les notes des observations ; bouton « Notes » de l'encart principal), jamais publiées ni reprises dans les
+rapports.
+
+**Séparer et fusionner** : depuis la fiche, des observations cochées peuvent être déplacées vers un nouveau problème
+(copie du problème, dont il faut ensuite ajuster la zone pour que les nouvelles observations ne correspondent pas aux
+deux) ou vers un autre problème. Un problème peut aussi être fusionné dans un autre : ses observations et ses notes y
+passent, ses catégories s'y ajoutent, la période couvre les deux, la zone du problème choisi est gardée, et il est
+supprimé. L'accueil de l'admin affiche le nombre de problèmes et la part des observations publiées rattachées.
 
 **Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
 catégorie et proches (même méthode que les lieux récurrents des rapports), selon les réglages de la page Configuration

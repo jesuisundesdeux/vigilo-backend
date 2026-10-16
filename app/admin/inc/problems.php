@@ -486,6 +486,27 @@ if (isset($_POST['problem_arbitrate']) && isset($_POST['obs_id'])) {
     }
 }
 
+/* Merge: the problem shown goes into another one, which is then shown */
+if (isset($_POST['problem_merge']) && isset($_GET['view'])) {
+    $source = problem_load($db, $_GET['view']);
+    $target = problem_load($db, $_POST['problem_merge']);
+    if (!$source || !$target || intval($source['problem_id']) == intval($target['problem_id'])) {
+        $messages[] = array('danger', 'Fusion impossible : choisir un autre problème.');
+    } else {
+        $moved = problem_merge($db, $source, $target, $login);
+        if ($moved < 0) {
+            $messages[] = array('danger', 'Impossible de fusionner les problèmes.');
+        } else {
+            audit_log('problem_merge', 'problem:' . intval($target['problem_id']), array('from' => intval($source['problem_id']),
+                      'from_title' => $source['problem_title'], 'title' => $target['problem_title'], 'observations' => $moved));
+            $messages[] = array('success', 'Problème <strong>' . h($source['problem_title']) . '</strong> fusionné dans <a class="alert-link" href="'
+                                           . h($self_url . '&view=' . intval($target['problem_id'])) . '">' . h($target['problem_title']) . '</a> : '
+                                           . intval($moved) . ' observation(s) et ses notes déplacées. Vérifier la zone du problème si besoin.');
+            $_GET['view'] = $target['problem_id'];
+        }
+    }
+}
+
 /* Detail of a problem: count, attribution, manual attach / detach */
 $view   = isset($_GET['view']) ? problem_load($db, $_GET['view']) : null;
 if ($view && $readonly && !problem_observations($db, $view['problem_id'], $staff_cities)) {
@@ -596,6 +617,33 @@ if ($view) {
             $texts = array('already' => 'est déjà rattachée à ce problème', 'unpublished' => 'n\'est pas publiée (seules les observations publiées peuvent être rattachées)',
                            'unknown' => 'est introuvable', 'error' => 'n\'a pas pu être rattachée');
             $messages[] = array($state == 'already' ? 'info' : 'danger', 'L\'observation <strong>' . h($token) . '</strong> ' . $texts[$state] . '.');
+        }
+    }
+    // Split: the checked observations go to a new problem (copy of this one) or to another problem
+    if (isset($_POST['bulk_action']) && in_array($_POST['bulk_action'], array('split_new', 'split_move'), true)) {
+        $obs_ids = isset($_POST['bulk_ids']) && is_array($_POST['bulk_ids']) ? array_slice(array_values(array_unique(array_filter(array_map('intval', $_POST['bulk_ids'])))), 0, 1000) : array();
+        $target  = null;
+        if ($_POST['bulk_action'] == 'split_move') {
+            $target = isset($_POST['split_target']) ? problem_load($db, $_POST['split_target']) : null;
+            if ($target && intval($target['problem_id']) == $view_id) {
+                $target = null;
+            }
+        } else {
+            $title = isset($_POST['split_title']) && is_scalar($_POST['split_title']) ? trim((string) $_POST['split_title']) : '';
+            $new   = $obs_ids ? problem_copy($db, $view, $title !== '' ? $title : $view['problem_title'] . ' (séparé)', $login) : 0;
+            $target = $new ? problem_load($db, $new) : null;
+        }
+        $moved = ($obs_ids && $target) ? problem_move_observations($db, $view_id, $target['problem_id'], $obs_ids, $login) : 0;
+        if (!$moved) {
+            $messages[] = array('warning', 'Aucune observation déplacée (sélection vide ou problème cible invalide).');
+        } else {
+            $target_url = $self_url . '&view=' . intval($target['problem_id']);
+            audit_log('problem_split', 'problem:' . $view_id, array('title' => $view['problem_title'], 'to' => intval($target['problem_id']),
+                      'to_title' => $target['problem_title'], 'new' => $_POST['bulk_action'] == 'split_new', 'observations' => $moved));
+            $messages[] = array('success', intval($moved) . ' observation(s) déplacée(s) vers ' . ($_POST['bulk_action'] == 'split_new' ? 'le nouveau problème' : 'le problème')
+                                           . ' <a class="alert-link" href="' . h($target_url) . '">' . h($target['problem_title']) . '</a>.'
+                                           . ($_POST['bulk_action'] == 'split_new' ? ' Il reprend la zone de celui-ci : <a class="alert-link" href="' . h($self_url . '&edit=' . intval($target['problem_id'])) . '#zone">modifier sa zone</a>
+                                              pour que les nouvelles observations soient rattachées au bon problème.' : ''));
         }
     }
     if (isset($_GET['action']) && $_GET['action'] == 'detach' && isset($_GET['obsid'])) {
@@ -838,6 +886,12 @@ if ($edit !== null) {
                       'radius' => intval($view['problem_radius']), 'polygon' => problem_polygon_points($view['problem_polygon']), 'points' => $points,
                       'streets' => problem_streets_list(isset($view['problem_streets']) ? $view['problem_streets'] : ''),
                       'center' => $map_center, 'zoom' => $map_zoom);
+    // Follow-up notes (obs_notes), in a window opened from the main card
+    $notes = array();
+    $query = $readonly ? false : mysqli_query($db, "SELECT * FROM obs_notes WHERE note_problemid = " . $view_id . " ORDER BY note_time ASC, note_id ASC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $notes[] = $row;
+    }
 ?>
 <p><a href="<?= h($self_url) ?>"><i class="bi bi-arrow-left"></i> Tous les problèmes</a></p>
 <div class="card shadow-sm mb-4">
@@ -846,7 +900,10 @@ if ($edit !== null) {
     <div class="d-flex gap-2 align-items-center">
       <span class="badge text-bg-<?= h($priority[1]) ?>"><?= h($priority[0]) ?></span>
       <span class="badge text-bg-<?= h($status[1]) ?>"><?= h($status[0]) ?></span>
-      <?php if (!$readonly) { ?><a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a><?php } ?>
+      <?php if (!$readonly) { ?>
+      <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-bs-toggle="modal" data-bs-target="#notesModal"><i class="bi bi-sticky"></i> Notes <span class="badge text-bg-secondary"><?= count($notes) ?></span></button>
+      <a class="btn btn-sm btn-outline-primary" href="<?= h($self_url) ?>&amp;edit=<?= $view_id ?>"><i class="bi bi-pencil"></i> Modifier</a>
+      <?php } ?>
     </div>
   </div>
   <div class="card-body">
@@ -987,12 +1044,13 @@ if ($edit !== null) {
       $page_rows  = array_slice($attached, ($obs_page - 1) * $per_page, $per_page); ?>
   <div class="table-responsive">
     <table class="table table-hover align-middle table-admin table-stack-md mb-0">
-      <thead><tr><th scope="col">Photo</th><th scope="col">Observation</th><th scope="col">Catégorie</th><th scope="col">Rattachement</th><th scope="col"></th></tr></thead>
+      <thead><tr><?php if (!$readonly) { ?><th scope="col"><span class="visually-hidden">Sélection</span></th><?php } ?><th scope="col">Photo</th><th scope="col">Observation</th><th scope="col">Catégorie</th><th scope="col">Rattachement</th><th scope="col"></th></tr></thead>
       <tbody>
       <?php foreach ($page_rows as $row) {
           $token = (string) $row['obs_token'];
           $catid = intval($row['obs_categorie']); ?>
         <tr>
+          <?php if (!$readonly) { ?><td><input class="form-check-input" type="checkbox" name="bulk_ids[]" value="<?= intval($row['obs_id']) ?>" form="split-form" aria-label="Sélectionner l'observation <?= h($token) ?>"></td><?php } ?>
           <td><a href="<?= h('photo.php?s=800&token=' . urlencode($token)) ?>" data-photo data-photo-title="Observation <?= h($token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($token) ?>" src="<?= h('photo.php?s=200&token=' . urlencode($token)) ?>"></a></td>
           <td>
             <a class="fw-semibold" href="?page=observations&amp;approved=<?= intval($row['obs_approved']) ?>&amp;filtertype=uniq&amp;filtertoken=<?= h(urlencode($token)) ?>&amp;searcharchived=all"><?= h($token) ?></a>
@@ -1022,40 +1080,106 @@ if ($edit !== null) {
     <div class="small text-body-secondary mt-1"><?= ($obs_page - 1) * $per_page + 1 ?> à <?= min(count($attached), $obs_page * $per_page) ?> sur <?= count($attached) ?></div>
   </nav>
   <?php } ?>
+  <?php if (!$readonly) {
+      $other_titles = $titles;
+      unset($other_titles[$view_id]);
+      asort($other_titles, SORT_NATURAL | SORT_FLAG_CASE); ?>
+  <form method="POST" action="<?= h($view_url . ($obs_page > 1 ? '&opage=' . $obs_page : '')) ?>" id="split-form" class="card-footer" data-bulk>
+    <?= csrf_field() ?>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="form-check mb-0 me-2">
+        <input class="form-check-input" type="checkbox" id="split-all" data-bulk-all>
+        <label class="form-check-label" for="split-all">Toute la page</label>
+      </div>
+      <span class="text-body-secondary small me-2"><strong data-bulk-count>0</strong> sélectionnée(s)</span>
+      <label class="visually-hidden" for="split-action">Séparer le problème</label>
+      <select class="form-select form-select-sm w-auto" name="bulk_action" id="split-action">
+        <option value="">Séparer : déplacer la sélection…</option>
+        <option value="split_new" data-field="split_new" data-confirm="Déplacer %n observation(s) vers un nouveau problème ?">vers un nouveau problème</option>
+        <?php if ($other_titles) { ?><option value="split_move" data-field="split_move" data-confirm="Déplacer %n observation(s) vers le problème choisi ?">vers un autre problème</option><?php } ?>
+      </select>
+      <span data-bulk-field="split_new" hidden>
+        <label class="visually-hidden" for="split-title">Titre du nouveau problème</label>
+        <input class="form-control form-control-sm" id="split-title" name="split_title" maxlength="200" value="<?= h($view['problem_title'] . ' (séparé)') ?>" style="min-width: 14rem;">
+      </span>
+      <span data-bulk-field="split_move" hidden>
+        <label class="visually-hidden" for="split-target">Problème cible</label>
+        <select class="form-select form-select-sm w-auto mw-100" name="split_target" id="split-target">
+          <option value="">— problème —</option>
+          <?php foreach ($other_titles as $other_id => $other_title) { ?>
+          <option value="<?= intval($other_id) ?>"><?= h($other_title) ?></option>
+          <?php } ?>
+        </select>
+      </span>
+      <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-scissors"></i> Déplacer</button>
+    </div>
+    <div class="form-text">Le nouveau problème reprend les catégories, la zone, la période, la priorité et le statut de celui-ci : ajuster ensuite sa zone.</div>
+  </form>
+  <?php } ?>
   <?php } ?>
 </div>
 <?php if (!$readonly) { ?>
-<?php
-    $notes = array();
-    $query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_problemid = " . $view_id . " ORDER BY note_time ASC, note_id ASC");
-    while ($query && ($row = mysqli_fetch_assoc($query))) {
-        $notes[] = $row;
-    } ?>
-<div class="card shadow-sm mb-4">
-  <div class="card-header fw-semibold"><i class="bi bi-sticky"></i> Notes internes (<?= count($notes) ?>)</div>
-  <div class="card-body">
-    <p class="small text-body-secondary"><i class="bi bi-lock"></i> Visibles seulement dans l'admin : jamais publiées ni reprises dans les rapports.</p>
-    <?php foreach ($notes as $note) { ?>
-    <div class="border-bottom pb-2 mb-2">
-      <div class="d-flex justify-content-between align-items-start gap-2">
-        <div class="small text-body-secondary"><i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?></div>
+<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="notesModalTitle"><i class="bi bi-sticky"></i> Notes de suivi (<?= count($notes) ?>)</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-body-secondary"><i class="bi bi-lock"></i> Visibles seulement dans l'admin : jamais publiées ni reprises dans les rapports.</p>
+        <?php if (!$notes) { ?><p class="small text-body-secondary">Aucune note pour l'instant.</p><?php } ?>
+        <?php foreach ($notes as $note) { ?>
+        <div class="border-bottom pb-2 mb-2">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="small text-body-secondary"><i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?></div>
+            <form method="POST" action="<?= h($view_url) ?>" class="m-0">
+              <?= csrf_field() ?>
+              <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>">
+              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" name="problem_note_delete" value="1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
+            </form>
+          </div>
+          <div class="small text-break"><?= nl2br(h($note['note_text'])) ?></div>
+        </div>
+        <?php } ?>
+      </div>
+      <div class="modal-footer d-block">
         <form method="POST" action="<?= h($view_url) ?>" class="m-0">
           <?= csrf_field() ?>
-          <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>">
-          <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" name="problem_note_delete" value="1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
+          <label class="visually-hidden" for="note_text">Nouvelle note</label>
+          <textarea class="form-control form-control-sm mb-2" id="note_text" name="note_text" rows="2" maxlength="5000" placeholder="Échange avec la mairie, relance, décision…" required></textarea>
+          <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_note_add" value="1"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
         </form>
       </div>
-      <div class="small text-break"><?= nl2br(h($note['note_text'])) ?></div>
     </div>
-    <?php } ?>
-    <form method="POST" action="<?= h($view_url) ?>" class="m-0">
+  </div>
+</div>
+<?php if (isset($_POST['problem_note_add']) || isset($_POST['problem_note_delete'])) { ?><div hidden data-reopen-modal="#notesModal"></div><?php } ?>
+<?php if (count($titles) > 1) {
+    $other_titles = $titles;
+    unset($other_titles[$view_id]);
+    asort($other_titles, SORT_NATURAL | SORT_FLAG_CASE); ?>
+<div class="card shadow-sm mb-4" id="merge">
+  <div class="card-header fw-semibold"><i class="bi bi-intersect"></i> Fusionner avec un autre problème</div>
+  <div class="card-body">
+    <p class="small text-body-secondary">
+      Les observations et les notes de ce problème passent dans le problème choisi, qui reprend aussi ses catégories et
+      une période couvrant les deux ; ce problème est ensuite supprimé. La zone du problème choisi est conservée.
+    </p>
+    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap gap-2">
       <?= csrf_field() ?>
-      <label class="visually-hidden" for="note_text">Nouvelle note</label>
-      <textarea class="form-control form-control-sm mb-2" id="note_text" name="note_text" rows="2" maxlength="5000" placeholder="Échange avec la mairie, relance, décision…" required></textarea>
-      <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_note_add" value="1"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
+      <label class="visually-hidden" for="merge-target">Problème qui reçoit celui-ci</label>
+      <select class="form-select form-select-sm w-auto mw-100" name="problem_merge" id="merge-target" required>
+        <option value="">— fusionner dans… —</option>
+        <?php foreach ($other_titles as $other_id => $other_title) { ?>
+        <option value="<?= intval($other_id) ?>"><?= h($other_title) ?></option>
+        <?php } ?>
+      </select>
+      <button class="btn btn-sm btn-outline-danger" type="submit" data-confirm="Fusionner « <?= h($view['problem_title']) ?> » dans le problème choisi ? Ce problème sera supprimé."><i class="bi bi-intersect"></i> Fusionner</button>
     </form>
   </div>
 </div>
+<?php } ?>
 <?php } ?>
 <link href="assets/vendor/leaflet/leaflet.css" rel="stylesheet">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
