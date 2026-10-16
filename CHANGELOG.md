@@ -2,6 +2,12 @@
 
 ## 0.0.36
 
+### Observations
+- Page Observations : seuls les boutons utiles sont affichés. Pas de « Approuver » pour une observation approuvée, pas
+  de « Désapprouver » pour une observation refusée, « Nouvelle résolution » pour les seules observations approuvées.
+  Les actions groupées suivent l'onglet (modération, résolutions) et le filtre d'archives (« Archiver » ou
+  « Désarchiver »).
+
 ### Problèmes
 - Onglet **Carte** de la page Problèmes : **une couleur par problème** (au lieu d'une couleur par statut), légende
   listant les problèmes avec leur couleur, leur statut et un lien vers leur fiche ; problème résolu ou clos en
