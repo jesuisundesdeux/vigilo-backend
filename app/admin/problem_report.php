@@ -71,7 +71,7 @@ foreach (problem_category_ids($problem) as $cat_id) {
 }
 $title       = 'Problème : ' . $problem['problem_title'];
 $period_text = $count ? 'Observations du ' . report_date($analysis['time']['first']) . ' au ' . report_date($analysis['time']['last']) : 'Aucune observation publiée';
-$info_text   = 'Statut : ' . $status . ' · Priorité : ' . $priority . ' · ' . implode(', ', $category_names);
+$info_text   = 'Statut : ' . $status . ' · Priorité : ' . $priority . ' · ' . ($category_names ? implode(', ', $category_names) : 'Toutes les catégories');
 $self        = 'problem_report.php?id=' . intval($problem['problem_id']);
 
 $section = function ($title, $content, $class = '') use ($slides) {
@@ -130,7 +130,7 @@ $findings = function ($list) {
     $info = '<dl class="problem-info">'
       . '<dt>Statut</dt><dd>' . h($status) . '</dd><dt>Priorité</dt><dd>' . h($priority) . '</dd>'
       . '<dt>Créé le</dt><dd>' . (intval($problem['problem_created_time']) ? h(report_date(intval($problem['problem_created_time']))) : '—') . '</dd>'
-      . '<dt>Catégories</dt><dd>' . h(implode(', ', $category_names)) . '</dd>'
+      . '<dt>Catégories</dt><dd>' . h($category_names ? implode(', ', $category_names) : 'Toutes les catégories') . '</dd>'
       . '<dt>Zone</dt><dd>' . h(problem_zone_label($problem)) . '</dd>'
       . '<dt>Période suivie</dt><dd>' . h(problem_period_text($problem)) . '</dd>'
       . '</dl>'

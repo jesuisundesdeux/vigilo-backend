@@ -68,7 +68,7 @@ function problem_load($db, $id)
     return $row ? $row : null;
 }
 
-/* Category ids of a problem (comma-separated in problem_categories) */
+/* Category ids of a problem (comma-separated in problem_categories); none = all categories */
 function problem_category_ids($problem)
 {
     $ids = array();
@@ -293,12 +293,12 @@ function problem_candidates_where($problem, $include_archived = false)
     $categories = problem_category_ids($problem);
     $streets    = $problem['problem_zone'] == 'streets';
     $bbox       = $streets ? null : problem_bbox($problem);
-    if (!$categories || (!$streets && !$bbox)
+    if ((!$streets && !$bbox)
         || ($streets && !problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''))) {
         return "0";
     }
     $where = "obs_list.obs_complete = 1 AND obs_list.obs_approved = 1" . ($include_archived ? "" : " AND obs_list.obs_archived = 0")
-           . " AND obs_list.obs_categorie IN (" . implode(',', $categories) . ")"
+           . ($categories ? " AND obs_list.obs_categorie IN (" . implode(',', $categories) . ")" : "")
            . " AND obs_list.obs_time >= " . intval($problem['problem_start']);
     if ($problem['problem_end'] !== null && $problem['problem_end'] !== '') {
         $where .= " AND obs_list.obs_time <= " . intval($problem['problem_end']);
@@ -398,9 +398,6 @@ function problem_from_post($post, $known_categories)
     );
     if ($problem['problem_title'] === '') {
         $errors[] = 'Le titre est obligatoire.';
-    }
-    if (!$categories) {
-        $errors[] = 'Choisir au moins une catégorie.';
     }
     // Streets typed in the form (one per field: "Rue X, Ville"), kept for the form even with another zone
     $streets = array();
@@ -606,7 +603,7 @@ function problem_titles($db)
 function problem_matches_observation($problem, $obs)
 {
     if (intval($obs['obs_complete']) != 1 || intval($obs['obs_approved']) != 1
-        || !in_array(intval($obs['obs_categorie']), problem_category_ids($problem), true)
+        || (problem_category_ids($problem) && !in_array(intval($obs['obs_categorie']), problem_category_ids($problem), true))
         || intval($obs['obs_time']) < intval($problem['problem_start'])
         || ($problem['problem_end'] !== null && $problem['problem_end'] !== '' && intval($obs['obs_time']) > intval($problem['problem_end']))) {
         return false;
@@ -950,7 +947,9 @@ function problem_merge($db, $source, $target, $login)
     }
     $moved = problem_move_observations($db, $source['problem_id'], $target['problem_id'], null, $login);
     mysqli_query($db, "UPDATE obs_notes SET note_problemid = " . intval($target['problem_id']) . " WHERE note_problemid = " . intval($source['problem_id']));
-    $categories = array_values(array_unique(array_merge(problem_category_ids($target), problem_category_ids($source))));
+    // One of them on all categories (none chosen): the merged problem too
+    $categories = (problem_category_ids($target) && problem_category_ids($source))
+                ? array_values(array_unique(array_merge(problem_category_ids($target), problem_category_ids($source)))) : array();
     $start      = min(intval($target['problem_start']), intval($source['problem_start']));
     $no_end     = $target['problem_end'] === null || $target['problem_end'] === '' || $source['problem_end'] === null || $source['problem_end'] === '';
     $end        = $no_end ? 'NULL' : max(intval($target['problem_end']), intval($source['problem_end']));

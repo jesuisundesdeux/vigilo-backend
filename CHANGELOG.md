@@ -16,6 +16,14 @@
   La rue est affichée sous son orthographe la plus fréquente. L'API publique ne change pas.
 
 ### Problèmes
+- Formulaire d'un problème : **aucune catégorie cochée = toutes les catégories**, comme pour les filtres des webhooks
+  et des rapports (« Toutes les catégories » affiché dans la liste, la fiche, les rapports et la variable
+  `{{problem_categories}}` des webhooks ; un tel problème apparaît avec le filtre de n'importe quelle catégorie ; une
+  fusion avec un problème sans catégorie donne un problème sur toutes les catégories).
+- Après l'enregistrement d'un problème (création ou modification), sa **fiche** s'affiche au lieu de la liste
+  (« Annuler » y revient aussi). Sur la fiche, les actions ramènent à leur cadre avec leur message : **Compter** et
+  **Rattacher** au cadre « Rattachement des observations existantes », rattachement par token, **Détacher** et
+  **Séparer** au cadre des observations rattachées.
 - Formulaire d'un problème (création, suggestion, modification) : au survol d'une observation de la carte, l'infobulle
   affiche aussi sa **photo** et sa **date** (en plus du token et de l'adresse).
 - Onglet **Carte** de la page Problèmes : **une couleur par problème** (au lieu d'une couleur par statut), légende

@@ -56,7 +56,8 @@ list($problem, $errors) = problem_from_post(array_merge($post, array('problem_en
 check($errors === array() && $problem['problem_end'] === strtotime('2020-01-01 23:59:59'), 'form: end day included');
 list($problem, $errors) = problem_from_post(array_merge($post, array('problem_title' => '', 'problem_categories' => array('99'), 'problem_radius' => '5',
                                                                    'problem_start' => '2020-02-30', 'problem_status' => 'x', 'problem_priority' => '9')), $known);
-check(count($errors) == 4 && $problem['problem_status'] === 'open' && $problem['problem_priority'] === 2, 'form: title, category, radius, start date checked; unknown status and priority replaced');
+check(count($errors) == 3 && $problem['problem_status'] === 'open' && $problem['problem_priority'] === 2, 'form: title, radius, start date checked; unknown status and priority replaced');
+check($problem['problem_categories'] === '', 'form: no (known) category = all categories');
 list($problem, $errors) = problem_from_post(array_merge($post, array('problem_lat' => '', 'problem_lon' => '')), $known);
 check(in_array('Placer le centre du cercle sur la carte.', $errors, true), 'form: circle without center refused');
 
@@ -97,6 +98,13 @@ check(count($errors) == 1, 'form: zone of streets without street refused');
 check(strpos(problem_candidates_where(array_merge($circle, array('problem_categories' => '2', 'problem_start' => 0, 'problem_end' => null))), 'obs_archived = 0') !== false
       && strpos(problem_candidates_where(array_merge($circle, array('problem_categories' => '2', 'problem_start' => 0, 'problem_end' => null)), true), 'obs_archived') === false,
       'archived observations excluded unless asked');
+
+// No category: all categories
+$all = array_merge($circle, array('problem_categories' => '', 'problem_start' => 0, 'problem_end' => null));
+check(problem_candidates_where($all) !== '0' && strpos(problem_candidates_where($all), 'obs_categorie') === false
+      && strpos(problem_candidates_where(array_merge($all, array('problem_categories' => '2'))), 'obs_categorie IN (2)') !== false, 'no category: no condition on the category');
+$obs = array('obs_complete' => 1, 'obs_approved' => 1, 'obs_categorie' => 7, 'obs_time' => 100, 'obs_coordinates_lat' => 43.6, 'obs_coordinates_lon' => 3.9);
+check(problem_matches_observation($all, $obs) && !problem_matches_observation(array_merge($all, array('problem_categories' => '2')), $obs), 'no category: observation of any category matches');
 
 // Distribution in time
 $stats = problem_time_stats(array(array('obs_time' => mktime(8, 30, 0, 11, 30, 2020)), array('time' => mktime(18, 0, 0, 2, 1, 2021)), array('obs_time' => 0)));

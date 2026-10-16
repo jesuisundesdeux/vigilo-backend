@@ -179,7 +179,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   $info = '<dl class="problem-info">'
     . '<dt>Statut</dt><dd>' . h($status) . '</dd><dt>Priorité</dt><dd>' . h($prio) . '</dd>'
     . '<dt>Créé le</dt><dd>' . (intval($problem['problem_created_time']) ? h(report_date(intval($problem['problem_created_time']))) : '—') . '</dd>'
-    . '<dt>Catégories</dt><dd>' . h(implode(', ', $names)) . '</dd>'
+    . '<dt>Catégories</dt><dd>' . h($names ? implode(', ', $names) : 'Toutes les catégories') . '</dd>'
     . '<dt>Zone</dt><dd>' . h(problem_zone_label($problem)) . '</dd>'
     . '<dt>Observations</dt><dd>' . report_number($row['count']) . ' dans le rapport' . ($row['total'] != $row['count'] ? ' (' . report_number($row['total']) . ' au total)' : '')
     . ', du ' . h(report_date($row['first'])) . ' au ' . h(report_date($row['last'])) . '</dd>'
