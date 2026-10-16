@@ -878,3 +878,99 @@ function problem_time_charts($stats, $color = '#3f6fb5')
         'heatmap'  => report_svg_heatmap($stats['grid'], 'Observations par jour de la semaine et par heure'),
     );
 }
+
+/*
+ * Moves observations of a problem to another one (all of them, or those of $obs_ids):
+ * attachment mode "manual" by $login. Returns the number of observations moved.
+ */
+function problem_move_observations($db, $from_id, $to_id, $obs_ids, $login)
+{
+    $where = "po_problemid = " . intval($from_id);
+    if ($obs_ids !== null) {
+        $ids = array_values(array_filter(array_map('intval', (array) $obs_ids)));
+        if (!$ids) {
+            return 0;
+        }
+        $where .= " AND po_obsid IN (" . implode(',', $ids) . ")";
+    }
+    mysqli_query($db, "UPDATE obs_problem_observations SET po_problemid = " . intval($to_id) . ", po_mode = 'manual', po_time = " . time() . ",
+                       po_login = '" . mysqli_real_escape_string($db, (string) $login) . "' WHERE " . $where);
+    return max(0, mysqli_affected_rows($db));
+}
+
+/*
+ * Copy of a problem (split): same categories, zone, period, priority and status, title
+ * $title; no observation, no note. Returns the new id, 0 on failure.
+ */
+function problem_copy($db, $problem, $title, $login)
+{
+    $columns = array('problem_description', 'problem_categories', 'problem_zone', 'problem_lat', 'problem_lon', 'problem_radius',
+                     'problem_polygon', 'problem_streets', 'problem_start', 'problem_end', 'problem_priority', 'problem_status');
+    $fields  = array('problem_title' => "'" . mysqli_real_escape_string($db, vigilo_truncate($title, 200)) . "'");
+    foreach ($columns as $column) {
+        $fields[$column] = array_key_exists($column, $problem) && $problem[$column] !== null
+            ? "'" . mysqli_real_escape_string($db, (string) $problem[$column]) . "'" : 'NULL';
+    }
+    foreach (array('problem_created_time', 'problem_updated_time') as $column) {
+        $fields[$column] = time();
+    }
+    foreach (array('problem_created_login', 'problem_updated_login') as $column) {
+        $fields[$column] = "'" . mysqli_real_escape_string($db, (string) $login) . "'";
+    }
+    $ok = mysqli_query($db, "INSERT INTO obs_problems (" . implode(', ', array_keys($fields)) . ") VALUES (" . implode(', ', $fields) . ")");
+    return $ok ? intval(mysqli_insert_id($db)) : 0;
+}
+
+/*
+ * Merge: the observations and the notes of $source go to $target, which also takes the
+ * categories of $source and a period covering both; $source is deleted. The zone of
+ * $target is kept. Returns the number of observations moved, -1 on failure.
+ */
+function problem_merge($db, $source, $target, $login)
+{
+    if (intval($source['problem_id']) == intval($target['problem_id'])) {
+        return -1;
+    }
+    $moved = problem_move_observations($db, $source['problem_id'], $target['problem_id'], null, $login);
+    mysqli_query($db, "UPDATE obs_notes SET note_problemid = " . intval($target['problem_id']) . " WHERE note_problemid = " . intval($source['problem_id']));
+    $categories = array_values(array_unique(array_merge(problem_category_ids($target), problem_category_ids($source))));
+    $start      = min(intval($target['problem_start']), intval($source['problem_start']));
+    $no_end     = $target['problem_end'] === null || $target['problem_end'] === '' || $source['problem_end'] === null || $source['problem_end'] === '';
+    $end        = $no_end ? 'NULL' : max(intval($target['problem_end']), intval($source['problem_end']));
+    $ok = mysqli_query($db, "UPDATE obs_problems SET problem_categories = '" . mysqli_real_escape_string($db, implode(',', $categories)) . "',
+                             problem_start = " . $start . ", problem_end = " . $end . ", problem_updated_time = " . time() . ",
+                             problem_updated_login = '" . mysqli_real_escape_string($db, (string) $login) . "'
+                             WHERE problem_id = " . intval($target['problem_id']));
+    if (!$ok) {
+        return -1;
+    }
+    mysqli_query($db, "DELETE FROM obs_problems WHERE problem_id = " . intval($source['problem_id']));
+    return $moved;
+}
+
+/* Statistics of the home page: number of problems, active ones, share of the published observations attached (of the cities $city_ids if not null) */
+function problem_home_stats($db, $city_ids = null)
+{
+    $stats = array('problems' => 0, 'active' => 0, 'published' => 0, 'attached' => 0, 'rate' => 0);
+    $city  = $city_ids === null ? "" : " AND " . problem_city_condition($city_ids);
+    $query = mysqli_query($db, "SELECT problem_status, COUNT(*) AS nb FROM obs_problems"
+                               . ($city_ids === null ? "" : " WHERE problem_id IN (SELECT po_problemid FROM obs_problem_observations
+                                    INNER JOIN obs_list ON obs_list.obs_id = obs_problem_observations.po_obsid WHERE 1" . $city . ")")
+                               . " GROUP BY problem_status");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $stats['problems'] += intval($row['nb']);
+        if (in_array($row['problem_status'], problem_active_statuses(), true)) {
+            $stats['active'] += intval($row['nb']);
+        }
+    }
+    $query = mysqli_query($db, "SELECT COUNT(*) AS published, COUNT(obs_problem_observations.po_obsid) AS attached FROM obs_list
+                                LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                WHERE obs_list.obs_complete = 1 AND obs_list.obs_approved = 1" . $city);
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    if ($row) {
+        $stats['published'] = intval($row['published']);
+        $stats['attached']  = intval($row['attached']);
+        $stats['rate']      = $stats['published'] ? $stats['attached'] / $stats['published'] * 100 : 0;
+    }
+    return $stats;
+}

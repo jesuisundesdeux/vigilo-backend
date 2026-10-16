@@ -82,6 +82,14 @@ $stats = array(
     array('label' => 'En attente de modération', 'value' => $count_waitingapprove, 'icon' => 'hourglass-split', 'color' => 'warning')
 );
 
+/* Problems: count, share of the published observations attached to one */
+require_once(dirname(__FILE__) . '/../../includes/problems.php');
+$problem_stats = problem_home_stats($db, $_SESSION['role'] == 'citystaff' ? $role_cityIds : null);
+$stats[] = array('label' => 'Problèmes', 'value' => $problem_stats['problems'], 'icon' => 'diagram-3', 'color' => 'secondary', 'url' => '?page=problems',
+                 'sub' => number_format($problem_stats['rate'], $problem_stats['rate'] > 0 && $problem_stats['rate'] < 10 ? 1 : 0, ',', ' ')
+                          . ' % des observations publiées rattachées (' . $problem_stats['attached'] . ' / ' . $problem_stats['published'] . ')'
+                          . ' · ' . $problem_stats['active'] . ' actif(s)');
+
 /* First configuration: steps left (admins), with the listing in vigilo-conf */
 require_once(dirname(__FILE__) . '/setup_checklist.php');
 if ($is_admin) {
@@ -142,14 +150,15 @@ if (file_exists('../install.php') && !@unlink('../install.php') && $is_admin) {
 }
 ?>
 
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-5 g-3 mb-4">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-6 g-3 mb-4">
 <?php foreach ($stats as $stat) { ?>
   <div class="col">
     <div class="card stat-card h-100 shadow-sm border-start border-4 border-<?= h($stat['color']) ?>">
       <div class="card-body d-flex align-items-center justify-content-between">
         <div>
-          <div class="text-body-secondary small text-uppercase"><?= h($stat['label']) ?></div>
+          <div class="text-body-secondary small text-uppercase"><?php if (isset($stat['url'])) { ?><a class="link-secondary stretched-link text-decoration-none" href="<?= h($stat['url']) ?>"><?= h($stat['label']) ?></a><?php } else { ?><?= h($stat['label']) ?><?php } ?></div>
           <div class="display-6"><?= intval($stat['value']) ?></div>
+          <?php if (isset($stat['sub'])) { ?><div class="small text-body-secondary"><?= h($stat['sub']) ?></div><?php } ?>
         </div>
         <i class="bi bi-<?= h($stat['icon']) ?> fs-1 text-<?= h($stat['color']) ?> opacity-75" aria-hidden="true"></i>
       </div>

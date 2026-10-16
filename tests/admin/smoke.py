@@ -615,7 +615,7 @@ def main():
         check('Statut et priorité enregistrés' in page and '>En attente</span>' in page and '>Critique</span>' in page, 'status and priority changed from the detail')
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Relance <b>mairie</b>\nle 3'})
         clean('problem note', status, page)
-        check('Notes internes (1)' in page and 'Relance &lt;b&gt;mairie&lt;/b&gt;<br />' in page, 'problem note added and escaped')
+        check('Notes de suivi (1)' in page and 'data-bs-target="#notesModal"><i class="bi bi-sticky"></i> Notes <span class="badge text-bg-secondary">1</span>' in page and 'data-reopen-modal="#notesModal"' in page and 'Relance &lt;b&gt;mairie&lt;/b&gt;<br />' in page, 'problem note added and escaped')
         # Report: section of the problems (administrators, on request), never the internal notes
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
         clean('report with problems', status, report)
@@ -635,7 +635,36 @@ def main():
             status, _, obs_page = admin.request('index.php?page=observations&approved=1', {'csrf_token': admin.token(page), 'note_action': 'delete', 'note_id': m.group(1)})
             check('Note introuvable' in obs_page, 'problem note not deleted from the observations page')
             status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_delete': '1', 'note_id': m.group(1)})
-            check('Note supprimée' in page and 'Notes internes (0)' in page, 'problem note deleted')
+            check('Note supprimée' in page and 'Notes de suivi (0)' in page, 'problem note deleted')
+        # Split: TOKA0001 moved to a new problem (copy of Gare), then merged back with its note
+        status, _, page = admin.request(gare_url)
+        check('id="split-form"' in page and 'name="bulk_ids[]" value="1" form="split-form"' in page and 'id="merge"' in page, 'split and merge forms on the detail')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'bulk_action': 'split_new', 'bulk_ids[]': ['1'], 'split_title': 'Gare <i>nord</i>'})
+        clean('problem split', status, page)
+        m = re.search(r'vers le nouveau problème <a class="alert-link" href="\?page=problems&amp;view=(\d+)">Gare &lt;i&gt;nord&lt;/i&gt;</a>', page)
+        check(m is not None and 'Observations rattachées (0)' in page and 'modifier sa zone' in page, 'observation split into a new problem')
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'bulk_action': 'split_move', 'bulk_ids[]': ['1'], 'split_target': pb_gare})
+        check('Aucune observation déplacée' in page, 'split towards the same problem refused')
+        if m:
+            north_url = 'index.php?page=problems&view=' + m.group(1)
+            status, _, page = admin.request(north_url)
+            check('Observations rattachées (1)' in page and 'Cercle de 150 m' in page and '>Critique</span>' in page, 'new problem: observation, zone and priority copied')
+            status, _, page = admin.request(north_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Note du nord'})
+            status, _, page = admin.request(north_url, {'csrf_token': admin.token(page), 'problem_merge': m.group(1)})
+            check('Fusion impossible' in page, 'merge of a problem into itself refused')
+            status, _, page = admin.request(north_url, {'csrf_token': admin.token(page), 'problem_merge': pb_gare})
+            clean('problem merge', status, page)
+            check('fusionné dans' in page and '1 observation(s)' in page and 'Observations rattachées (1)' in page and 'Note du nord' in page,
+                  'problem merged: observation and note moved, target shown')
+            status, _, page = admin.request(north_url)
+            check('Gare &lt;i&gt;nord&lt;/i&gt;' not in page, 'merged problem deleted')
+            m = re.search(r'name="note_id" value="(\d+)"', admin.request(gare_url)[2])
+            if m:
+                status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_delete': '1', 'note_id': m.group(1)})
+        # Home page: problems and share of the published observations attached
+        status, _, page = admin.request('index.php')
+        check(re.search(r'>Problèmes</a></div>\s*<div class="display-6">\d+</div>\s*<div class="small text-body-secondary">[\d,]+ % des observations publiées rattachées \(\d+ / \d+\)', page) is not None,
+              'home page: problems and share of the observations attached')
         # Resolved problem whose observations are all resolved (TOKA0003, R_RES00002 validated above): nothing proposed
         # (the full case is in tests/api/functional.py, T14Problems)
         status, _, page = admin.request(works_url, {'csrf_token': admin.token(page), 'problem_resolve_observations': '1'})
@@ -688,7 +717,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'account_password_link', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'account_password_link', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss', 'problem_split', 'problem_merge']:
         check(action in page, 'audit log contains ' + action)
 
     # A problem without observation: not shown to a citystaff
@@ -706,6 +735,7 @@ def main():
     staff = Client(args.base)
     status, url, page = staff.login('staff', 'vigilo-test')
     clean('citystaff dashboard', status, page)
+    check('% des observations publiées rattachées' in page, 'citystaff home page: problems of their cities')
     for name in ['accounts', 'settings', 'update', 'audit', 'cities', 'scopes', 'webhooks', 'categories']:
         status, _, page = staff.request('index.php?page=' + name)
         check('Accès non autorisé' in page, 'citystaff refused on ' + name)
@@ -728,7 +758,7 @@ def main():
     if m:
         status, _, page = staff.request('index.php?page=problems&view=' + m.group(1))
         clean('citystaff problem detail', status, page)
-        check('TOKA0001' in page and 'Notes internes' not in page and 'problem_quick' not in page and 'action=detach' not in page
+        check('TOKA0001' in page and 'notesModal' not in page and 'problem_quick' not in page and 'action=detach' not in page
               and 'problem_count' not in page and 'problem_attach_token' not in page, 'citystaff problem detail read only, without notes')
         status, _, page = staff.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': staff.token(page), 'problem_note_add': '1', 'note_text': 'x',
                                                                                    'problem_quick': '1', 'problem_status': 'closed', 'problem_priority': '1'})

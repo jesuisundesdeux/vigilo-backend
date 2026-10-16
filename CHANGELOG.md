@@ -20,6 +20,16 @@
   (« Diffusion d'un problème », variables `problem_*`) et passe le problème « En attente » (journal
   `problem_broadcast`).
 - Page **Observations** : une observation rattachée à un problème affiche un lien vers ce problème.
+- **Séparer** un problème : sur sa fiche, les observations cochées (page affichée) sont déplacées vers un **nouveau
+  problème** (copie : catégories, zone, période, priorité, statut ; zone à ajuster ensuite) ou vers un autre problème
+  (journal `problem_split`).
+- **Fusionner** deux problèmes : depuis la fiche, le problème passe dans le problème choisi (observations, notes,
+  catégories réunies, période couvrant les deux ; zone du problème choisi conservée), puis est supprimé (journal
+  `problem_merge`).
+- Fiche d'un problème : les **notes de suivi** s'ouvrent dans une fenêtre, depuis le bouton « Notes » (avec leur
+  nombre) de l'encart principal.
+- **Accueil** de l'admin : nombre de problèmes, avec la part des observations publiées rattachées à un problème et le
+  nombre de problèmes actifs (limité à ses villes pour un citystaff).
 
 ### Webhooks
 - Formulaire d'un webhook : le cadre **Variables** ne liste que les variables de l'événement choisi (celles des
