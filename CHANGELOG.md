@@ -13,9 +13,11 @@
 - Problèmes de **rues** : les rues sont **surlignées** sur les cartes (fiche, formulaire, onglet Carte, détail du
   rapport), d'après OpenStreetMap (API Overpass, depuis le navigateur) : voies du même nom (sans tenir compte des
   majuscules, des accents ni de la ponctuation) autour des observations du problème, ou dans la ville de la rue. Sans
-  réponse d'Overpass, seules les observations sont affichées.
+  réponse d'Overpass, seules les observations sont affichées. Les réponses d'Overpass sont gardées dans le
+  navigateur (7 jours, 1 jour quand aucune rue n'est trouvée) pour ne pas l'interroger à chaque affichage.
 - Onglet **Carte** de la page Problèmes : zones des problèmes (filtres de la liste), couleur du statut, lien vers leur
-  fiche ; un problème de rues est représenté par ses observations.
+  fiche ; un problème de rues est représenté par ses rues surlignées (ses observations seulement si aucune rue n'est
+  trouvée), même sans observation rattachée (rues cherchées dans leur ville).
 - Bouton **Diffuser** sur chaque problème de la liste : appelle les webhooks du nouvel événement `problem.broadcast`
   (« Diffusion d'un problème », variables `problem_*`) et passe le problème « En attente » (journal
   `problem_broadcast`).

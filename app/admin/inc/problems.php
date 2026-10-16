@@ -342,12 +342,13 @@ function problem_admin_map_data($db, $problems, $counts, $statuses, $priorities,
                 continue;
             }
         } elseif ($problem['problem_zone'] == 'streets') {
-            if (empty($street_points[$id])) {
+            // Streets highlighted by the map; the observations give the area searched (else the city of the street)
+            $item['points']  = isset($street_points[$id]) ? $street_points[$id] : array();
+            $item['streets'] = problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : '');
+            if (!$item['points'] && !$item['streets']) {
                 $hidden[] = $item['title'];
                 continue;
             }
-            $item['points']  = $street_points[$id];
-            $item['streets'] = problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : '');
         } else {
             $item['lat']    = (float) $problem['problem_lat'];
             $item['lon']    = (float) $problem['problem_lon'];

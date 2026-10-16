@@ -425,18 +425,22 @@
     function extend(b) {
       bounds = bounds ? bounds.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
     }
-    var pending = Promise.resolve();
-    data.problems.forEach(function (p) {
+    // Layers built first: the view is set before they are added (Leaflet fails on circles
+    // added together to a map without a view)
+    var items = data.problems.map(function (p) {
       var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: 0.25 };
       var layer;
       if (p.zone === 'polygon') {
         layer = L.polygon(p.polygon, style);
         extend(layer.getBounds());
       } else if (p.zone === 'streets') {
+        // Observations: area of the streets, replaced by the streets once found
         layer = L.featureGroup(p.points.map(function (pt) {
           return L.circleMarker(pt, L.extend({ radius: 5 }, style, { fillOpacity: 0.8 }));
         }));
-        extend(layer.getBounds());
+        if (p.points.length) {
+          extend(layer.getBounds());
+        }
       } else {
         layer = L.circle([p.lat, p.lon], L.extend({ radius: p.radius }, style));
         extend(L.latLng(p.lat, p.lon).toBounds(p.radius * 2));
@@ -456,23 +460,43 @@
       var label = document.createElement('span');
       label.textContent = p.title;
       layer.bindTooltip(label, { sticky: true });
-      layer.addTo(map);
-      // Zone of streets: its streets highlighted (OpenStreetMap), one request after the other
-      if (p.zone === 'streets' && p.streets && p.streets.length && window.vigiloStreetLines) {
-        pending = pending.then(function () {
-          return window.vigiloStreetLines(map, p.streets, { bbox: layer.getBounds(), style: { color: p.color, weight: 5 } }).then(function (group) {
-            group.eachLayer(function (line) { line.bindPopup(box); });
-            group.addTo(map).bringToBack();
-          });
-        });
-      }
+      return { p: p, layer: layer, box: box };
     });
-    if (bounds && bounds.isValid()) {
+    var fitted = bounds && bounds.isValid();
+    if (fitted) {
       map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });
     } else {
       var center = String(data.center || '46.6,2.4').split(',');
       map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
     }
+    var pending = Promise.resolve();
+    items.forEach(function (item) {
+      var p = item.p, layer = item.layer;
+      layer.addTo(map);
+      if (p.zone !== 'streets' || !p.streets || !p.streets.length || !window.vigiloStreetLines) {
+        return;
+      }
+      // Zone of streets: its streets highlighted (OpenStreetMap), one request after the other; they
+      // replace the observations, kept when no street is found (Overpass unreachable, unknown name)
+      pending = pending.then(function () {
+        var area = p.points.length ? layer.getBounds() : null;
+        return window.vigiloStreetLines(map, p.streets, { bbox: area, style: { color: p.color, weight: 5 } }).then(function (group) {
+          if (!group.getLayers().length) {
+            return;
+          }
+          map.removeLayer(layer);
+          group.eachLayer(function (line) { line.bindPopup(item.box); });
+          group.addTo(map).bringToBack();
+          // Problem without observation (streets looked for in their city): view extended if nothing else was shown
+          if (!area && !fitted) {
+            bounds = null;
+            fitted = true;
+            extend(group.getBounds());
+            map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });
+          }
+        });
+      });
+    });
     setTimeout(function () { map.invalidateSize(); }, 200);
   });
 })();
