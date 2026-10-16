@@ -62,7 +62,8 @@ Sur la fiche d'un problème, le **rattachement des observations existantes** se 
 **Rattacher** (avec confirmation), qui refait le calcul et ne rattache que les observations qui ne sont dans aucun
 problème : une observation d'un autre problème n'est jamais déplacée, elle est signalée pour être arbitrée (la
 détacher de l'autre problème puis la rattacher). Recommencer ne rattache rien de plus. Une observation publiée peut
-aussi être rattachée à la main (par son token, même hors des critères) ou détachée.
+aussi être rattachée à la main (par son token, même hors des critères) ou détachée. À la création d'un problème, ce comptage est fait
+aussitôt et présenté dans une fenêtre qui propose de rattacher les observations trouvées.
 
 **Rattachement automatique** : quand une observation est publiée (approbation dans l'admin ou par l'API, ou photo
 reçue après l'approbation), elle est rattachée au problème **actif** (ouvert, en cours, en attente) qui lui correspond

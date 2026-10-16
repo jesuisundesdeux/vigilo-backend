@@ -503,6 +503,10 @@ def main():
     status, _, page = admin.request('index.php?page=problems', problem)
     clean('problem create', status, page)
     check('Problème <strong>Piste &lt;b&gt;bloquée&lt;/b&gt;</strong> enregistré' in page, 'problem created and escaped')
+    # Window after the creation: observations counted, attachment proposed (posted to the detail)
+    check('id="attachModal"' in page and 'data-reopen-modal="#attachModal"' in page and '<strong>2</strong> observation(s) publiée(s)' in page
+          and 'TOKA0001, TOKA0003' in page and re.search(r'action="\?page=problems&amp;view=\d+"[^>]*>\s*<input type="hidden" name="csrf_token"', page) is not None
+          and 'name="problem_attach_retro"' in page and 'id="created-include_archived"' in page, 'existing observations counted after the creation')
     check('Cercle de 100 m' in page and 'Depuis le 01/01/2020' in page and '>Haute</span>' in page, 'problem listed with zone, period and priority')
     polygon = dict(problem, problem_title='Travaux du centre', problem_description='', problem_zone='polygon', problem_priority='1', problem_status='closed',
                    problem_polygon='[[43.59,3.89],[43.61,3.89],[43.61,3.91],[43.59,3.91]]', problem_end='2021-12-31')
@@ -532,6 +536,7 @@ def main():
                                                                             problem_status='in_progress', problem_radius='150'))
             check('Cercle de 150 m' in page and '>En cours</span>' in page and 'Cercle de 100 m' not in page
                   and len([l for l in links(page, 'edit=') if 'edit=new' not in l]) == 2, 'problem updated (not duplicated)')
+            check('attachModal' not in page, 'no attachment window after an update')
 
     # Problem detail: count (no change), retroactive attribution (idempotent, conflicts kept),
     # manual attach and detach

@@ -249,6 +249,54 @@ function problem_admin_resolve_observations($db, $problem, $plan, &$messages)
 }
 
 /* Colors of the statuses on the maps (same as the badges) */
+/* Observations of other problems as a list of tokens, linked to their problem */
+function problem_admin_conflict_list($conflicts, $titles, $self_url)
+{
+    $items = array();
+    foreach ($conflicts as $observation) {
+        $title   = isset($titles[$observation['problem']]) ? $titles[$observation['problem']] : '#' . $observation['problem'];
+        $items[] = '<li><strong>' . h($observation['token']) . '</strong> : problème <a href="' . h($self_url . '&view=' . intval($observation['problem'])) . '">' . h($title) . '</a></li>';
+    }
+    return $items ? '<ul class="mb-0 mt-1">' . implode('', $items) . '</ul>' : '';
+}
+
+/*
+ * Attachment of the existing observations ("Compter" / "Rattacher"), posted to the detail
+ * of the problem: on the detail ($count on request) and in the window shown after a creation
+ * ($count computed at once). $id_prefix keeps the ids of the two places apart.
+ */
+function problem_admin_attach_panel($problem, $count, $include_archived, $titles, $self_url, $id_prefix)
+{
+    $view_url = $self_url . '&view=' . intval($problem['problem_id']);
+    ob_start(); ?>
+    <p class="small text-body-secondary">
+      Les observations publiées de la zone, des catégories et de la période du problème (sans les observations archivées, sauf
+      si la case est cochée). <strong>Compter</strong> ne modifie
+      rien ; <strong>Rattacher</strong> refait le calcul et rattache celles qui n'appartiennent à aucun problème. Une
+      observation déjà dans un autre problème n'est jamais déplacée : elle est signalée, à arbitrer.
+    </p>
+    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap align-items-center gap-2">
+      <?= csrf_field() ?>
+      <div class="form-check me-2">
+        <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="<?= h($id_prefix) ?>include_archived"<?= $include_archived ? ' checked' : '' ?>>
+        <label class="form-check-label" for="<?= h($id_prefix) ?>include_archived">Inclure les observations archivées</label>
+      </div>
+      <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
+      <?php if ($count && count($count['to_attach'])) { ?>
+      <button class="btn btn-primary" type="submit" name="problem_attach_retro" value="1" data-confirm="Rattacher <?= count($count['to_attach']) ?> observation(s) au problème « <?= h($problem['problem_title']) ?> » ?"><i class="bi bi-link-45deg"></i> Rattacher <?= count($count['to_attach']) ?> observation(s)</button>
+      <?php } ?>
+    </form>
+    <?php if ($count) { ?>
+    <ul class="mt-3 mb-0" data-problem-count>
+      <li><strong><?= intval($count['matching']) ?></strong> observation(s) publiée(s) correspondent au problème ;</li>
+      <li><strong><?= count($count['here']) ?></strong> déjà rattachée(s) à ce problème ;</li>
+      <li><strong><?= count($count['to_attach']) ?></strong> à rattacher<?= count($count['to_attach']) ? ' : ' . h(implode(', ', array_map(function ($o) { return $o['token']; }, array_slice($count['to_attach'], 0, 50)))) . (count($count['to_attach']) > 50 ? '…' : '') : '' ?> ;</li>
+      <li><strong><?= count($count['conflicts']) ?></strong> dans un autre problème (non déplacées)<?= count($count['conflicts']) ? ' :' . problem_admin_conflict_list($count['conflicts'], $titles, $self_url) : '.' ?></li>
+    </ul>
+    <?php }
+    return ob_get_clean();
+}
+
 function problem_admin_status_color($status)
 {
     $colors = array('open' => '#0d6efd', 'in_progress' => '#0dcaf0', 'waiting' => '#ffc107', 'resolved' => '#198754', 'closed' => '#6c757d');
@@ -417,6 +465,8 @@ if (isset($_POST['problem_save'])) {
             $ok = mysqli_query($db, "INSERT INTO obs_problems (" . implode(', ', array_keys($fields)) . ") VALUES (" . implode(', ', $fields) . ")");
             $edit['problem_id'] = intval(mysqli_insert_id($db));
             audit_log('problem_create', 'problem:' . $edit['problem_id'], $details);
+            // Window of the observations to attach, shown after the creation
+            $created_problem = $ok ? problem_load($db, $edit['problem_id']) : null;
         }
         if ($ok) {
             $messages[] = array('success', 'Problème <strong>' . h($edit['problem_title']) . '</strong> enregistré.');
@@ -517,15 +567,6 @@ if ($view) {
     $view_id  = intval($view['problem_id']);
     $view_url = $self_url . '&view=' . $view_id;
     $titles   = problem_titles($db);
-    // Observations shown as a list of tokens, linked to the problem they belong to
-    $conflict_list = function ($conflicts) use ($titles, $self_url) {
-        $items = array();
-        foreach ($conflicts as $observation) {
-            $title   = isset($titles[$observation['problem']]) ? $titles[$observation['problem']] : '#' . $observation['problem'];
-            $items[] = '<li><strong>' . h($observation['token']) . '</strong> : problème <a href="' . h($self_url . '&view=' . intval($observation['problem'])) . '">' . h($title) . '</a></li>';
-        }
-        return $items ? '<ul class="mb-0 mt-1">' . implode('', $items) . '</ul>' : '';
-    };
     // Archived observations: only when asked (count and attachment)
     $include_archived = !empty($_POST['include_archived']);
     if (isset($_POST['problem_count'])) {
@@ -598,7 +639,7 @@ if ($view) {
                   'conflicts' => count($result['conflicts'])));
         $messages[] = array(count($result['conflicts']) ? 'warning' : 'success', '<strong>' . count($result['attached']) . '</strong> observation(s) rattachée(s), '
             . intval($result['already']) . ' déjà rattachée(s) à ce problème'
-            . (count($result['conflicts']) ? ', <strong>' . count($result['conflicts']) . '</strong> laissée(s) dans un autre problème (à arbitrer) :' . $conflict_list($result['conflicts']) : '.'));
+            . (count($result['conflicts']) ? ', <strong>' . count($result['conflicts']) . '</strong> laissée(s) dans un autre problème (à arbitrer) :' . problem_admin_conflict_list($result['conflicts'], $titles, $self_url) : '.'));
     }
     if (isset($_POST['problem_attach_token'])) {
         $token = isset($_POST['obs_token']) && is_scalar($_POST['obs_token']) ? strtoupper(trim((string) $_POST['obs_token'])) : '';
@@ -612,7 +653,7 @@ if ($view) {
             $other = mysqli_query($db, "SELECT po_problemid FROM obs_problem_observations WHERE po_obsid = " . intval($row['obs_id']));
             $other = $other ? mysqli_fetch_assoc($other) : null;
             $messages[] = array('warning', 'L\'observation <strong>' . h($token) . '</strong> appartient déjà à un autre problème : la détacher d\'abord de celui-ci.'
-                . $conflict_list(array(array('token' => $token, 'problem' => $other ? intval($other['po_problemid']) : 0))));
+                . problem_admin_conflict_list(array(array('token' => $token, 'problem' => $other ? intval($other['po_problemid']) : 0)), $titles, $self_url));
         } else {
             $texts = array('already' => 'est déjà rattachée à ce problème', 'unpublished' => 'n\'est pas publiée (seules les observations publiées peuvent être rattachées)',
                            'unknown' => 'est introuvable', 'error' => 'n\'a pas pu être rattachée');
@@ -705,6 +746,28 @@ foreach ($messages as $message) {
     // Messages are built above from escaped / integer values only
     echo '<div class="alert alert-' . h($message[0]) . '" role="alert">' . $message[1] . '</div>';
 }
+
+/* After a creation: existing observations counted, attachment proposed (same panel as the detail) */
+if (!empty($created_problem)) { ?>
+<div class="modal fade" id="attachModal" tabindex="-1" aria-labelledby="attachModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="attachModalTitle"><i class="bi bi-link-45deg"></i> Rattacher les observations existantes à « <?= h($created_problem['problem_title']) ?> » ?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <?= problem_admin_attach_panel($created_problem, problem_count($db, $created_problem, false), false, problem_titles($db), $self_url, 'created-') ?>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-outline-secondary" href="<?= h($self_url . '&view=' . intval($created_problem['problem_id'])) ?>"><i class="bi bi-eye"></i> Voir la fiche</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Plus tard</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div hidden data-reopen-modal="#attachModal"></div>
+<?php }
 
 if ($edit !== null) {
     $selected = problem_category_ids($edit);
@@ -993,31 +1056,7 @@ if ($edit !== null) {
 <div class="card shadow-sm mb-4">
   <div class="card-header fw-semibold">Rattachement des observations existantes</div>
   <div class="card-body">
-    <p class="small text-body-secondary">
-      Les observations publiées de la zone, des catégories et de la période du problème (sans les observations archivées, sauf
-      si la case est cochée). <strong>Compter</strong> ne modifie
-      rien ; <strong>Rattacher</strong> refait le calcul et rattache celles qui n'appartiennent à aucun problème. Une
-      observation déjà dans un autre problème n'est jamais déplacée : elle est signalée, à arbitrer.
-    </p>
-    <form method="POST" action="<?= h($view_url) ?>" class="d-flex flex-wrap align-items-center gap-2">
-      <?= csrf_field() ?>
-      <div class="form-check me-2">
-        <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="include_archived"<?= $include_archived ? ' checked' : '' ?>>
-        <label class="form-check-label" for="include_archived">Inclure les observations archivées</label>
-      </div>
-      <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
-      <?php if ($count && count($count['to_attach'])) { ?>
-      <button class="btn btn-primary" type="submit" name="problem_attach_retro" value="1" data-confirm="Rattacher <?= count($count['to_attach']) ?> observation(s) au problème « <?= h($view['problem_title']) ?> » ?"><i class="bi bi-link-45deg"></i> Rattacher <?= count($count['to_attach']) ?> observation(s)</button>
-      <?php } ?>
-    </form>
-    <?php if ($count) { ?>
-    <ul class="mt-3 mb-0" data-problem-count>
-      <li><strong><?= intval($count['matching']) ?></strong> observation(s) publiée(s) correspondent au problème ;</li>
-      <li><strong><?= count($count['here']) ?></strong> déjà rattachée(s) à ce problème ;</li>
-      <li><strong><?= count($count['to_attach']) ?></strong> à rattacher<?= count($count['to_attach']) ? ' : ' . h(implode(', ', array_map(function ($o) { return $o['token']; }, array_slice($count['to_attach'], 0, 50)))) . (count($count['to_attach']) > 50 ? '…' : '') : '' ?> ;</li>
-      <li><strong><?= count($count['conflicts']) ?></strong> dans un autre problème (non déplacées)<?= count($count['conflicts']) ? ' :' . $conflict_list($count['conflicts']) : '.' ?></li>
-    </ul>
-    <?php } ?>
+    <?= problem_admin_attach_panel($view, $count, $include_archived, $titles, $self_url, '') ?>
   </div>
 </div>
 <?php } ?>
