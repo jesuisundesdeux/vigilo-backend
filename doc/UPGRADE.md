@@ -11,7 +11,7 @@ Quand une nouvelle version est publiée, le bouton **« Installer la version X �
 1. télécharge l'archive de la version publiée sur GitHub et vérifie sa somme SHA-256
    (et sa signature ed25519 si une clé publique est définie dans `app/includes/release_key.php`) ;
 2. vérifie la version de PHP et les extensions demandées par la nouvelle version ;
-3. sauvegarde le code et la base dans `caches/updates/` (les 3 dernières sauvegardes sont gardées) ;
+3. sauvegarde le code et la base
 4. installe les fichiers (sans toucher à `config/config.php`, `images/` et `caches/`) ;
 5. applique les migrations de la base ;
 6. vérifie que l'instance répond avec la nouvelle version ;
