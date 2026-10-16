@@ -5,6 +5,8 @@
 // when nothing is found or Overpass can not be reached).
 //   streets: [{street, city}]; options: {bbox: L.LatLngBounds, style, onEach(layer, name)}
 // Without bbox, a street is looked for in the area of its city.
+// Answers are kept in the browser (localStorage, 7 days, 1 day when nothing is found) to spare
+// Overpass: the same streets are asked again by every map and report.
 (function () {
   'use strict';
 
@@ -14,6 +16,79 @@
 
   var ENDPOINT = 'https://overpass-api.de/api/interpreter';
   var cache = {};
+  var STORE = 'vigilo-overpass:';
+  var TTL = 7 * 86400000;
+  var TTL_EMPTY = 86400000;
+  var MAX_STORED = 60;
+
+  // Short key of a query (FNV-1a), for localStorage
+  function hash(text) {
+    var h = 0x811c9dc5;
+    for (var k = 0; k < text.length; k++) {
+      h ^= text.charCodeAt(k);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(36) + text.length.toString(36);
+  }
+
+  // Stored answer {t: time, w: [[name, [[lat, lon], ...]], ...]}, null if absent, expired or unreadable
+  function stored(q) {
+    try {
+      var item = JSON.parse(window.localStorage.getItem(STORE + hash(q)) || 'null');
+      if (item && Array.isArray(item.w) && Date.now() - item.t < (item.w.length ? TTL : TTL_EMPTY)) {
+        return item.w;
+      }
+    } catch (e) {
+      // storage disabled or full: no cache
+    }
+    return null;
+  }
+
+  // Keeps an answer; the oldest ones are removed beyond MAX_STORED or when the storage is full
+  function store(q, ways) {
+    try {
+      var keys = [];
+      for (var k = 0; k < window.localStorage.length; k++) {
+        var key = window.localStorage.key(k);
+        if (key && key.indexOf(STORE) === 0) {
+          var item = null;
+          try { item = JSON.parse(window.localStorage.getItem(key)); } catch (e) { item = null; }
+          keys.push([key, item && item.t ? item.t : 0]);
+        }
+      }
+      keys.sort(function (a, b) { return a[1] - b[1]; });
+      while (keys.length >= MAX_STORED) {
+        window.localStorage.removeItem(keys.shift()[0]);
+      }
+      var value = JSON.stringify({ t: Date.now(), w: ways });
+      for (;;) {
+        try {
+          window.localStorage.setItem(STORE + hash(q), value);
+          return;
+        } catch (e) {
+          if (!keys.length) {
+            return;
+          }
+          window.localStorage.removeItem(keys.shift()[0]);
+        }
+      }
+    } catch (e) {
+      // storage disabled: no cache
+    }
+  }
+
+  // Ways of an Overpass answer: [[name, [[lat, lon], ...]], ...], rounded to about 1 m
+  function ways(data) {
+    var list = [];
+    (data.elements || []).forEach(function (el) {
+      if (el.type === 'way' && el.geometry) {
+        list.push([el.tags && el.tags.name ? String(el.tags.name) : '', el.geometry.map(function (p) {
+          return [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lon * 1e5) / 1e5];
+        })]);
+      }
+    });
+    return list;
+  }
   var LETTERS = { a: '[aàâäáã]', e: '[eéèêë]', i: '[iîïíì]', o: '[oôöóò]', u: '[uùûüú]', c: '[cç]', y: '[yÿý]', n: '[nñ]' };
 
   // Case-insensitive Overpass regex of a name: accents and punctuation tolerated; only
@@ -70,25 +145,28 @@
     if (q === '' || !window.fetch) {
       return Promise.resolve(group);
     }
-    var request = cache[q] || (cache[q] = fetch(ENDPOINT, {
+    var known = cache[q] ? null : stored(q);
+    var request = cache[q] || (cache[q] = known ? Promise.resolve(known) : fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'data=' + encodeURIComponent(q)
     }).then(function (r) {
+      // Failures (429 too many requests, 504 timeout...) are never kept
       if (!r.ok) {
         throw new Error('HTTP ' + r.status);
       }
       return r.json();
+    }).then(function (data) {
+      var list = ways(data);
+      store(q, list);
+      return list;
     }));
-    return request.then(function (data) {
-      (data.elements || []).forEach(function (el) {
-        if (el.type !== 'way' || !el.geometry) {
-          return;
-        }
-        var line = L.polyline(el.geometry.map(function (p) { return [p.lat, p.lon]; }), style);
+    return request.then(function (list) {
+      list.forEach(function (way) {
+        var line = L.polyline(way[1], style);
         // Name of OpenStreetMap: text, never HTML
         var label = document.createElement('span');
-        label.textContent = el.tags && el.tags.name ? el.tags.name : '';
+        label.textContent = way[0];
         line.bindTooltip(label, { sticky: true });
         if (options.onEach) {
           options.onEach(line, label.textContent);
