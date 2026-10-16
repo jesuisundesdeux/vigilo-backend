@@ -72,6 +72,13 @@ $stats        = report_stats($observations, $groups, $filters, $previous, $popul
 // Sections chosen in the form; problems (#327): administrators only, never the internal notes
 $sections     = report_chosen_sections($_GET, $_SESSION['role'] == 'admin');
 $problem_rows = (isset($sections['problems']) || isset($sections['problem_details'])) ? problem_report_rows($db, $observations) : array();
+// Problems of the chosen statuses only (none chosen: all)
+$problem_statuses_chosen = problem_report_statuses($_GET);
+if ($problem_statuses_chosen) {
+  $problem_rows = array_values(array_filter($problem_rows, function ($row) use ($problem_statuses_chosen) {
+    return in_array($row['problem']['problem_status'], $problem_statuses_chosen, true);
+  }));
+}
 
 /* Texts of the report */
 $instance_name = isset($config['VIGILO_NAME']) && $config['VIGILO_NAME'] !== '' ? $config['VIGILO_NAME'] : 'Vigilo';
@@ -168,7 +175,7 @@ function report_group_html($group, $categories, $cities_shown)
     $tokens[] = $obs['token'];
   }
   return '<article class="group">'
-    . '<img src="photo.php?s=400&amp;token=' . h(urlencode($group['photo'])) . '" alt="Photo de l\'observation ' . h($group['photo']) . '" loading="eager">'
+    . '<img src="' . h(report_photo_src($group['photo'], 400)) . '" alt="Photo de l\'observation ' . h($group['photo']) . '" loading="eager">'
     . '<div class="group-body">'
     . '<div class="group-head"><span class="count">' . intval($group['count']) . '</span><span class="cat"><span class="cat-dot" style="background:' . h($cat['color']) . '"></span>' . h($cat['name']) . '</span></div>'
     . '<div class="group-address">' . h($group['address']) . ($cities_shown && count($group['cities']) ? ', ' . h(implode(', ', $group['cities'])) : '') . '</div>'
@@ -177,6 +184,14 @@ function report_group_html($group, $categories, $cities_shown)
     . '<div class="group-tokens">' . h(implode(' ', $tokens)) . (count($group['observations']) > 8 ? ' …' : '') . '</div>'
     . '</div></article>';
 }
+/* Source of the photo of an observation: the placeholder image when it has no photo file (printed as is) */
+function report_photo_src($token, $width)
+{
+  global $config;
+  $file = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename((string) $token) . '.jpg';
+  return file_exists($file) ? 'photo.php?s=' . intval($width) . '&token=' . urlencode($token) : 'assets/photo-missing.svg';
+}
+
 /* Detail of a problem of the report (one block; two slides) */
 function report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section)
 {
@@ -206,7 +221,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   $map    = '<div class="report-problem-map" data-problem="' . h(json_encode($map_data)) . '" role="img" aria-label="Carte du problème ' . h($problem['problem_title']) . '"></div>';
   $photos = '';
   foreach (array_slice(array_reverse($row['observations']), 0, $slides ? 4 : 6) as $obs) {
-    $photos .= '<figure><img src="photo.php?s=300&amp;token=' . h(urlencode($obs['token'])) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
+    $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
       . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
   }
   $photos  = '<h3>Dernières photos</h3><div class="problem-photos">' . $photos . '</div>';
@@ -349,7 +364,9 @@ $section = function ($title, $content, $class = '') use ($slides) {
           }
           $html .= '</tbody></table>';
           echo $section('Problèmes suivis' . (count($chunks) > 1 ? ' (' . ($i + 1) . '/' . count($chunks) . ')' : ''),
-            ($i == 0 && !$slides ? '<p class="note">Observations regroupées par l\'association en problèmes (même lieu, même type) : nombre d\'observations du rapport et état de leur suivi.</p>' : '') . $html, 'problems-section');
+            ($i == 0 && !$slides ? '<p class="note">Observations regroupées par l\'association en problèmes (même lieu, même type) : nombre d\'observations du rapport et état de leur suivi'
+              . ($problem_statuses_chosen ? ' (problèmes : ' . h(implode(', ', array_map(function ($key) use ($statuses) { return $statuses[$key][0]; }, $problem_statuses_chosen))) . ')' : '')
+              . '.</p>' : '') . $html, 'problems-section');
         }
       }
       // Detail of each problem: information, map, timeline, days and hours, photos (observations of the report)

@@ -699,7 +699,8 @@ if ($view) {
 
 /* Filters of the list */
 $f_q        = isset($_GET['q']) && is_scalar($_GET['q']) ? trim((string) $_GET['q']) : '';
-$f_status   = isset($_GET['status']) && is_scalar($_GET['status']) && ($_GET['status'] === 'active' || isset($statuses[$_GET['status']])) ? (string) $_GET['status'] : '';
+// Status: active problems by default, "all" for every status
+$f_status   = isset($_GET['status']) && is_scalar($_GET['status']) && ($_GET['status'] === 'all' || $_GET['status'] === 'active' || isset($statuses[$_GET['status']])) ? (string) $_GET['status'] : 'active';
 $f_priority = isset($_GET['priority']) && is_scalar($_GET['priority']) && isset($priorities[intval($_GET['priority'])]) ? intval($_GET['priority']) : 0;
 $f_category = isset($_GET['category']) && is_scalar($_GET['category']) && isset($problem_categories[intval($_GET['category'])]) ? intval($_GET['category']) : 0;
 
@@ -710,7 +711,7 @@ if ($f_q !== '') {
 }
 if ($f_status === 'active') {
     $where[] = "problem_status IN ('" . implode("','", problem_active_statuses()) . "')";
-} elseif ($f_status !== '') {
+} elseif ($f_status !== 'all') {
     $where[] = "problem_status = '" . mysqli_real_escape_string($db, $f_status) . "'";
 }
 if ($f_priority) {
@@ -729,9 +730,9 @@ while ($query && ($row = mysqli_fetch_assoc($query))) {
     $problems[] = $row;
 }
 $counts   = problem_observation_counts($db, $staff_cities);
-$filtered = $f_q !== '' || $f_status !== '' || $f_priority || $f_category;
+$filtered = $f_q !== '' || $f_status !== 'active' || $f_priority || $f_category;
 $tab      = isset($_GET['tab']) && $_GET['tab'] === 'map' ? 'map' : 'list';
-$filter_query = '&' . http_build_query(array_filter(array('q' => $f_q, 'status' => $f_status, 'priority' => $f_priority ?: '', 'category' => $f_category ?: ''), 'strlen'));
+$filter_query = '&' . http_build_query(array_filter(array('q' => $f_q, 'status' => $f_status !== 'active' ? $f_status : '', 'priority' => $f_priority ?: '', 'category' => $f_category ?: ''), 'strlen'));
 
 /* Initial view of the map of a new problem: center of the first scope */
 $map_center = '46.6,2.4';
@@ -1327,8 +1328,8 @@ if (!$readonly) { ?>
       <div class="col-6 col-sm-auto">
         <label class="form-label small mb-1" for="f_status">Statut</label>
         <select class="form-select form-select-sm" id="f_status" name="status">
-          <option value="">Tous</option>
           <option value="active"<?= $f_status === 'active' ? ' selected' : '' ?>>Actifs (ouvert, en cours, en attente)</option>
+          <option value="all"<?= $f_status === 'all' ? ' selected' : '' ?>>Tous</option>
           <?php foreach ($statuses as $key => $status) { ?><option value="<?= h($key) ?>"<?= $f_status === $key ? ' selected' : '' ?>><?= h($status[0]) ?></option><?php } ?>
         </select>
       </div>
@@ -1353,7 +1354,7 @@ if (!$readonly) { ?>
     </form>
   </div>
   <?php if (empty($problems)) { ?>
-    <div class="card-body pt-0"><p class="text-body-secondary mb-0"><?= $filtered ? 'Aucun problème ne correspond aux filtres.' : 'Aucun problème.' ?></p></div>
+    <div class="card-body pt-0"><p class="text-body-secondary mb-0"><?= $filtered ? 'Aucun problème ne correspond aux filtres.' : 'Aucun problème actif (statut « Tous » pour voir les autres).' ?></p></div>
   <?php } elseif ($tab == 'map') {
       $map_problems = problem_admin_map_data($db, $problems, $counts, $statuses, $priorities, $staff_cities); ?>
   <div class="card-body pt-0">

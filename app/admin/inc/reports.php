@@ -121,6 +121,19 @@ foreach (getCategoriesList() as $categorie) {
         </div>
         <?php if ($_SESSION['role'] == 'admin') { ?><div class="form-text">Problèmes : ceux qui ont des observations dans le rapport, avec leur état ; jamais les notes internes.</div><?php } ?>
       </fieldset>
+      <?php if ($_SESSION['role'] == 'admin') { ?>
+      <fieldset class="col-12">
+        <legend class="form-label fw-semibold fs-6">Problèmes à inclure <span class="text-body-secondary small fw-normal">(aucun statut coché : tous)</span></legend>
+        <div class="d-flex flex-wrap gap-3">
+          <?php foreach (problem_statuses() as $status_key => $status_def) { ?>
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" name="problem_status[]" value="<?= h($status_key) ?>" id="report_problem_status_<?= h($status_key) ?>">
+            <label class="form-check-label" for="report_problem_status_<?= h($status_key) ?>"><span class="badge text-bg-<?= h($status_def[1]) ?>"><?= h($status_def[0]) ?></span></label>
+          </div>
+          <?php } ?>
+        </div>
+      </fieldset>
+      <?php } ?>
       <fieldset class="col-sm-6 col-lg-4">
         <legend class="form-label fw-semibold fs-6">Format</legend>
         <div class="form-check">

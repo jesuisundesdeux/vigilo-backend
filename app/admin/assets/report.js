@@ -9,11 +9,60 @@
     : '@page { size: A4 portrait; }';
   document.head.appendChild(style);
 
+  // Photo that can not be loaded (removed meanwhile, refused): placeholder image, also for the
+  // errors that happened before this script ran
+  function placeholder(img) {
+    if (/photo\.php/.test(img.src)) {
+      img.src = 'assets/photo-missing.svg';
+    }
+  }
+  document.addEventListener('error', function (event) {
+    if (event.target && event.target.tagName === 'IMG') {
+      placeholder(event.target);
+    }
+  }, true);
+  Array.prototype.forEach.call(document.images, function (img) {
+    if (img.complete && img.naturalWidth === 0) {
+      placeholder(img);
+    }
+  });
+
   // Labels come from the observations: text, never HTML
   function textNode(text) {
     var span = document.createElement('span');
     span.textContent = text;
     return span;
+  }
+
+  /*
+   * Markers made smaller when they overlap (many places close together at the current zoom):
+   * the median distance to the nearest marker on screen is compared with their size.
+   * items: [{marker: L.CircleMarker, r: radius wanted}]; called again after each zoom.
+   */
+  function scaleMarkers(m, items) {
+    var scale = 1;
+    if (items.length > 1) {
+      var pts = items.map(function (it) { return m.latLngToContainerPoint(it.marker.getLatLng()); });
+      var step = Math.max(1, Math.floor(items.length / 1500));
+      var nearest = [];
+      for (var i = 0; i < pts.length; i += step) {
+        var best = Infinity;
+        for (var j = 0; j < pts.length; j++) {
+          if (j !== i) {
+            var dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+            best = Math.min(best, dx * dx + dy * dy);
+          }
+        }
+        nearest.push(Math.sqrt(best));
+      }
+      var radii = items.map(function (it) { return it.r; });
+      var median = function (list) { list.sort(function (a, b) { return a - b; }); return list[Math.floor(list.length / 2)]; };
+      scale = Math.max(0.3, Math.min(1, median(nearest) / (2 * median(radii)) * 1.2));
+    }
+    items.forEach(function (it) {
+      it.marker.setRadius(Math.max(2.5, it.r * scale));
+      it.marker.setStyle({ weight: scale < 0.6 ? 0.5 : 1 });
+    });
   }
 
   var map = null;
@@ -36,15 +85,20 @@
         map.setView([46.6, 2.4], 5);
       }
     };
+    var markers = [];
     groups.forEach(function (g) {
-      L.circleMarker([g.lat, g.lon], {
-        radius: Math.min(26, 5 + Math.sqrt(g.count) * 4),
-        color: '#1f2328', weight: 1, fillColor: g.color, fillOpacity: 0.75
+      var r = Math.min(26, 5 + Math.sqrt(g.count) * 4);
+      var marker = L.circleMarker([g.lat, g.lon], {
+        radius: r, color: '#1f2328', weight: 1, fillColor: g.color, fillOpacity: 0.75
       }).bindTooltip(textNode(g.label)).addTo(map);
+      markers.push({ marker: marker, r: r });
       bounds.push([g.lat, g.lon]);
     });
     fitMap = fit;
     fit();
+    // after the first view: Leaflet sends zoomend before the map is ready
+    scaleMarkers(map, markers);
+    map.on('zoomend', function () { scaleMarkers(map, markers); });
     // the map changes size when printed or presented: centered again on the places
     if (window.ResizeObserver) {
       new ResizeObserver(function () {
@@ -78,11 +132,14 @@
       L.circle([data.lat, data.lon], L.extend({ radius: data.radius }, style)).addTo(m);
       b = L.latLng(data.lat, data.lon).toBounds(data.radius * 2);
     }
+    var points = [];
     (data.points || []).forEach(function (p) {
-      L.circleMarker([p.lat, p.lon], { radius: 5, color: '#1f2328', weight: 1, fillColor: '#f2c200', fillOpacity: 0.9 })
+      var marker = L.circleMarker([p.lat, p.lon], { radius: 5, color: '#1f2328', weight: 1, fillColor: '#f2c200', fillOpacity: 0.9 })
         .bindTooltip(textNode(p.label)).addTo(m);
+      points.push({ marker: marker, r: 5 });
       b = b ? b.extend([p.lat, p.lon]) : L.latLngBounds([p.lat, p.lon], [p.lat, p.lon]);
     });
+
     var fitThis = function () {
       if (b && b.isValid()) {
         m.fitBounds(b.pad(0.15), { maxZoom: 17 });
@@ -91,6 +148,8 @@
       }
     };
     fitThis();
+    scaleMarkers(m, points);
+    m.on('zoomend', function () { scaleMarkers(m, points); });
     // Zone of streets: the streets highlighted (OpenStreetMap, js/street-lines.js)
     if (data.zone === 'streets' && data.streets && data.streets.length && window.vigiloStreetLines) {
       window.vigiloStreetLines(m, data.streets, { bbox: b, style: { color: '#3f6fb5' } }).then(function (group) {

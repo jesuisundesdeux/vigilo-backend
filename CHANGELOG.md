@@ -30,6 +30,8 @@
   nombre) de l'encart principal.
 - **Création** d'un problème : une fenêtre s'ouvre aussitôt avec le comptage des observations existantes qui lui
   correspondent et propose de les rattacher (même cadre que sur la fiche).
+- Liste des problèmes : seuls les problèmes **actifs** (ouvert, en cours, en attente) sont affichés par défaut ;
+  statut « Tous » pour les voir tous (`status=all`).
 - **Accueil** de l'admin : nombre de problèmes, avec la part des observations publiées rattachées à un problème et le
   nombre de problèmes actifs (limité à ses villes pour un citystaff).
 
@@ -48,6 +50,12 @@
   les notes internes.
 - Section « Jours et heures » : matrice jours × heures (à la place des deux histogrammes).
 - Les libellés des cartes du rapport sont affichés comme du texte (plus de HTML interprété).
+- **Problèmes à inclure** selon leur statut (cases « Ouvert », « En cours »… ; aucune cochée : tous), pour le tableau et
+  le détail des problèmes (paramètre `problem_status[]`).
+- Photo absente : image par défaut « Photo non disponible » (lieux récurrents, détail des problèmes), aussi à
+  l'impression.
+- Cartes du rapport : les points sont **plus petits quand ils se chevauchent** (nombreux lieux proches au zoom
+  affiché), recalculés à chaque zoom, à l'impression et en présentation.
 
 ### Comptes : lien pour choisir son mot de passe
 - Page **Comptes** : à la création (ou à la modification) d'un compte admin ou citystaff avec login, case « Envoyer un
