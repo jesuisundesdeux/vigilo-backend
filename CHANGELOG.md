@@ -2,6 +2,12 @@
 
 ## 0.0.36
 
+### Observations
+- Page Observations : seuls les boutons utiles sont affichés. Pas de « Approuver » pour une observation approuvée, pas
+  de « Désapprouver » pour une observation refusée, « Nouvelle résolution » pour les seules observations approuvées.
+  Les actions groupées suivent l'onglet (modération, résolutions) et le filtre d'archives (« Archiver » ou
+  « Désarchiver »).
+
 ### Noms de rues
 - Partout où l'admin utilise les rues des observations, une même rue est reconnue quelle que soit son écriture :
   casse, accents, espaces et numéro (« avenue de lodève » = « Avenue De lodève » = « Avenue de lodeve » =

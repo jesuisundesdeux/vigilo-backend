@@ -832,7 +832,20 @@ $listurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagen
 </ul>
 <?php } ?>
 
-<?php if (!empty($bulk_actions) && count($observations) > 0) { ?>
+<?php
+// Bulk actions that make sense in this tab: not the current moderation state, resolutions for
+// published observations only, archive or unarchive depending on the archives shown
+$bulk_actions_shown = $bulk_actions;
+unset($bulk_actions_shown[array(0 => 'pending', 1 => 'approve', 2 => 'disapprove')[$approved]]);
+if ($approved != 1) {
+  unset($bulk_actions_shown['resolution_new'], $bulk_actions_shown['resolution_add']);
+}
+if ($searcharchived === '0') {
+  unset($bulk_actions_shown['unarchive']);
+} elseif ($searcharchived === '1') {
+  unset($bulk_actions_shown['archive']);
+}
+if (!empty($bulk_actions_shown) && count($observations) > 0) { ?>
 <form method="POST" action="<?= h($listurl) ?>" id="bulk-form" class="card card-body shadow-sm mb-3 py-2" data-bulk>
   <?= csrf_field() ?>
   <div class="d-flex flex-wrap align-items-center gap-2">
@@ -844,7 +857,7 @@ $listurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagen
     <label class="visually-hidden" for="bulk-action">Action sur la sélection</label>
     <select class="form-select form-select-sm w-auto" name="bulk_action" id="bulk-action">
       <option value="">Action sur la sélection…</option>
-      <?php foreach ($bulk_actions as $bulk_key => $bulk_action) {
+      <?php foreach ($bulk_actions_shown as $bulk_key => $bulk_action) {
         $bulk_attr = '';
         if (in_array($bulk_key, array('category', 'city', 'resolution_add'), true)) {
           $bulk_attr = ' data-field="' . h($bulk_key) . '"';
@@ -941,7 +954,7 @@ foreach ($observations as $result_obs) {
 ?>
       <tr class="<?= h($highlight_city) ?>">
         <td>
-          <?php if ($can_act && !empty($bulk_actions)) { ?>
+          <?php if ($can_act && !empty($bulk_actions_shown)) { ?>
           <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
           <?php } ?>
           <code><?= h($obs_token) ?></code>
@@ -1081,11 +1094,14 @@ foreach ($observations as $result_obs) {
             </form>
           <?php }
           if ($can_act && in_array($current_role, $actions_acl['approve']['access'])) { ?>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Approuver">
-              <a class="btn btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1' . csrf_query()) ?>"><i class="bi bi-check-lg"></i> Approuver</a>
-            </div>
+            <?php // Only the moderation states the observation is not in
+            if (intval($result_obs['obs_approved']) != 1) { ?>
+            <a class="btn btn-sm btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1' . csrf_query()) ?>"><i class="bi bi-check-lg"></i> Approuver</a>
+            <?php }
+            if (intval($result_obs['obs_approved']) != 2) { ?>
             <a class="btn btn-sm btn-outline-warning" href="<?= h($actionurl . '&action=approve&approveto=2' . csrf_query()) ?>"><i class="bi bi-x-lg"></i> Désapprouver</a>
-          <?php }
+            <?php }
+          }
           if ($can_act && in_array($current_role, $actions_acl['archive']['access'])) {
             if (empty($result_obs['obs_archived'])) { ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=archive&archiveto=1' . csrf_query()) ?>"><i class="bi bi-archive"></i> Archiver</a>
@@ -1096,7 +1112,8 @@ foreach ($observations as $result_obs) {
           if ($can_act && in_array($current_role, $actions_acl['cleancache']['access'])) { ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=cleancache' . csrf_query()) ?>"><i class="bi bi-hdd"></i> Effacer le cache</a>
           <?php }
-          if ($can_act && in_array($current_role, $actions_acl['resolve']['access']) && !$in_resolution) { ?>
+          // A resolution concerns a published observation not already in one
+          if ($can_act && in_array($current_role, $actions_acl['resolve']['access']) && !$in_resolution && intval($result_obs['obs_approved']) == 1) { ?>
             <a class="btn btn-sm btn-outline-info" href="<?= h($actionurl . '&action=resolve' . csrf_query()) ?>"><i class="bi bi-eye"></i> Nouvelle résolution</a>
           <?php }
           if ($can_act && in_array($current_role, $actions_acl['delete']['access'])) { ?>
