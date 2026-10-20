@@ -386,6 +386,15 @@ class T04ObservationWorkflow(unittest.TestCase):
         call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
         self.assertIn(token, issue_tokens({'cityid': '2'}), 'city name matched to the city id')
 
+    def test_address_cleaned_at_creation(self):
+        # Postcode, country, spaces and "St" for "Saint": the city is recognized, the address tidied, without house number
+        r = create(address='12 ,  rue du Port , 99100 St Exemple, France')
+        token, secret = r.json()['token'], r.json()['secretid']
+        call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
+        self.assertIn(token, issue_tokens({'cityid': '2'}), 'city recognized despite postcode, country and "St"')
+        issue = [i for i in call('get_issues.php').json() if i['token'] == token][0]
+        self.assertEqual(issue['address'], 'rue du Port, Saint-Exemple', 'no house number before the street')
+
 
 class T05Upload(unittest.TestCase):
     def new(self):

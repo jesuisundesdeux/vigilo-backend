@@ -21,6 +21,7 @@ $cwd = dirname(__FILE__);
 
 require_once("{$cwd}/includes/common.php");
 require_once("{$cwd}/includes/functions.php");
+require_once("{$cwd}/includes/addresses.php");
 require_once("{$cwd}/includes/security.php");
 
 header('BACKEND_VERSION: ' . BACKEND_VERSION);
@@ -149,23 +150,19 @@ if (isset($_POST['cityid']) && is_numeric($_POST['cityid']) && $_POST['cityid'] 
     }
 }
 
-if (isset($_POST['cityname']) && !empty($_POST['cityname']) && $cityid == 0) {
-    $cityname = mysqli_real_escape_string($db, $_POST['cityname']);
-} elseif (preg_match('/^(?:[^,]*),([^,]*)$/', $address, $cityInadress) && $cityid == 0) {
-    if (count($cityInadress) == 2) {
-        $cityname = $cityInadress[1];
-        $address  = preg_replace('/^([^,]*),(?:[^,]*)$/', '\1', $address);
+if ($cityid == 0) {
+    // City given, or taken from the address ("Rue X, Ville"), recognized without case, accents,
+    // postcode nor country; the address is kept without its city (includes/addresses.php)
+    $cities       = array();
+    $query_cities = mysqli_query($db, "SELECT city_id, city_name, city_postcode FROM obs_cities");
+    while ($query_cities && $row_city = mysqli_fetch_assoc($query_cities)) {
+        $cities[intval($row_city['city_id'])] = array('name' => (string) $row_city['city_name'], 'postcode' => (string) $row_city['city_postcode']);
     }
-}
-
-if ($cityname != '') {
-    $citynametmp = flatstring($cityname);
-    $city_query  = mysqli_query($db, "SELECT city_id FROM obs_cities WHERE REPLACE(REPLACE(LOWER(city_name),'-',''),' ','')='" . $citynametmp . "' LIMIT 1");
-    $city_result = mysqli_fetch_array($city_query);
-    if (isset($city_result['city_id']) && is_numeric($city_result['city_id'])) {
-        $cityid   = $city_result['city_id'];
-        $cityname = '';
-    }
+    $posted_cityname = isset($_POST['cityname']) && is_scalar($_POST['cityname']) ? (string) $_POST['cityname'] : '';
+    $fix      = address_fix(array('obs_address_string' => (string) $_POST['address'], 'obs_city' => 0, 'obs_cityname' => $posted_cityname), $cities);
+    $address  = mysqli_real_escape_string($db, $fix['address']);
+    $cityid   = intval($fix['city']);
+    $cityname = $fix['cityname'];  // escaped in the queries below
 }
 
 # Check if observation is located inside rectangle area of the scope
