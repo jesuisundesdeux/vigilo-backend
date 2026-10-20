@@ -57,6 +57,42 @@ body {
   vertical-align: middle;
 }
 
+/* Compact lists (observations, resolutions): one short row per item, editing in a window */
+.obs-thumb-sm {
+  width: 56px;
+  height: 56px;
+  max-width: none;
+  object-fit: cover;
+}
+.table-compact td { padding-top: .35rem; padding-bottom: .35rem; }
+.table-compact .obs-meta { font-size: .8125rem; color: var(--bs-secondary-color); }
+.table-compact .obs-text { max-width: 24rem; }
+.table-compact .obs-loc { min-width: 13rem; }
+.obs-clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.obs-chips { max-width: 38rem; }
+.obs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .15rem;
+  padding: .1rem .45rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  font-size: .8125rem;
+  background: var(--bs-body-bg);
+  white-space: nowrap;
+}
+.obs-chip a { text-decoration: none; }
+.obs-chip-duplicate { border-color: var(--bs-danger); }
+.obs-chip-duplicate > a:first-child { color: var(--bs-danger); font-weight: 600; }
+.obs-chip-remove { color: var(--bs-secondary-color); line-height: 1; }
+.obs-chip-remove:hover { color: var(--bs-danger); }
+.obs-chips-more > summary { cursor: pointer; list-style: none; }
+.obs-chips-more > summary::-webkit-details-marker { display: none; }
+.obs-chips-more[open] { flex-basis: 100%; }
+.obs-chip-add { width: 9rem; }
+.obs-chip-add .form-control { min-width: 0; }
+.table-admin .obs-chip-add .form-control { min-width: 0; }
+
 .table-admin .form-control-plaintext,
 .table-admin .form-control,
 .table-admin .form-select {
@@ -74,6 +110,13 @@ body {
   .table-stack td { display: block; width: auto !important; border: 0; }
   .table-stack td.text-end { text-align: start !important; }
   .table-stack .form-control, .table-stack .form-select { min-width: 0; }
+  /* Compact list: photo on the left of the texts, actions below */
+  .table-compact.table-stack tr { grid-template-columns: auto minmax(0, 1fr); gap: .15rem .75rem; padding: .5rem; }
+  .table-compact.table-stack td { padding: 0; }
+  .table-compact.table-stack td:first-child { grid-row: span 3; }
+  .table-compact.table-stack td.text-end, .table-compact.table-stack .obs-notes-row td { grid-column: 1 / -1; }
+  .table-compact.table-stack td.text-end > div { justify-content: flex-start !important; padding-top: .25rem; }
+  .table-compact .obs-text, .table-compact .obs-loc { max-width: none; min-width: 0; }
 }
 @media (max-width: 767.98px) {
   .table-stack-md thead { display: none; }

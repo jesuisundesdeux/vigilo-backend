@@ -115,6 +115,22 @@ function obsadmin_day($value, $end)
   return strtotime($value . ($end ? ' 23:59:59' : ' 00:00:00'));
 }
 
+/* <option>s of the resolutions, grouped by status (<optgroup>) */
+function obsadmin_resolution_options($groups, $options)
+{
+  $html = '';
+  foreach ($groups as $status => $label) {
+    if (!empty($options[$status])) {
+      $html .= '<optgroup label="' . h($label) . '">';
+      foreach ($options[$status] as $id => $text) {
+        $html .= '<option value="' . intval($id) . '">' . h($text) . '</option>';
+      }
+      $html .= '</optgroup>';
+    }
+  }
+  return $html;
+}
+
 /* Webhooks of a resolution created in the admin */
 function obsadmin_resolution_created($db, $resolution_token, &$messages)
 {
@@ -316,10 +332,6 @@ while ($city_query && $city_result = mysqli_fetch_array($city_query)) {
 $obswithoutcity = array("pbaddress" => array(), "cityunknown" => array(), "readytoimport" => array());
 
 if (in_array($current_role, $actions_acl['edit']['access'])) {
-  $input_enabled = '';
-  $input_class = 'form-control form-control-sm';
-  $select_class = 'form-select form-select-sm';
-
   /* Import of the cities: changes the database, so it needs the CSRF token */
   $do_import = isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1" && csrf_valid();
   $imported = 0;
@@ -370,11 +382,6 @@ if (in_array($current_role, $actions_acl['edit']['access'])) {
     audit_log('observation_importcity', '', array('imported' => $imported));
     obsadmin_message($messages, 'success', '<strong>' . h($imported) . '</strong> observations mises à jour à partir de leur adresse');
   }
-}
-else {
-  $input_enabled = 'disabled';
-  $input_class = 'form-control-plaintext';
-  $select_class = 'form-select form-select-sm';
 }
 
 /*
@@ -678,9 +685,19 @@ while ($query_count_tabs && $result_count_tabs = mysqli_fetch_array($query_count
 
 /* Check the list of resolved obs */
 $resolutionslist = array();
-$resolutions_query = mysqli_query($db, "SELECT resolution_token,resolution_id FROM obs_resolutions");
+// Resolutions to choose from, grouped by status: token, comment and number of observations
+$resolution_groups = array(2 => 'Prises en compte', 3 => 'En cours de résolution', 4 => 'Indiquées résolues', 1 => 'Résolues');
+$resolution_options = array();
+$resolutions_query = mysqli_query($db, "SELECT obs_resolutions.resolution_token, obs_resolutions.resolution_id, obs_resolutions.resolution_status,
+                                               obs_resolutions.resolution_comment, COUNT(obs_resolutions_tokens.restok_observationid) AS nb
+                                        FROM obs_resolutions LEFT JOIN obs_resolutions_tokens ON obs_resolutions_tokens.restok_resolutionid = obs_resolutions.resolution_id
+                                        GROUP BY obs_resolutions.resolution_id ORDER BY obs_resolutions.resolution_time DESC, obs_resolutions.resolution_id DESC");
 while ($resolutions_query && $resolutions_result = mysqli_fetch_array($resolutions_query)) {
   $resolutionslist[intval($resolutions_result['resolution_id'])] = $resolutions_result['resolution_token'];
+  $group = isset($resolution_groups[intval($resolutions_result['resolution_status'])]) ? intval($resolutions_result['resolution_status']) : 2;
+  $comment = trim((string) $resolutions_result['resolution_comment']);
+  $resolution_options[$group][intval($resolutions_result['resolution_id'])] = $resolutions_result['resolution_token']
+    . ($comment !== '' ? ' — ' . vigilo_truncate($comment, 50) : '') . ' (' . intval($resolutions_result['nb']) . ' obs.)';
 }
 
 $categorielist = getCategoriesList();
@@ -892,12 +909,12 @@ if (!empty($bulk_actions_shown) && count($observations) > 0) { ?>
     <?php } ?>
     <?php if (isset($bulk_actions['resolution_add'])) { ?>
     <span data-bulk-field="resolution_add" hidden>
+      <label class="visually-hidden" for="bulk-resolution-filter">Filtrer les résolutions</label>
+      <input type="search" class="form-control form-control-sm d-inline-block w-auto" id="bulk-resolution-filter" data-filter-select="#bulk-resolution" placeholder="Filtrer (token…)" autocomplete="off" />
       <label class="visually-hidden" for="bulk-resolution">Résolution</label>
       <select class="form-select form-select-sm w-auto" name="bulk_value_resolution_add" id="bulk-resolution">
         <option value="">— résolution —</option>
-        <?php foreach ($resolutionslist as $resolutionid => $resolutiontoken) { ?>
-        <option value="<?= intval($resolutionid) ?>"><?= h($resolutiontoken) ?></option>
-        <?php } ?>
+        <?= obsadmin_resolution_options($resolution_groups, $resolution_options) ?>
       </select>
     </span>
     <?php } ?>
@@ -908,32 +925,44 @@ if (!empty($bulk_actions_shown) && count($observations) > 0) { ?>
 
 <div class="card shadow-sm mb-3">
 <div class="table-responsive">
-  <table class="table table-hover align-middle table-admin table-stack mb-0">
+  <table class="table table-hover align-middle table-admin table-compact table-stack mb-0">
     <thead class="table-light">
       <tr>
-        <th style="width: 110px">Token</th>
-        <th style="width: 180px">Photo</th>
+        <th style="width: 1%"><span class="visually-hidden">Photo</span></th>
+        <th>Observation</th>
         <th>Précisions</th>
-        <th style="width: 280px">Localisation</th>
-        <th style="width: 130px">Date / Heure</th>
-        <th style="width: 220px" class="text-end">Actions</th>
+        <th>Localisation</th>
+        <th class="text-end">Actions</th>
       </tr>
     </thead>
     <tbody>
 <?php
 if (count($observations) == 0) {
-  echo '<tr><td colspan="6" class="text-center text-body-secondary py-4"><i class="bi bi-inbox"></i> Aucune observation</td></tr>';
+  echo '<tr><td colspan="5" class="text-center text-body-secondary py-4"><i class="bi bi-inbox"></i> Aucune observation</td></tr>';
 }
+
+$category_names = array();
+foreach ($categorielist as $categorie) {
+  if (isset($categorie['catid'])) {
+    $category_names[intval($categorie['catid'])] = isset($categorie['catname']) ? (string) $categorie['catname'] : '';
+  }
+}
+$resolution_badges = array(
+  1 => array('text-bg-success', 'bi-check2-all', 'Résolue'),
+  4 => array('text-bg-info', 'bi-check2-circle', 'Indiquée résolue'),
+  3 => array('text-bg-warning', 'bi-hourglass-split', 'En cours de résolution'),
+  2 => array('text-bg-secondary', 'bi-info-circle', 'Prise en compte'),
+);
+$can_edit_role    = in_array($current_role, $actions_acl['edit']['access']);
+$can_notes_role   = in_array($current_role, $actions_acl['notes']['access']);
+$can_resolve_role = in_array($current_role, $actions_acl['resolve']['access']);
+$can_link_role    = isset($bulk_actions['resolution_add']) || isset($bulk_actions['resolution_new']);
 
 foreach ($observations as $result_obs) {
   $obs_id    = intval($result_obs['obs_id']);
   $obs_token = (string) $result_obs['obs_token'];
   $obs_time  = intval($result_obs['obs_time']);
-  $date  = date('d/m/Y', $obs_time);
-  $heure = date('H:i', $obs_time);
   $can_act = obsadmin_can_act($result_obs, $current_role, $role_cityIds);
-  $form_id = 'obs-form-' . $obs_id;
-  $form_attr = $input_enabled == '' ? ' form="' . h($form_id) . '"' : '';
 
   $highlight_city = "";
   if ($current_role == 'citystaff' && in_array(intval($result_obs['obs_city']), $role_cityIds, true)) {
@@ -949,179 +978,140 @@ foreach ($observations as $result_obs) {
   $lat = (float) $result_obs['obs_coordinates_lat'];
   $lon = (float) $result_obs['obs_coordinates_lon'];
   $osm_url = 'https://www.openstreetmap.org/?mlat=' . $lat . '&mlon=' . $lon . '#map=16/' . $lat . '/' . $lon . '&layers=N';
+  // Street-level pictures around the observation (Panoramax viewer, map centred on it)
+  $panoramax_url = 'https://explore.panoramax.fr/#focus=map&map=19/' . $lat . '/' . $lon;
   $actionurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . ($pagenb > 1 ? '&pagenb=' . $pagenb : '') . '&token=' . urlencode($obs_token) . '&obsid=' . $obs_id . $urlsuffix;
   $obs_notes = isset($notes[$obs_id]) ? $notes[$obs_id] : array();
+  $catid = intval($result_obs['obs_categorie']);
+  $cityname = trim((string) $result_obs['obs_cityname']);
+  $city = $cityname !== '' ? $cityname : (isset($citylistname[intval($result_obs['obs_city'])]) ? $citylistname[intval($result_obs['obs_city'])] : '');
+  $edit_fill = array('obs_id' => $obs_id, 'obs_comment' => (string) $result_obs['obs_comment'], 'obs_explanation' => (string) $result_obs['obs_explanation'],
+                     'obs_categorie' => $catid, 'obs_address_string' => (string) $result_obs['obs_address_string'],
+                     'obs_city' => intval($result_obs['obs_city']), 'obs_cityname' => $cityname, 'city_shown' => $cityname === '', 'cityname_shown' => $cityname !== '',
+                     'post_date' => date('d/m/Y', $obs_time), 'post_heure' => date('H:i', $obs_time));
+  // A resolution concerns a published observation not already in one
+  $can_link = $can_act && $can_link_role && !$in_resolution && intval($result_obs['obs_approved']) == 1;
+  $more = array();
+  if ($can_act && in_array($current_role, $actions_acl['archive']['access'])) {
+    $more[] = empty($result_obs['obs_archived'])
+      ? '<a class="dropdown-item" href="' . h($actionurl . '&action=archive&archiveto=1' . csrf_query()) . '"><i class="bi bi-archive"></i> Archiver</a>'
+      : '<a class="dropdown-item" href="' . h($actionurl . '&action=archive&archiveto=0' . csrf_query()) . '"><i class="bi bi-box-arrow-up"></i> Désarchiver</a>';
+  }
+  if ($can_act && in_array($current_role, $actions_acl['cleancache']['access'])) {
+    $more[] = '<a class="dropdown-item" href="' . h($actionurl . '&action=cleancache' . csrf_query()) . '"><i class="bi bi-hdd"></i> Effacer le cache</a>';
+  }
+  if ($can_act && in_array($current_role, $actions_acl['approve']['access']) && intval($result_obs['obs_approved']) != 0) {
+    $more[] = '<a class="dropdown-item" href="' . h($actionurl . '&action=approve&approveto=0' . csrf_query()) . '"><i class="bi bi-clock"></i> Remettre à qualifier</a>';
+  }
+  if ($can_act && in_array($current_role, $actions_acl['delete']['access'])) {
+    $more[] = '<a class="dropdown-item text-danger" href="' . h($actionurl . '&action=delete' . csrf_query()) . '" data-confirm="Supprimer définitivement l\'observation ' . h($obs_token) . ' et sa photo ?"><i class="bi bi-trash"></i> Supprimer</a>';
+  }
 ?>
       <tr class="<?= h($highlight_city) ?>">
         <td>
-          <?php if ($can_act && !empty($bulk_actions_shown)) { ?>
-          <input class="form-check-input me-1" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
-          <?php } ?>
+          <div class="d-flex align-items-center gap-2">
+            <?php if ($can_act && !empty($bulk_actions_shown)) { ?>
+            <input class="form-check-input" type="checkbox" name="bulk_ids[]" value="<?= $obs_id ?>" form="bulk-form" id="bulk-<?= $obs_id ?>" aria-label="Sélectionner <?= h($obs_token) ?>" />
+            <?php } ?>
+            <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" data-photo data-photo-title="Observation <?= h($obs_token) ?>"><img class="obs-thumb obs-thumb-sm" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>
+          </div>
+        </td>
+        <td class="text-nowrap">
           <code><?= h($obs_token) ?></code>
-          <?php if (!empty($result_obs['obs_archived'])) { ?><br /><span class="badge text-bg-secondary mt-1"><i class="bi bi-archive"></i> Archivée</span><?php } ?>
+          <div class="obs-meta"><?= h(date('d/m/Y H:i', $obs_time)) ?></div>
+          <div class="d-flex flex-wrap gap-1">
+          <?php if (!empty($result_obs['obs_archived'])) { ?><span class="badge text-bg-secondary"><i class="bi bi-archive"></i> Archivée</span><?php } ?>
           <?php if ($in_resolution) {
-            $resolution_badges = array(
-              1 => array('text-bg-success', 'bi-check2-all', 'Résolue'),
-              4 => array('text-bg-info', 'bi-check2-circle', 'Indiquée résolue'),
-              3 => array('text-bg-warning', 'bi-hourglass-split', 'En cours de résolution'),
-              2 => array('text-bg-secondary', 'bi-info-circle', 'Prise en compte'),
-            );
             $badge = isset($resolution_badges[$resolution_status]) ? $resolution_badges[$resolution_status] : $resolution_badges[2];
-          ?><br /><span class="badge <?= h($badge[0]) ?> mt-1"><i class="bi <?= h($badge[1]) ?>"></i> <?= h($badge[2]) ?></span><?php } ?>
-          <?php if (isset($obs_problems[$obs_id])) { ?><br /><a class="badge text-bg-light border text-decoration-none text-wrap text-start mt-1" href="?page=problems&amp;view=<?= intval($obs_problems[$obs_id][0]) ?>" title="Problème auquel l'observation est rattachée"><i class="bi bi-diagram-3"></i> <?= h(vigilo_truncate($obs_problems[$obs_id][1], 60)) ?></a><?php } ?>
+          ?><a class="badge <?= h($badge[0]) ?> text-decoration-none" href="?page=resolutions&amp;resolved=<?= intval($resolution_status) ?>&amp;q=<?= h(urlencode($obs_token)) ?>" title="Voir la résolution"><i class="bi <?= h($badge[1]) ?>"></i> <?= h($badge[2]) ?></a><?php } ?>
+          <?php if (isset($obs_problems[$obs_id])) { ?><a class="badge text-bg-light border text-decoration-none text-wrap text-start" href="?page=problems&amp;view=<?= intval($obs_problems[$obs_id][0]) ?>" title="Problème auquel l'observation est rattachée"><i class="bi bi-diagram-3"></i> <?= h(vigilo_truncate($obs_problems[$obs_id][1], 40)) ?></a><?php } ?>
+          </div>
         </td>
-        <td>
-          <a href="<?= h($panel_base . '?s=800&token=' . urlencode($obs_token)) ?>" data-photo data-photo-title="Observation <?= h($obs_token) ?>"><img class="obs-thumb" loading="lazy" alt="Observation <?= h($obs_token) ?>" src="<?= h($panel_base . '?s=200&token=' . urlencode($obs_token)) ?>" /></a>
+        <td class="obs-text">
+          <div class="fw-semibold small"><?= h(isset($category_names[$catid]) ? $category_names[$catid] : '#' . $catid) ?></div>
+          <?php if (trim((string) $result_obs['obs_comment']) !== '') { ?><div class="text-break"><?= h($result_obs['obs_comment']) ?></div><?php } ?>
+          <?php if (trim((string) $result_obs['obs_explanation']) !== '') { ?><div class="obs-meta obs-clamp" title="<?= h($result_obs['obs_explanation']) ?>"><?= h(vigilo_truncate($result_obs['obs_explanation'], 120)) ?></div><?php } ?>
         </td>
-        <td>
-          <div class="mb-2">
-            <label for="obs_comment_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Commentaire</label>
-            <input type="text" class="<?= $input_class ?>" id="obs_comment_<?= $obs_id ?>" name="obs_comment" value="<?= h($result_obs['obs_comment']) ?>"<?= $form_attr ?> <?= $input_enabled ?> />
+        <td class="obs-loc">
+          <div class="text-break"><?= h($result_obs['obs_address_string']) ?></div>
+          <div class="obs-meta">
+            <?= $city !== '' ? h($city) : '<span class="text-warning-emphasis">Sans ville</span>' ?>
+            <?php if ($cityname !== '') { ?><span class="badge text-bg-warning">non référencée</span><?php } ?>
+            · <a href="<?= h($osm_url) ?>" target="_blank" rel="noopener" title="Voir sur OpenStreetMap"><i class="bi bi-map"></i><span class="visually-hidden">Carte</span></a>
+            · <a class="text-nowrap" href="<?= h($panoramax_url) ?>" target="_blank" rel="noopener" title="Voir les photos de rue autour de l'observation sur Panoramax"><i class="bi bi-camera"></i> Panoramax</a>
           </div>
-          <div class="mb-2">
-            <label for="obs_categorie_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Catégorie</label>
-            <select class="<?= $select_class ?>" id="obs_categorie_<?= $obs_id ?>" name="obs_categorie"<?= $form_attr ?> <?= $input_enabled ?>>
-            <?php
-            foreach ($categorielist as $categorie) {
-              $catid = isset($categorie['catid']) ? intval($categorie['catid']) : 0;
-              $catname = isset($categorie['catname']) ? $categorie['catname'] : '';
-              $selected = (intval($result_obs['obs_categorie']) == $catid) ? ' selected' : '';
-              echo '<option value="' . $catid . '"' . $selected . '>' . h($catname) . '</option>';
-            }
-            ?>
-            </select>
-          </div>
-          <?php if (!$in_resolution) { ?>
-          <div class="mb-2">
-            <label for="resolution_add_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Lier à une résolution</label>
-            <select class="<?= $select_class ?>" id="resolution_add_<?= $obs_id ?>" name="resolution_add"<?= $form_attr ?> <?= $input_enabled ?>>
-              <option value="0" selected>---</option>
-              <?php
-              foreach ($resolutionslist as $resolutionid => $resolutiontoken) {
-                echo '<option value="' . intval($resolutionid) . '">' . h($resolutiontoken) . '</option>';
-              }
-              ?>
-            </select>
-          </div>
-          <?php } ?>
-
-          <?php if ($can_act && in_array($current_role, $actions_acl['notes']['access'])) { ?>
-          <div class="mt-2">
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#notes-<?= $obs_id ?>" aria-expanded="false" aria-controls="notes-<?= $obs_id ?>">
-              <i class="bi bi-sticky"></i> Notes <span class="badge rounded-pill text-bg-secondary"><?= h(count($obs_notes)) ?></span>
-            </button>
-            <div class="collapse mt-2" id="notes-<?= $obs_id ?>">
-              <div class="card card-body bg-body-tertiary p-2">
-                <p class="small text-body-secondary mb-2"><i class="bi bi-lock"></i> Notes privées des modérateurs, jamais publiées.</p>
-                <?php if (count($obs_notes) == 0) { ?>
-                <p class="small text-body-secondary mb-2">Aucune note.</p>
-                <?php } ?>
-                <?php foreach ($obs_notes as $note) {
-                  $note_can_delete = $is_admin || ($current_login !== '' && (string) $note['note_login'] === $current_login);
-                ?>
-                <div class="border-bottom pb-2 mb-2">
-                  <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div class="small text-body-secondary">
-                      <i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?>
-                    </div>
-                    <?php if ($note_can_delete) { ?>
-                    <form method="POST" action="<?= h($listurl) ?>" class="m-0">
-                      <?= csrf_field() ?>
-                      <input type="hidden" name="note_action" value="delete" />
-                      <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>" />
-                      <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
-                    </form>
-                    <?php } ?>
-                  </div>
-                  <div class="small"><?= nl2br(h($note['note_text'])) ?></div>
-                </div>
-                <?php } ?>
-                <form method="POST" action="<?= h($listurl) ?>" class="m-0">
-                  <?= csrf_field() ?>
-                  <input type="hidden" name="note_action" value="add" />
-                  <input type="hidden" name="note_obsid" value="<?= $obs_id ?>" />
-                  <label for="note_text_<?= $obs_id ?>" class="visually-hidden">Nouvelle note</label>
-                  <textarea class="form-control form-control-sm mb-2" id="note_text_<?= $obs_id ?>" name="note_text" rows="2" maxlength="5000" placeholder="Ajouter une note privée…" required></textarea>
-                  <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          <?php } ?>
-        </td>
-        <td>
-          <div class="mb-2">
-            <label for="obs_address_string_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Rue</label>
-            <a href="<?= h($osm_url) ?>" target="_blank" rel="noopener" class="small ms-1"><i class="bi bi-map"></i> Carte</a>
-            <input type="text" class="<?= $input_class ?>" id="obs_address_string_<?= $obs_id ?>" name="obs_address_string" value="<?= h($result_obs['obs_address_string']) ?>" required<?= $form_attr ?> <?= $input_enabled ?> />
-          </div>
-          <?php if (!empty($result_obs['obs_cityname'])) { ?>
-          <div class="mb-2">
-            <label for="obs_cityname_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Ville <span class="badge text-bg-warning">non référencée</span></label>
-            <input type="text" class="<?= $input_class ?>" id="obs_cityname_<?= $obs_id ?>" name="obs_cityname" value="<?= h($result_obs['obs_cityname']) ?>" required<?= $form_attr ?> <?= $input_enabled ?> />
-          </div>
-          <?php } else { ?>
-          <div class="mb-2">
-            <label for="obs_city_<?= $obs_id ?>" class="form-label small fw-semibold mb-0">Ville</label>
-            <select class="<?= $select_class ?>" id="obs_city_<?= $obs_id ?>" name="obs_city"<?= $form_attr ?> <?= $input_enabled ?>>
-            <?php
-            foreach ($citylistname as $selectcityid => $selectcityname) {
-              $selected = (intval($result_obs['obs_city']) == $selectcityid) ? ' selected' : '';
-              echo '<option value="' . intval($selectcityid) . '"' . $selected . '>' . h($selectcityname) . '</option>';
-            }
-            if (intval($result_obs['obs_city']) == 0) {
-              echo '<option value="0" selected>---</option>';
-            }
-            ?>
-            </select>
-          </div>
-          <?php } ?>
-        </td>
-        <td>
-          <label for="post_date_<?= $obs_id ?>" class="visually-hidden">Date</label>
-          <input type="text" class="<?= $input_class ?> mb-1" id="post_date_<?= $obs_id ?>" name="post_date" value="<?= h($date) ?>" placeholder="jj/mm/aaaa" required<?= $form_attr ?> <?= $input_enabled ?> />
-          <label for="post_heure_<?= $obs_id ?>" class="visually-hidden">Heure</label>
-          <input type="text" class="<?= $input_class ?>" id="post_heure_<?= $obs_id ?>" name="post_heure" value="<?= h($heure) ?>" placeholder="hh:mm" required<?= $form_attr ?> <?= $input_enabled ?> />
         </td>
         <td class="text-end">
-          <div class="d-grid gap-1">
-          <?php // Droits réservés aux admins : approuver/désapprouver/résoudre/supprimer une observation
-          if ($can_act && in_array($current_role, $actions_acl['edit']['access'])) { ?>
-            <form method="POST" action="<?= h($listurl) ?>" id="<?= h($form_id) ?>" class="m-0 d-grid">
-              <?= csrf_field() ?>
-              <input type="hidden" name="obs_id" value="<?= $obs_id ?>" />
-              <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-pencil"></i> Valider l'édition</button>
-            </form>
-          <?php }
-          if ($can_act && in_array($current_role, $actions_acl['approve']['access'])) { ?>
-            <?php // Only the moderation states the observation is not in
+          <div class="d-flex flex-wrap flex-xl-nowrap justify-content-end gap-1">
+          <?php if ($can_act && in_array($current_role, $actions_acl['approve']['access'])) {
+            // Only the moderation states the observation is not in
             if (intval($result_obs['obs_approved']) != 1) { ?>
-            <a class="btn btn-sm btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1' . csrf_query()) ?>"><i class="bi bi-check-lg"></i> Approuver</a>
+            <a class="btn btn-sm btn-outline-success" href="<?= h($actionurl . '&action=approve&approveto=1' . csrf_query()) ?>" title="Approuver"><i class="bi bi-check-lg"></i><span class="d-none d-xxl-inline"> Approuver</span></a>
             <?php }
             if (intval($result_obs['obs_approved']) != 2) { ?>
-            <a class="btn btn-sm btn-outline-warning" href="<?= h($actionurl . '&action=approve&approveto=2' . csrf_query()) ?>"><i class="bi bi-x-lg"></i> Désapprouver</a>
+            <a class="btn btn-sm btn-outline-warning" href="<?= h($actionurl . '&action=approve&approveto=2' . csrf_query()) ?>" title="Désapprouver"><i class="bi bi-x-lg"></i><span class="d-none d-xxl-inline"> Désapprouver</span></a>
             <?php }
           }
-          if ($can_act && in_array($current_role, $actions_acl['archive']['access'])) {
-            if (empty($result_obs['obs_archived'])) { ?>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=archive&archiveto=1' . csrf_query()) ?>"><i class="bi bi-archive"></i> Archiver</a>
-          <?php } else { ?>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=archive&archiveto=0' . csrf_query()) ?>"><i class="bi bi-box-arrow-up"></i> Désarchiver</a>
+          if ($can_act && $can_edit_role) { ?>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#obsEditModal" data-title="Modifier l'observation <?= h($obs_token) ?>" data-fill="<?= h(json_encode($edit_fill)) ?>" title="Modifier"><i class="bi bi-pencil"></i><span class="visually-hidden">Modifier</span></button>
           <?php }
-          }
-          if ($can_act && in_array($current_role, $actions_acl['cleancache']['access'])) { ?>
-            <a class="btn btn-sm btn-outline-secondary" href="<?= h($actionurl . '&action=cleancache' . csrf_query()) ?>"><i class="bi bi-hdd"></i> Effacer le cache</a>
+          if ($can_link) { ?>
+            <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="modal" data-bs-target="#obsResolutionModal" data-title="Résolution pour l'observation <?= h($obs_token) ?>" data-fill="<?= h(json_encode(array('bulk_ids' => $obs_id))) ?>" title="Ajouter à une résolution"><i class="bi bi-link-45deg"></i><span class="d-none d-xxl-inline"> Résolution</span></button>
           <?php }
-          // A resolution concerns a published observation not already in one
-          if ($can_act && in_array($current_role, $actions_acl['resolve']['access']) && !$in_resolution && intval($result_obs['obs_approved']) == 1) { ?>
-            <a class="btn btn-sm btn-outline-info" href="<?= h($actionurl . '&action=resolve' . csrf_query()) ?>"><i class="bi bi-eye"></i> Nouvelle résolution</a>
+          if ($can_act && $can_notes_role) { ?>
+            <button class="btn btn-sm btn-outline-secondary text-nowrap" type="button" data-bs-toggle="collapse" data-bs-target="#notes-<?= $obs_id ?>" aria-expanded="false" aria-controls="notes-<?= $obs_id ?>" title="Notes privées"><i class="bi bi-sticky"></i> <?= count($obs_notes) ?></button>
           <?php }
-          if ($can_act && in_array($current_role, $actions_acl['delete']['access'])) { ?>
-            <a class="btn btn-sm btn-outline-danger" href="<?= h($actionurl . '&action=delete' . csrf_query()) ?>" data-confirm="Merci de valider la suppression"><i class="bi bi-trash"></i> Supprimer</a>
+          if ($more) { ?>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Autres actions"><i class="bi bi-three-dots"></i><span class="visually-hidden">Autres actions</span></button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <?php foreach ($more as $item) { ?><li><?= $item ?></li><?php } ?>
+              </ul>
+            </div>
           <?php } ?>
           </div>
         </td>
       </tr>
+      <?php if ($can_act && $can_notes_role) { ?>
+      <tr class="collapse obs-notes-row" id="notes-<?= $obs_id ?>">
+        <td colspan="5">
+          <div class="card card-body bg-body-tertiary p-2">
+            <p class="small text-body-secondary mb-2"><i class="bi bi-lock"></i> Notes privées des modérateurs de l'observation <code><?= h($obs_token) ?></code>, jamais publiées.</p>
+            <?php if (count($obs_notes) == 0) { ?>
+            <p class="small text-body-secondary mb-2">Aucune note.</p>
+            <?php } ?>
+            <?php foreach ($obs_notes as $note) {
+              $note_can_delete = $is_admin || ($current_login !== '' && (string) $note['note_login'] === $current_login);
+            ?>
+            <div class="border-bottom pb-2 mb-2">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="small text-body-secondary">
+                  <i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?>
+                </div>
+                <?php if ($note_can_delete) { ?>
+                <form method="POST" action="<?= h($listurl) ?>" class="m-0">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="note_action" value="delete" />
+                  <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>" />
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
+                </form>
+                <?php } ?>
+              </div>
+              <div class="small"><?= nl2br(h($note['note_text'])) ?></div>
+            </div>
+            <?php } ?>
+            <form method="POST" action="<?= h($listurl) ?>" class="m-0 d-flex flex-wrap gap-2 align-items-start">
+              <?= csrf_field() ?>
+              <input type="hidden" name="note_action" value="add" />
+              <input type="hidden" name="note_obsid" value="<?= $obs_id ?>" />
+              <label for="note_text_<?= $obs_id ?>" class="visually-hidden">Nouvelle note</label>
+              <textarea class="form-control form-control-sm flex-grow-1" id="note_text_<?= $obs_id ?>" name="note_text" rows="2" maxlength="5000" placeholder="Ajouter une note privée…" required style="min-width: 14rem; flex-basis: 20rem;"></textarea>
+              <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      <?php } ?>
 <?php
 }
 ?>
@@ -1130,33 +1120,108 @@ foreach ($observations as $result_obs) {
 </div>
 </div>
 
-<?php
-if ($nbpages > 1) {
-  $pageurl = '?page=' . urlencode($page_name) . '&approved=' . $approved . $urlsuffix . '&pagenb=';
-  $previous_disabled = ($pagenb <= 1) ? ' disabled' : '';
-  $next_disabled = ($pagenb >= $nbpages) ? ' disabled' : '';
-?>
-<nav aria-label="Pagination des observations">
-  <ul class="pagination pagination-sm flex-wrap">
-    <li class="page-item<?= $previous_disabled ?>">
-      <a class="page-link" href="<?= h($pageurl . max(1, $pagenb - 1)) ?>"<?= $previous_disabled ? ' tabindex="-1" aria-disabled="true"' : '' ?>><i class="bi bi-chevron-left"></i><span class="visually-hidden">Précédent</span></a>
-    </li>
-<?php
-  for ($i = 1; $i <= $nbpages; $i++) {
-    $active = ($pagenb == $i);
-?>
-    <li class="page-item<?= $active ? ' active' : '' ?>"<?= $active ? ' aria-current="page"' : '' ?>><a class="page-link" href="<?= h($pageurl . $i) ?>"><?= $i ?></a></li>
-<?php
-  }
-?>
-    <li class="page-item<?= $next_disabled ?>">
-      <a class="page-link" href="<?= h($pageurl . min($nbpages, $pagenb + 1)) ?>"<?= $next_disabled ? ' tabindex="-1" aria-disabled="true"' : '' ?>><i class="bi bi-chevron-right"></i><span class="visually-hidden">Suivant</span></a>
-    </li>
-  </ul>
-</nav>
-<?php
-}
-?>
+<?= admin_pagination('?page=' . urlencode($page_name) . '&approved=' . $approved . $urlsuffix . '&pagenb=', $pagenb, $nbpages, 'Pagination des observations') ?>
+
+<?php if ($can_edit_role && count($observations) > 0) { ?>
+<div class="modal fade" id="obsEditModal" tabindex="-1" aria-labelledby="obsEditModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form class="modal-content" method="POST" action="<?= h($listurl) ?>">
+      <?= csrf_field() ?>
+      <input type="hidden" name="obs_id" value="" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="obsEditModalTitle">Modifier l'observation</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="obs-edit-comment" class="form-label">Commentaire</label>
+            <input type="text" class="form-control" id="obs-edit-comment" name="obs_comment" value="" />
+          </div>
+          <div class="col-md-6">
+            <label for="obs-edit-category" class="form-label">Catégorie</label>
+            <select class="form-select" id="obs-edit-category" name="obs_categorie">
+              <?php foreach ($categorielist as $categorie) { ?>
+              <option value="<?= isset($categorie['catid']) ? intval($categorie['catid']) : 0 ?>"><?= h(isset($categorie['catname']) ? $categorie['catname'] : '') ?></option>
+              <?php } ?>
+            </select>
+          </div>
+          <div class="col-12">
+            <label for="obs-edit-explanation" class="form-label">Explication</label>
+            <textarea class="form-control" id="obs-edit-explanation" name="obs_explanation" rows="2"></textarea>
+          </div>
+          <div class="col-md-6">
+            <label for="obs-edit-address" class="form-label">Rue</label>
+            <input type="text" class="form-control" id="obs-edit-address" name="obs_address_string" value="" required />
+          </div>
+          <div class="col-md-6" data-fill-show="city_shown">
+            <label for="obs-edit-city" class="form-label">Ville</label>
+            <select class="form-select" id="obs-edit-city" name="obs_city">
+              <option value="0">---</option>
+              <?php foreach ($citylistname as $selectcityid => $selectcityname) { ?>
+              <option value="<?= intval($selectcityid) ?>"><?= h($selectcityname) ?></option>
+              <?php } ?>
+            </select>
+          </div>
+          <div class="col-md-6" data-fill-show="cityname_shown">
+            <label for="obs-edit-cityname" class="form-label">Ville <span class="badge text-bg-warning">non référencée</span></label>
+            <input type="text" class="form-control" id="obs-edit-cityname" name="obs_cityname" value="" required />
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="obs-edit-date" class="form-label">Date</label>
+            <input type="text" class="form-control" id="obs-edit-date" name="post_date" value="" placeholder="jj/mm/aaaa" required />
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="obs-edit-time" class="form-label">Heure</label>
+            <input type="text" class="form-control" id="obs-edit-time" name="post_heure" value="" placeholder="hh:mm" required />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php } ?>
+
+<?php if ($can_link_role && $approved == 1 && count($observations) > 0) { ?>
+<div class="modal fade" id="obsResolutionModal" tabindex="-1" aria-labelledby="obsResolutionModalTitle" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="POST" action="<?= h($listurl) ?>">
+      <?= csrf_field() ?>
+      <input type="hidden" name="bulk_ids[]" value="" />
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="obsResolutionModalTitle">Résolution</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (isset($bulk_actions['resolution_add'])) { ?>
+        <label for="obs-resolution" class="form-label">Ajouter à une résolution existante</label>
+        <input type="search" class="form-control mb-2" id="obs-resolution-filter" data-filter-select="#obs-resolution" placeholder="Filtrer : token, commentaire…" aria-label="Filtrer les résolutions" autocomplete="off" />
+        <select class="form-select" id="obs-resolution" name="bulk_value_resolution_add" required>
+          <option value="">— résolution —</option>
+          <?= obsadmin_resolution_options($resolution_groups, $resolution_options) ?>
+        </select>
+        <div class="form-text">Token, commentaire et nombre d'observations de la résolution ; les plus récentes d'abord.</div>
+        <?php } ?>
+        <?php if (isset($bulk_actions['resolution_new'])) { ?>
+        <p class="small text-body-secondary mt-3 mb-0">Ou créer une nouvelle résolution (« Prise en compte ») pour cette seule observation.</p>
+        <?php } ?>
+      </div>
+      <div class="modal-footer">
+        <?php if (isset($bulk_actions['resolution_new'])) { ?>
+        <button type="submit" class="btn btn-outline-info me-auto" name="bulk_action" value="resolution_new" formnovalidate><i class="bi bi-plus-lg"></i> Nouvelle résolution</button>
+        <?php } ?>
+        <?php if (isset($bulk_actions['resolution_add'])) { ?>
+        <button type="submit" class="btn btn-primary" name="bulk_action" value="resolution_add"><i class="bi bi-link-45deg"></i> Ajouter</button>
+        <?php } ?>
+      </div>
+    </form>
+  </div>
+</div>
+<?php } ?>
 
 <?php if (in_array($current_role, $actions_acl['archive']['access'])) { ?>
 <div class="card shadow-sm mt-4 mb-4">

@@ -98,11 +98,16 @@ def main():
         clean('observations ' + query, status, page)
     # Only the actions that make sense: not the current moderation state, resolutions for published ones
     status, _, page = admin.request('index.php?page=observations&approved=1')
-    check('approveto=1' not in page and 'approveto=2' in page and 'action=resolve' in page
+    check('approveto=1' not in page and 'approveto=2' in page and 'data-bs-target="#obsResolutionModal"' in page and 'value="resolution_new"' in page
           and '<option value="approve"' not in page and '<option value="disapprove"' in page and '<option value="unarchive"' not in page,
           'approved observations: no "Approuver" button nor bulk action')
+    # Compact list: editing in a window, other actions in a menu, link to Panoramax
+    check('id="obsEditModal"' in page and 'data-bs-target="#obsEditModal"' in page and 'data-bs-toggle="dropdown"' in page
+          and 'explore.panoramax.fr/#focus=map&amp;map=19/' in page and 'name="obs_comment" value=""' in page, 'observations: compact rows, edit window, Panoramax link')
+    check(re.search(r'<optgroup label="[^"]+"><option value="\d+">R_', page) is not None
+          and 'data-filter-select="#obs-resolution"' in page and 'data-filter-select="#bulk-resolution"' in page, 'resolutions to choose grouped by status, with a filter')
     status, _, page = admin.request('index.php?page=observations&approved=0')
-    check('approveto=1' in page and 'action=resolve' not in page and '<option value="pending"' not in page
+    check('approveto=1' in page and 'obsResolutionModal' not in page and '<option value="pending"' not in page
           and '<option value="resolution_new"' not in page, 'observations to moderate: no resolution, no "Remettre à qualifier"')
     status, _, page = admin.request('index.php?page=observations&approved=2')
     check('approveto=2' not in page and 'approveto=1' in page and '<option value="disapprove"' not in page, 'disapproved observations: no "Désapprouver"')
@@ -140,9 +145,9 @@ def main():
     # Resolution status of an observation (TOKA0007: resolved, TOKA0003: reported resolved, to validate)
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
     clean('observation TOKA0007', status, page)
-    check('Résolue</span>' in page and 'En résolution' not in page, 'resolved observation shown as resolved')
+    check('Résolue</a>' in page and 'En résolution' not in page, 'resolved observation shown as resolved')
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0003')
-    check('Indiquée résolue</span>' in page, 'observation reported resolved shown as such')
+    check('Indiquée résolue</a>' in page, 'observation reported resolved shown as such')
 
     # Moderator note on TOKA0001 (#266)
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0001')
@@ -475,6 +480,15 @@ def main():
     check('<strong>1</strong> résolution(s)' in page, 'bulk status change')
     status, _, page = admin.request('index.php?page=resolutions&resolved=1')
     check('R_RES00002' in page, 'resolution validated in bulk')
+    # Compact resolutions: search, observations as chips, editing in a window (date only once reported resolved)
+    status, _, page = admin.request('index.php?page=resolutions&resolved=1&q=RES00002')
+    clean('resolutions search', status, page)
+    check('R_RES00002' in page and 'class="obs-chip' in page and 'id="resolutionModal"' in page and 'data-fill-show="with_date"' in page
+          and '&quot;with_date&quot;:true' in page, 'resolutions: search, chips, edit window')
+    status, _, page = admin.request('index.php?page=resolutions&resolved=1&q=' + 'TOKA0007')
+    check('R_RES' in page, 'resolutions searched by the token of an observation')
+    status, _, page = admin.request('index.php?page=resolutions&resolved=1&q=%25zz')
+    check('Aucune résolution ne correspond' in page, 'resolutions search: no match')
 
     # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal
     status, _, page = admin.request('index.php?page=problems&status=all')

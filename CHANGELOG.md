@@ -3,10 +3,27 @@
 ## 0.0.36
 
 ### Observations
+- **Liste compacte** : une ligne par observation (miniature, token, date, catégorie, commentaire, adresse) au lieu
+  d'un formulaire complet ; **Modifier** ouvre une fenêtre (commentaire, explication, catégorie, rue, ville, date,
+  heure) ; Archiver, Effacer le cache, Remettre à qualifier et Supprimer passent dans un menu « … » ; les notes se
+  déplient sous l'observation. Sur mobile, la photo est à gauche des textes.
+- **Ajouter à une résolution** : bouton « Résolution » sur chaque observation approuvée hors résolution, qui ouvre une
+  fenêtre pour l'ajouter à une résolution existante (liste groupée par statut avec token, commentaire et nombre
+  d'observations, **filtrable en tapant un token**) ou en créer une nouvelle. Le même filtre est proposé dans l'action
+  groupée « Ajouter à une résolution existante ».
+- Lien **Panoramax** sur chaque observation (photos de rue autour de son emplacement, explore.panoramax.fr).
+- Pagination condensée (« … ») quand les pages sont nombreuses.
 - Page Observations : seuls les boutons utiles sont affichés. Pas de « Approuver » pour une observation approuvée, pas
   de « Désapprouver » pour une observation refusée, « Nouvelle résolution » pour les seules observations approuvées.
   Les actions groupées suivent l'onglet (modération, résolutions) et le filtre d'archives (« Archiver » ou
   « Désarchiver »).
+
+### Résolutions
+- **Liste compacte** : 25 résolutions par page, une ligne chacune ; les observations s'affichent en pastilles (retrait
+  par « × », les 12 premières puis « + n » à déplier, ajout par token) ; boutons d'état plus courts ; commentaire et
+  date modifiables dans une fenêtre.
+- **Recherche** par token de la résolution, commentaire ou token d'une de ses observations (les badges de résolution
+  de la page Observations y mènent).
 
 ### Noms de rues
 - Partout où l'admin utilise les rues des observations, une même rue est reconnue quelle que soit son écriture :
