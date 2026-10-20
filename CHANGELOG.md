@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.38
+
+### Problèmes
+- Un problème créé depuis une **suggestion filtrée** garde ses filtres jusqu'au rattachement des observations :
+  observations archivées ou résolues comprises et ville (liens « Créer le problème » : `archived=1`, `resolved=1`,
+  `city=<id>`), rappelés sous la carte du formulaire. La fenêtre ouverte après la création compte les observations
+  avec ces filtres (cases cochées, nouvelle case « Seulement à <ville> »), et la carte de la fiche montre les
+  observations à rattacher ainsi comptées.
+
 ## 0.0.37
 
 ### Problèmes

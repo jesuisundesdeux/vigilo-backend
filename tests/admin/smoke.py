@@ -545,6 +545,17 @@ def main():
     check('Suggestions (1)' in filtered and 'archivées comprises' in filtered and 'Groupes d\'au moins 2 observations' in filtered, 'suggestion filters: archived included, unknown city ignored, minimum bounded')
     create = links(page, 'suggestion=1')
     check(len(create) == 1, 'create link of the suggestion')
+    # Filters of the suggestion carried to the creation: link, hidden fields and note of the form (city: known ids only)
+    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_resolved': '1', 'suggest_archived': '1'})
+    carried = links(filtered, 'suggestion=1')
+    check(len(carried) == 1 and '&archived=1&resolved=1' in carried[0] and '&city=' not in carried[0], 'suggestion filters in its create link')
+    if carried:
+        status, _, form = admin.request(('index.php' + carried[0] if carried[0].startswith('?') else carried[0]) + '&city=1')
+        check('<input type="hidden" name="include_resolved" value="1">' in form and '<input type="hidden" name="only_city" value="1">' in form
+              and '<input type="hidden" name="include_archived" value="1">' in form and 'seulement à Testville, archivées comprises, résolues comprises' in form,
+              'suggestion filters kept by the form')
+        status, _, form = admin.request(('index.php' + carried[0] if carried[0].startswith('?') else carried[0]) + '&city=999')
+        check('name="only_city"' not in form, 'unknown city of a suggestion ignored')
     if create:
         status, _, form = admin.request('index.php' + create[0] if create[0].startswith('?') else create[0])
         clean('problem from suggestion', status, form)

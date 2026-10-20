@@ -264,7 +264,7 @@ function problem_admin_conflict_list($conflicts, $titles, $self_url)
  * of the problem: on the detail ($count on request) and in the window shown after a creation
  * ($count computed at once). $id_prefix keeps the ids of the two places apart.
  */
-function problem_admin_attach_panel($problem, $count, $include_archived, $include_resolved, $titles, $self_url, $id_prefix)
+function problem_admin_attach_panel($problem, $count, $filters, $cities, $titles, $self_url, $id_prefix)
 {
     $view_url = $self_url . '&view=' . intval($problem['problem_id']);
     ob_start(); ?>
@@ -277,13 +277,19 @@ function problem_admin_attach_panel($problem, $count, $include_archived, $includ
     <form method="POST" action="<?= h($view_url) ?>#attach" class="d-flex flex-wrap align-items-center gap-2">
       <?= csrf_field() ?>
       <div class="form-check me-2">
-        <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="<?= h($id_prefix) ?>include_archived"<?= $include_archived ? ' checked' : '' ?>>
+        <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="<?= h($id_prefix) ?>include_archived"<?= $filters['archived'] ? ' checked' : '' ?>>
         <label class="form-check-label" for="<?= h($id_prefix) ?>include_archived">Inclure les observations archivées</label>
       </div>
       <div class="form-check me-2">
-        <input class="form-check-input" type="checkbox" name="include_resolved" value="1" id="<?= h($id_prefix) ?>include_resolved"<?= $include_resolved ? ' checked' : '' ?>>
+        <input class="form-check-input" type="checkbox" name="include_resolved" value="1" id="<?= h($id_prefix) ?>include_resolved"<?= $filters['resolved'] ? ' checked' : '' ?>>
         <label class="form-check-label" for="<?= h($id_prefix) ?>include_resolved">Inclure les observations résolues</label>
       </div>
+      <?php if ($filters['city'] && isset($cities[$filters['city']])) { ?>
+      <div class="form-check me-2">
+        <input class="form-check-input" type="checkbox" name="only_city" value="<?= intval($filters['city']) ?>" id="<?= h($id_prefix) ?>only_city" checked>
+        <label class="form-check-label" for="<?= h($id_prefix) ?>only_city">Seulement à <?= h($cities[$filters['city']]) ?></label>
+      </div>
+      <?php } ?>
       <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
       <?php if ($count && count($count['to_attach'])) { ?>
       <button class="btn btn-primary" type="submit" name="problem_attach_retro" value="1" data-confirm="Rattacher <?= count($count['to_attach']) ?> observation(s) au problème « <?= h($problem['problem_title']) ?> » ?"><i class="bi bi-link-45deg"></i> Rattacher <?= count($count['to_attach']) ?> observation(s)</button>
@@ -298,6 +304,16 @@ function problem_admin_attach_panel($problem, $count, $include_archived, $includ
     </ul>
     <?php }
     return ob_get_clean();
+}
+
+/* problem_attach_filters() of a form, the city kept only if known ($cities: id => name) */
+function problem_admin_attach_filters($input, $cities)
+{
+    $filters = problem_attach_filters($input);
+    if (!isset($cities[$filters['city']])) {
+        $filters['city'] = 0;
+    }
+    return $filters;
 }
 
 /* Alerts of a list of messages (built from escaped / integer values only) */
@@ -530,6 +546,8 @@ if (isset($_POST['problem_save'])) {
 
 /* Form to show; observations shown on its map (of the suggestion, or attached to the problem) */
 $reference_tokens = array();
+// Filters of a suggestion, carried by the form of a new problem (hidden fields) to the attachment window
+$form_filters = problem_attach_filters($edit !== null ? $_POST : array());
 if ($edit !== null && isset($_POST['reference_tokens']) && is_string($_POST['reference_tokens'])) {
     $reference_tokens = explode(',', $_POST['reference_tokens']);
 }
@@ -550,6 +568,8 @@ if ($edit === null && isset($_GET['edit'])) {
             if ($get('zone') === 'streets') {
                 $edit['problem_zone'] = 'streets';
             }
+            // Filters of the suggestion (archived, resolved, city): kept by the form for the attachment
+            $form_filters = problem_attach_filters($_GET);
         }
     } else {
         $edit = problem_load($db, $_GET['edit']);
@@ -630,11 +650,11 @@ if ($view) {
     $titles   = problem_titles($db);
     // Messages of the actions on the observations, shown in their card (the page goes back to it)
     $local_messages = array('attach' => array(), 'observations' => array());
-    // Archived and resolved observations: only when asked (count and attachment)
-    $include_archived = !empty($_POST['include_archived']);
-    $include_resolved = !empty($_POST['include_resolved']);
-    if (isset($_POST['problem_count'])) {
-        $count = problem_count($db, $view, $include_archived, $include_resolved);
+    // Archived and resolved observations: only when asked (count and attachment); city of a suggestion
+    $attach_filters = problem_admin_attach_filters($_POST, $suggest_cities);
+    // Just created (from a suggestion: with its filters): counted at once, for the window and the map
+    if (isset($_POST['problem_count']) || (!empty($created_problem) && intval($created_problem['problem_id']) == $view_id)) {
+        $count = problem_count($db, $view, $attach_filters);
     }
     // Resolved problem: its observations set as resolved (resolutions), after confirmation
     if (isset($_POST['problem_resolve_observations'])) {
@@ -711,8 +731,9 @@ if ($view) {
         }
     }
     if (isset($_POST['problem_attach_retro'])) {
-        $result = problem_attach_retro($db, $view, $login, $include_archived, $include_resolved);
-        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'archived' => $include_archived, 'resolved' => $include_resolved, 'attached' => count($result['attached']),
+        $result = problem_attach_retro($db, $view, $login, $attach_filters);
+        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'archived' => $attach_filters['archived'],
+                  'resolved' => $attach_filters['resolved'], 'city' => $attach_filters['city'], 'attached' => count($result['attached']),
                   'tokens' => implode(',', array_slice($result['attached'], 0, 100)), 'already' => $result['already'],
                   'conflicts' => count($result['conflicts'])));
         $local_messages['attach'][] = array(count($result['conflicts']) ? 'warning' : 'success', '<strong>' . count($result['attached']) . '</strong> observation(s) rattachée(s), '
@@ -839,7 +860,7 @@ if (!empty($created_problem)) { ?>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
-        <?= problem_admin_attach_panel($created_problem, problem_count($db, $created_problem, false, false), false, false, problem_titles($db), $self_url, 'created-') ?>
+        <?= problem_admin_attach_panel($created_problem, $count, $attach_filters, $suggest_cities, $titles, $self_url, 'created-') ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Plus tard</button>
@@ -882,6 +903,11 @@ if ($edit !== null) {
   <?= csrf_field() ?>
   <input type="hidden" name="problem_id" value="<?= intval($edit['problem_id']) ?>">
   <?php if ($reference_tokens) { ?><input type="hidden" name="reference_tokens" value="<?= h(implode(',', array_slice(array_filter($reference_tokens, 'is_string'), 0, 200))) ?>"><?php } ?>
+  <?php if (!$edit['problem_id']) { ?>
+  <?php if ($form_filters['archived']) { ?><input type="hidden" name="include_archived" value="1"><?php } ?>
+  <?php if ($form_filters['resolved']) { ?><input type="hidden" name="include_resolved" value="1"><?php } ?>
+  <?php if (isset($suggest_cities[$form_filters['city']])) { ?><input type="hidden" name="only_city" value="<?= intval($form_filters['city']) ?>"><?php } ?>
+  <?php } ?>
   <div class="card-header fw-semibold"><?= $edit['problem_id'] ? 'Modifier le problème' : 'Nouveau problème' ?></div>
   <div class="card-body">
     <div class="row g-3">
@@ -969,6 +995,11 @@ if ($edit !== null) {
           <?php if ($points) { ?>
           <div class="form-text"><span class="problem-legend-dot" style="background: <?= $edit['problem_id'] ? '#198754' : '#fd7e14' ?>;"></span>
             <?= count($points) ?> observation<?= count($points) > 1 ? 's' : '' ?> <?= $edit['problem_id'] ? 'rattachée' . (count($points) > 1 ? 's' : '') . ' au problème' : 'de la suggestion' ?> (repère<?= count($points) > 1 ? 's' : '' ?> sur la carte).</div>
+          <?php }
+          if (!$edit['problem_id'] && ($form_filters['archived'] || $form_filters['resolved'] || isset($suggest_cities[$form_filters['city']]))) { ?>
+          <div class="form-text"><i class="bi bi-funnel"></i> Filtres de la suggestion, gardés pour le rattachement des observations :
+            <?= h(implode(', ', array_filter(array(isset($suggest_cities[$form_filters['city']]) ? 'seulement à ' . $suggest_cities[$form_filters['city']] : '',
+                $form_filters['archived'] ? 'archivées comprises' : '', $form_filters['resolved'] ? 'résolues comprises' : '')))) ?>.</div>
           <?php } ?>
           <div class="form-text" data-zone-help="circle">Cliquer sur la carte pour placer le centre du cercle (marqueur déplaçable), puis régler le rayon.</div>
           <div class="form-text" data-zone-help="polygon">Cliquer sur la carte pour ajouter un point à la fin du polygone (3 au moins). Faire glisser un point pour le déplacer,
@@ -1151,7 +1182,7 @@ if ($edit !== null) {
   <div class="card-header fw-semibold">Rattachement des observations existantes</div>
   <div class="card-body">
     <?= problem_admin_alerts($local_messages['attach']) ?>
-    <?= problem_admin_attach_panel($view, $count, $include_archived, $include_resolved, $titles, $self_url, '') ?>
+    <?= problem_admin_attach_panel($view, $count, $attach_filters, $suggest_cities, $titles, $self_url, '') ?>
   </div>
 </div>
 <?php } ?>
@@ -1445,7 +1476,10 @@ if (!$readonly) { ?>
         $category = isset($problem_categories[$suggestion['category']]) ? $problem_categories[$suggestion['category']][0] : '#' . $suggestion['category'];
         $create   = $self_url . '&edit=new&suggestion=1&' . http_build_query(array('title' => $category . ' – ' . $suggestion['address'], 'catid' => $suggestion['category'],
                     'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']),
-                    'tokens' => implode(',', array_slice($suggestion['tokens'], 0, 200)))) . ($suggest_settings['grouping'] == 'street' ? '&zone=streets' : ''); ?>
+                    'tokens' => implode(',', array_slice($suggestion['tokens'], 0, 200)))) . ($suggest_settings['grouping'] == 'street' ? '&zone=streets' : '')
+                    // Filters of the search, kept until the attachment of the observations
+                    . ($suggest_settings['archived'] ? '&archived=1' : '') . ($suggest_settings['resolved'] ? '&resolved=1' : '')
+                    . ($suggest_settings['city'] ? '&city=' . intval($suggest_settings['city']) : ''); ?>
     <li class="list-group-item">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <span class="badge text-bg-primary"><?= intval($suggestion['count']) ?></span>

@@ -1335,6 +1335,18 @@ class T14Problems(unittest.TestCase):
         self.assertIn('<strong>0</strong> observation(s) publiée(s)', page, 'resolved observation not counted by default')
         page = admin(url, {'csrf_token': csrf(page), 'problem_attach_retro': '1'})
         self.assertEqual(self.link(token), '', 'resolved observation not attached by default')
+        # New problem created with the filters of a suggestion (hidden fields of the form): counted with them
+        page = admin('index.php?page=problems&edit=new&suggestion=1&title=T14&catid=2&lat=43.619&lon=3.919&radius=200&start=2000-01-01&resolved=1')
+        self.assertIn('<input type="hidden" name="include_resolved" value="1">', page)
+        page = admin('index.php?page=problems&status=all', {'csrf_token': csrf(page), 'problem_save': '1', 'problem_id': '0', 'problem_title': 'T14 filtres',
+                                                            'problem_description': '', 'problem_categories[]': '2', 'problem_zone': 'circle',
+                                                            'problem_lat': '43.619', 'problem_lon': '3.919', 'problem_radius': '200', 'problem_polygon': '',
+                                                            'problem_start': '2000-01-01', 'problem_end': '', 'problem_priority': '2', 'problem_status': 'open',
+                                                            'include_resolved': '1'})
+        self.assertIn('id="created-include_resolved" checked', page)
+        self.assertRegex(page, r'<strong>1</strong> à rattacher : [^;]*' + token)
+        created = re.search(r'id="attachModal"[\s\S]*?action="\?page=problems&amp;view=(\d+)#attach"', page).group(1)
+        sql("DELETE FROM obs_problems WHERE problem_id = " + created)
         page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1', 'include_resolved': '1'})
         self.assertIn('<strong>1</strong> observation(s) publiée(s)', page)
         self.assertIn('id="include_resolved" checked', page)

@@ -311,6 +311,30 @@ function problem_candidates_where($problem, $include_archived = false)
 }
 
 /*
+ * Filters of the attachment of existing observations (count, retroactive attachment): archived
+ * and resolved observations included (default: no), city (id, 0 = all). $input: array with
+ * these keys, or the fields of a form (include_archived, include_resolved, only_city).
+ */
+function problem_attach_filters($input)
+{
+    $flag = function ($keys) use ($input) {
+        foreach ($keys as $key) {
+            if (!empty($input[$key]) && is_scalar($input[$key])) {
+                return true;
+            }
+        }
+        return false;
+    };
+    $city = 0;
+    foreach (array('city', 'only_city') as $key) {
+        if (isset($input[$key]) && is_scalar($input[$key]) && ctype_digit((string) $input[$key])) {
+            $city = intval($input[$key]);
+        }
+    }
+    return array('archived' => $flag(array('archived', 'include_archived')), 'resolved' => $flag(array('resolved', 'include_resolved')), 'city' => $city);
+}
+
+/*
  * SQL condition: the observation (obs_list) is in no resolution with the status "Résolue" (1).
  * Resolved observations are not attached to problems nor suggested, unless asked.
  */
@@ -324,10 +348,12 @@ function problem_unresolved_sql()
 /*
  * Observations matching the problem, with the problem they are attached to (0: none):
  * list of array('id', 'token', 'lat', 'lon', 'time', 'category', 'address', 'problem').
- * Resolved observations only when $include_resolved, or when already attached to this problem.
+ * $filters (problem_attach_filters()): archived observations only with 'archived', resolved ones
+ * only with 'resolved' (or when already attached to this problem), of the city 'city' only if set.
  */
-function problem_matching_observations($db, $problem, $include_archived = false, $include_resolved = false)
+function problem_matching_observations($db, $problem, $filters = array())
 {
+    $filters = problem_attach_filters($filters);
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
                                        obs_list.obs_time, obs_list.obs_categorie, obs_list.obs_address_string, " . PROBLEM_CITY_SQL . " AS city_label,
@@ -335,8 +361,9 @@ function problem_matching_observations($db, $problem, $include_archived = false,
                                 FROM obs_list
                                 LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
                                 " . PROBLEM_CITY_JOIN . "
-                                WHERE " . problem_candidates_where($problem, $include_archived)
-                                . ($include_resolved ? "" : " AND (" . problem_unresolved_sql() . " OR obs_problem_observations.po_problemid = " . intval($problem['problem_id']) . ")") . "
+                                WHERE " . problem_candidates_where($problem, $filters['archived'])
+                                . ($filters['resolved'] ? "" : " AND (" . problem_unresolved_sql() . " OR obs_problem_observations.po_problemid = " . intval($problem['problem_id']) . ")")
+                                . ($filters['city'] ? " AND obs_list.obs_city = " . $filters['city'] : "") . "
                                 ORDER BY obs_list.obs_time ASC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $lat = (float) $row['obs_coordinates_lat'];
@@ -490,10 +517,10 @@ function problem_zone_label($problem)
  * into already attached to this problem, to attach (attached to no problem) and conflicts
  * (attached to another problem, never moved silently)
  */
-function problem_count($db, $problem, $include_archived = false, $include_resolved = false)
+function problem_count($db, $problem, $filters = array())
 {
     $result = array('matching' => 0, 'here' => array(), 'to_attach' => array(), 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem, $include_archived, $include_resolved) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $filters) as $observation) {
         $result['matching']++;
         if ($observation['problem'] == intval($problem['problem_id'])) {
             $result['here'][] = $observation;
@@ -553,12 +580,12 @@ function problem_detach($db, $problem_id, $obs_id)
  * administrators get consistent results.
  * Returns array('attached' => tokens, 'already' => n, 'conflicts' => observations).
  */
-function problem_attach_retro($db, $problem, $login, $include_archived = false, $include_resolved = false)
+function problem_attach_retro($db, $problem, $login, $filters = array())
 {
     $lock   = mysqli_query($db, "SELECT GET_LOCK('vigilo_problem_attach', 10)");
     $locked = $lock && intval(mysqli_fetch_array($lock)[0]) === 1;
     $result = array('attached' => array(), 'already' => 0, 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem, $include_archived, $include_resolved) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $filters) as $observation) {
         $status = problem_attach($db, $problem['problem_id'], $observation['id'], 'retro', $login);
         if ($status == 'attached') {
             $result['attached'][] = $observation['token'];
