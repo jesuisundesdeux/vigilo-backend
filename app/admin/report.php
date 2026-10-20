@@ -164,6 +164,7 @@ $top_category = count($category_rows) ? $category_rows[0][0] : '—';
 
 function report_group_html($group, $categories, $cities_shown)
 {
+  global $db;
   $cat = report_category($categories, $group['category']);
   $statuses = array();
   foreach (array(1, 4, 3, 2, 0) as $status) {
@@ -186,12 +187,13 @@ function report_group_html($group, $categories, $cities_shown)
     . '<div class="group-address">' . h($group['address']) . ($cities_shown && count($group['cities']) ? ', ' . h(implode(', ', $group['cities'])) : '') . '</div>'
     . '<div class="group-meta">' . h($period) . '</div>'
     . '<div class="group-status">' . implode(' · ', $statuses) . '</div>'
-    . '<div class="group-tokens">' . h(implode(' ', $tokens)) . (count($group['observations']) > 8 ? ' …' : '') . '</div>'
+    . '<div class="group-tokens">' . implode(' ', array_map(function ($token) use ($db) { return report_token_link($db, $token); }, $tokens)) . (count($group['observations']) > 8 ? ' …' : '') . '</div>'
     . '</div></article>';
 }
 /* Detail of a problem of the report (one block; two slides) */
 function report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section)
 {
+  global $db;
   $problem = $row['problem'];
   $status  = isset($statuses[$problem['problem_status']]) ? $statuses[$problem['problem_status']][0] : (string) $problem['problem_status'];
   $prio    = isset($priorities[intval($problem['problem_priority'])]) ? $priorities[intval($problem['problem_priority'])][0] : '';
@@ -219,9 +221,14 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   $photos = '';
   foreach (report_recent_photos($row['observations'], $slides ? 4 : 6) as $obs) {
     $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
-      . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
+      . '<figcaption>' . report_token_link($db, $obs['token']) . ' · ' . h(report_date($obs['time'])) . '</figcaption></figure>';
   }
   $photos  = '<h3>Dernières photos</h3><div class="problem-photos">' . $photos . '</div>';
+  // Some comments of its observations (the most recent, each once)
+  $comments = report_recent_comments($row['observations'], $slides ? 3 : 5);
+  if ($comments) {
+    $photos .= '<h3>Quelques commentaires</h3>' . report_comments_html($db, $comments);
+  }
   $charts  = problem_time_charts(problem_time_stats($row['observations']));
   $timing  = '<h3>Frise chronologique</h3>' . $charts['timeline']
     . '<h3>Jours et heures</h3>' . $charts['heatmap'];

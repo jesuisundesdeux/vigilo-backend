@@ -57,6 +57,67 @@ function report_number($value, $decimals = 0)
     return number_format((float) $value, $decimals, ',', "\u{202F}");
 }
 
+/*
+ * Link of an observation in the web application, as {{observation_url}} of the webhooks: instance
+ * of the scope of this backend (vigilo-conf), VIGILO_WEBAPP_URL (app.vigilo.city by default).
+ */
+function report_observation_url($db, $token)
+{
+    static $base = null;
+    if ($base === null) {
+        global $config;
+        $instance = false;
+        $query = mysqli_query($db, "SELECT scope_name FROM obs_scopes ORDER BY scope_id LIMIT 1");
+        if ($query && ($row = mysqli_fetch_assoc($query))) {
+            $instance = getInstanceNameFromFirebase($row['scope_name']);
+        }
+        $base = $config['VIGILO_WEBAPP_URL'] . '?' . ($instance ? 'instance=' . rawurlencode($instance) . '&' : '');
+    }
+    return $base . 'token=' . rawurlencode((string) $token);
+}
+
+/* Token of an observation as a link to it in the web application (new tab) */
+function report_token_link($db, $token)
+{
+    return '<a class="token-link" href="' . h(report_observation_url($db, $token)) . '" target="_blank" rel="noopener">' . h($token) . '</a>';
+}
+
+/*
+ * Comments shown for a problem: the most recent non-empty ones, each text once (without case),
+ * at most $count; rows with token, time and comment.
+ */
+function report_recent_comments($observations, $count)
+{
+    usort($observations, function ($a, $b) {
+        return intval($b['time']) - intval($a['time']);
+    });
+    $shown = array();
+    $seen  = array();
+    foreach ($observations as $obs) {
+        $text = isset($obs['comment']) ? trim(preg_replace('/\s+/u', ' ', (string) $obs['comment'])) : '';
+        $key  = vigilo_ascii_lower($text);
+        if ($text === '' || isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $shown[]    = array('token' => $obs['token'], 'time' => $obs['time'], 'comment' => $text);
+        if (count($shown) >= $count) {
+            break;
+        }
+    }
+    return $shown;
+}
+
+/* HTML list of comments (report_recent_comments()), tokens linked to the web application */
+function report_comments_html($db, $comments)
+{
+    $html = '<ul class="obs-comments">';
+    foreach ($comments as $comment) {
+        $html .= '<li><q>' . h($comment['comment']) . '</q> <span class="note">' . report_token_link($db, $comment['token']) . ' · ' . h(report_date($comment['time'])) . '</span></li>';
+    }
+    return $html . '</ul>';
+}
+
 /* Does an observation have a photo file? */
 function report_photo_exists($token)
 {
