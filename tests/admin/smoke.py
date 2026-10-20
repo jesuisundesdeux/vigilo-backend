@@ -605,6 +605,15 @@ def main():
         clean('problem edit form', status, page)
         m = re.search(r'name="problem_id" value="(\d+)"', page)
         check(m is not None and 'value="Piste &lt;b&gt;bloquée&lt;/b&gt;"' in page and 'value="2020-01-01"' in page, 'problem edit form filled')
+        # Other problems on the map of the form (escaped JSON), never the problem being edited
+        others = re.search(r'data-others="([^"]*)"', page)
+        others = json.loads(html.unescape(others.group(1))) if others else []
+        check([o['title'] for o in others] == ['Travaux du centre'] and others[0]['zone'] == 'polygon' and not others[0]['active'] and '1 autre problème' in page,
+              'edit form: the other problem on the map, not itself')
+        status, _, new_form = admin.request('index.php?page=problems&edit=new')
+        others = re.search(r'data-others="([^"]*)"', new_form)
+        check(others is not None and sorted(o['title'] for o in json.loads(html.unescape(others.group(1)))) == ['Piste <b>bloquée</b>', 'Travaux du centre'],
+              'new problem form: the existing problems on the map')
         if m:
             status, _, page = admin.request('index.php?page=problems&status=all', dict(problem, csrf_token=admin.token(page), problem_id=m.group(1),
                                                                             problem_status='in_progress', problem_radius='150'))

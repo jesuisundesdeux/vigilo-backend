@@ -864,6 +864,13 @@ if ($edit !== null) {
         }
     }
     $known_streets = problem_admin_known_streets($db);
+    // Other problems shown on the map of the form (zones in grey, to avoid overlaps)
+    $others = array();
+    $query  = mysqli_query($db, "SELECT * FROM obs_problems WHERE problem_id <> " . intval($edit['problem_id']) . " ORDER BY problem_priority DESC, problem_updated_time DESC LIMIT 500");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $others[] = $row;
+    }
+    $others = problem_admin_map_data($db, $others, $counts, $statuses, $priorities, null);
 ?>
 <form class="card shadow-sm mb-4" method="POST" action="<?= h($self_url . ($edit['problem_id'] ? '&view=' . intval($edit['problem_id']) : '')) ?>">
   <?= csrf_field() ?>
@@ -947,8 +954,12 @@ if ($edit !== null) {
               <button class="btn btn-sm btn-outline-danger" type="button" data-map-action="clear"><i class="bi bi-x-lg"></i> Effacer</button>
             </span>
           </div>
-          <div class="problem-map rounded border" data-problem-map data-center="<?= h($map_center) ?>" data-zoom="<?= intval($map_zoom) ?>" data-points="<?= h(json_encode($points)) ?>" style="height: 380px;"></div>
+          <div class="problem-map rounded border" data-problem-map data-center="<?= h($map_center) ?>" data-zoom="<?= intval($map_zoom) ?>" data-points="<?= h(json_encode($points)) ?>" data-others="<?= h(json_encode($others['shown'])) ?>" style="height: 380px;"></div>
           <div class="form-text" data-map-status aria-live="polite"></div>
+          <?php if ($others['shown']) { ?>
+          <div class="form-text"><span class="problem-legend-zone"></span> <?= count($others['shown']) ?> autre<?= count($others['shown']) > 1 ? 's' : '' ?> problème<?= count($others['shown']) > 1 ? 's' : '' ?>
+            (zones en gris, pointillés pour un problème résolu ou clos ; titre au survol). Case « Autres problèmes » de la carte pour les masquer.</div>
+          <?php } ?>
           <?php if ($points) { ?>
           <div class="form-text"><span class="problem-legend-dot" style="background: <?= $edit['problem_id'] ? '#198754' : '#fd7e14' ?>;"></span>
             <?= count($points) ?> observation<?= count($points) > 1 ? 's' : '' ?> <?= $edit['problem_id'] ? 'rattachée' . (count($points) > 1 ? 's' : '') . ' au problème' : 'de la suggestion' ?> (repère<?= count($points) > 1 ? 's' : '' ?> sur la carte).</div>

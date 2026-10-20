@@ -68,6 +68,53 @@
     return label;
   }
 
+  /*
+   * Layer of the zone of a problem p (data of problem_admin_map_data()): polygon, circle, or for a
+   * zone of streets the positions of its observations (replaced by its streets: problemStreets()).
+   * Returns { layer, bounds } (bounds null when nothing is placed).
+   */
+  function problemZoneLayer(p, style) {
+    if (p.zone === 'polygon') {
+      var polygon = L.polygon(p.polygon, style);
+      return { layer: polygon, bounds: polygon.getBounds() };
+    }
+    if (p.zone === 'streets') {
+      var group = L.featureGroup(p.points.map(function (pt) {
+        return L.circleMarker(pt, L.extend({ radius: 5 }, style, { fillOpacity: 0.8 }));
+      }));
+      return { layer: group, bounds: p.points.length ? group.getBounds() : null };
+    }
+    return { layer: L.circle([p.lat, p.lon], L.extend({ radius: p.radius }, style)), bounds: L.latLng(p.lat, p.lon).toBounds(p.radius * 2) };
+  }
+
+  // Short text of a problem (title is text, never HTML)
+  function problemInfo(p) {
+    return p.status + ' · ' + p.priority + ' · ' + p.count + ' observation' + (p.count > 1 ? 's' : '');
+  }
+
+  /*
+   * Zones of streets highlighted (OpenStreetMap), one request after the other; found(item, group, area)
+   * replaces the observations of the problem by its streets (not called when none is found: Overpass
+   * unreachable, unknown name). items: [{ p, layer }]; lineStyle(p): style of the lines.
+   */
+  function problemStreets(map, items, lineStyle, found) {
+    var pending = Promise.resolve();
+    items.forEach(function (item) {
+      var p = item.p;
+      if (p.zone !== 'streets' || !p.streets || !p.streets.length || !window.vigiloStreetLines) {
+        return;
+      }
+      pending = pending.then(function () {
+        var area = p.points.length ? item.layer.getBounds() : null;
+        return window.vigiloStreetLines(map, p.streets, { bbox: area, style: lineStyle(p) }).then(function (group) {
+          if (group.getLayers().length) {
+            found(item, group, area);
+          }
+        });
+      });
+    });
+  }
+
   function setup(container) {
     var block = container.closest('.problem-map-block');
     var form = container.closest('form');
@@ -105,6 +152,37 @@
       references = [];
     }
     var referenceLayer = L.featureGroup().addTo(map);
+
+    // Other problems in grey, below the zone being drawn (own pane); clicks go through to the map
+    var others = [];
+    try {
+      others = JSON.parse(container.getAttribute('data-others') || '[]');
+    } catch (e) {
+      others = [];
+    }
+    if (others.length) {
+      map.createPane('others').style.zIndex = 350;
+      var othersLayer = L.layerGroup().addTo(map);
+      var otherStyle = function (p) {
+        return { pane: 'others', color: '#6c757d', weight: 2, fillColor: '#6c757d', fillOpacity: p.active ? 0.18 : 0.06, dashArray: p.active ? null : '6 4' };
+      };
+      var otherItems = others.map(function (p) {
+        var item = { p: p, layer: problemZoneLayer(p, otherStyle(p)).layer };
+        var label = document.createElement('span');
+        label.textContent = p.title + ' — ' + problemInfo(p);
+        item.label = label;
+        item.layer.bindTooltip(label, { sticky: true }).addTo(othersLayer);
+        return item;
+      });
+      problemStreets(map, otherItems, function (p) {
+        return { pane: 'others', color: '#6c757d', weight: 5, opacity: 0.6, dashArray: p.active ? null : '8 6' };
+      }, function (item, group) {
+        othersLayer.removeLayer(item.layer);
+        group.eachLayer(function (line) { line.bindTooltip(item.label, { sticky: true }); });
+        othersLayer.addLayer(group);
+      });
+      L.control.layers(null, { 'Autres problèmes': othersLayer }, { collapsed: false, position: 'topright' }).addTo(map);
+    }
 
     function drawCircle() {
       var lat = num(f.lat), lon = num(f.lon), radius = num(f.radius);
@@ -459,22 +537,11 @@
     var items = data.problems.map(function (p) {
       // One color per problem; resolved or closed: dashed and lighter
       var style = { color: p.color, weight: 2, fillColor: p.color, fillOpacity: p.active ? 0.25 : 0.1, dashArray: p.active ? null : '6 4' };
-      var layer;
-      if (p.zone === 'polygon') {
-        layer = L.polygon(p.polygon, style);
-        extend(layer.getBounds());
-      } else if (p.zone === 'streets') {
-        // Observations: area of the streets, replaced by the streets once found
-        layer = L.featureGroup(p.points.map(function (pt) {
-          return L.circleMarker(pt, L.extend({ radius: 5 }, style, { fillOpacity: 0.8 }));
-        }));
-        if (p.points.length) {
-          extend(layer.getBounds());
-        }
-      } else {
-        layer = L.circle([p.lat, p.lon], L.extend({ radius: p.radius }, style));
-        extend(L.latLng(p.lat, p.lon).toBounds(p.radius * 2));
+      var zone = problemZoneLayer(p, style);
+      if (zone.bounds) {
+        extend(zone.bounds);
       }
+      var layer = zone.layer;
       // Popup built as DOM (titles are text, not HTML)
       var box = document.createElement('div');
       var link = document.createElement('a');
@@ -483,7 +550,7 @@
       link.textContent = p.title;
       var info = document.createElement('div');
       info.className = 'small';
-      info.textContent = p.status + ' · ' + p.priority + ' · ' + p.count + ' observation' + (p.count > 1 ? 's' : '');
+      info.textContent = problemInfo(p);
       box.appendChild(link);
       box.appendChild(info);
       layer.bindPopup(box);
@@ -499,33 +566,23 @@
       var center = String(data.center || '46.6,2.4').split(',');
       map.setView([parseFloat(center[0]), parseFloat(center[1])], data.zoom || 13);
     }
-    var pending = Promise.resolve();
     items.forEach(function (item) {
-      var p = item.p, layer = item.layer;
-      layer.addTo(map);
-      if (p.zone !== 'streets' || !p.streets || !p.streets.length || !window.vigiloStreetLines) {
-        return;
+      item.layer.addTo(map);
+    });
+    // Zones of streets: the streets replace the observations
+    problemStreets(map, items, function (p) {
+      return { color: p.color, weight: 5, dashArray: p.active ? null : '8 6' };
+    }, function (item, group, area) {
+      map.removeLayer(item.layer);
+      group.eachLayer(function (line) { line.bindPopup(item.box); });
+      group.addTo(map).bringToBack();
+      // Problem without observation (streets looked for in their city): view extended if nothing else was shown
+      if (!area && !fitted) {
+        bounds = null;
+        fitted = true;
+        extend(group.getBounds());
+        map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });
       }
-      // Zone of streets: its streets highlighted (OpenStreetMap), one request after the other; they
-      // replace the observations, kept when no street is found (Overpass unreachable, unknown name)
-      pending = pending.then(function () {
-        var area = p.points.length ? layer.getBounds() : null;
-        return window.vigiloStreetLines(map, p.streets, { bbox: area, style: { color: p.color, weight: 5, dashArray: p.active ? null : '8 6' } }).then(function (group) {
-          if (!group.getLayers().length) {
-            return;
-          }
-          map.removeLayer(layer);
-          group.eachLayer(function (line) { line.bindPopup(item.box); });
-          group.addTo(map).bringToBack();
-          // Problem without observation (streets looked for in their city): view extended if nothing else was shown
-          if (!area && !fitted) {
-            bounds = null;
-            fitted = true;
-            extend(group.getBounds());
-            map.fitBounds(bounds.pad(0.1), { maxZoom: 17 });
-          }
-        });
-      });
     });
     setTimeout(function () { map.invalidateSize(); }, 200);
   });
