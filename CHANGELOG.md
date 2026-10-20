@@ -13,6 +13,9 @@
   **jalon** (visite terrain, rendez-vous en mairie…) avec sa date : les jalons sont numérotés sur la **frise
   chronologique** de la fiche, du rapport du problème et du détail des problèmes du rapport, avec leur légende. La
   visibilité et le jalon d'une note existante se modifient depuis la fenêtre des notes.
+- Carte du formulaire d'un problème (création, modification) : les **autres problèmes** y sont affichés en gris
+  (pointillés pour un problème résolu ou clos, titre, statut et nombre d'observations au survol), sous la zone tracée ;
+  un clic sur leur zone place quand même le centre ou un point ; case « Autres problèmes » pour les masquer.
 - Migration `init-0.0.37.sql` : colonnes `note_private` (1 par défaut : les notes existantes restent privées),
   `note_milestone` et `note_milestone_time` de `obs_notes`.
 
