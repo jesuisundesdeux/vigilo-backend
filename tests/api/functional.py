@@ -1308,6 +1308,51 @@ class T14Problems(unittest.TestCase):
         self.assertEqual(self.link(token), problem + ':retro', 'archived observation attached when asked')
         sql("UPDATE obs_list SET obs_archived = 0 WHERE obs_token = '%s'" % token)
 
+    def test_resolved_observations_only_when_asked(self):
+        problem = self.problem('résolues', 43.619, 3.919)
+        token = self.observation(43.6191, 3.9191)
+        self.assertEqual(call('approve.php', {'token': token, 'key': MODO}).status, 200)
+        sql("DELETE FROM obs_problem_observations WHERE po_obsid = (SELECT obs_id FROM obs_list WHERE obs_token = '%s')" % token)
+        # Observation in a resolution "Résolue"
+        sql("INSERT INTO obs_resolutions (resolution_token, resolution_secretid, resolution_app_version, resolution_comment, resolution_time, "
+            "resolution_status) VALUES ('R_T14DONE', 'X', 1, '', 1600000000, 1)")
+        sql("INSERT INTO obs_resolutions_tokens (restok_resolutionid, restok_observationid) SELECT resolution_id, "
+            "(SELECT obs_id FROM obs_list WHERE obs_token = '%s') FROM obs_resolutions WHERE resolution_token = 'R_T14DONE'" % token)
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+        def admin(path, data=None):
+            body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+            return opener.open(urllib.request.Request(BASE + '/admin/' + path, data=body), timeout=30).read().decode()
+
+        def csrf(page):
+            return re.search(r'name="csrf_token" value="([a-f0-9]+)"', page).group(1)
+        page = admin('login.php')
+        admin('login.php', {'login': 'admin', 'password': 'vigilo-test', 'csrf_token': csrf(page)})
+        url = 'index.php?page=problems&view=' + problem
+        page = admin(url)
+        page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1'})
+        self.assertIn('<strong>0</strong> observation(s) publiée(s)', page, 'resolved observation not counted by default')
+        page = admin(url, {'csrf_token': csrf(page), 'problem_attach_retro': '1'})
+        self.assertEqual(self.link(token), '', 'resolved observation not attached by default')
+        page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1', 'include_resolved': '1'})
+        self.assertIn('<strong>1</strong> observation(s) publiée(s)', page)
+        self.assertIn('id="include_resolved" checked', page)
+        page = admin(url, {'csrf_token': csrf(page), 'problem_attach_retro': '1', 'include_resolved': '1'})
+        self.assertEqual(self.link(token), problem + ':retro', 'resolved observation attached when asked')
+        # Once attached, it stays counted as attached to this problem
+        page = admin(url, {'csrf_token': csrf(page), 'problem_count': '1'})
+        self.assertIn('<strong>1</strong> déjà rattachée(s) à ce problème', page)
+        # Suggestions: resolved observations left out unless asked
+        page = admin('index.php?page=problems', {'csrf_token': csrf(page), 'problem_suggest': '1', 'suggest_resolved': '1'})
+        self.assertIn('résolues comprises', page)
+        self.assertIn('<option value="1" selected>Oui</option>', page)
+        page = admin('index.php?page=problems', {'csrf_token': csrf(page), 'problem_suggest': '1'})
+        self.assertIn('sans les observations résolues', page)
+        sql("DELETE obs_resolutions_tokens FROM obs_resolutions_tokens INNER JOIN obs_resolutions ON resolution_id = restok_resolutionid "
+            "WHERE resolution_token = 'R_T14DONE'")
+        sql("DELETE FROM obs_resolutions WHERE resolution_token = 'R_T14DONE'")
+
 
 class T15PasswordLinks(unittest.TestCase):
     """Link to set the password of an account (page Comptes, admin/password.php)."""

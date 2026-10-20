@@ -16,6 +16,10 @@
 - Carte du formulaire d'un problème (création, modification) : les **autres problèmes** y sont affichés en gris
   (pointillés pour un problème résolu ou clos, titre, statut et nombre d'observations au survol), sous la zone tracée ;
   un clic sur leur zone place quand même le centre ou un point ; case « Autres problèmes » pour les masquer.
+- Les **observations résolues** (dans une résolution « Résolue ») ne sont plus proposées pour les nouveaux problèmes :
+  ni dans les suggestions (filtre « Observations résolues », non par défaut), ni au comptage et au rattachement des
+  observations existantes (case « Inclure les observations résolues », décochée par défaut ; une observation déjà
+  rattachée au problème reste comptée), ni au rattachement automatique à la publication.
 - Migration `init-0.0.37.sql` : colonnes `note_private` (1 par défaut : les notes existantes restent privées),
   `note_milestone` et `note_milestone_time` de `obs_notes`.
 

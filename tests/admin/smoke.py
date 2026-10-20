@@ -518,26 +518,30 @@ def main():
     status, _, page = admin.request('index.php?page=resolutions&resolved=1&q=%25zz')
     check('Aucune résolution ne correspond' in page, 'resolutions search: no match')
 
-    # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal
+    # Problems (#327): suggestions (TOKA0001 and TOKA0003, same category, 40 m apart), prefilled creation, dismissal.
+    # TOKA0003 is resolved (R_RES00002 validated above): left out unless asked
     status, _, page = admin.request('index.php?page=problems&status=all')
     check('Groupes d\'au moins 2 observations' in page and '120 derniers mois' in page, 'suggestion settings shown')
     status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
+    check('Aucune suggestion' in page and 'sans les observations résolues' in page and 'name="suggest_resolved"' in page,
+          'suggestions without the resolved observations by default')
+    status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_resolved': '1'})
     clean('problem suggestions', status, page)
     check('Suggestions (1)' in page and 'TOKA0001, TOKA0003' in page, 'suggestion of TOKA0001 and TOKA0003')
     check('name="suggest_city"' in page and 'name="suggest_archived"' in page and 'sans les observations archivées' in page
           and re.search(r'<input type="hidden" name="suggest_min" value="2">', page) is not None, 'suggestion filters, kept by "Ignorer"')
     check(re.search(r'text-break me-auto">[^<]*(Rue de la Gare, Testville|Rue des Lilas, Bourgade)<', page) is not None, 'suggestion: street then city')
     for filters, label in [({'suggest_city': '2'}, 'city'), ({'suggest_min': '3'}, 'minimum'), ({'suggest_category': '3'}, 'category')]:
-        data = {'csrf_token': admin.token(page), 'problem_suggest': '1'}
+        data = {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_resolved': '1'}
         data.update(filters)
         status, _, filtered = admin.request('index.php?page=problems&status=all', data)
         check('Aucune suggestion' in filtered, 'suggestions filtered by ' + label)
-    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_grouping': 'street'})
+    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_resolved': '1', 'suggest_grouping': 'street'})
     check('Aucune suggestion' in filtered and 'dans la même rue de la même ville' in filtered
           and '<input type="hidden" name="suggest_grouping" value="street">' not in filtered and 'value="street" selected' in filtered, 'suggestions grouped by street (TOKA0001 and TOKA0003 are in two streets)')
     status, _, form = admin.request('index.php?page=problems&edit=new&suggestion=1&title=X&catid=2&lat=43.6&lon=3.9&radius=100&tokens=TOKA0001&zone=streets')
     check('id="problem_zone_streets" value="streets" checked' in form and 'value="Rue de la Gare, Testville"' in form, 'problem from a suggestion by street: zone of streets, its street proposed')
-    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_archived': '1', 'suggest_city': '999', 'suggest_min': '1'})
+    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_resolved': '1', 'suggest_archived': '1', 'suggest_city': '999', 'suggest_min': '1'})
     check('Suggestions (1)' in filtered and 'archivées comprises' in filtered and 'Groupes d\'au moins 2 observations' in filtered, 'suggestion filters: archived included, unknown city ignored, minimum bounded')
     create = links(page, 'suggestion=1')
     check(len(create) == 1, 'create link of the suggestion')
@@ -573,9 +577,9 @@ def main():
     status, _, page = admin.request('index.php?page=problems&status=all', problem)
     clean('problem create', status, page)
     check('Problème <strong>Piste &lt;b&gt;bloquée&lt;/b&gt;</strong> enregistré' in page, 'problem created and escaped')
-    # Window after the creation: observations counted, attachment proposed (posted to the detail)
-    check('id="attachModal"' in page and 'data-reopen-modal="#attachModal"' in page and '<strong>2</strong> observation(s) publiée(s)' in page
-          and 'TOKA0001, TOKA0003' in page and re.search(r'action="\?page=problems&amp;view=\d+#attach"[^>]*>\s*<input type="hidden" name="csrf_token"', page) is not None
+    # Window after the creation: observations counted (not the resolved TOKA0003), attachment proposed (posted to the detail)
+    check('id="attachModal"' in page and 'data-reopen-modal="#attachModal"' in page and '<strong>1</strong> observation(s) publiée(s)' in page
+          and '<strong>1</strong> à rattacher : TOKA0001 ;' in page and 'id="created-include_resolved"' in page and re.search(r'action="\?page=problems&amp;view=\d+#attach"[^>]*>\s*<input type="hidden" name="csrf_token"', page) is not None
           and 'name="problem_attach_retro"' in page and 'id="created-include_archived"' in page, 'existing observations counted after the creation')
     check('Cercle de 100 m' in page and 'Depuis le 01/01/2020' in page and '>Haute</span>' in page, 'problem shown with zone, period and priority')
     check('Tous les problèmes' in page and 'id="attach"' in page, 'detail of the problem shown after its creation (not the list)')
@@ -635,7 +639,7 @@ def main():
         status, _, page = admin.request(gare_url)
         clean('problem detail', status, page)
         check('data-problem-view' in page and 'Observations rattachées (0)' in page, 'problem detail with map, nothing attached')
-        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1'})
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1', 'include_resolved': '1'})
         clean('problem count', status, page)
         check('<strong>2</strong> observation(s) publiée(s)' in page and 'TOKA0001, TOKA0003' in page and 'Observations rattachées (0)' in page,
               'problem count: TOKA0001 and TOKA0003 match, nothing attached')
@@ -647,14 +651,14 @@ def main():
             check(text in page, 'manual attach of %s refused (%s)' % (token, text))
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_token': '1', 'obs_token': 'TOKA0003'})
         check('appartient déjà à un autre problème' in page and 'Travaux du centre</a>' in page, 'manual attach of an observation of another problem refused')
-        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1'})
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_count': '1', 'include_resolved': '1'})
         check('<strong>1</strong> à rattacher : TOKA0001' in page and '<strong>1</strong> dans un autre problème' in page, 'problem count with a conflict')
-        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1', 'include_resolved': '1'})
         clean('problem attach', status, page)
         check('<strong>1</strong> observation(s) rattachée(s), 0 déjà' in page and 'laissée(s) dans un autre problème' in page
               and 'Observations rattachées (1)' in page, 'retroactive attribution, conflict left in the other problem')
         check(page.find('id="attach"') < page.find('observation(s) rattachée(s), 0 déjà'), 'attribution message shown in its card (page back to it)')
-        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1'})
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_attach_retro': '1', 'include_resolved': '1'})
         check('<strong>0</strong> observation(s) rattachée(s), 1 déjà' in page, 'retroactive attribution is idempotent')
         status, _, page = admin.request('index.php?page=problems&status=all')
         check(re.search(r'data-label="Observations">1<', page) is not None, 'number of observations in the list')
@@ -862,6 +866,8 @@ def main():
         check('&quot;zone&quot;:&quot;streets&quot;' in page and 'Modifier la zone' in page, 'problem of streets: map without shape, link to the zone')
         check('js/street-lines.js' in page and '&quot;streets&quot;:[{&quot;street&quot;:&quot;rue des lilas&quot;' in page, 'problem of streets: streets given to the map to be highlighted')
         status, _, page = admin.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': admin.token(page), 'problem_count': '1'})
+        check('<strong>0</strong> observation(s) publiée(s)' in page, 'problem of streets: the resolved TOKA0003 left out by default')
+        status, _, page = admin.request('index.php?page=problems&view=' + m.group(1), {'csrf_token': admin.token(page), 'problem_count': '1', 'include_resolved': '1'})
         check('<strong>1</strong> observation(s) publiée(s)' in page and 'TOKA0003' in page, 'problem of streets: TOKA0003 (Rue des Lilas) matches')
         status, _, page = admin.request('index.php?page=problems&edit=' + m.group(1))
         check('value="rue des lilas, bourgade"' in page and 'id="problem_zone_streets" value="streets" checked' in page
