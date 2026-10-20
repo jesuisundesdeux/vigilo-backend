@@ -526,8 +526,20 @@ if ($edit === null && isset($_GET['edit'])) {
     }
 }
 
-/* Suggestions: computed on request (can be long on a large instance), dismissable */
+/* Suggestions: computed on request (can be long on a large instance), dismissable, with filters */
 $suggest = null;
+$suggest_cities = array();
+$cities_query = mysqli_query($db, "SELECT city_id, city_name FROM obs_cities ORDER BY city_name");
+while ($cities_query && ($row = mysqli_fetch_assoc($cities_query))) {
+    $suggest_cities[intval($row['city_id'])] = (string) $row['city_name'];
+}
+$suggest_settings = problem_suggest_filters($_POST, problem_suggest_settings($db), array_keys($suggest_cities), array_keys($problem_categories));
+// Filters of the search, kept by the buttons "Ignorer"
+$suggest_hidden = '';
+foreach (array('city', 'category', 'months', 'min', 'radius') as $key) {
+    $suggest_hidden .= '<input type="hidden" name="suggest_' . $key . '" value="' . intval($suggest_settings[$key]) . '">';
+}
+$suggest_hidden .= '<input type="hidden" name="suggest_archived" value="' . ($suggest_settings['archived'] ? 1 : 0) . '">';
 if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_suggestion_dismiss'])) {
     if (problem_suggestion_dismiss($db, $_POST['problem_suggestion_dismiss'], $login)) {
         audit_log('problem_suggestion_dismiss', 'suggestion:' . $_POST['problem_suggestion_dismiss']);
@@ -535,7 +547,7 @@ if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_sug
     }
 }
 if (isset($_POST['problem_suggest']) || isset($_POST['problem_suggestion_dismiss'])) {
-    $suggest = problem_suggestions($db, problem_suggest_settings($db));
+    $suggest = problem_suggestions($db, $suggest_settings);
 }
 
 /* Observation matching several active problems: attached to the one chosen (#327) */
@@ -1278,21 +1290,56 @@ if ($ambiguous) {
   </ul>
 </div>
 <?php }
-$suggest_settings = problem_suggest_settings($db);
 if (!$readonly) { ?>
 <div class="card shadow-sm mb-4" id="suggestions">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <span class="fw-semibold"><i class="bi bi-lightbulb"></i> Suggestions<?= $suggest ? ' (' . count($suggest['suggestions']) . ')' : '' ?></span>
-    <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
-      <?= csrf_field() ?>
-      <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_suggest" value="1"><i class="bi bi-search"></i> Rechercher</button>
-    </form>
   </div>
   <div class="card-body<?= $suggest && $suggest['suggestions'] ? ' pb-0' : '' ?>">
+    <form method="POST" action="<?= h($self_url) ?>#suggestions" class="row g-2 align-items-end mb-3">
+      <?= csrf_field() ?>
+      <div class="col-6 col-md-3 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_city">Ville</label>
+        <select class="form-select form-select-sm" id="suggest_city" name="suggest_city">
+          <option value="0">Toutes</option>
+          <?php foreach ($suggest_cities as $id => $name) { ?><option value="<?= intval($id) ?>"<?= $suggest_settings['city'] == $id ? ' selected' : '' ?>><?= h($name) ?></option><?php } ?>
+        </select>
+      </div>
+      <div class="col-6 col-md-3 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_category">Catégorie</label>
+        <select class="form-select form-select-sm" id="suggest_category" name="suggest_category">
+          <option value="0">Toutes</option>
+          <?php foreach ($problem_categories as $id => $category) { if ($category[1] && $suggest_settings['category'] != $id) { continue; } ?><option value="<?= intval($id) ?>"<?= $suggest_settings['category'] == $id ? ' selected' : '' ?>><?= h($category[0]) ?></option><?php } ?>
+        </select>
+      </div>
+      <div class="col-6 col-md-2 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_archived">Observations archivées</label>
+        <select class="form-select form-select-sm" id="suggest_archived" name="suggest_archived">
+          <option value="0"<?= $suggest_settings['archived'] ? '' : ' selected' ?>>Non</option>
+          <option value="1"<?= $suggest_settings['archived'] ? ' selected' : '' ?>>Oui</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_months">Période (mois)</label>
+        <input class="form-control form-control-sm" type="number" id="suggest_months" name="suggest_months" min="1" max="120" value="<?= intval($suggest_settings['months']) ?>">
+      </div>
+      <div class="col-6 col-md-2 col-xl-1">
+        <label class="form-label small mb-1" for="suggest_min">Minimum</label>
+        <input class="form-control form-control-sm" type="number" id="suggest_min" name="suggest_min" min="2" max="1000" value="<?= intval($suggest_settings['min']) ?>">
+      </div>
+      <div class="col-6 col-md-2 col-xl-1">
+        <label class="form-label small mb-1" for="suggest_radius">Rayon (m)</label>
+        <input class="form-control form-control-sm" type="number" id="suggest_radius" name="suggest_radius" min="10" max="1000" value="<?= intval($suggest_settings['radius']) ?>">
+      </div>
+      <div class="col-12 col-md-auto">
+        <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_suggest" value="1"><i class="bi bi-search"></i> Rechercher</button>
+      </div>
+    </form>
     <p class="small text-body-secondary mb-0">
       Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie, à moins de
-      <?= intval($suggest_settings['radius']) ?> m (ou dans la même rue), des <?= intval($suggest_settings['months']) ?> derniers mois
-      (<a href="?page=settings">réglages</a>). Rien n'est créé sans votre accord.
+      <?= intval($suggest_settings['radius']) ?> m (ou dans la même rue), des <?= intval($suggest_settings['months']) ?> derniers mois,
+      <?= $suggest_settings['archived'] ? 'archivées comprises' : 'sans les observations archivées' ?>. Valeurs par défaut :
+      <a href="?page=settings">réglages</a>. Rien n'est créé sans votre accord.
       <?php if ($suggest) { ?><br><?= intval($suggest['analysed']) ?> observation(s) analysée(s)<?= $suggest['analysed'] >= VIGILO_PROBLEM_SUGGEST_MAX ? ' (les plus récentes)' : '' ?>.<?php } ?>
     </p>
     <?php if ($suggest && !$suggest['suggestions']) { ?><p class="mb-0 mt-2">Aucune suggestion.</p><?php } ?>
@@ -1312,6 +1359,7 @@ if (!$readonly) { ?>
         <a class="btn btn-sm btn-primary" href="<?= h($create) ?>"><i class="bi bi-plus-lg"></i> Créer le problème</a>
         <form method="POST" action="<?= h($self_url) ?>#suggestions" class="m-0">
           <?= csrf_field() ?>
+          <?= $suggest_hidden ?>
           <button class="btn btn-sm btn-outline-secondary" type="submit" name="problem_suggestion_dismiss" value="<?= h($suggestion['key']) ?>" data-confirm="Ignorer cette suggestion ? Elle ne sera plus proposée."><i class="bi bi-eye-slash"></i> Ignorer</button>
         </form>
       </div>

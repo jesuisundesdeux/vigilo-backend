@@ -123,7 +123,27 @@ foreach ($groups as $group) {
   $map_groups[] = array('lat' => round($group['center'][0], 6), 'lon' => round($group['center'][1], 6), 'count' => $group['count'],
                         'color' => $cat['color'], 'label' => $cat['name'] . ' — ' . $group['address'] . ' (' . $group['count'] . ')');
 }
-$top_groups = array_slice(array_values(array_filter($groups, function ($g) { return $g['count'] > 1; })), 0, $slides ? 12 : 20);
+// Recurring places, without those already followed by a problem of the report (shown in its sections)
+$in_problems = array();
+foreach ($problem_rows as $row) {
+  foreach ($row['observations'] as $obs) {
+    $in_problems[intval($obs['id'])] = true;
+  }
+}
+$recurring_groups = array_values(array_filter($groups, function ($g) { return $g['count'] > 1; }));
+$followed_groups  = 0;
+if ($in_problems) {
+  $recurring_groups = array_values(array_filter($recurring_groups, function ($g) use ($in_problems, &$followed_groups) {
+    foreach ($g['observations'] as $obs) {
+      if (isset($in_problems[intval($obs['id'])])) {
+        $followed_groups++;
+        return false;
+      }
+    }
+    return true;
+  }));
+}
+$top_groups = array_slice($recurring_groups, 0, $slides ? 12 : 20);
 
 /* Key figures (label, value, detail) */
 $kpis = array();
@@ -156,8 +176,11 @@ function report_group_html($group, $categories, $cities_shown)
   foreach (array_slice($group['observations'], 0, 8) as $obs) {
     $tokens[] = $obs['token'];
   }
+  // Most recent photo of the place that exists
+  $photo = report_recent_photos($group['observations'], 1);
+  $photo = $photo ? $photo[0]['token'] : $group['photo'];
   return '<article class="group">'
-    . '<img src="' . h(report_photo_src($group['photo'], 400)) . '" alt="Photo de l\'observation ' . h($group['photo']) . '" loading="eager">'
+    . '<img src="' . h(report_photo_src($photo, 400)) . '" alt="Photo de l\'observation ' . h($photo) . '" loading="eager">'
     . '<div class="group-body">'
     . '<div class="group-head"><span class="count">' . intval($group['count']) . '</span><span class="cat"><span class="cat-dot" style="background:' . h($cat['color']) . '"></span>' . h($cat['name']) . '</span></div>'
     . '<div class="group-address">' . h($group['address']) . ($cities_shown && count($group['cities']) ? ', ' . h(implode(', ', $group['cities'])) : '') . '</div>'
@@ -194,7 +217,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
                     'streets' => problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
   $map    = '<div class="report-problem-map" data-problem="' . h(json_encode($map_data)) . '" role="img" aria-label="Carte du problème ' . h($problem['problem_title']) . '"></div>';
   $photos = '';
-  foreach (array_slice(array_reverse($row['observations']), 0, $slides ? 4 : 6) as $obs) {
+  foreach (report_recent_photos($row['observations'], $slides ? 4 : 6) as $obs) {
     $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
       . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
   }
@@ -302,24 +325,6 @@ $section = function ($title, $content, $class = '') use ($slides) {
           . '<p class="note">Un cercle par lieu ; sa taille dépend du nombre d\'observations, sa couleur de leur type.</p>');
       }
 
-      if (!isset($sections['groups'])) {
-        // not shown
-      } elseif (count($top_groups)) {
-        $per_slide = 4;
-        $chunks = $slides ? array_chunk($top_groups, $per_slide) : array($top_groups);
-        foreach ($chunks as $i => $chunk) {
-          $html = '<div class="groups">';
-          foreach ($chunk as $group) {
-            $html .= report_group_html($group, $categories, $cities_shown);
-          }
-          $html .= '</div>';
-          echo $section('Lieux récurrents' . (count($chunks) > 1 ? ' (' . ($i + 1) . '/' . count($chunks) . ')' : ''),
-            ($i == 0 && !$slides ? '<p class="note">Lieux où des observations similaires se répètent, du plus signalé au moins signalé.</p>' : '') . $html, 'groups-section');
-        }
-      } else {
-        echo $section('Lieux récurrents', '<p>Aucun lieu n\'a été signalé plusieurs fois sur la période.</p>');
-      }
-
       $statuses   = problem_statuses();
       $priorities = problem_priorities();
       if ($problem_rows && isset($sections['problems'])) {
@@ -349,6 +354,28 @@ $section = function ($title, $content, $class = '') use ($slides) {
           echo report_problem_detail_html($row, $categories, $statuses, $priorities, $slides, $section);
         }
       }
+
+      if (!isset($sections['groups'])) {
+        // not shown
+      } elseif (count($top_groups)) {
+        $per_slide = 4;
+        $chunks = $slides ? array_chunk($top_groups, $per_slide) : array($top_groups);
+        foreach ($chunks as $i => $chunk) {
+          $html = '<div class="groups">';
+          foreach ($chunk as $group) {
+            $html .= report_group_html($group, $categories, $cities_shown);
+          }
+          $html .= '</div>';
+          echo $section('Lieux récurrents' . (count($chunks) > 1 ? ' (' . ($i + 1) . '/' . count($chunks) . ')' : ''),
+            ($i == 0 && !$slides ? '<p class="note">Lieux où des observations similaires se répètent, du plus signalé au moins signalé'
+              . ($followed_groups ? ' ; ' . $followed_groups . ' lieu(x) déjà suivi(s) par un problème ne sont pas repris' : '') . '.</p>' : '') . $html, 'groups-section');
+        }
+      } else {
+        echo $section('Lieux récurrents', $followed_groups
+          ? '<p>Les ' . $followed_groups . ' lieu(x) signalé(s) plusieurs fois sur la période sont tous suivis par un problème.</p>'
+          : '<p>Aucun lieu n\'a été signalé plusieurs fois sur la période.</p>');
+      }
+
     }
     if (isset($sections['method'])) {
       echo $section('Méthode', '<p class="note">' . h($method_text) . '</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). Fond de carte © contributeurs OpenStreetMap.</p>', 'method');

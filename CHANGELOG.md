@@ -2,6 +2,15 @@
 
 ## 0.0.36
 
+### Problèmes et rapports
+- **Suggestions de problèmes** : l'adresse est suivie de la ville ; filtres de recherche (ville, catégorie, observations
+  archivées — exclues par défaut —, période, nombre minimal d'observations, rayon), avec pour valeurs par défaut les
+  réglages de la page Configuration ; « Ignorer » garde les filtres.
+- **Rapport** : la section « Lieux récurrents » vient après les problèmes et, quand le rapport contient les problèmes,
+  ne reprend plus les lieux déjà suivis par un problème (leur nombre est indiqué).
+- **Photos des rapports** (lieux récurrents, détail des problèmes, rapport d'un problème) : les plus récentes parmi
+  celles qui existent ; l'image « Photo non disponible » seulement quand aucune observation n'a de photo.
+
 ### Adresses des observations
 - **Qualité des adresses** (page Observations, administrateurs) : remplace l'alerte « Observations sans villes
   configurées » et son import sans aperçu. Les corrections proposées s'affichent avant / après avec leur raison, cochées

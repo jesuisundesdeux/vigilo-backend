@@ -519,6 +519,16 @@ def main():
     status, _, page = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1'})
     clean('problem suggestions', status, page)
     check('Suggestions (1)' in page and 'TOKA0001, TOKA0003' in page, 'suggestion of TOKA0001 and TOKA0003')
+    check('name="suggest_city"' in page and 'name="suggest_archived"' in page and 'sans les observations archivées' in page
+          and re.search(r'<input type="hidden" name="suggest_min" value="2">', page) is not None, 'suggestion filters, kept by "Ignorer"')
+    check(re.search(r'text-break me-auto">[^<]*(Rue de la Gare, Testville|Rue des Lilas, Bourgade)<', page) is not None, 'suggestion: street then city')
+    for filters, label in [({'suggest_city': '2'}, 'city'), ({'suggest_min': '3'}, 'minimum'), ({'suggest_category': '3'}, 'category')]:
+        data = {'csrf_token': admin.token(page), 'problem_suggest': '1'}
+        data.update(filters)
+        status, _, filtered = admin.request('index.php?page=problems&status=all', data)
+        check('Aucune suggestion' in filtered, 'suggestions filtered by ' + label)
+    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_archived': '1', 'suggest_city': '999', 'suggest_min': '1'})
+    check('Suggestions (1)' in filtered and 'archivées comprises' in filtered and 'Groupes d\'au moins 2 observations' in filtered, 'suggestion filters: archived included, unknown city ignored, minimum bounded')
     create = links(page, 'suggestion=1')
     check(len(create) == 1, 'create link of the suggestion')
     if create:
@@ -724,6 +734,12 @@ def main():
         check('Problèmes suivis' not in report and 'report-problem-map' not in report, 'report: no problem of the chosen status')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems')
         check('Problèmes suivis' in report and 'report-problem-map' not in report, 'problems table without their detail')
+        # Recurring places after the problems, without those already followed by a problem (TOKA0001 and TOKA0003)
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=problems&sections[]=groups')
+        check(report.find('Problèmes suivis') < report.find('Lieux récurrents') and re.search(r'déjà suivi\(s\) par un problème|sont tous suivis par un problème', report) is not None,
+              'report: recurring places after the problems, those followed by a problem left out')
+        status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&s=1&sections[]=groups')
+        check('Lieux récurrents' in report and 'suivi' not in report, 'report: all the recurring places without the problems sections')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31')
         check('Problèmes suivis' not in report, 'no problems in the report unless asked')
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1&format=slides')

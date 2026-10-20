@@ -712,9 +712,11 @@ function problem_suggest_settings($db)
  * Suggestions of problems: groups of published observations in no problem, of the same
  * category and close (report_groups() of report.php), of the last months, with at least
  * the minimal number of observations, not dismissed. Never creates anything. Each one:
- * key (category and first observation), category, address, count, first / last dates,
- * center, radius covering the group, tokens. At most VIGILO_PROBLEM_SUGGEST_MAX recent
- * observations are analysed.
+ * key (category and first observation), category, address (street, then city), cities,
+ * count, first / last dates, center, radius covering the group, tokens. At most
+ * VIGILO_PROBLEM_SUGGEST_MAX recent observations are analysed.
+ * $settings: min, radius, months, and the filters (problem_suggest_filters()): city (id, 0 = all),
+ * category (0 = all), archived (archived observations included).
  */
 define('VIGILO_PROBLEM_SUGGEST_MAX', 3000);
 
@@ -727,19 +729,23 @@ function problem_suggestions($db, $settings)
         $dismissed[(string) $row['sd_key']] = true;
     }
     $observations = array();
+    $where = (empty($settings['archived']) ? " AND obs_list.obs_archived = 0" : "")
+           . (!empty($settings['city']) ? " AND obs_list.obs_city = " . intval($settings['city']) : "")
+           . (!empty($settings['category']) ? " AND obs_list.obs_categorie = " . intval($settings['category']) : "");
     $query = mysqli_query($db, "SELECT * FROM (
                                   SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
-                                         obs_list.obs_address_string, obs_list.obs_time, obs_list.obs_categorie
+                                         obs_list.obs_address_string, obs_list.obs_time, obs_list.obs_categorie, " . PROBLEM_CITY_SQL . " AS city_label
                                   FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
+                                  " . PROBLEM_CITY_JOIN . "
                                   WHERE obs_problem_observations.po_obsid IS NULL AND obs_list.obs_complete = 1 AND obs_list.obs_approved = 1
-                                    AND obs_list.obs_time >= " . intval(strtotime('-' . intval($settings['months']) . ' months')) . "
+                                    AND obs_list.obs_time >= " . intval(strtotime('-' . intval($settings['months']) . ' months')) . $where . "
                                   ORDER BY obs_list.obs_time DESC LIMIT " . VIGILO_PROBLEM_SUGGEST_MAX . "
                                 ) recent ORDER BY obs_time ASC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $observations[] = array('id' => intval($row['obs_id']), 'token' => (string) $row['obs_token'],
                                 'lat' => (float) $row['obs_coordinates_lat'], 'lon' => (float) $row['obs_coordinates_lon'],
                                 'address' => (string) $row['obs_address_string'], 'time' => intval($row['obs_time']),
-                                'category' => intval($row['obs_categorie']), 'city' => '', 'status' => 0);
+                                'category' => intval($row['obs_categorie']), 'city' => trim((string) $row['city_label']), 'status' => 0);
     }
     $suggestions = array();
     foreach (report_groups($observations, $settings['radius']) as $group) {
@@ -756,11 +762,41 @@ function problem_suggestions($db, $settings)
             $radius   = max($radius, (int) ceil(distance($group['center'][0], $group['center'][1], $obs['lat'], $obs['lon'], 'm')) + 10);
             $tokens[] = $obs['token'];
         }
-        $suggestions[] = array('key' => $key, 'category' => $group['category'], 'address' => $group['address'], 'count' => $group['count'],
+        // Street, then the city (or cities) of its observations
+        $address = $group['address'];
+        if ($group['cities'] && strpos($address, ',') === false) {
+            $address = ($address === '' ? '' : $address . ', ') . implode(', ', $group['cities']);
+        }
+        $suggestions[] = array('key' => $key, 'category' => $group['category'], 'address' => $address, 'cities' => $group['cities'], 'count' => $group['count'],
                                'first' => $group['first'], 'last' => $group['last'], 'lat' => round($group['center'][0], 6),
                                'lon' => round($group['center'][1], 6), 'radius' => min(VIGILO_PROBLEM_RADIUS_MAX, $radius), 'tokens' => $tokens);
     }
     return array('suggestions' => $suggestions, 'analysed' => count($observations));
+}
+
+/*
+ * Settings of a search of suggestions: those of the page Configuration (problem_suggest_settings()),
+ * changed by the filters of the form ($input: suggest_city, suggest_category, suggest_archived,
+ * suggest_months, suggest_min, suggest_radius), bounded the same way. $cities, $categories: known ids.
+ */
+function problem_suggest_filters($input, $settings, $cities, $categories)
+{
+    $int = function ($key) use ($input) {
+        return isset($input[$key]) && is_scalar($input[$key]) && is_numeric($input[$key]) ? intval($input[$key]) : null;
+    };
+    $settings['city']     = in_array($int('suggest_city'), array_map('intval', $cities), true) ? $int('suggest_city') : 0;
+    $settings['category'] = in_array($int('suggest_category'), array_map('intval', $categories), true) ? $int('suggest_category') : 0;
+    $settings['archived'] = $int('suggest_archived') === 1;
+    if ($int('suggest_months') !== null) {
+        $settings['months'] = max(1, min(120, $int('suggest_months')));
+    }
+    if ($int('suggest_min') !== null) {
+        $settings['min'] = max(2, min(1000, $int('suggest_min')));
+    }
+    if ($int('suggest_radius') !== null) {
+        $settings['radius'] = max(10, min(1000, $int('suggest_radius')));
+    }
+    return $settings;
 }
 
 function problem_suggestion_dismiss($db, $key, $login)
