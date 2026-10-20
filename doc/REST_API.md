@@ -456,12 +456,12 @@ Champs `POST` en formulaire (`application/x-www-form-urlencoded` ou `multipart/f
 | POST | str | comment | | Remarque de l'observation (tronquée à 50 caractères, emojis retirés) | >= 0.0.1 |
 | POST | str | explanation | | Explications observation (emojis retirés) | >= 0.0.1 |
 | POST | int | categorie | X | ID de catégorie | >= 0.0.1 |
-| POST | str | address | X | Adresse de l'observation (`rue, ville` : la ville est extraite si `cityid`/`cityname` sont absents) | >= 0.0.1 |
+| POST | str | address | X | Adresse de l'observation (`rue, ville` : la ville est extraite si `cityid`/`cityname` sont absents). Depuis 0.0.36, sans `cityid` : espaces et ponctuation remis en forme, numéro de bâtiment, code postal et pays retirés (`12, rue X, 34000 Ville, France` → `rue X`), ville reconnue sans tenir compte de la casse, des accents, de « St » / « Saint », ou par son code postal (`includes/addresses.php`) ; la réponse ne change pas | >= 0.0.1 |
 | POST | int | time | X | Timestamp Unix de l'observation, en ms (13 chiffres) ou en secondes | >= 0.0.1 |
 | POST | str | version | | Version de l'application cliente | >= 0.0.1 |
 | POST | str | scope | X | Identifiant du scope | >= 0.0.1 |
 | POST | int | cityid | | Identifiant de la ville (ignoré s'il est inconnu) | >= 0.0.13 |
-| POST | str | cityname | | Nom de la ville, si `cityid` est absent (rattaché à une ville connue du même nom) | >= 0.0.13 |
+| POST | str | cityname | | Nom de la ville, si `cityid` est absent (rattaché à une ville connue du même nom ; depuis 0.0.36 sans tenir compte des accents ni de « St ») | >= 0.0.13 |
 
 En modification (clé admin/modérateur et `token` existant), tous les champs obligatoires sont renvoyés ; le scope et
 la version ne changent pas.

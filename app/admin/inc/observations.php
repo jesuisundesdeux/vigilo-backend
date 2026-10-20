@@ -30,6 +30,8 @@ $actions_acl = array("delete" => array("access" => array('admin')),
                      "edit" => array("access" => array('admin')),
                      "notes" => array("access" => array('admin','citystaff')));
 
+require_once(__DIR__ . '/../../includes/addresses.php');
+
 $current_role  = $_SESSION['role'];
 $current_login = isset($_SESSION['login']) ? (string) $_SESSION['login'] : '';
 $is_admin      = ($current_role == 'admin');
@@ -320,67 +322,69 @@ if (isset($_POST['note_action']) && in_array($current_role, $actions_acl['notes'
 
 /* Observations cities check */
 $city_query = mysqli_query($db, "SELECT * FROM obs_cities ORDER BY city_name");
-$citylist = array();
 $citylistname = array();
 
 while ($city_query && $city_result = mysqli_fetch_array($city_query)) {
   $cityid = intval($city_result['city_id']);
-  $citylist[$cityid] = flatstring((string) $city_result['city_name']);
   $citylistname[$cityid] = $city_result['city_name'];
 }
 
-$obswithoutcity = array("pbaddress" => array(), "cityunknown" => array(), "readytoimport" => array());
+/*
+ * Quality of the addresses (includes/addresses.php): corrections proposed for the address and the
+ * city of the observations (city in the address, free city name of a referenced city, postcode,
+ * country, spaces, same street written differently), applied after review; the observations still
+ * without a city are listed (city not referenced, no city in the address).
+ */
+$obswithoutcity = array("pbaddress" => array(), "cityunknown" => array());
+$address_proposals = array();
+$address_cities = array();
+if ($city_query) {
+  mysqli_data_seek($city_query, 0);
+  while ($city_result = mysqli_fetch_array($city_query)) {
+    $address_cities[intval($city_result['city_id'])] = array('name' => (string) $city_result['city_name'], 'postcode' => (string) $city_result['city_postcode']);
+  }
+}
 
 if (in_array($current_role, $actions_acl['edit']['access'])) {
-  /* Import of the cities: changes the database, so it needs the CSRF token */
-  $do_import = isset($_GET['importcityfromadress']) && $_GET['importcityfromadress'] == "1" && csrf_valid();
-  $imported = 0;
+  $address_rows = array();
+  $address_query = mysqli_query($db, "SELECT obs_id, obs_token, obs_address_string, obs_city, obs_cityname FROM obs_list WHERE obs_complete=1");
+  while ($address_query && $row = mysqli_fetch_assoc($address_query)) {
+    $address_rows[intval($row['obs_id'])] = $row;
+  }
+  $address_proposals = address_cleanup_proposals($address_rows, $address_cities);
 
-  $obswithoutcity_query = mysqli_query($db, "SELECT obs_token,obs_address_string,obs_cityname FROM obs_list WHERE obs_city=0 AND obs_complete=1");
-  while ($obswithoutcity_query && $obswithoutcity_result = mysqli_fetch_array($obswithoutcity_query)) {
-    $token = (string) $obswithoutcity_result['obs_token'];
-    $token_sql = mysqli_real_escape_string($db, $token);
-    $cityInadress = array();
-    preg_match('/^([^,]*),([^,]*)$/', (string) $obswithoutcity_result['obs_address_string'], $cityInadress);
-
-    if (count($cityInadress) == 3 && empty($obswithoutcity_result['obs_cityname'])) {
-      $cityname = trim($cityInadress[2]);
-      $address = mysqli_real_escape_string($db, $cityInadress[1]);
-      $cityid = array_search(flatstring($cityname), $citylist);
-      $obswithoutcity['readytoimport'][] = $token;
-
-      if ($do_import) {
-        if ($cityid) {
-          mysqli_query($db, "UPDATE obs_list SET obs_address_string='" . $address . "', obs_city='" . intval($cityid) . "' WHERE obs_token='" . $token_sql . "'");
-        }
-        else {
-          mysqli_query($db, "UPDATE obs_list SET obs_address_string='" . $address . "', obs_cityname='" . mysqli_real_escape_string($db, $cityname) . "' WHERE obs_token='" . $token_sql . "'");
-        }
-        $imported++;
+  /* Corrections checked in the list: computed again here, never taken from the request */
+  if (isset($_POST['address_fix'])) {
+    $fix_ids = isset($_POST['fix_ids']) && is_array($_POST['fix_ids']) ? array_unique(array_map('intval', $_POST['fix_ids'])) : array();
+    $fixed = array();
+    foreach ($fix_ids as $fix_id) {
+      if (!isset($address_proposals[$fix_id])) {
+        continue;
       }
+      $after = $address_proposals[$fix_id]['after'];
+      mysqli_query($db, "UPDATE obs_list SET obs_address_string='" . mysqli_real_escape_string($db, $after['address']) . "',
+                         obs_city='" . intval($after['city']) . "', obs_cityname='" . mysqli_real_escape_string($db, $after['cityname']) . "'
+                         WHERE obs_id='" . intval($fix_id) . "'");
+      delete_token_cache($address_proposals[$fix_id]['token']);
+      $fixed[$address_proposals[$fix_id]['token']] = array($address_proposals[$fix_id]['before'], $after);
+      $address_rows[$fix_id]['obs_address_string'] = $after['address'];
+      $address_rows[$fix_id]['obs_city'] = $after['city'];
+      $address_rows[$fix_id]['obs_cityname'] = $after['cityname'];
+      unset($address_proposals[$fix_id]);
     }
-    elseif (!empty($obswithoutcity_result['obs_cityname'])) {
-      $cityname = (string) $obswithoutcity_result['obs_cityname'];
-      $cityid = array_search(flatstring($cityname), $citylist);
-      if ($cityid) {
-        $obswithoutcity['readytoimport'][] = $token;
-        if ($do_import) {
-          mysqli_query($db, "UPDATE obs_list SET obs_cityname='', obs_city='" . intval($cityid) . "' WHERE obs_token='" . $token_sql . "'");
-          $imported++;
-        }
-      }
-      else {
-        $obswithoutcity['cityunknown'][] = $token;
-      }
+    if ($fixed) {
+      audit_log('observation_address_fix', '', array('count' => count($fixed), 'changes' => array_slice($fixed, 0, 100, true)));
+      $address_proposals = address_cleanup_proposals($address_rows, $address_cities);
     }
-    else {
-      $obswithoutcity['pbaddress'][] = $token;
-    }
+    obsadmin_message($messages, $fixed ? 'success' : 'warning', '<strong>' . count($fixed) . '</strong> adresse(s) corrigée(s)');
   }
 
-  if ($do_import) {
-    audit_log('observation_importcity', '', array('imported' => $imported));
-    obsadmin_message($messages, 'success', '<strong>' . h($imported) . '</strong> observations mises à jour à partir de leur adresse');
+  // Still without a referenced city once corrected
+  foreach ($address_rows as $obs_id => $row) {
+    $after = isset($address_proposals[$obs_id]) ? $address_proposals[$obs_id]['after'] : array('city' => intval($row['obs_city']), 'cityname' => (string) $row['obs_cityname']);
+    if (intval($after['city']) == 0) {
+      $obswithoutcity[trim($after['cityname']) !== '' ? 'cityunknown' : 'pbaddress'][] = (string) $row['obs_token'];
+    }
   }
 }
 
@@ -567,15 +571,107 @@ foreach ($messages as $message) {
      . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button></div>';
 }
 
+$address_reasons = address_reason_labels();
+$address_counts = array();
+foreach ($address_proposals as $proposal) {
+  foreach ($proposal['reasons'] as $reason) {
+    $address_counts[$reason] = (isset($address_counts[$reason]) ? $address_counts[$reason] : 0) + 1;
+  }
+}
+
+/* Corrections of the addresses: reviewed then applied (page=observations&addresses=1) */
+if (isset($_GET['addresses']) && in_array($current_role, $actions_acl['edit']['access'])) {
+  $address_reason = isset($_GET['reason']) && is_string($_GET['reason']) && isset($address_reasons[$_GET['reason']]) ? $_GET['reason'] : '';
+  $shown = array();
+  foreach ($address_proposals as $obs_id => $proposal) {
+    if ($address_reason === '' || in_array($address_reason, $proposal['reasons'], true)) {
+      $shown[$obs_id] = $proposal;
+    }
+  }
+  $address_limit = 300;
+  $address_url = '?page=' . urlencode($page_name) . '&addresses=1' . ($address_reason !== '' ? '&reason=' . urlencode($address_reason) : '');
+  $city_label = function ($values) use ($citylistname) {
+    if (intval($values['city']) > 0) {
+      return h(isset($citylistname[intval($values['city'])]) ? $citylistname[intval($values['city'])] : '#' . intval($values['city']));
+    }
+    return trim($values['cityname']) !== '' ? h($values['cityname']) . ' <span class="badge text-bg-warning">non référencée</span>' : '<span class="text-body-secondary">—</span>';
+  };
+?>
+<p><a href="?page=<?= h(urlencode($page_name)) ?>"><i class="bi bi-arrow-left"></i> Observations</a></p>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h2 class="h5 mb-0"><i class="bi bi-magic"></i> Corrections des adresses</h2>
+    <span class="text-body-secondary small"><strong><?= count($address_proposals) ?></strong> proposée(s)</span>
+  </div>
+  <div class="card-body">
+    <p class="small text-body-secondary">
+      Corrections calculées sur les observations : ville reconnue dans l'adresse (sans tenir compte des majuscules, des
+      accents, de « St » / « Saint », ou par son code postal), ville non référencée qui correspond à une ville de
+      l'instance, ville retirée de l'adresse quand elle est déjà connue, numéro de bâtiment, code postal, pays et espaces
+      retirés, même rue écrite différemment dans la même ville (l'orthographe la plus fréquente est gardée). Rien n'est
+      modifié avant « Appliquer » ; seules les corrections cochées sont appliquées.
+    </p>
+    <ul class="nav nav-pills small mb-3">
+      <li class="nav-item"><a class="nav-link py-1<?= $address_reason === '' ? ' active' : '' ?>" href="?page=<?= h(urlencode($page_name)) ?>&amp;addresses=1">Toutes <span class="badge text-bg-secondary"><?= count($address_proposals) ?></span></a></li>
+      <?php foreach ($address_reasons as $reason => $label) { if (empty($address_counts[$reason])) { continue; } ?>
+      <li class="nav-item"><a class="nav-link py-1<?= $address_reason === $reason ? ' active' : '' ?>" href="?page=<?= h(urlencode($page_name)) ?>&amp;addresses=1&amp;reason=<?= h(urlencode($reason)) ?>"><?= h($label) ?> <span class="badge text-bg-secondary"><?= intval($address_counts[$reason]) ?></span></a></li>
+      <?php } ?>
+    </ul>
+    <?php if (!$shown) { ?>
+    <p class="text-body-secondary mb-0"><i class="bi bi-check2-circle"></i> Aucune correction à proposer.</p>
+    <?php } else { ?>
+    <form method="POST" action="<?= h($address_url) ?>" id="address-form">
+      <?= csrf_field() ?>
+      <input type="hidden" name="address_fix" value="1" />
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <div class="form-check mb-0 me-2">
+          <input class="form-check-input" type="checkbox" id="address-all" data-check-all="fix_ids[]" checked />
+          <label class="form-check-label" for="address-all">Tout cocher</label>
+        </div>
+        <button class="btn btn-sm btn-primary" type="submit" data-confirm="Appliquer les corrections cochées ?"><i class="bi bi-check2-all"></i> Appliquer</button>
+      </div>
+    </form>
+    <?php if (count($shown) > $address_limit) { ?><p class="small text-body-secondary">Les <?= $address_limit ?> premières sont affichées : appliquer puis revenir pour les suivantes.</p><?php } ?>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle table-admin table-stack-md mb-0">
+        <thead class="table-light"><tr><th scope="col"><span class="visually-hidden">Choix</span></th><th scope="col">Observation</th><th scope="col">Avant</th><th scope="col">Après</th><th scope="col">Correction</th></tr></thead>
+        <tbody>
+        <?php foreach (array_slice($shown, 0, $address_limit, true) as $obs_id => $proposal) { ?>
+          <tr>
+            <td><input class="form-check-input" type="checkbox" name="fix_ids[]" value="<?= intval($obs_id) ?>" form="address-form" checked aria-label="Corriger <?= h($proposal['token']) ?>" /></td>
+            <td><a href="?page=<?= h(urlencode($page_name)) ?>&amp;approved=1&amp;filtertype=uniq&amp;filtertoken=<?= h(urlencode($proposal['token'])) ?>"><code><?= h($proposal['token']) ?></code></a></td>
+            <td data-label="Avant"><span class="text-break"><?= h($proposal['before']['address']) ?></span><div class="small text-body-secondary"><?= $city_label($proposal['before']) ?></div></td>
+            <td data-label="Après"><span class="text-break fw-semibold"><?= h($proposal['after']['address']) ?></span><div class="small"><?= $city_label($proposal['after']) ?></div></td>
+            <td><?php foreach ($proposal['reasons'] as $reason) { ?><span class="badge text-bg-light border me-1"><?= h($address_reasons[$reason]) ?></span><?php } ?></td>
+          </tr>
+        <?php } ?>
+        </tbody>
+      </table>
+    </div>
+    <?php } ?>
+  </div>
+</div>
+<?php
+  return;
+}
+
 if (in_array($current_role, $actions_acl['edit']['access'])
-    && (count($obswithoutcity['pbaddress']) > 0 || count($obswithoutcity['cityunknown']) > 0 || count($obswithoutcity['readytoimport']) > 0)) {
+    && ($address_proposals || count($obswithoutcity['pbaddress']) > 0 || count($obswithoutcity['cityunknown']) > 0)) {
 ?>
 <div class="alert alert-warning" role="alert">
-  <h2 class="h6 alert-heading"><i class="bi bi-geo-alt"></i> Observations sans villes configurées</h2>
+  <h2 class="h6 alert-heading"><i class="bi bi-geo-alt"></i> Qualité des adresses</h2>
   <ul class="mb-0 ps-3">
-    <li><strong><?= h(count($obswithoutcity['pbaddress'])) ?></strong> adresses qui ne sont pas au format "Rue, Ville", impossibles à importer — <a href="?page=observations&amp;filterpbaddress=1" class="alert-link">Afficher</a></li>
-    <li><strong><?= h(count($obswithoutcity['cityunknown'])) ?></strong> villes non référencées — <a href="?page=observations&amp;filtercityunknown=1" class="alert-link">Afficher</a></li>
-    <li><strong><?= h(count($obswithoutcity['readytoimport'])) ?></strong> importables en cityid — <a href="?page=observations&amp;importcityfromadress=1<?= h(csrf_query()) ?>" class="alert-link" data-confirm="Importer les villes à partir des adresses ?">Importer</a></li>
+    <?php if ($address_proposals) { ?>
+    <li><strong><?= count($address_proposals) ?></strong> correction(s) proposée(s)
+      (<?php $parts = array(); foreach ($address_reasons as $reason => $label) { if (!empty($address_counts[$reason])) { $parts[] = h($label) . ' : ' . intval($address_counts[$reason]); } } echo implode(', ', $parts); ?>)
+      — <a href="?page=observations&amp;addresses=1" class="alert-link">Vérifier et appliquer</a></li>
+    <?php } ?>
+    <?php if (count($obswithoutcity['cityunknown']) > 0) { ?>
+    <li><strong><?= h(count($obswithoutcity['cityunknown'])) ?></strong> observation(s) dans une ville non référencée — <a href="?page=observations&amp;filtercityunknown=1" class="alert-link">Afficher</a> ; à ajouter dans <a href="?page=cities" class="alert-link">Villes</a> pour qu'elles soient reconnues</li>
+    <?php } ?>
+    <?php if (count($obswithoutcity['pbaddress']) > 0) { ?>
+    <li><strong><?= h(count($obswithoutcity['pbaddress'])) ?></strong> adresse(s) sans ville (pas au format « Rue, Ville ») — <a href="?page=observations&amp;filterpbaddress=1" class="alert-link">Afficher</a></li>
+    <?php } ?>
   </ul>
 </div>
 <?php

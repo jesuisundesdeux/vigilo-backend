@@ -7,6 +7,7 @@
  */
 require __DIR__ . '/../../app/includes/functions.php';
 require __DIR__ . '/../../app/includes/problems.php';
+require __DIR__ . '/../../app/includes/addresses.php';
 
 $failures = 0;
 function check($condition, $message)
@@ -157,6 +158,33 @@ check(count($an['findings']['summary']) == 4 && count($an['findings']['time']) >
       'analysis: sentences of the report');
 $empty = problem_analysis($zone, array(), time());
 check($empty['count'] == 0 && $empty['findings']['time'] === array(), 'analysis without observation');
+
+// Addresses (includes/addresses.php)
+$cities = array(1 => array('name' => 'Montpellier', 'postcode' => '34000,34070'), 2 => array('name' => 'Saint-Jean-de-Védas', 'postcode' => '34430'),
+                3 => array('name' => 'Lattes', 'postcode' => '34970'));
+check(address_tidy(" 12 ,  rue  d\u{2019}Alger ,, ") === "12, rue d'Alger", 'addresses: spaces, commas and apostrophes tidied');
+check(address_parse('12, rue X, 34000 Montpellier, France') === array('street' => '12 rue X', 'city' => 'Montpellier', 'postcode' => '34000'),
+      'addresses: lone number, postcode and country');
+check(address_match_city('ST JEAN DE VEDAS', '', $cities) === 2 && address_match_city('montpellier', '', $cities) === 1
+      && address_match_city('', '34970', $cities) === 3 && address_match_city('Pérols', '', $cities) === 0, 'addresses: city matched without case, accents, "St", or by postcode');
+$fix = address_fix(array('obs_address_string' => '12 bis, rue X, 34000 Montpellier', 'obs_city' => 0, 'obs_cityname' => ''), $cities);
+check($fix['address'] === 'rue X' && $fix['city'] === 1 && $fix['reasons'] === array('city', 'number'), 'addresses: no house number before the street');
+$fix = address_fix(array('obs_address_string' => 'Rue A, Montpellier', 'obs_city' => 1, 'obs_cityname' => ''), $cities);
+check($fix['address'] === 'Rue A' && $fix['reasons'] === array('city_duplicate'), 'addresses: city already known taken out of the address');
+$fix = address_fix(array('obs_address_string' => 'Rue A', 'obs_city' => 0, 'obs_cityname' => 'Saint Jean de Védas'), $cities);
+check($fix['city'] === 2 && $fix['cityname'] === '' && $fix['reasons'] === array('city_known'), 'addresses: free city name of a referenced city');
+$fix = address_fix(array('obs_address_string' => 'Rue W, Pérols', 'obs_city' => 0, 'obs_cityname' => ''), $cities);
+check($fix['city'] === 0 && $fix['cityname'] === 'Pérols' && $fix['address'] === 'Rue W', 'addresses: unknown city kept as a free name');
+$fix = address_fix(array('obs_address_string' => 'Résidence Les Pins, Rue X', 'obs_city' => 1, 'obs_cityname' => ''), $cities);
+check($fix['address'] === 'Résidence Les Pins, Rue X' && $fix['reasons'] === array(), 'addresses: two parts without a city left as is');
+$rows = array(1 => array('obs_token' => 'A', 'obs_address_string' => '5 avenue de lodeve', 'obs_city' => 1, 'obs_cityname' => ''),
+              2 => array('obs_token' => 'B', 'obs_address_string' => 'Avenue de Lodève', 'obs_city' => 1, 'obs_cityname' => ''),
+              3 => array('obs_token' => 'C', 'obs_address_string' => '12 Avenue de Lodève', 'obs_city' => 1, 'obs_cityname' => ''),
+              4 => array('obs_token' => 'D', 'obs_address_string' => 'avenue de lodeve', 'obs_city' => 3, 'obs_cityname' => ''));
+$proposals = address_cleanup_proposals($rows, $cities);
+check(array_keys($proposals) === array(1, 3) && $proposals[1]['after']['address'] === 'Avenue de Lodève' && $proposals[1]['reasons'] === array('number', 'spelling')
+      && $proposals[3]['after']['address'] === 'Avenue de Lodève' && $proposals[3]['reasons'] === array('number'),
+      'addresses: number taken out, most frequent spelling of the street in the same city, other city untouched');
 
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);

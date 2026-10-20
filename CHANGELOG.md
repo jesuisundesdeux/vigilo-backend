@@ -2,6 +2,18 @@
 
 ## 0.0.36
 
+### Adresses des observations
+- **Qualité des adresses** (page Observations, administrateurs) : remplace l'alerte « Observations sans villes
+  configurées » et son import sans aperçu. Les corrections proposées s'affichent avant / après avec leur raison, cochées
+  par défaut, et ne sont appliquées qu'après « Appliquer » (journal `observation_address_fix`) : ville reconnue dans
+  l'adresse (sans tenir compte des majuscules, des accents, de « St » / « Saint », ou par son code postal), ville non
+  référencée qui correspond à une ville de l'instance, ville extraite de l'adresse, ville en double retirée,
+  **numéro de bâtiment retiré**, code postal, pays et espaces retirés, **même rue écrite différemment dans la même
+  ville** ramenée à son orthographe la plus fréquente. Filtre par raison ; les observations restant sans ville
+  référencée sont comptées avec un lien vers leur liste.
+- **À la création d'une observation** (`create_issue.php`, sans `cityid`) : même nettoyage de l'adresse (sans numéro de
+  bâtiment, code postal ni pays) et même reconnaissance de la ville. La réponse de l'API ne change pas.
+
 ### Observations
 - **Liste compacte** : une ligne par observation (miniature, token, date, catégorie, commentaire, adresse) au lieu
   d'un formulaire complet ; **Modifier** ouvre une fenêtre (commentaire, explication, catégorie, rue, ville, date,

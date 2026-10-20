@@ -143,6 +143,13 @@
     });
   });
 
+  // data-check-all="name": checks or unchecks all the checkboxes of that name
+  document.querySelectorAll('[data-check-all]').forEach(function (box) {
+    box.addEventListener('change', function () {
+      document.querySelectorAll('input[type="checkbox"][name="' + box.getAttribute('data-check-all') + '"]').forEach(function (el) { el.checked = box.checked; });
+    });
+  });
+
   // Deletion of a category: what to do with its observations (shown only when it is used)
   document.querySelectorAll('form[data-category-delete]').forEach(function (form) {
     function update() {

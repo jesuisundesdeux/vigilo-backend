@@ -96,6 +96,29 @@ def main():
                   'filterpbaddress=1', 'filtercityunknown=1']:
         status, _, page = admin.request('index.php?page=observations&' + query)
         clean('observations ' + query, status, page)
+
+    # Quality of the addresses: TOKA0003 ("Rue des Lilas, Bourgade", no city) gives a proposal; TOKA0007 gets
+    # its city written twice, the correction is reviewed then applied to it only
+    status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
+    fills = [json.loads(html.unescape(f)) for f in re.findall(r'data-fill="([^"]+)"', page)]
+    fill = [f for f in fills if 'obs_comment' in f]
+    check(len(fill) == 1, 'edit window of TOKA0007')
+    if fill:
+        edit = dict((k, str(v)) for k, v in fill[0].items() if k.startswith('obs_') or k.startswith('post_'))
+        edit.update({'csrf_token': admin.token(page), 'obs_address_string': 'Boulevard  Est ,  Testville'})
+        admin.request('index.php?page=observations&approved=1', edit)
+        status, _, page = admin.request('index.php?page=observations')
+        check('Qualité des adresses' in page and 'addresses=1' in page, 'quality of the addresses: corrections proposed')
+        status, _, page = admin.request('index.php?page=observations&addresses=1')
+        clean('address corrections', status, page)
+        check('Boulevard  Est ,  Testville' in page and 'Ville en double retirée' in page and 'Ville extraite (non référencée)' in page
+              and 'name="fix_ids[]" value="%s"' % fill[0]['obs_id'] in page, 'address corrections listed with their reason')
+        status, _, page = admin.request('index.php?page=observations&addresses=1&reason=city_duplicate')
+        check('TOKA0007' in page and 'TOKA0003' not in page, 'address corrections filtered by reason')
+        status, _, page = admin.request('index.php?page=observations&addresses=1', {'csrf_token': admin.token(page), 'address_fix': '1', 'fix_ids[]': [str(fill[0]['obs_id']), '999999']})
+        check('<strong>1</strong> adresse(s) corrigée(s)' in page and 'TOKA0007' not in page and 'TOKA0003' in page, 'address correction applied to the checked observation only')
+        status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
+        check('&quot;obs_address_string&quot;:&quot;Boulevard Est&quot;' in page, 'address corrected: city taken out, spaces tidied')
     # Only the actions that make sense: not the current moderation state, resolutions for published ones
     status, _, page = admin.request('index.php?page=observations&approved=1')
     check('approveto=1' not in page and 'approveto=2' in page and 'data-bs-target="#obsResolutionModal"' in page and 'value="resolution_new"' in page
@@ -813,7 +836,7 @@ def main():
     # Audit log shows the actions
     status, _, page = admin.request('index.php?page=audit')
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
-                   'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'account_password_link', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss', 'problem_split', 'problem_merge']:
+                   'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'account_password_link', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss', 'problem_split', 'problem_merge', 'observation_address_fix']:
         check(action in page, 'audit log contains ' + action)
 
     # A problem without observation: not shown to a citystaff
