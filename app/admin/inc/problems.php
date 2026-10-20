@@ -519,6 +519,10 @@ if ($edit === null && isset($_GET['edit'])) {
             $edit['problem_radius']     = is_numeric($get('radius')) ? intval($get('radius')) : 100;
             $edit['start_day']          = preg_match('/^\d{4}-\d{2}-\d{2}$/', $get('start')) ? $get('start') : $edit['start_day'];
             $reference_tokens           = $get('tokens') !== '' ? explode(',', $get('tokens')) : array();
+            // Suggestion grouped by street: zone of streets (the streets of its observations are proposed)
+            if ($get('zone') === 'streets') {
+                $edit['problem_zone'] = 'streets';
+            }
         }
     } else {
         $edit = problem_load($db, $_GET['edit']);
@@ -539,7 +543,8 @@ $suggest_hidden = '';
 foreach (array('city', 'category', 'months', 'min', 'radius') as $key) {
     $suggest_hidden .= '<input type="hidden" name="suggest_' . $key . '" value="' . intval($suggest_settings[$key]) . '">';
 }
-$suggest_hidden .= '<input type="hidden" name="suggest_archived" value="' . ($suggest_settings['archived'] ? 1 : 0) . '">';
+$suggest_hidden .= '<input type="hidden" name="suggest_archived" value="' . ($suggest_settings['archived'] ? 1 : 0) . '">'
+                 . '<input type="hidden" name="suggest_grouping" value="' . h($suggest_settings['grouping']) . '">';
 if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_suggestion_dismiss'])) {
     if (problem_suggestion_dismiss($db, $_POST['problem_suggestion_dismiss'], $login)) {
         audit_log('problem_suggestion_dismiss', 'suggestion:' . $_POST['problem_suggestion_dismiss']);
@@ -1319,7 +1324,15 @@ if (!$readonly) { ?>
           <option value="1"<?= $suggest_settings['archived'] ? ' selected' : '' ?>>Oui</option>
         </select>
       </div>
-      <div class="col-6 col-md-2 col-xl-2">
+      <div class="col-6 col-md-3 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_grouping">Regroupement</label>
+        <select class="form-select form-select-sm" id="suggest_grouping" name="suggest_grouping">
+          <?php foreach (array('both' => 'Zone (rayon) ou même rue', 'radius' => 'Zone (rayon)', 'street' => 'Rue') as $value => $label) { ?>
+          <option value="<?= h($value) ?>"<?= $suggest_settings['grouping'] === $value ? ' selected' : '' ?>><?= h($label) ?></option>
+          <?php } ?>
+        </select>
+      </div>
+      <div class="col-6 col-md-2 col-xl-1">
         <label class="form-label small mb-1" for="suggest_months">Période (mois)</label>
         <input class="form-control form-control-sm" type="number" id="suggest_months" name="suggest_months" min="1" max="120" value="<?= intval($suggest_settings['months']) ?>">
       </div>
@@ -1336,8 +1349,8 @@ if (!$readonly) { ?>
       </div>
     </form>
     <p class="small text-body-secondary mb-0">
-      Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie, à moins de
-      <?= intval($suggest_settings['radius']) ?> m (ou dans la même rue), des <?= intval($suggest_settings['months']) ?> derniers mois,
+      Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie,
+      <?= $suggest_settings['grouping'] == 'street' ? 'dans la même rue de la même ville' : 'à moins de ' . intval($suggest_settings['radius']) . ' m' . ($suggest_settings['grouping'] == 'both' ? ' (ou dans la même rue)' : '') ?>, des <?= intval($suggest_settings['months']) ?> derniers mois,
       <?= $suggest_settings['archived'] ? 'archivées comprises' : 'sans les observations archivées' ?>. Valeurs par défaut :
       <a href="?page=settings">réglages</a>. Rien n'est créé sans votre accord.
       <?php if ($suggest) { ?><br><?= intval($suggest['analysed']) ?> observation(s) analysée(s)<?= $suggest['analysed'] >= VIGILO_PROBLEM_SUGGEST_MAX ? ' (les plus récentes)' : '' ?>.<?php } ?>
@@ -1350,7 +1363,7 @@ if (!$readonly) { ?>
         $category = isset($problem_categories[$suggestion['category']]) ? $problem_categories[$suggestion['category']][0] : '#' . $suggestion['category'];
         $create   = $self_url . '&edit=new&suggestion=1&' . http_build_query(array('title' => $category . ' – ' . $suggestion['address'], 'catid' => $suggestion['category'],
                     'lat' => $suggestion['lat'], 'lon' => $suggestion['lon'], 'radius' => $suggestion['radius'], 'start' => date('Y-m-d', $suggestion['first']),
-                    'tokens' => implode(',', array_slice($suggestion['tokens'], 0, 200)))); ?>
+                    'tokens' => implode(',', array_slice($suggestion['tokens'], 0, 200)))) . ($suggest_settings['grouping'] == 'street' ? '&zone=streets' : ''); ?>
     <li class="list-group-item">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <span class="badge text-bg-primary"><?= intval($suggestion['count']) ?></span>

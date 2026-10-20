@@ -2,6 +2,11 @@
 
 ## 0.0.37
 
+### Problèmes
+- Suggestions : filtre **Regroupement** — par zone (rayon) ou même rue (comme avant), par zone seulement, ou **par rue**
+  (même rue de la même ville, quelle que soit la distance) ; une suggestion par rue crée un problème à zone de rues,
+  ses rues proposées.
+
 ### Adresses des observations
 - Corrections des adresses : les caractères invisibles de l'adresse d'origine sont montrés (␣ espace en trop, ⍽ espace
   insécable) et une correction « Mise en forme » précise ce qu'elle change (espaces en double, espace au début ou à la

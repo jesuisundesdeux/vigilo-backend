@@ -748,7 +748,8 @@ function problem_suggestions($db, $settings)
                                 'category' => intval($row['obs_categorie']), 'city' => trim((string) $row['city_label']), 'status' => 0);
     }
     $suggestions = array();
-    foreach (report_groups($observations, $settings['radius']) as $group) {
+    $grouping = isset($settings['grouping']) ? $settings['grouping'] : 'both';
+    foreach (report_groups($observations, $settings['radius'], $grouping) as $group) {
         if ($group['count'] < $settings['min']) {
             continue;
         }
@@ -777,7 +778,7 @@ function problem_suggestions($db, $settings)
 /*
  * Settings of a search of suggestions: those of the page Configuration (problem_suggest_settings()),
  * changed by the filters of the form ($input: suggest_city, suggest_category, suggest_archived,
- * suggest_months, suggest_min, suggest_radius), bounded the same way. $cities, $categories: known ids.
+ * suggest_grouping, suggest_months, suggest_min, suggest_radius), bounded the same way. $cities, $categories: known ids.
  */
 function problem_suggest_filters($input, $settings, $cities, $categories)
 {
@@ -787,6 +788,8 @@ function problem_suggest_filters($input, $settings, $cities, $categories)
     $settings['city']     = in_array($int('suggest_city'), array_map('intval', $cities), true) ? $int('suggest_city') : 0;
     $settings['category'] = in_array($int('suggest_category'), array_map('intval', $categories), true) ? $int('suggest_category') : 0;
     $settings['archived'] = $int('suggest_archived') === 1;
+    // Grouping: by zone (radius) or same street, by zone only, by street only
+    $settings['grouping'] = isset($input['suggest_grouping']) && in_array($input['suggest_grouping'], array('radius', 'street'), true) ? $input['suggest_grouping'] : 'both';
     if ($int('suggest_months') !== null) {
         $settings['months'] = max(1, min(120, $int('suggest_months')));
     }

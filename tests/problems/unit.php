@@ -194,5 +194,19 @@ check(address_format_details("Route  de Mende ", 'Route de Mende') === array('es
       && address_format_details("Route\u{00A0}de Mende", 'Route de Mende') === array('espace insécable ou tabulation remplacé')
       && address_format_details('Route de Mende', 'Route de Mende') === array(), 'addresses: invisible format changes described');
 
+// Grouping of the suggestions and recurring places: zone and/or street
+$o = function ($id, $lat, $address, $city) {
+    return array('id' => $id, 'token' => 'T' . $id, 'lat' => $lat, 'lon' => 3.9, 'address' => $address, 'time' => 1600000000 + $id,
+                 'category' => 2, 'city' => $city, 'status' => 0);
+};
+$obs = array($o(1, 43.6, 'Rue X', 'Testville'), $o(2, 43.62, 'rue x', 'Testville'), $o(3, 43.6002, 'Rue Y', 'Testville'), $o(4, 43.64, 'Rue X', 'Autreville'));
+$ids = function ($groups) {
+    $list = array_map(function ($g) { return implode(',', array_map(function ($x) { return $x['id']; }, $g['observations'])); }, $groups);
+    sort($list);
+    return $list;
+};
+check($ids(report_groups($obs, 50)) === array('1,3', '2', '4') && $ids(report_groups($obs, 50, 'radius')) === array('1,3', '2', '4')
+      && $ids(report_groups($obs, 50, 'street')) === array('1,2', '3', '4'), 'groups: by zone and street, by zone only, by street of the same city');
+
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);

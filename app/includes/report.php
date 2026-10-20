@@ -224,19 +224,30 @@ function report_street($address)
 /*
  * Similar observations grouped: same category, and closer than $radius metres to the first one
  * of the group or at the same street. Groups sorted by number of observations, then most recent.
+ * $mode: 'both' (close or same street within 1 km), 'radius' (close only), 'street' (same street
+ * of the same city, whatever the distance; observations without street are left out).
  */
-function report_groups($observations, $radius)
+function report_groups($observations, $radius, $mode = 'both')
 {
     $groups = array();
     foreach ($observations as $obs) {
         $found = null;
+        $city  = isset($obs['city']) ? vigilo_ascii_lower($obs['city']) : '';
+        if ($mode == 'street' && report_street($obs['address']) === '') {
+            continue;
+        }
         foreach ($groups as $key => $group) {
             if ($group['category'] != $obs['category']) {
                 continue;
             }
-            $close = distance($group['lat'], $group['lon'], $obs['lat'], $obs['lon'], 'm') <= $radius;
-            $same_street = $group['street'] !== '' && $group['street'] === report_street($obs['address'])
-                && distance($group['lat'], $group['lon'], $obs['lat'], $obs['lon'], 'm') <= 1000;
+            if ($mode == 'street') {
+                $close = false;
+                $same_street = $group['street'] === report_street($obs['address']) && $group['city'] === $city;
+            } else {
+                $close = distance($group['lat'], $group['lon'], $obs['lat'], $obs['lon'], 'm') <= $radius;
+                $same_street = $mode == 'both' && $group['street'] !== '' && $group['street'] === report_street($obs['address'])
+                    && distance($group['lat'], $group['lon'], $obs['lat'], $obs['lon'], 'm') <= 1000;
+            }
             if ($close || $same_street) {
                 $found = $key;
                 break;
@@ -244,7 +255,7 @@ function report_groups($observations, $radius)
         }
         if ($found === null) {
             $groups[] = array('category' => $obs['category'], 'lat' => $obs['lat'], 'lon' => $obs['lon'],
-                              'street' => report_street($obs['address']), 'observations' => array());
+                              'street' => report_street($obs['address']), 'city' => $city, 'observations' => array());
             $found = count($groups) - 1;
         }
         $groups[$found]['observations'][] = $obs;
