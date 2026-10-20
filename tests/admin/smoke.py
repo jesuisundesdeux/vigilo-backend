@@ -97,6 +97,10 @@ def main():
         status, _, page = admin.request('index.php?page=observations&' + query)
         clean('observations ' + query, status, page)
 
+    # No tab chosen: the first one that has observations (TOKA0004 is disapproved)
+    status, _, page = admin.request('index.php?page=observations&filtertype=uniq&filtertoken=TOKA0004')
+    check('name="bulk_ids[]" value="4"' in page and re.search(r'nav-link active"[^>]*approved=2', page) is not None, 'observations: first tab with results when none is chosen')
+
     # Quality of the addresses: TOKA0003 ("Rue des Lilas, Bourgade", no city) gives a proposal; TOKA0007 gets
     # its city written twice, the correction is reviewed then applied to it only
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
@@ -111,7 +115,7 @@ def main():
         check('Qualité des adresses' in page and 'addresses=1' in page, 'quality of the addresses: corrections proposed')
         status, _, page = admin.request('index.php?page=observations&addresses=1')
         clean('address corrections', status, page)
-        check('Boulevard  Est ,  Testville' in page and 'Ville en double retirée' in page and 'Ville extraite (non référencée)' in page
+        check('Boulevard<span class="addr-invisible" title="espace en trop">␣␣</span>Est' in page and 'Ville en double retirée' in page and 'Ville extraite (non référencée)' in page
               and 'name="fix_ids[]" value="%s"' % fill[0]['obs_id'] in page, 'address corrections listed with their reason')
         status, _, page = admin.request('index.php?page=observations&addresses=1&reason=city_duplicate')
         check('TOKA0007' in page and 'TOKA0003' not in page, 'address corrections filtered by reason')
@@ -527,6 +531,11 @@ def main():
         data.update(filters)
         status, _, filtered = admin.request('index.php?page=problems&status=all', data)
         check('Aucune suggestion' in filtered, 'suggestions filtered by ' + label)
+    status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_grouping': 'street'})
+    check('Aucune suggestion' in filtered and 'dans la même rue de la même ville' in filtered
+          and '<input type="hidden" name="suggest_grouping" value="street">' not in filtered and 'value="street" selected' in filtered, 'suggestions grouped by street (TOKA0001 and TOKA0003 are in two streets)')
+    status, _, form = admin.request('index.php?page=problems&edit=new&suggestion=1&title=X&catid=2&lat=43.6&lon=3.9&radius=100&tokens=TOKA0001&zone=streets')
+    check('id="problem_zone_streets" value="streets" checked' in form and 'value="Rue de la Gare, Testville"' in form, 'problem from a suggestion by street: zone of streets, its street proposed')
     status, _, filtered = admin.request('index.php?page=problems&status=all', {'csrf_token': admin.token(page), 'problem_suggest': '1', 'suggest_archived': '1', 'suggest_city': '999', 'suggest_min': '1'})
     check('Suggestions (1)' in filtered and 'archivées comprises' in filtered and 'Groupes d\'au moins 2 observations' in filtered, 'suggestion filters: archived included, unknown city ignored, minimum bounded')
     create = links(page, 'suggestion=1')

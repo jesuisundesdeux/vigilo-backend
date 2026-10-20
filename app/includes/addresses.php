@@ -116,7 +116,7 @@ function address_match_city($name, $postcode, $cities)
 /*
  * Correction of the address and of the city of an observation (row of obs_list: obs_address_string,
  * obs_city, obs_cityname). Returns array(address, city, cityname, reasons), reasons among
- * format, number, city, city_known, city_extracted, city_duplicate; same values when nothing changes.
+ * format, number, street_type, city, city_known, city_extracted, city_duplicate; same values when nothing changes.
  * The address has no house number: only the street (vigilo_street_name()).
  */
 function address_fix($row, $cities)
@@ -167,11 +167,17 @@ function address_fix($row, $cities)
         $parsed['street'] = implode(', ', $parts);
         $reasons[] = 'number';
     }
+    // Type of the street in full, with a capital ("bd X" -> "Boulevard X")
+    if ($parts && vigilo_street_type_normalize($parts[0]) !== $parts[0]) {
+        $parts[0] = vigilo_street_type_normalize($parts[0]);
+        $parsed['street'] = implode(', ', $parts);
+        $reasons[] = 'street_type';
+    }
     $new = $parsed['city'] !== '' ? $parsed['street'] . ', ' . $parsed['city'] : $parsed['street'];
     if ($new === '') {
         $new = trim($address);
     }
-    if ($new !== $address && !array_intersect($reasons, array('city', 'city_extracted', 'city_duplicate', 'number'))) {
+    if ($new !== $address && !array_intersect($reasons, array('city', 'city_extracted', 'city_duplicate', 'number', 'street_type'))) {
         $reasons[] = 'format';
     }
     return array('address' => $new, 'city' => $city, 'cityname' => $cityname, 'reasons' => $reasons);
@@ -262,10 +268,51 @@ function address_cleanup_proposals($rows, $cities)
     return $proposals;
 }
 
+/*
+ * What a format correction changes, when it cannot be seen once displayed (HTML collapses
+ * spaces): list of labels (extra spaces, space at the start or end, non-breaking space, apostrophe).
+ */
+function address_format_details($before, $after)
+{
+    $before  = (string) $before;
+    $details = array();
+    if (preg_match('/\x{00A0}|\x{202F}|\t/u', $before)) {
+        $details[] = 'espace insécable ou tabulation remplacé';
+    }
+    if (preg_match('/ {2,}/', $before)) {
+        $details[] = 'espaces en double retirés';
+    }
+    if ($before !== '' && (trim($before) !== $before)) {
+        $details[] = 'espace au début ou à la fin retiré';
+    }
+    if (preg_match('/\s,|,(?=\S)|,\s*,|,\s*$/u', $before)) {
+        $details[] = 'virgules et espaces autour remis en forme';
+    }
+    if (preg_match('/[\x{2019}\x{2018}`]/u', $before)) {
+        $details[] = 'apostrophe remplacée';
+    }
+    return $details;
+}
+
+/* Address in HTML with its invisible characters shown (extra, leading or trailing spaces, non-breaking spaces) */
+function address_visible_html($address)
+{
+    $html = h((string) $address);
+    $mark = function ($title, $text) {
+        return '<span class="addr-invisible" title="' . $title . '">' . $text . '</span>';
+    };
+    $html = preg_replace('/\x{00A0}|\x{202F}/u', $mark('espace insécable', '⍽'), $html);
+    $html = str_replace("\t", $mark('tabulation', '⇥'), $html);
+    $html = preg_replace_callback('/^ +| +$| {2,}/', function ($m) use ($mark) {
+        return $mark('espace en trop', str_repeat('␣', strlen($m[0])));
+    }, $html);
+    return $html;
+}
+
 /* Labels of the reasons of a correction */
 function address_reason_labels()
 {
     return array('city' => 'Ville reconnue dans l\'adresse', 'city_known' => 'Ville non référencée reconnue',
                  'city_extracted' => 'Ville extraite (non référencée)', 'city_duplicate' => 'Ville en double retirée',
-                 'number' => 'Numéro retiré', 'format' => 'Mise en forme', 'spelling' => 'Orthographe de la rue');
+                 'number' => 'Numéro retiré', 'street_type' => 'Type de voie uniformisé', 'format' => 'Mise en forme', 'spelling' => 'Orthographe de la rue');
 }

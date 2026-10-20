@@ -168,7 +168,11 @@ check(address_parse('12, rue X, 34000 Montpellier, France') === array('street' =
 check(address_match_city('ST JEAN DE VEDAS', '', $cities) === 2 && address_match_city('montpellier', '', $cities) === 1
       && address_match_city('', '34970', $cities) === 3 && address_match_city('Pérols', '', $cities) === 0, 'addresses: city matched without case, accents, "St", or by postcode');
 $fix = address_fix(array('obs_address_string' => '12 bis, rue X, 34000 Montpellier', 'obs_city' => 0, 'obs_cityname' => ''), $cities);
-check($fix['address'] === 'rue X' && $fix['city'] === 1 && $fix['reasons'] === array('city', 'number'), 'addresses: no house number before the street');
+check($fix['address'] === 'Rue X' && $fix['city'] === 1 && $fix['reasons'] === array('city', 'number', 'street_type'), 'addresses: no house number before the street, type of street in full');
+check(vigilo_street_type_normalize('bd Victor Hugo') === 'Boulevard Victor Hugo' && vigilo_street_type_normalize('Av. Foch') === 'Avenue Foch'
+      && vigilo_street_type_normalize('rue de la Gare') === 'Rue de la Gare' && vigilo_street_type_normalize('allee des Pins') === 'Allée des Pins'
+      && vigilo_street_type_normalize('Le Corum') === 'Le Corum' && vigilo_street_type_normalize('Rue') === 'Rue'
+      && vigilo_street_key('Bd Victor Hugo') === vigilo_street_key('boulevard victor-hugo'), 'streets: type in full ("bd" = "Boulevard"), same key');
 $fix = address_fix(array('obs_address_string' => 'Rue A, Montpellier', 'obs_city' => 1, 'obs_cityname' => ''), $cities);
 check($fix['address'] === 'Rue A' && $fix['reasons'] === array('city_duplicate'), 'addresses: city already known taken out of the address');
 $fix = address_fix(array('obs_address_string' => 'Rue A', 'obs_city' => 0, 'obs_cityname' => 'Saint Jean de Védas'), $cities);
@@ -182,9 +186,27 @@ $rows = array(1 => array('obs_token' => 'A', 'obs_address_string' => '5 avenue d
               3 => array('obs_token' => 'C', 'obs_address_string' => '12 Avenue de Lodève', 'obs_city' => 1, 'obs_cityname' => ''),
               4 => array('obs_token' => 'D', 'obs_address_string' => 'avenue de lodeve', 'obs_city' => 3, 'obs_cityname' => ''));
 $proposals = address_cleanup_proposals($rows, $cities);
-check(array_keys($proposals) === array(1, 3) && $proposals[1]['after']['address'] === 'Avenue de Lodève' && $proposals[1]['reasons'] === array('number', 'spelling')
+check(array_keys($proposals) === array(1, 3, 4) && $proposals[1]['after']['address'] === 'Avenue de Lodève' && $proposals[1]['reasons'] === array('number', 'street_type', 'spelling')
+      && $proposals[4]['after']['address'] === 'Avenue de lodeve' && $proposals[4]['reasons'] === array('street_type')
       && $proposals[3]['after']['address'] === 'Avenue de Lodève' && $proposals[3]['reasons'] === array('number'),
       'addresses: number taken out, most frequent spelling of the street in the same city, other city untouched');
+check(address_format_details("Route  de Mende ", 'Route de Mende') === array('espaces en double retirés', 'espace au début ou à la fin retiré')
+      && address_format_details("Route\u{00A0}de Mende", 'Route de Mende') === array('espace insécable ou tabulation remplacé')
+      && address_format_details('Route de Mende', 'Route de Mende') === array(), 'addresses: invisible format changes described');
+
+// Grouping of the suggestions and recurring places: zone and/or street
+$o = function ($id, $lat, $address, $city) {
+    return array('id' => $id, 'token' => 'T' . $id, 'lat' => $lat, 'lon' => 3.9, 'address' => $address, 'time' => 1600000000 + $id,
+                 'category' => 2, 'city' => $city, 'status' => 0);
+};
+$obs = array($o(1, 43.6, 'Rue X', 'Testville'), $o(2, 43.62, 'rue x', 'Testville'), $o(3, 43.6002, 'Rue Y', 'Testville'), $o(4, 43.64, 'Rue X', 'Autreville'));
+$ids = function ($groups) {
+    $list = array_map(function ($g) { return implode(',', array_map(function ($x) { return $x['id']; }, $g['observations'])); }, $groups);
+    sort($list);
+    return $list;
+};
+check($ids(report_groups($obs, 50)) === array('1,3', '2', '4') && $ids(report_groups($obs, 50, 'radius')) === array('1,3', '2', '4')
+      && $ids(report_groups($obs, 50, 'street')) === array('1,2', '3', '4'), 'groups: by zone and street, by zone only, by street of the same city');
 
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);
