@@ -717,6 +717,27 @@ def main():
         status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Relance <b>mairie</b>\nle 3'})
         clean('problem note', status, page)
         check('Notes de suivi (1)' in page and 'data-bs-target="#notesModal"><i class="bi bi-sticky"></i> Notes <span class="badge text-bg-secondary">1</span>' in page and 'data-reopen-modal="#notesModal"' in page and 'Relance &lt;b&gt;mairie&lt;/b&gt;<br />' in page, 'problem note added and escaped')
+        check('<span class="badge text-bg-secondary"><i class="bi bi-lock"></i> privée</span>' in page and 'data-hide-when-checked=".note-milestone-fields"' in page,
+              'problem note private by default')
+        # Note shown in the reports, milestone with its date (box "Note privée" not checked: only the hidden 0 is sent)
+        status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_add': '1', 'note_text': 'Constat <i>sur place</i>',
+                                                   'note_private': '0', 'note_milestone': 'Visite <b>terrain</b>', 'note_milestone_date': '2021-06-15'})
+        clean('problem public note', status, page)
+        check('Notes de suivi (2)' in page and 'dans les rapports</span>' in page and 'Visite &lt;b&gt;terrain&lt;/b&gt; · 15/06/2021' in page
+              and '<g class="milestone">' in page and '<ol class="milestones">' in page, 'public note with a milestone, on the timeline of the detail')
+        note_ids = re.findall(r'name="note_id" value="(\d+)"', page)
+        if len(note_ids) >= 4:
+            # A private note keeps no milestone; the milestone of the other one changed (invalid date: date of the note)
+            status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_edit': '1', 'note_id': note_ids[0],
+                                                       'note_private': ['0', '1'], 'note_milestone': 'Ignoré', 'note_milestone_date': '2021-01-01'})
+            check('Note modifiée' in page and 'Ignoré' not in page, 'private note: no milestone')
+            status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_edit': '1', 'note_id': note_ids[-1],
+                                                       'note_private': '0', 'note_milestone': 'Visite <b>terrain</b>', 'note_milestone_date': '2021-13-45'})
+            m = re.search(r'Visite &lt;b&gt;terrain&lt;/b&gt; · (\d\d/\d\d/\d{4})', page)
+            check('Note modifiée' in page and m is not None and m.group(1) != '15/06/2021', 'milestone with an invalid date: date of the note')
+            status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_edit': '1', 'note_id': note_ids[-1],
+                                                       'note_private': '0', 'note_milestone': 'Visite <b>terrain</b>', 'note_milestone_date': '2021-06-15'})
+        check(len(note_ids) >= 4, 'notes: one edit and one delete form each')
         # Report of the problem (button "Rapport" of the detail): analysis of when and where, document and slides, never the notes
         check('href="problem_report.php?id=' + pb_gare + '"' in page, 'problem detail: link to its report')
         status, _, report = admin.request('problem_report.php?id=' + pb_gare)
@@ -724,7 +745,10 @@ def main():
         check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Synthèse' in report and 'Analyse temporelle' in report
               and 'Répartition géographique' in report and 'class="report-problem-map problem-map-large"' in report and 'report-heatmap' in report
               and 'Moments de la journée' in report and 'class="findings"' in report and 'data-print' in report and 'Relance' not in report,
-              'problem report: synthesis, time and place analysis, printable, without the notes')
+              'problem report: synthesis, time and place analysis, printable, without the private notes')
+        check('Suivi du problème' in report and 'Constat &lt;i&gt;sur place&lt;/i&gt;' in report and '⚑ Visite &lt;b&gt;terrain&lt;/b&gt; (15/06/2021)' in report
+              and '<g class="milestone">' in report and '<ol class="milestones"><li><span class="milestone-date">15/06/2021</span> <strong>Visite &lt;b&gt;terrain&lt;/b&gt;</strong></li></ol>' in report,
+              'problem report: follow-up notes that are not private, milestone on the timeline')
         check('Ce que disent les observations' in report and 'class="obs-comments"' in report and 'garée' in report
               and re.search(r'<a class="token-link" href="[^"]*token=TOKA0001" target="_blank" rel="noopener">TOKA0001</a>', report),
               'problem report: comments of its observations, tokens linked to the webapp')
@@ -737,7 +761,9 @@ def main():
         status, _, report = admin.request('report.php?from=2020-01-01&to=2022-12-31&problems=1')
         clean('report with problems', status, report)
         check('Problèmes suivis' in report and 'Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'Travaux du centre' in report
-              and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the notes')
+              and 'En attente' in report and 'Relance' not in report, 'problems in the report, without the private notes')
+        check('<g class="milestone">' in report and 'Visite &lt;b&gt;terrain&lt;/b&gt;</strong><div class="milestone-text">Constat &lt;i&gt;sur place&lt;/i&gt;</div>' in report,
+              'report: milestones on the timeline of the problem detail')
         check('Problème : Piste &lt;b&gt;bloquée&lt;/b&gt;' in report and 'class="report-problem-map"' in report and 'Frise chronologique' in report and 'report-strip' in report
               and 'photo.php?s=300&amp;token=TOKA0001' in report and 'Créé le' in report, 'detail of each problem in the report')
         # Problems of the chosen statuses only (both are "En attente" here)
@@ -762,8 +788,9 @@ def main():
         if m:
             status, _, obs_page = admin.request('index.php?page=observations&approved=1', {'csrf_token': admin.token(page), 'note_action': 'delete', 'note_id': m.group(1)})
             check('Note introuvable' in obs_page, 'problem note not deleted from the observations page')
-            status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_delete': '1', 'note_id': m.group(1)})
-            check('Note supprimée' in page and 'Notes de suivi (0)' in page, 'problem note deleted')
+            for note_id in sorted(set(re.findall(r'name="note_id" value="(\d+)"', page))):
+                status, _, page = admin.request(gare_url, {'csrf_token': admin.token(page), 'problem_note_delete': '1', 'note_id': note_id})
+            check('Note supprimée' in page and 'Notes de suivi (0)' in page, 'problem notes deleted')
         # Split: TOKA0001 moved to a new problem (copy of Gare), then merged back with its note
         status, _, page = admin.request(gare_url)
         check('id="split-form"' in page and 'name="bulk_ids[]" value="1" form="split-form"' in page and 'id="merge"' in page, 'split and merge forms on the detail')

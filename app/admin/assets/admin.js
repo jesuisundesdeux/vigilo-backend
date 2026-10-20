@@ -283,6 +283,19 @@
     }
   });
 
+  // Fields shown only while a box is not checked: <input type="checkbox" data-hide-when-checked=".selector">
+  // (the elements of the same form matching the selector)
+  document.querySelectorAll('[data-hide-when-checked]').forEach(function (box) {
+    var update = function () {
+      var scope = box.form || document;
+      scope.querySelectorAll(box.getAttribute('data-hide-when-checked')).forEach(function (el) {
+        el.hidden = box.checked;
+      });
+    };
+    box.addEventListener('change', update);
+    update();
+  });
+
   // Bootstrap tooltips
   if (window.bootstrap) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {

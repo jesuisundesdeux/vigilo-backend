@@ -81,9 +81,11 @@ observations archivées » est cochée. Le bouton **Diffuser** d'un problème ap
 `problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente » ; il est
 grisé tant qu'aucun webhook actif ne suit cet événement.
 
-La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes internes** (même
-table que les notes des observations ; bouton « Notes » de l'encart principal), jamais publiées ni reprises dans les
-rapports.
+La fiche d'un problème permet aussi de changer son statut et sa priorité, et d'y écrire des **notes de suivi** (même
+table que les notes des observations ; bouton « Notes » de l'encart principal). Une note est **privée** par défaut :
+seulement dans l'admin, jamais publiée ni reprise dans les rapports. Une note non privée figure dans les rapports et peut
+marquer un **jalon** (libellé et date : visite terrain, rendez-vous en mairie…), numéroté sur la frise chronologique de
+la fiche et des rapports (0.0.37).
 
 **Séparer et fusionner** : depuis la fiche, des observations cochées peuvent être déplacées vers un nouveau problème
 (copie du problème, dont il faut ensuite ajuster la zone pour que les nouvelles observations ne correspondent pas aux
@@ -94,7 +96,7 @@ supprimé. L'accueil de l'admin affiche le nombre de problèmes et la part des o
 **Rapport d'un problème** : le bouton « Rapport » de la fiche produit un rapport imprimable (PDF par l'impression du
 navigateur), en document ou en diaporama, qui analyse ses observations : quand (période, rythme, tendance récente, jours
 et heures) et où (carte, dispersion autour de leur centre, rues, points chauds, observations hors de la zone), avec
-des constats rédigés. Il ne contient jamais les notes internes ; un compte citystaff n'y voit que les observations de
+des constats rédigés, et le suivi (notes non privées, jalons sur la frise). Il ne contient jamais les notes privées ; un compte citystaff n'y voit que les observations de
 ses villes.
 
 **Suggestions** : sur demande, la page Problèmes propose les groupes d'observations publiées sans problème, de même
@@ -105,9 +107,9 @@ cercle couvrant le groupe, date de début) ou peut être ignorée ; aucun probl�
 **Rapport** : les sections du rapport pour une collectivité se choisissent dans son formulaire. Un administrateur peut
 y ajouter la section « Problèmes suivis » (problèmes ayant des observations dans le rapport, avec leur état, leur
 priorité et leur nombre d'observations) et le « Détail de chaque problème » (carte, chronologie, jours et heures,
-photos, date de création, statut), sans les notes internes. Les problèmes ne sont visibles
+photos, date de création, statut, jalons sur la frise), sans les notes privées. Les problèmes ne sont visibles
 que dans l'admin (ni API publique, ni application web) ; leur historique est dans le journal. Les comptes citystaff
-les consultent en lecture seule (problèmes ayant des observations dans leurs villes, sans les notes internes).
+les consultent en lecture seule (problèmes ayant des observations dans leurs villes, sans les notes ; les notes non privées sont dans les rapports).
 
 ## Photos, pixelisation et floutage
 

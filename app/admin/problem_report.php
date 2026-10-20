@@ -20,7 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
  * Report of one problem (button "Rapport" of its detail): analysis of when and where its
  * observations happen, document (A4) or slides (16:9), saved as PDF with the print function
- * of the browser. Read only: no CSRF token needed. Never the internal notes. A citystaff
+ * of the browser. Read only: no CSRF token needed. Only the notes that are not private (follow-up,
+ * milestones on the timeline), never the private ones. A citystaff
  * account gets the problems having observations in their cities, and these observations only.
  */
 require_once('../includes/security.php');
@@ -57,6 +58,9 @@ foreach ($attached as $row) {
 $filters      = array('cities' => $allowed !== null ? $allowed : array(), 'categories' => array(), 'restricted' => $allowed !== null, 'ids' => $ids);
 $observations = report_observations($db, $filters, 0, $now + 86400);
 $analysis     = problem_analysis($problem, $observations, $now);
+// Notes that are not private (follow-up) and their milestones (timeline)
+$public_notes = problem_public_notes($db, $problem['problem_id']);
+$milestones   = problem_public_notes($db, $problem['problem_id'], true);
 $count        = $analysis['count'];
 
 $categories    = report_category_list();
@@ -126,7 +130,7 @@ $findings = function ($list) {
     <?php } ?>
 
     <?php
-    // The problem: information (never the internal notes)
+    // The problem: information (never the private notes)
     $info = '<dl class="problem-info">'
       . '<dt>Statut</dt><dd>' . h($status) . '</dd><dt>Priorité</dt><dd>' . h($priority) . '</dd>'
       . '<dt>Créé le</dt><dd>' . (intval($problem['problem_created_time']) ? h(report_date(intval($problem['problem_created_time']))) : '—') . '</dd>'
@@ -166,7 +170,7 @@ $findings = function ($list) {
       echo $section('Le problème', $info);
 
       // When: timeline, months (years beyond 3 years), days × hours, time of day
-      $charts = problem_time_charts($t['stats']);
+      $charts = problem_time_charts($t['stats'], '#3f6fb5', $milestones);
       if (count($t['months']) > 36) {
         $period_chart = report_svg_columns($t['years'], '#3f6fb5', 'Observations par année');
       } else {
@@ -183,13 +187,14 @@ $findings = function ($list) {
       }
       $time_text = $findings($analysis['findings']['time']);
       if ($slides) {
-        echo $section('Analyse temporelle', $time_text . '<h3>Frise chronologique</h3>' . $charts['timeline'], 'analysis');
+        echo $section('Analyse temporelle', $time_text . '<h3>Frise chronologique</h3>' . $charts['timeline'] . $charts['milestones'], 'analysis');
         echo $section('Évolution', $period_chart);
         echo $section('Jours et heures', $charts['heatmap']);
         echo $section('Moments de la journée', report_svg_bars($band_rows, 'Observations par moment de la journée'));
       } else {
         echo $section('Analyse temporelle', $time_text
-          . '<h3>Frise chronologique</h3>' . $charts['timeline']
+          . '<h3>Frise chronologique</h3>' . $charts['timeline'] . $charts['milestones']
+          . ($milestones ? '<p class="note">Les jalons du suivi (numérotés) sont placés au-dessus de leur période.</p>' : '')
           . '<h3>Évolution</h3>' . $period_chart
           . '<h3>Jours et heures</h3>' . $charts['heatmap']
           . '<p class="note">Une case par jour et par heure, d\'autant plus foncée que les observations y sont nombreuses.</p>'
@@ -268,10 +273,20 @@ $findings = function ($list) {
         echo $section('Ce que disent les observations', '<p class="note">Commentaires des observations les plus récentes, chacun une fois.</p>' . report_comments_html($db, $comments), 'comments-section');
       }
     }
+    // Follow-up: the notes that are not private, with their milestone
+    if ($public_notes) {
+      $items = '';
+      foreach (array_slice($public_notes, $slides ? -6 : 0) as $note) {
+        $items .= '<li><span class="note">' . h(report_date(intval($note['note_time'])))
+          . ($note['note_milestone'] !== '' ? ' · <strong class="milestone-label">⚑ ' . h($note['note_milestone']) . ' (' . h(report_date(problem_note_milestone_time($note))) . ')</strong>' : '')
+          . '</span>' . nl2br(h(vigilo_report_truncate($note['note_text'], $slides ? 300 : 2000))) . '</li>';
+      }
+      echo $section('Suivi du problème', '<ul class="follow-notes">' . $items . '</ul>', 'follow-section');
+    }
     echo $section('Méthode', '<p class="note">Observations publiées (approuvées par la modération) rattachées au problème, archivées comprises'
       . ($allowed !== null ? ', de vos villes' : '') . '. Centre : moyenne des positions ; dispersion : distance médiane au centre. Points chauds : '
       . 'observations de même type à moins de 25 m ou dans la même rue. État de traitement : le plus avancé des résolutions de chaque observation. '
-      . 'Les notes internes ne figurent jamais dans le rapport.</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). '
+      . 'Seules les notes de suivi non privées figurent dans le rapport.</p><p class="note">Données : ' . h($instance_name) . ', application Vigilo (vigilo.city). '
       . 'Fond de carte © contributeurs OpenStreetMap.</p>', 'method');
     ?>
 

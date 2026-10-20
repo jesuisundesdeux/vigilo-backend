@@ -611,31 +611,32 @@ function report_heat_step($count, $max)
 /*
  * Compact horizontal timeline: one square per period, darker with the number of observations;
  * $months 'YYYY-MM' => number, grouped by quarter beyond 4 years and by year beyond 12 years.
- * Years below, scale and busiest period.
+ * Years below, scale and busiest period. $milestones (list of array('time', 'label')): numbered
+ * flags above their period (the months must cover them, report_months_cover()).
  */
-function report_svg_strip($months, $title)
+function report_svg_strip($months, $title, $milestones = array())
 {
     $ramp  = report_heat_ramp();
     $names = array(1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre');
     $unit  = count($months) > 144 ? 'year' : (count($months) > 48 ? 'quarter' : 'month');
-    // Periods: key => array(year, label, number)
-    $periods = array();
-    foreach ($months as $month => $count) {
+    $key_of = function ($month) use ($unit, $names) {
         $year = substr($month, 0, 4);
         $m    = intval(substr($month, 5, 2));
         if ($unit == 'year') {
-            $key = $year;
-            $label = $year;
-        } elseif ($unit == 'quarter') {
-            $q = intval(ceil($m / 3));
-            $key = $year . '-T' . $q;
-            $label = $q . ($q == 1 ? 'er' : 'e') . ' trimestre ' . $year;
-        } else {
-            $key = $month;
-            $label = $names[$m] . ' ' . $year;
+            return array($year, $year);
         }
+        if ($unit == 'quarter') {
+            $q = intval(ceil($m / 3));
+            return array($year . '-T' . $q, $q . ($q == 1 ? 'er' : 'e') . ' trimestre ' . $year);
+        }
+        return array($month, $names[$m] . ' ' . $year);
+    };
+    // Periods: key => array(year, label, number)
+    $periods = array();
+    foreach ($months as $month => $count) {
+        list($key, $label) = $key_of($month);
         if (!isset($periods[$key])) {
-            $periods[$key] = array($year, $label, 0);
+            $periods[$key] = array(substr($month, 0, 4), $label, 0);
         }
         $periods[$key][2] += $count;
     }
@@ -643,25 +644,28 @@ function report_svg_strip($months, $title)
     $width = 760;
     $gap   = 2;
     $cell  = min(28, ($width - ($n - 1) * $gap) / $n);
+    $top   = $milestones ? 26 : 0;
     $max   = 0;
     foreach ($periods as $period) {
         $max = max($max, $period[2]);
     }
-    $svg   = '<svg viewBox="0 0 ' . $width . ' 64" role="img" aria-label="' . report_svg_escape($title) . '" class="report-chart report-heatmap report-strip">';
+    $svg   = '<svg viewBox="0 0 ' . $width . ' ' . (64 + $top) . '" role="img" aria-label="' . report_svg_escape($title) . '" class="report-chart report-heatmap report-strip">';
     $i     = 0;
     $last_label = -1000;
     $last_year  = '';
     $busiest    = array(0, '');
-    foreach ($periods as $period) {
+    $x_of       = array();
+    foreach ($periods as $key => $period) {
         list($year, $label, $count) = $period;
         $x    = round($i * ($cell + $gap), 2);
+        $x_of[$key] = $x;
         $step = report_heat_step($count, $max);
-        $svg .= '<rect x="' . $x . '" y="0" width="' . round($cell, 2) . '" height="26" rx="' . ($cell > 8 ? 3 : 1) . '" fill="' . $ramp[$step] . '"'
+        $svg .= '<rect x="' . $x . '" y="' . $top . '" width="' . round($cell, 2) . '" height="26" rx="' . ($cell > 8 ? 3 : 1) . '" fill="' . $ramp[$step] . '"'
               . ($step == 0 ? ' class="empty"' : '') . '><title>' . report_svg_escape($label . ' : ' . $count . ' observation' . ($count > 1 ? 's' : '')) . '</title></rect>';
         // Year at its first period, unless too close to the previous label
         if ($year !== $last_year && $x - $last_label >= 34) {
-            $svg .= '<line x1="' . $x . '" x2="' . $x . '" y1="28" y2="34" class="grid"/>'
-                  . '<text x="' . $x . '" y="45" class="axis">' . report_svg_escape($year) . '</text>';
+            $svg .= '<line x1="' . $x . '" x2="' . $x . '" y1="' . ($top + 28) . '" y2="' . ($top + 34) . '" class="grid"/>'
+                  . '<text x="' . $x . '" y="' . ($top + 45) . '" class="axis">' . report_svg_escape($year) . '</text>';
             $last_label = $x;
         }
         $last_year = $year;
@@ -670,18 +674,80 @@ function report_svg_strip($months, $title)
         }
         $i++;
     }
-    $x = $width - (count($ramp) - 1) * 16 - 32;
-    $svg .= '<text x="' . ($x - 6) . '" y="61" text-anchor="end" class="axis">moins</text>';
-    for ($k = 1; $k < count($ramp); $k++) {
-        $svg .= '<rect x="' . ($x + ($k - 1) * 16) . '" y="51" width="13" height="13" rx="3" fill="' . $ramp[$k] . '"/>';
+    // Milestones: one flag per period, with the numbers of its milestones
+    $flags  = array();
+    $titles = array();
+    foreach (array_values($milestones) as $k => $milestone) {
+        list($key) = $key_of(date('Y-m', intval($milestone['time'])));
+        if (isset($x_of[$key])) {
+            $flags[$key][] = $k + 1;
+            $titles[$key][] = ($k + 1) . '. ' . date('d/m/Y', intval($milestone['time'])) . ' : ' . $milestone['label'];
+        }
     }
-    $svg .= '<text x="' . ($x + (count($ramp) - 1) * 16 + 4) . '" y="61" class="axis">plus</text>';
+    foreach ($flags as $key => $numbers) {
+        $x = round($x_of[$key] + $cell / 2, 2);
+        $text = implode(',', $numbers);
+        $w = max(16, 7 * strlen($text) + 8);
+        $left = max(0, min($width - $w, $x - $w / 2));
+        $svg .= '<g class="milestone"><title>' . report_svg_escape(implode("\n", $titles[$key])) . '</title>'
+              . '<line x1="' . $x . '" x2="' . $x . '" y1="17" y2="' . ($top + 26) . '" stroke="#d9480f" stroke-width="2"/>'
+              . '<rect x="' . round($left, 2) . '" y="0" width="' . $w . '" height="17" rx="8" fill="#d9480f"/>'
+              . '<text x="' . round($left + $w / 2, 2) . '" y="12.5" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">' . report_svg_escape($text) . '</text></g>';
+    }
+    $x = $width - (count($ramp) - 1) * 16 - 32;
+    $svg .= '<text x="' . ($x - 6) . '" y="' . ($top + 61) . '" text-anchor="end" class="axis">moins</text>';
+    for ($k = 1; $k < count($ramp); $k++) {
+        $svg .= '<rect x="' . ($x + ($k - 1) * 16) . '" y="' . ($top + 51) . '" width="13" height="13" rx="3" fill="' . $ramp[$k] . '"/>';
+    }
+    $svg .= '<text x="' . ($x + (count($ramp) - 1) * 16 + 4) . '" y="' . ($top + 61) . '" class="axis">plus</text>';
     if ($busiest[0] > 0) {
         $what = array('month' => 'Mois', 'quarter' => 'Trimestre', 'year' => 'Année');
-        $svg .= '<text x="0" y="61" class="axis">' . $what[$unit] . ' le plus chargé' . ($unit == 'year' ? 'e' : '') . ' : '
+        $svg .= '<text x="0" y="' . ($top + 61) . '" class="axis">' . $what[$unit] . ' le plus chargé' . ($unit == 'year' ? 'e' : '') . ' : '
               . report_svg_escape($busiest[1] . ' (' . $busiest[0] . ')') . '</text>';
     }
     return $svg . '</svg>';
+}
+
+/* Months 'YYYY-MM' => number extended (with 0) to cover $times, without a gap, at most 240 months */
+function report_months_cover($months, $times)
+{
+    $keys = array_keys($months);
+    foreach ($times as $time) {
+        $keys[] = date('Y-m', intval($time));
+    }
+    if (!$keys) {
+        return $months;
+    }
+    sort($keys);
+    $result = array();
+    $month  = strtotime($keys[0] . '-01');
+    $last   = end($keys);
+    while (count($result) < 240) {
+        $key = date('Y-m', $month);
+        $result[$key] = isset($months[$key]) ? $months[$key] : 0;
+        if ($key >= $last) {
+            break;
+        }
+        $month = strtotime('+1 month', $month);
+    }
+    return $result;
+}
+
+/*
+ * Legend of the milestones of report_svg_strip() (list of array('time', 'label', 'text')),
+ * numbered in the same order; $with_text: text of the note under its milestone.
+ */
+function report_milestones_html($milestones, $with_text = true)
+{
+    if (!$milestones) {
+        return '';
+    }
+    $html = '<ol class="milestones">';
+    foreach (array_values($milestones) as $milestone) {
+        $html .= '<li><span class="milestone-date">' . h(date('d/m/Y', intval($milestone['time']))) . '</span> <strong>' . h($milestone['label']) . '</strong>'
+               . ($with_text && isset($milestone['text']) && $milestone['text'] !== '' ? '<div class="milestone-text">' . nl2br(h($milestone['text'])) . '</div>' : '') . '</li>';
+    }
+    return $html . '</ol>';
 }
 
 /* Horizontal bars: rows of array(label, value, color) */

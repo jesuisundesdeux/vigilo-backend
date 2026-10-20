@@ -175,3 +175,8 @@ body {
 .problem-chart .report-chart .value { fill: var(--bs-body-color); font-size: 11px; font-weight: 600; }
 .problem-chart .report-heatmap { max-width: 760px; }
 .problem-chart .report-heatmap .empty { fill: var(--bs-tertiary-bg); }
+.milestone-badge { background: #d9480f; color: #fff; font-weight: 600; }
+ol.milestones { font-size: .875rem; padding-left: 1.6rem; margin: .5rem 0 0; }
+ol.milestones li::marker { color: #d9480f; font-weight: 700; }
+ol.milestones .milestone-date { color: var(--bs-secondary-color); }
+ol.milestones .milestone-text { color: var(--bs-secondary-color); white-space: normal; }

@@ -7,6 +7,15 @@
   (même rue de la même ville, quelle que soit la distance) ; une suggestion par rue crée un problème à zone de rues,
   ses rues proposées.
 
+### Problèmes : notes de suivi et jalons
+- Une note de suivi d'un problème est **privée** par défaut (case « Note privée », comme avant : seulement dans
+  l'admin). Une note non privée figure dans le rapport du problème (section « Suivi du problème ») et peut marquer un
+  **jalon** (visite terrain, rendez-vous en mairie…) avec sa date : les jalons sont numérotés sur la **frise
+  chronologique** de la fiche, du rapport du problème et du détail des problèmes du rapport, avec leur légende. La
+  visibilité et le jalon d'une note existante se modifient depuis la fenêtre des notes.
+- Migration `init-0.0.37.sql` : colonnes `note_private` (1 par défaut : les notes existantes restent privées),
+  `note_milestone` et `note_milestone_time` de `obs_notes`.
+
 ### Rapports
 - Les références aux observations (jeton, par exemple `431CA5EB`) sont des liens vers l'observation dans l'application
   web (lieux récurrents, détail des problèmes, rapport d'un problème), comme la variable `{{observation_url}}` des

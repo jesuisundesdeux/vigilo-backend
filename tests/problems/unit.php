@@ -208,5 +208,23 @@ $ids = function ($groups) {
 check($ids(report_groups($obs, 50)) === array('1,3', '2', '4') && $ids(report_groups($obs, 50, 'radius')) === array('1,3', '2', '4')
       && $ids(report_groups($obs, 50, 'street')) === array('1,2', '3', '4'), 'groups: by zone and street, by zone only, by street of the same city');
 
+// Notes: private unless the box is sent unchecked (hidden 0), milestone only for a note shown in the reports
+check(problem_note_fields(array()) === array('private' => true, 'milestone' => '', 'milestone_time' => 0)
+      && problem_note_fields(array('note_private' => '1', 'note_milestone' => 'Visite')) === array('private' => true, 'milestone' => '', 'milestone_time' => 0),
+      'notes: private by default, no milestone');
+$fields = problem_note_fields(array('note_private' => '0', 'note_milestone' => "  Visite \n terrain ", 'note_milestone_date' => '2021-06-15'));
+check($fields['private'] === false && $fields['milestone'] === 'Visite terrain' && date('Y-m-d', $fields['milestone_time']) === '2021-06-15',
+      'notes: milestone and its date');
+check(problem_note_fields(array('note_private' => '0', 'note_milestone' => 'X', 'note_milestone_date' => '2021-02-30'))['milestone_time'] === 0
+      && problem_note_fields(array('note_private' => '0', 'note_milestone' => '', 'note_milestone_date' => '2021-02-03'))['milestone_time'] === 0,
+      'notes: invalid date or no milestone: no date');
+// Timeline: months extended to the milestones, numbered flags
+check(array_keys(report_months_cover(array('2021-03' => 2, '2021-04' => 1), array(mktime(12, 0, 0, 1, 10, 2021), mktime(12, 0, 0, 6, 1, 2021))))
+      === array('2021-01', '2021-02', '2021-03', '2021-04', '2021-05', '2021-06'), 'timeline: months cover the milestones');
+$svg = report_svg_strip(array('2021-01' => 0, '2021-02' => 3), 'Frise', array(array('time' => mktime(12, 0, 0, 1, 5, 2021), 'label' => 'A <b>'),
+                                                                          array('time' => mktime(12, 0, 0, 1, 20, 2021), 'label' => 'B')));
+check(substr_count($svg, '<g class="milestone">') === 1 && strpos($svg, '>1,2</text>') !== false && strpos($svg, 'A &lt;b&gt;') !== false
+      && strpos(report_svg_strip(array('2021-01' => 1), 'Frise'), 'milestone') === false, 'timeline: one flag per period, labels escaped');
+
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);
