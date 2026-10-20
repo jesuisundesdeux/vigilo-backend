@@ -259,9 +259,14 @@ $findings = function ($list) {
       $photos = '';
       foreach (report_recent_photos($observations, $slides ? 8 : 9) as $obs) {
         $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
-          . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
+          . '<figcaption>' . report_token_link($db, $obs['token']) . ' · ' . h(report_date($obs['time'])) . '</figcaption></figure>';
       }
       echo $section('Dernières photos', '<div class="problem-photos">' . $photos . '</div>', 'photos-section');
+      // Some comments of the observations (the most recent, each once)
+      $comments = report_recent_comments($observations, $slides ? 5 : 10);
+      if ($comments) {
+        echo $section('Ce que disent les observations', '<p class="note">Commentaires des observations les plus récentes, chacun une fois.</p>' . report_comments_html($db, $comments), 'comments-section');
+      }
     }
     echo $section('Méthode', '<p class="note">Observations publiées (approuvées par la modération) rattachées au problème, archivées comprises'
       . ($allowed !== null ? ', de vos villes' : '') . '. Centre : moyenne des positions ; dispersion : distance médiane au centre. Points chauds : '

@@ -388,7 +388,8 @@ def main():
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&radius=50&format=document')
     clean('report document', status, page)
     check('Chiffres clés' in page and 'Lieux récurrents' in page and 'report-map' in page, 'report document sections')
-    check('class="count">2</span>' in page and 'TOKA0001 TOKA0003' in page, 'similar observations grouped (TOKA0001 and TOKA0003, 42 m apart)')
+    check('class="count">2</span>' in page and re.search(r'token=TOKA0001" target="_blank" rel="noopener">TOKA0001</a> <a class="token-link" href="[^"]*token=TOKA0003"', page) is not None,
+          'similar observations grouped (TOKA0001 and TOKA0003, 42 m apart), tokens linked to the web application')
     status, _, page = admin.request('report.php?from=2020-01-01&to=2022-12-31&categories[]=4&format=slides&title=%3Cb%3EBilan%3C%2Fb%3E')
     clean('report slides', status, page)
     check('class="slide title-slide"' in page and '&lt;b&gt;Bilan&lt;/b&gt;' in page, 'report slides, title escaped')
@@ -724,6 +725,9 @@ def main():
               and 'Répartition géographique' in report and 'class="report-problem-map problem-map-large"' in report and 'report-heatmap' in report
               and 'Moments de la journée' in report and 'class="findings"' in report and 'data-print' in report and 'Relance' not in report,
               'problem report: synthesis, time and place analysis, printable, without the notes')
+        check('Ce que disent les observations' in report and 'class="obs-comments"' in report and 'garée' in report
+              and re.search(r'<a class="token-link" href="[^"]*token=TOKA0001" target="_blank" rel="noopener">TOKA0001</a>', report),
+              'problem report: comments of its observations, tokens linked to the webapp')
         status, _, report = admin.request('problem_report.php?id=' + pb_gare + '&format=slides')
         clean('problem report slides', status, report)
         check('report-slides' in report and 'data-present' in report and report.count('<section class="slide') >= 8, 'problem report: slides')

@@ -187,3 +187,12 @@ body.presenting .slide.current { display: flex; }
   .report-document .analysis .report-chart { break-inside: avoid; }
   .report-document .analysis h3 { break-after: avoid; }
 }
+
+/* Tokens linked to the observations in the web application; some comments of a problem */
+a.token-link { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+a.token-link:hover { color: #1f6feb; }
+.obs-comments { list-style: none; padding: 0; margin: 0 0 8px; }
+.obs-comments li { padding: 4px 0; border-bottom: 1px solid rgba(0, 0, 0, .08); font-size: 13px; }
+.obs-comments q { font-style: italic; }
+.obs-comments q::before { content: "« "; }
+.obs-comments q::after { content: " »"; }
