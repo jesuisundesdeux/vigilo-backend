@@ -76,8 +76,10 @@ sont dans aucune résolution sont regroupées dans une nouvelle résolution « R
 qui contiennent les autres passent à « Résolue » (y compris leurs observations hors du problème, signalées avant de
 confirmer). Rien n'est fait sans confirmation.
 
-Le rattachement des observations existantes ignore les observations **archivées**, sauf si la case « Inclure les
-observations archivées » est cochée. Le bouton **Diffuser** d'un problème appelle les webhooks de l'événement
+Le rattachement des observations existantes ignore les observations **archivées** et, depuis la 0.0.37, les
+observations **résolues** (dans une résolution « Résolue »), sauf si la case « Inclure les observations archivées »
+ou « Inclure les observations résolues » est cochée ; une observation résolue n'est pas non plus rattachée
+automatiquement à sa publication, ni proposée dans les suggestions (filtre « Observations résolues », non par défaut). Le bouton **Diffuser** d'un problème appelle les webhooks de l'événement
 `problem.broadcast` (par exemple pour transmettre le problème à la collectivité) et le passe « En attente » ; il est
 grisé tant qu'aucun webhook actif ne suit cet événement.
 

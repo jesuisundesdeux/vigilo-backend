@@ -264,13 +264,13 @@ function problem_admin_conflict_list($conflicts, $titles, $self_url)
  * of the problem: on the detail ($count on request) and in the window shown after a creation
  * ($count computed at once). $id_prefix keeps the ids of the two places apart.
  */
-function problem_admin_attach_panel($problem, $count, $include_archived, $titles, $self_url, $id_prefix)
+function problem_admin_attach_panel($problem, $count, $include_archived, $include_resolved, $titles, $self_url, $id_prefix)
 {
     $view_url = $self_url . '&view=' . intval($problem['problem_id']);
     ob_start(); ?>
     <p class="small text-body-secondary">
-      Les observations publiées de la zone, des catégories et de la période du problème (sans les observations archivées, sauf
-      si la case est cochée). <strong>Compter</strong> ne modifie
+      Les observations publiées de la zone, des catégories et de la période du problème (sans les observations archivées
+      ni les observations résolues, sauf si la case est cochée). <strong>Compter</strong> ne modifie
       rien ; <strong>Rattacher</strong> refait le calcul et rattache celles qui n'appartiennent à aucun problème. Une
       observation déjà dans un autre problème n'est jamais déplacée : elle est signalée, à arbitrer.
     </p>
@@ -279,6 +279,10 @@ function problem_admin_attach_panel($problem, $count, $include_archived, $titles
       <div class="form-check me-2">
         <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="<?= h($id_prefix) ?>include_archived"<?= $include_archived ? ' checked' : '' ?>>
         <label class="form-check-label" for="<?= h($id_prefix) ?>include_archived">Inclure les observations archivées</label>
+      </div>
+      <div class="form-check me-2">
+        <input class="form-check-input" type="checkbox" name="include_resolved" value="1" id="<?= h($id_prefix) ?>include_resolved"<?= $include_resolved ? ' checked' : '' ?>>
+        <label class="form-check-label" for="<?= h($id_prefix) ?>include_resolved">Inclure les observations résolues</label>
       </div>
       <button class="btn btn-outline-primary" type="submit" name="problem_count" value="1"><i class="bi bi-calculator"></i> Compter</button>
       <?php if ($count && count($count['to_attach'])) { ?>
@@ -567,6 +571,7 @@ foreach (array('city', 'category', 'months', 'min', 'radius') as $key) {
     $suggest_hidden .= '<input type="hidden" name="suggest_' . $key . '" value="' . intval($suggest_settings[$key]) . '">';
 }
 $suggest_hidden .= '<input type="hidden" name="suggest_archived" value="' . ($suggest_settings['archived'] ? 1 : 0) . '">'
+                 . '<input type="hidden" name="suggest_resolved" value="' . ($suggest_settings['resolved'] ? 1 : 0) . '">'
                  . '<input type="hidden" name="suggest_grouping" value="' . h($suggest_settings['grouping']) . '">';
 if (isset($_POST['problem_suggestion_dismiss']) && is_string($_POST['problem_suggestion_dismiss'])) {
     if (problem_suggestion_dismiss($db, $_POST['problem_suggestion_dismiss'], $login)) {
@@ -625,10 +630,11 @@ if ($view) {
     $titles   = problem_titles($db);
     // Messages of the actions on the observations, shown in their card (the page goes back to it)
     $local_messages = array('attach' => array(), 'observations' => array());
-    // Archived observations: only when asked (count and attachment)
+    // Archived and resolved observations: only when asked (count and attachment)
     $include_archived = !empty($_POST['include_archived']);
+    $include_resolved = !empty($_POST['include_resolved']);
     if (isset($_POST['problem_count'])) {
-        $count = problem_count($db, $view, $include_archived);
+        $count = problem_count($db, $view, $include_archived, $include_resolved);
     }
     // Resolved problem: its observations set as resolved (resolutions), after confirmation
     if (isset($_POST['problem_resolve_observations'])) {
@@ -705,8 +711,8 @@ if ($view) {
         }
     }
     if (isset($_POST['problem_attach_retro'])) {
-        $result = problem_attach_retro($db, $view, $login, $include_archived);
-        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'archived' => $include_archived, 'attached' => count($result['attached']),
+        $result = problem_attach_retro($db, $view, $login, $include_archived, $include_resolved);
+        audit_log('problem_attach_retro', 'problem:' . $view_id, array('title' => $view['problem_title'], 'archived' => $include_archived, 'resolved' => $include_resolved, 'attached' => count($result['attached']),
                   'tokens' => implode(',', array_slice($result['attached'], 0, 100)), 'already' => $result['already'],
                   'conflicts' => count($result['conflicts'])));
         $local_messages['attach'][] = array(count($result['conflicts']) ? 'warning' : 'success', '<strong>' . count($result['attached']) . '</strong> observation(s) rattachée(s), '
@@ -833,7 +839,7 @@ if (!empty($created_problem)) { ?>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
-        <?= problem_admin_attach_panel($created_problem, problem_count($db, $created_problem, false), false, problem_titles($db), $self_url, 'created-') ?>
+        <?= problem_admin_attach_panel($created_problem, problem_count($db, $created_problem, false, false), false, false, problem_titles($db), $self_url, 'created-') ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Plus tard</button>
@@ -1145,7 +1151,7 @@ if ($edit !== null) {
   <div class="card-header fw-semibold">Rattachement des observations existantes</div>
   <div class="card-body">
     <?= problem_admin_alerts($local_messages['attach']) ?>
-    <?= problem_admin_attach_panel($view, $count, $include_archived, $titles, $self_url, '') ?>
+    <?= problem_admin_attach_panel($view, $count, $include_archived, $include_resolved, $titles, $self_url, '') ?>
   </div>
 </div>
 <?php } ?>
@@ -1392,6 +1398,13 @@ if (!$readonly) { ?>
           <option value="1"<?= $suggest_settings['archived'] ? ' selected' : '' ?>>Oui</option>
         </select>
       </div>
+      <div class="col-6 col-md-2 col-xl-2">
+        <label class="form-label small mb-1" for="suggest_resolved">Observations résolues</label>
+        <select class="form-select form-select-sm" id="suggest_resolved" name="suggest_resolved">
+          <option value="0"<?= $suggest_settings['resolved'] ? '' : ' selected' ?>>Non</option>
+          <option value="1"<?= $suggest_settings['resolved'] ? ' selected' : '' ?>>Oui</option>
+        </select>
+      </div>
       <div class="col-6 col-md-3 col-xl-2">
         <label class="form-label small mb-1" for="suggest_grouping">Regroupement</label>
         <select class="form-select form-select-sm" id="suggest_grouping" name="suggest_grouping">
@@ -1419,7 +1432,8 @@ if (!$readonly) { ?>
     <p class="small text-body-secondary mb-0">
       Groupes d'au moins <?= intval($suggest_settings['min']) ?> observations publiées sans problème, de même catégorie,
       <?= $suggest_settings['grouping'] == 'street' ? 'dans la même rue de la même ville' : 'à moins de ' . intval($suggest_settings['radius']) . ' m' . ($suggest_settings['grouping'] == 'both' ? ' (ou dans la même rue)' : '') ?>, des <?= intval($suggest_settings['months']) ?> derniers mois,
-      <?= $suggest_settings['archived'] ? 'archivées comprises' : 'sans les observations archivées' ?>. Valeurs par défaut :
+      <?= $suggest_settings['archived'] ? 'archivées comprises' : 'sans les observations archivées' ?>,
+      <?= $suggest_settings['resolved'] ? 'résolues comprises' : 'sans les observations résolues' ?>. Valeurs par défaut :
       <a href="?page=settings">réglages</a>. Rien n'est créé sans votre accord.
       <?php if ($suggest) { ?><br><?= intval($suggest['analysed']) ?> observation(s) analysée(s)<?= $suggest['analysed'] >= VIGILO_PROBLEM_SUGGEST_MAX ? ' (les plus récentes)' : '' ?>.<?php } ?>
     </p>

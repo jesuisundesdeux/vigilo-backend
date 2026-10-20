@@ -311,10 +311,22 @@ function problem_candidates_where($problem, $include_archived = false)
 }
 
 /*
- * Observations matching the problem, with the problem they are attached to (0: none):
- * list of array('id', 'token', 'lat', 'lon', 'time', 'category', 'address', 'problem')
+ * SQL condition: the observation (obs_list) is in no resolution with the status "Résolue" (1).
+ * Resolved observations are not attached to problems nor suggested, unless asked.
  */
-function problem_matching_observations($db, $problem, $include_archived = false)
+function problem_unresolved_sql()
+{
+    return "NOT EXISTS (SELECT 1 FROM obs_resolutions_tokens
+                        INNER JOIN obs_resolutions ON obs_resolutions.resolution_id = obs_resolutions_tokens.restok_resolutionid
+                        WHERE obs_resolutions_tokens.restok_observationid = obs_list.obs_id AND obs_resolutions.resolution_status = 1)";
+}
+
+/*
+ * Observations matching the problem, with the problem they are attached to (0: none):
+ * list of array('id', 'token', 'lat', 'lon', 'time', 'category', 'address', 'problem').
+ * Resolved observations only when $include_resolved, or when already attached to this problem.
+ */
+function problem_matching_observations($db, $problem, $include_archived = false, $include_resolved = false)
 {
     $list  = array();
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
@@ -323,7 +335,8 @@ function problem_matching_observations($db, $problem, $include_archived = false)
                                 FROM obs_list
                                 LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
                                 " . PROBLEM_CITY_JOIN . "
-                                WHERE " . problem_candidates_where($problem, $include_archived) . "
+                                WHERE " . problem_candidates_where($problem, $include_archived)
+                                . ($include_resolved ? "" : " AND (" . problem_unresolved_sql() . " OR obs_problem_observations.po_problemid = " . intval($problem['problem_id']) . ")") . "
                                 ORDER BY obs_list.obs_time ASC");
     while ($query && ($row = mysqli_fetch_assoc($query))) {
         $lat = (float) $row['obs_coordinates_lat'];
@@ -477,10 +490,10 @@ function problem_zone_label($problem)
  * into already attached to this problem, to attach (attached to no problem) and conflicts
  * (attached to another problem, never moved silently)
  */
-function problem_count($db, $problem, $include_archived = false)
+function problem_count($db, $problem, $include_archived = false, $include_resolved = false)
 {
     $result = array('matching' => 0, 'here' => array(), 'to_attach' => array(), 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem, $include_archived) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $include_archived, $include_resolved) as $observation) {
         $result['matching']++;
         if ($observation['problem'] == intval($problem['problem_id'])) {
             $result['here'][] = $observation;
@@ -540,12 +553,12 @@ function problem_detach($db, $problem_id, $obs_id)
  * administrators get consistent results.
  * Returns array('attached' => tokens, 'already' => n, 'conflicts' => observations).
  */
-function problem_attach_retro($db, $problem, $login, $include_archived = false)
+function problem_attach_retro($db, $problem, $login, $include_archived = false, $include_resolved = false)
 {
     $lock   = mysqli_query($db, "SELECT GET_LOCK('vigilo_problem_attach', 10)");
     $locked = $lock && intval(mysqli_fetch_array($lock)[0]) === 1;
     $result = array('attached' => array(), 'already' => 0, 'conflicts' => array());
-    foreach (problem_matching_observations($db, $problem, $include_archived) as $observation) {
+    foreach (problem_matching_observations($db, $problem, $include_archived, $include_resolved) as $observation) {
         $status = problem_attach($db, $problem['problem_id'], $observation['id'], 'retro', $login);
         if ($status == 'attached') {
             $result['attached'][] = $observation['token'];
@@ -627,15 +640,15 @@ function problems_active($db)
  * Automatic attachment, when an observation becomes published (approval, or photo received
  * after the approval): attached to the active problem it matches if there is exactly one;
  * with several, it is left for the administrators ("À arbitrer"). An observation already
- * in a problem is not changed. Returns array(state, problem ids): state 'attached',
- * 'ambiguous', 'none' (no problem, or not published) or 'already'.
+ * in a problem is not changed, a resolved observation is not attached. Returns array(state,
+ * problem ids): state 'attached', 'ambiguous', 'none' (no problem, not published, resolved) or 'already'.
  */
 function problems_on_publication($db, $token, $login = '', $source = 'admin')
 {
     $query = mysqli_query($db, "SELECT obs_list.obs_id, obs_list.obs_token, obs_list.obs_complete, obs_list.obs_approved, obs_list.obs_categorie,
                                        obs_list.obs_time, obs_list.obs_coordinates_lat, obs_list.obs_coordinates_lon,
                                        obs_list.obs_address_string, " . PROBLEM_CITY_SQL . " AS city_label,
-                                       COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid
+                                       COALESCE(obs_problem_observations.po_problemid, 0) AS po_problemid, " . problem_unresolved_sql() . " AS unresolved
                                 FROM obs_list LEFT JOIN obs_problem_observations ON obs_problem_observations.po_obsid = obs_list.obs_id
                                 " . PROBLEM_CITY_JOIN . "
                                 WHERE obs_list.obs_token = '" . mysqli_real_escape_string($db, (string) $token) . "' LIMIT 1");
@@ -645,6 +658,9 @@ function problems_on_publication($db, $token, $login = '', $source = 'admin')
     }
     if (intval($obs['po_problemid'])) {
         return array('already', array(intval($obs['po_problemid'])));
+    }
+    if (!intval($obs['unresolved'])) {
+        return array('none', array());
     }
     $matches = array();
     foreach (problems_active($db) as $id => $problem) {
@@ -716,7 +732,7 @@ function problem_suggest_settings($db)
  * count, first / last dates, center, radius covering the group, tokens. At most
  * VIGILO_PROBLEM_SUGGEST_MAX recent observations are analysed.
  * $settings: min, radius, months, and the filters (problem_suggest_filters()): city (id, 0 = all),
- * category (0 = all), archived (archived observations included).
+ * category (0 = all), archived (archived observations included), resolved (resolved observations included).
  */
 define('VIGILO_PROBLEM_SUGGEST_MAX', 3000);
 
@@ -730,6 +746,7 @@ function problem_suggestions($db, $settings)
     }
     $observations = array();
     $where = (empty($settings['archived']) ? " AND obs_list.obs_archived = 0" : "")
+           . (empty($settings['resolved']) ? " AND " . problem_unresolved_sql() : "")
            . (!empty($settings['city']) ? " AND obs_list.obs_city = " . intval($settings['city']) : "")
            . (!empty($settings['category']) ? " AND obs_list.obs_categorie = " . intval($settings['category']) : "");
     $query = mysqli_query($db, "SELECT * FROM (
@@ -777,7 +794,7 @@ function problem_suggestions($db, $settings)
 
 /*
  * Settings of a search of suggestions: those of the page Configuration (problem_suggest_settings()),
- * changed by the filters of the form ($input: suggest_city, suggest_category, suggest_archived,
+ * changed by the filters of the form ($input: suggest_city, suggest_category, suggest_archived, suggest_resolved,
  * suggest_grouping, suggest_months, suggest_min, suggest_radius), bounded the same way. $cities, $categories: known ids.
  */
 function problem_suggest_filters($input, $settings, $cities, $categories)
@@ -788,6 +805,7 @@ function problem_suggest_filters($input, $settings, $cities, $categories)
     $settings['city']     = in_array($int('suggest_city'), array_map('intval', $cities), true) ? $int('suggest_city') : 0;
     $settings['category'] = in_array($int('suggest_category'), array_map('intval', $categories), true) ? $int('suggest_category') : 0;
     $settings['archived'] = $int('suggest_archived') === 1;
+    $settings['resolved'] = $int('suggest_resolved') === 1;
     // Grouping: by zone (radius) or same street, by zone only, by street only
     $settings['grouping'] = isset($input['suggest_grouping']) && in_array($input['suggest_grouping'], array('radius', 'street'), true) ? $input['suggest_grouping'] : 'both';
     if ($int('suggest_months') !== null) {
