@@ -297,6 +297,29 @@ function problem_admin_attach_panel($problem, $count, $include_archived, $titles
 }
 
 /* Alerts of a list of messages (built from escaped / integer values only) */
+/*
+ * Fields of a note (problem_note_fields()): box "Note privée" (a hidden 0 sent when it is not
+ * checked) and, shown while it is not checked, the milestone and its date. $id: prefix of the ids.
+ */
+function problem_note_fields_html($id, $private, $milestone, $date)
+{ ?>
+          <div class="form-check form-switch mb-2">
+            <input type="hidden" name="note_private" value="0">
+            <input class="form-check-input" type="checkbox" role="switch" id="<?= h($id) ?>-private" name="note_private" value="1"<?= $private ? ' checked' : '' ?> data-hide-when-checked=".note-milestone-fields">
+            <label class="form-check-label small" for="<?= h($id) ?>-private"><i class="bi bi-lock"></i> Note privée (jamais dans les rapports)</label>
+          </div>
+          <div class="row g-2 mb-2 note-milestone-fields">
+            <div class="col-sm-8">
+              <label class="form-label small mb-0" for="<?= h($id) ?>-milestone">Jalon <span class="text-body-secondary">(facultatif, affiché sur la frise des rapports)</span></label>
+              <input class="form-control form-control-sm" type="text" id="<?= h($id) ?>-milestone" name="note_milestone" maxlength="200" value="<?= h($milestone) ?>" placeholder="Visite terrain, rendez-vous en mairie…" list="note-milestone-examples">
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label small mb-0" for="<?= h($id) ?>-date">Date du jalon</label>
+              <input class="form-control form-control-sm" type="date" id="<?= h($id) ?>-date" name="note_milestone_date" value="<?= h($date) ?>">
+            </div>
+          </div>
+<?php }
+
 function problem_admin_alerts($messages)
 {
     $html = '';
@@ -647,16 +670,30 @@ if ($view) {
             $view = problem_load($db, $view_id);
         }
     }
-    // Internal notes (obs_notes shared with the observations, never published nor in the reports)
+    // Follow-up notes (obs_notes shared with the observations): private (admin only) or shown in the
+    // reports, where a milestone (label, date) is marked on the timelines
     if (isset($_POST['problem_note_add'])) {
         $note_text = isset($_POST['note_text']) && is_scalar($_POST['note_text']) ? vigilo_truncate(trim((string) $_POST['note_text']), 5000) : '';
+        $fields    = problem_note_fields($_POST);
         if ($note_text === '') {
             $messages[] = array('warning', 'La note est vide.');
-        } elseif (mysqli_query($db, "INSERT INTO obs_notes (note_obsid, note_problemid, note_time, note_login, note_text)
+        } elseif (mysqli_query($db, "INSERT INTO obs_notes (note_obsid, note_problemid, note_time, note_login, note_text, note_private, note_milestone, note_milestone_time)
                                      VALUES (0, " . $view_id . ", " . time() . ", '" . mysqli_real_escape_string($db, $login) . "',
-                                             '" . mysqli_real_escape_string($db, $note_text) . "')")) {
-            audit_log('note_add', 'problem:' . $view_id, array('note_id' => intval(mysqli_insert_id($db))));
+                                             '" . mysqli_real_escape_string($db, $note_text) . "', " . ($fields['private'] ? 1 : 0) . ",
+                                             '" . mysqli_real_escape_string($db, $fields['milestone']) . "', " . intval($fields['milestone_time']) . ")")) {
+            audit_log('note_add', 'problem:' . $view_id, array('note_id' => intval(mysqli_insert_id($db)), 'private' => $fields['private'], 'milestone' => $fields['milestone']));
             $messages[] = array('success', 'Note ajoutée.');
+        }
+    }
+    if (isset($_POST['problem_note_edit']) && isset($_POST['note_id'])) {
+        $query  = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_id = " . intval($_POST['note_id']) . " AND note_problemid = " . $view_id);
+        $note   = $query ? mysqli_fetch_assoc($query) : null;
+        $fields = problem_note_fields($_POST);
+        if ($note && mysqli_query($db, "UPDATE obs_notes SET note_private = " . ($fields['private'] ? 1 : 0) . ",
+                                        note_milestone = '" . mysqli_real_escape_string($db, $fields['milestone']) . "',
+                                        note_milestone_time = " . intval($fields['milestone_time']) . " WHERE note_id = " . intval($note['note_id']))) {
+            audit_log('note_edit', 'problem:' . $view_id, array('note_id' => intval($note['note_id']), 'private' => $fields['private'], 'milestone' => $fields['milestone']));
+            $messages[] = array('success', 'Note modifiée.');
         }
     }
     if (isset($_POST['problem_note_delete']) && isset($_POST['note_id'])) {
@@ -1047,12 +1084,13 @@ if ($edit !== null) {
 
 <?php if ($attached) {
     $time_stats  = problem_time_stats($attached);
-    $time_charts = problem_time_charts($time_stats); ?>
+    $time_charts = problem_time_charts($time_stats, '#3f6fb5', problem_public_notes($db, $view_id, true)); ?>
 <div class="card shadow-sm mb-4" id="timeline">
   <div class="card-header fw-semibold"><i class="bi bi-clock-history"></i> Chronologie et horaires des observations</div>
   <div class="card-body">
     <h3 class="h6 mb-0">Frise chronologique</h3>
     <div class="problem-chart"><?= $time_charts['timeline'] /* SVG built with escaped labels (report_svg_columns) */ ?></div>
+    <?= $time_charts['milestones'] /* milestones of the notes shown in the reports, escaped */ ?>
     <h3 class="h6 mb-0 mt-3">Jours et heures</h3>
     <div class="problem-chart"><?= $time_charts['heatmap'] /* matrix, darker with the number of observations */ ?></div>
   </div>
@@ -1207,19 +1245,37 @@ if ($edit !== null) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
-        <p class="small text-body-secondary"><i class="bi bi-lock"></i> Visibles seulement dans l'admin : jamais publiées ni reprises dans les rapports.</p>
+        <p class="small text-body-secondary"><i class="bi bi-lock"></i> Une note <strong>privée</strong> reste dans l'admin. Une note non privée figure dans les rapports et peut marquer un
+          <strong>jalon</strong> (visite terrain, rendez-vous en mairie…), affiché sur la frise chronologique des rapports.</p>
+        <datalist id="note-milestone-examples"><option value="Visite terrain"><option value="Rendez-vous en mairie"><option value="Courrier à la collectivité"><option value="Réponse de la collectivité"><option value="Travaux annoncés"><option value="Travaux réalisés"></datalist>
         <?php if (!$notes) { ?><p class="small text-body-secondary">Aucune note pour l'instant.</p><?php } ?>
-        <?php foreach ($notes as $note) { ?>
+        <?php foreach ($notes as $note) {
+            $note_id   = intval($note['note_id']);
+            $private   = intval($note['note_private']) == 1;
+            $milestone = (string) $note['note_milestone']; ?>
         <div class="border-bottom pb-2 mb-2">
           <div class="d-flex justify-content-between align-items-start gap-2">
-            <div class="small text-body-secondary"><i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?></div>
-            <form method="POST" action="<?= h($view_url) ?>" class="m-0">
-              <?= csrf_field() ?>
-              <input type="hidden" name="note_id" value="<?= intval($note['note_id']) ?>">
-              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" name="problem_note_delete" value="1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
-            </form>
+            <div class="small text-body-secondary">
+              <i class="bi bi-person"></i> <?= h($note['note_login']) ?> · <?= h(date('d/m/Y H:i', intval($note['note_time']))) ?>
+              <?php if ($private) { ?><span class="badge text-bg-secondary"><i class="bi bi-lock"></i> privée</span><?php } else { ?><span class="badge text-bg-info"><i class="bi bi-file-earmark-text"></i> dans les rapports</span><?php } ?>
+              <?php if (!$private && $milestone !== '') { ?><span class="badge milestone-badge"><i class="bi bi-flag-fill"></i> <?= h($milestone) ?> · <?= h(date('d/m/Y', problem_note_milestone_time($note))) ?></span><?php } ?>
+            </div>
+            <div class="d-flex gap-1">
+              <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" data-bs-toggle="collapse" data-bs-target="#note-edit-<?= $note_id ?>" aria-expanded="false" aria-controls="note-edit-<?= $note_id ?>" title="Visibilité et jalon"><i class="bi bi-pencil"></i><span class="visually-hidden">Visibilité et jalon</span></button>
+              <form method="POST" action="<?= h($view_url) ?>" class="m-0">
+                <?= csrf_field() ?>
+                <input type="hidden" name="note_id" value="<?= $note_id ?>">
+                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" name="problem_note_delete" value="1" data-confirm="Supprimer cette note ?" title="Supprimer la note"><i class="bi bi-trash"></i><span class="visually-hidden">Supprimer la note</span></button>
+              </form>
+            </div>
           </div>
           <div class="small text-break"><?= nl2br(h($note['note_text'])) ?></div>
+          <form method="POST" action="<?= h($view_url) ?>" class="collapse mt-2 p-2 bg-body-tertiary rounded" id="note-edit-<?= $note_id ?>">
+            <?= csrf_field() ?>
+            <input type="hidden" name="note_id" value="<?= $note_id ?>">
+            <?php problem_note_fields_html('note-' . $note_id, $private, $milestone, intval($note['note_milestone_time']) > 0 ? date('Y-m-d', intval($note['note_milestone_time'])) : date('Y-m-d', intval($note['note_time']))); ?>
+            <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_note_edit" value="1"><i class="bi bi-check-lg"></i> Enregistrer</button>
+          </form>
         </div>
         <?php } ?>
       </div>
@@ -1228,13 +1284,14 @@ if ($edit !== null) {
           <?= csrf_field() ?>
           <label class="visually-hidden" for="note_text">Nouvelle note</label>
           <textarea class="form-control form-control-sm mb-2" id="note_text" name="note_text" rows="2" maxlength="5000" placeholder="Échange avec la mairie, relance, décision…" required></textarea>
+          <?php problem_note_fields_html('note-new', true, '', date('Y-m-d')); ?>
           <button class="btn btn-sm btn-outline-primary" type="submit" name="problem_note_add" value="1"><i class="bi bi-plus-lg"></i> Ajouter la note</button>
         </form>
       </div>
     </div>
   </div>
 </div>
-<?php if (isset($_POST['problem_note_add']) || isset($_POST['problem_note_delete'])) { ?><div hidden data-reopen-modal="#notesModal"></div><?php } ?>
+<?php if (isset($_POST['problem_note_add']) || isset($_POST['problem_note_edit']) || isset($_POST['problem_note_delete'])) { ?><div hidden data-reopen-modal="#notesModal"></div><?php } ?>
 <?php if (count($titles) > 1) {
     $other_titles = $titles;
     unset($other_titles[$view_id]);

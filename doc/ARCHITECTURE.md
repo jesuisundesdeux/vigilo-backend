@@ -71,7 +71,7 @@ Les réglages de l'instance (table `obs_config`) sont décrits sur [vigilo.city]
 | `obs_roles` | Comptes de l'admin : login, mot de passe, rôle, clé API, villes |
 | `obs_config` | Réglages et version de la base (`vigilo_db_version`) |
 | `obs_categories` | Catégories nationales désactivées sur l'instance et catégories propres à l'instance (`cat_custom = 1`, numéros à partir de 1000) |
-| `obs_notes` | Notes privées des modérateurs |
+| `obs_notes` | Notes des modérateurs (observations) et notes de suivi des problèmes (privées, ou dans les rapports avec un jalon éventuel) |
 | `obs_webhooks`, `obs_webhook_deliveries` | Webhooks (dont la correspondance des catégories) et journal de leurs envois |
 | `obs_audit_log` | Journal des actions privilégiées |
 | `obs_login_attempts`, `obs_rate_limit` | Limitation des connexions et anti-spam |

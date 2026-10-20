@@ -59,7 +59,7 @@ $observations = report_observations($db, $filters);
 $previous     = count(report_observations($db, $filters, $start - ($end - $start + 1), $start - 1));
 $groups       = report_groups($observations, $filters['radius']);
 $stats        = report_stats($observations, $groups, $filters, $previous, $population);
-// Sections chosen in the form; problems (#327): administrators only, never the internal notes
+// Sections chosen in the form; problems (#327): administrators only, never the private notes (milestones of the others on the timelines)
 $sections     = report_chosen_sections($_GET, $_SESSION['role'] == 'admin');
 $problem_rows = (isset($sections['problems']) || isset($sections['problem_details'])) ? problem_report_rows($db, $observations) : array();
 // Problems of the chosen statuses only (none chosen: all)
@@ -229,8 +229,10 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
   if ($comments) {
     $photos .= '<h3>Quelques commentaires</h3>' . report_comments_html($db, $comments);
   }
-  $charts  = problem_time_charts(problem_time_stats($row['observations']));
-  $timing  = '<h3>Frise chronologique</h3>' . $charts['timeline']
+  // Milestones of the notes that are not private, on the timeline
+  $milestones = problem_public_notes($db, $problem['problem_id'], true);
+  $charts  = problem_time_charts(problem_time_stats($row['observations']), '#3f6fb5', $milestones);
+  $timing  = '<h3>Frise chronologique</h3>' . $charts['timeline'] . report_milestones_html($milestones, !$slides)
     . '<h3>Jours et heures</h3>' . $charts['heatmap'];
   $title = 'Problème : ' . $problem['problem_title'];
   if ($slides) {

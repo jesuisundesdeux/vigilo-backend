@@ -173,6 +173,15 @@ body.presenting .slide.current { display: flex; }
 @page :first { margin-top: 12mm; }
 .report-heatmap { max-width: 760px; }
 .report-heatmap .empty { stroke: #e9ecef; stroke-width: 1; }
+ol.milestones { font-size: 13px; padding-left: 22px; margin: 6px 0 0; }
+ol.milestones li { margin-bottom: 4px; break-inside: avoid; }
+ol.milestones li::marker { color: #d9480f; font-weight: 700; }
+ol.milestones .milestone-date { color: var(--soft); }
+ol.milestones .milestone-text { color: var(--soft); font-size: 12px; }
+.follow-notes { list-style: none; padding: 0; margin: 0; }
+.follow-notes li { border-bottom: 1px solid #e9ecef; padding: 6px 0; break-inside: avoid; }
+.follow-notes .note { display: block; margin: 0 0 2px; }
+.milestone-label { color: #d9480f; }
 
 /* Report of a problem (problem_report.php) */
 .findings { margin: 4px 0 12px; padding-left: 18px; font-size: 13px; }

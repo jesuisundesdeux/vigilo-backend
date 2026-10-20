@@ -916,20 +916,82 @@ function problem_time_stats($observations)
     return $stats;
 }
 
-/* Charts of problem_time_stats() (SVG of report.php): compact timeline per month, matrix days × hours (and the two distributions) */
-function problem_time_charts($stats, $color = '#3f6fb5')
+/*
+ * Charts of problem_time_stats() (SVG of report.php): compact timeline per month, matrix days × hours
+ * (and the two distributions). $milestones (problem_milestones()): flags on the timeline, which
+ * covers them, and their legend without the texts ('milestones', HTML, empty without milestone).
+ */
+function problem_time_charts($stats, $color = '#3f6fb5', $milestones = array())
 {
     require_once(dirname(__FILE__) . '/report.php');
     $hours = array();
     foreach ($stats['hours'] as $hour => $count) {
         $hours[$hour . ' h'] = $count;
     }
+    $times = array();
+    foreach ($milestones as $milestone) {
+        $times[] = $milestone['time'];
+    }
     return array(
-        'timeline' => report_svg_strip($stats['months'], 'Frise chronologique : observations par mois'),
-        'weekdays' => report_svg_columns(array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), $stats['weekdays']), $color, 'Observations par jour de la semaine'),
-        'hours'    => report_svg_columns($hours, $color, 'Observations par heure'),
-        'heatmap'  => report_svg_heatmap($stats['grid'], 'Observations par jour de la semaine et par heure'),
+        'timeline'   => report_svg_strip(report_months_cover($stats['months'], $times), 'Frise chronologique : observations par mois' . ($milestones ? ' et jalons du suivi' : ''), $milestones),
+        'milestones' => report_milestones_html($milestones, false),
+        'weekdays'   => report_svg_columns(array_combine(array('lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'), $stats['weekdays']), $color, 'Observations par jour de la semaine'),
+        'hours'      => report_svg_columns($hours, $color, 'Observations par heure'),
+        'heatmap'    => report_svg_heatmap($stats['grid'], 'Observations par jour de la semaine et par heure'),
     );
+}
+
+/*
+ * Notes of a problem shown in the reports (not private), oldest first: rows of obs_notes.
+ * $milestones_only: only the milestones, as array('time', 'label', 'text') ordered by date
+ * (date of the milestone, else of the note), for problem_time_charts().
+ */
+function problem_public_notes($db, $problem_id, $milestones_only = false)
+{
+    $rows  = array();
+    $query = mysqli_query($db, "SELECT * FROM obs_notes WHERE note_problemid = " . intval($problem_id) . " AND note_private = 0"
+                               . ($milestones_only ? " AND note_milestone <> ''" : "") . " ORDER BY note_time ASC, note_id ASC");
+    while ($query && ($row = mysqli_fetch_assoc($query))) {
+        $rows[] = $row;
+    }
+    if (!$milestones_only) {
+        return $rows;
+    }
+    $milestones = array();
+    foreach ($rows as $row) {
+        $milestones[] = array('time' => problem_note_milestone_time($row), 'label' => $row['note_milestone'], 'text' => $row['note_text']);
+    }
+    usort($milestones, function ($a, $b) {
+        return $a['time'] - $b['time'];
+    });
+    return $milestones;
+}
+
+/* Date of the milestone of a note (row of obs_notes): its own date, else the date of the note */
+function problem_note_milestone_time($note)
+{
+    return intval($note['note_milestone_time']) > 0 ? intval($note['note_milestone_time']) : intval($note['note_time']);
+}
+
+/*
+ * Fields of a note of a problem from a form ($input: $_POST): private (default: yes, when the
+ * box is not sent), milestone (only for a note that is not private) and its date ('YYYY-MM-DD',
+ * else 0 = date of the note). Returns array('private', 'milestone', 'milestone_time').
+ */
+function problem_note_fields($input)
+{
+    $private   = !isset($input['note_private']) || !is_scalar($input['note_private']) || (string) $input['note_private'] !== '0';
+    $milestone = '';
+    $time      = 0;
+    if (!$private) {
+        $milestone = isset($input['note_milestone']) && is_scalar($input['note_milestone'])
+            ? vigilo_truncate(trim(preg_replace('/\s+/u', ' ', (string) $input['note_milestone'])), 200) : '';
+        $date = isset($input['note_milestone_date']) && is_scalar($input['note_milestone_date']) ? trim((string) $input['note_milestone_date']) : '';
+        if ($milestone !== '' && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m) && checkdate(intval($m[2]), intval($m[3]), intval($m[1]))) {
+            $time = mktime(12, 0, 0, intval($m[2]), intval($m[3]), intval($m[1]));
+        }
+    }
+    return array('private' => $private, 'milestone' => $milestone, 'milestone_time' => $milestone === '' ? 0 : $time);
 }
 
 /*
