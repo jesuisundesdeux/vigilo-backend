@@ -226,5 +226,11 @@ $svg = report_svg_strip(array('2021-01' => 0, '2021-02' => 3), 'Frise', array(ar
 check(substr_count($svg, '<g class="milestone">') === 1 && strpos($svg, '>1,2</text>') !== false && strpos($svg, 'A &lt;b&gt;') !== false
       && strpos(report_svg_strip(array('2021-01' => 1), 'Frise'), 'milestone') === false, 'timeline: one flag per period, labels escaped');
 
+// Filters of the attachment (form fields or keys), city as a positive integer only
+check(problem_attach_filters(array()) === array('archived' => false, 'resolved' => false, 'city' => 0)
+      && problem_attach_filters(array('include_archived' => '1', 'include_resolved' => '1', 'only_city' => '2')) === array('archived' => true, 'resolved' => true, 'city' => 2)
+      && problem_attach_filters(array('archived' => true, 'city' => 3))['city'] === 3 && problem_attach_filters(array('only_city' => '1 OR 1'))['city'] === 0,
+      'attachment filters');
+
 echo $failures . " failure(s)\n";
 exit($failures ? 1 : 0);
