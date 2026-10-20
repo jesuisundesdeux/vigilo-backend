@@ -70,6 +70,17 @@
         }
       });
     });
+    // Filters of the lists: emptied, the whole list shown again
+    modal.querySelectorAll('[data-filter-select]').forEach(function (input) {
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+    });
+    // data-fill-show="key": shown (and its fields sent) only when the value of key is true
+    modal.querySelectorAll('[data-fill-show]').forEach(function (el) {
+      var shown = !!values[el.getAttribute('data-fill-show')];
+      el.hidden = !shown;
+      el.querySelectorAll('input, select, textarea').forEach(function (input) { input.disabled = !shown; });
+    });
     if (title) {
       var heading = modal.querySelector('.modal-title');
       if (heading) {
@@ -90,6 +101,46 @@
       fillForm(modal, JSON.parse(el.getAttribute('data-fill') || '{}'), el.getAttribute('data-title'));
       window.bootstrap.Modal.getOrCreateInstance(modal).show();
     }
+  });
+
+  /*
+   * Filter of a long list: <input data-filter-select="#id"> keeps only the options of the
+   * <select> containing the typed text (e.g. a token) and selects the first of them.
+   */
+  document.querySelectorAll('[data-filter-select]').forEach(function (input) {
+    var select = document.querySelector(input.getAttribute('data-filter-select'));
+    if (!select) {
+      return;
+    }
+    input.addEventListener('input', function () {
+      var text = input.value.trim().toLowerCase();
+      var first = null;
+      Array.prototype.forEach.call(select.options, function (option) {
+        if (option.value === '') {
+          return;
+        }
+        var shown = text === '' || option.text.toLowerCase().indexOf(text) !== -1;
+        option.hidden = !shown;
+        option.disabled = !shown;
+        if (shown && !first) {
+          first = option;
+        }
+      });
+      select.querySelectorAll('optgroup').forEach(function (group) {
+        group.hidden = !Array.prototype.some.call(group.children, function (option) { return !option.hidden; });
+      });
+      var current = select.options[select.selectedIndex];
+      if (text !== '' && (!current || current.hidden || current.value === '')) {
+        select.value = first ? first.value : '';
+      }
+    });
+    // Enter in the filter: no submission of the form before a choice
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        select.focus();
+      }
+    });
   });
 
   // Deletion of a category: what to do with its observations (shown only when it is used)
@@ -142,7 +193,7 @@
       form.querySelectorAll('[data-bulk-field]').forEach(function (el) {
         var shown = el.getAttribute('data-bulk-field') === field;
         el.hidden = !shown;
-        el.querySelectorAll('select, input').forEach(function (input) { input.disabled = !shown; input.required = shown; });
+        el.querySelectorAll('select, input').forEach(function (input) { input.disabled = !shown; input.required = shown && !input.hasAttribute('data-filter-select'); });
       });
       form.querySelector('[type="submit"]').disabled = checked === 0 || !action.value;
     }

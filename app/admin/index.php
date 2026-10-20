@@ -32,6 +32,41 @@ require_once('../includes/handle.php');
 require_once('../includes/webhooks.php');
 require_once('../includes/problems.php');
 
+/*
+ * Pagination of a list: first and last pages, the pages around the current one, "…" between.
+ * $url ends with the parameter of the page number (e.g. "?page=x&pagenb=").
+ */
+function admin_pagination($url, $page, $pages, $label, $anchor = '')
+{
+    $page  = max(1, min(intval($page), intval($pages)));
+    $pages = intval($pages);
+    if ($pages <= 1) {
+        return '';
+    }
+    $shown = array();
+    foreach (array(1, 2, $page - 2, $page - 1, $page, $page + 1, $page + 2, $pages - 1, $pages) as $i) {
+        if ($i >= 1 && $i <= $pages) {
+            $shown[$i] = true;
+        }
+    }
+    ksort($shown);
+    $link = function ($i, $text, $class, $aria) use ($url, $anchor) {
+        return '<li class="page-item' . $class . '"><a class="page-link" href="' . h($url . $i . $anchor) . '"' . $aria . '>' . $text . '</a></li>';
+    };
+    $html = '<nav aria-label="' . h($label) . '"><ul class="pagination pagination-sm flex-wrap">';
+    $html .= $link(max(1, $page - 1), '<i class="bi bi-chevron-left"></i><span class="visually-hidden">Précédent</span>', $page <= 1 ? ' disabled' : '', $page <= 1 ? ' tabindex="-1" aria-disabled="true"' : '');
+    $previous = 0;
+    foreach (array_keys($shown) as $i) {
+        if ($i > $previous + 1) {
+            $html .= '<li class="page-item disabled"><span class="page-link">…</span></li>';
+        }
+        $html .= $link($i, intval($i), $i == $page ? ' active' : '', $i == $page ? ' aria-current="page"' : '');
+        $previous = $i;
+    }
+    $html .= $link(min($pages, $page + 1), '<i class="bi bi-chevron-right"></i><span class="visually-hidden">Suivant</span>', $page >= $pages ? ' disabled' : '', $page >= $pages ? ' tabindex="-1" aria-disabled="true"' : '');
+    return $html . '</ul></nav>';
+}
+
 $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil", "access" => array('admin','citystaff')),
         "observations" => array("icon" => "camera", "name" => "Observations", "access" => array('admin','citystaff')),
         "resolutions" => array("icon" => "check2-square", "name" => "Résolutions", "access" => array('admin','citystaff')),
