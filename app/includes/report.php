@@ -365,9 +365,9 @@ function report_sections()
         'streets'         => array('Rues les plus concernées', false, true),
         'times'           => array('Jours et heures', false, true),
         'map'             => array('Carte des lieux', false, true),
-        'groups'          => array('Lieux récurrents', false, true),
         'problems'        => array('Problèmes suivis (tableau)', true, true),
         'problem_details' => array('Détail de chaque problème (carte, chronologie, horaires, photos)', true, true),
+        'groups'          => array('Lieux récurrents (sans ceux déjà suivis par un problème)', false, true),
         'method'          => array('Méthode', false, true),
     );
 }
