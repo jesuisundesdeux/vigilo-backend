@@ -176,8 +176,11 @@ function report_group_html($group, $categories, $cities_shown)
   foreach (array_slice($group['observations'], 0, 8) as $obs) {
     $tokens[] = $obs['token'];
   }
+  // Most recent photo of the place that exists
+  $photo = report_recent_photos($group['observations'], 1);
+  $photo = $photo ? $photo[0]['token'] : $group['photo'];
   return '<article class="group">'
-    . '<img src="' . h(report_photo_src($group['photo'], 400)) . '" alt="Photo de l\'observation ' . h($group['photo']) . '" loading="eager">'
+    . '<img src="' . h(report_photo_src($photo, 400)) . '" alt="Photo de l\'observation ' . h($photo) . '" loading="eager">'
     . '<div class="group-body">'
     . '<div class="group-head"><span class="count">' . intval($group['count']) . '</span><span class="cat"><span class="cat-dot" style="background:' . h($cat['color']) . '"></span>' . h($cat['name']) . '</span></div>'
     . '<div class="group-address">' . h($group['address']) . ($cities_shown && count($group['cities']) ? ', ' . h(implode(', ', $group['cities'])) : '') . '</div>'
@@ -214,7 +217,7 @@ function report_problem_detail_html($row, $categories, $statuses, $priorities, $
                     'streets' => problem_streets_list(isset($problem['problem_streets']) ? $problem['problem_streets'] : ''));
   $map    = '<div class="report-problem-map" data-problem="' . h(json_encode($map_data)) . '" role="img" aria-label="Carte du problème ' . h($problem['problem_title']) . '"></div>';
   $photos = '';
-  foreach (array_slice(array_reverse($row['observations']), 0, $slides ? 4 : 6) as $obs) {
+  foreach (report_recent_photos($row['observations'], $slides ? 4 : 6) as $obs) {
     $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
       . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
   }

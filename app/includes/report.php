@@ -57,12 +57,38 @@ function report_number($value, $decimals = 0)
     return number_format((float) $value, $decimals, ',', "\u{202F}");
 }
 
+/* Does an observation have a photo file? */
+function report_photo_exists($token)
+{
+    global $config;
+    return file_exists(dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename((string) $token) . '.jpg');
+}
+
 /* Source of the photo of an observation (admin pages): the placeholder image when it has no photo file (printed as is) */
 function report_photo_src($token, $width)
 {
-    global $config;
-    $file = dirname(__FILE__) . '/../' . $config['DATA_PATH'] . 'images/' . basename((string) $token) . '.jpg';
-    return file_exists($file) ? 'photo.php?s=' . intval($width) . '&token=' . urlencode($token) : 'assets/photo-missing.svg';
+    return report_photo_exists($token) ? 'photo.php?s=' . intval($width) . '&token=' . urlencode($token) : 'assets/photo-missing.svg';
+}
+
+/*
+ * Observations whose photo is shown (rows with token and time): the most recent ones that have a
+ * photo file, at most $count; when none has one, the most recent observation (placeholder image).
+ */
+function report_recent_photos($observations, $count)
+{
+    usort($observations, function ($a, $b) {
+        return intval($b['time']) - intval($a['time']);
+    });
+    $shown = array();
+    foreach ($observations as $obs) {
+        if (count($shown) >= $count) {
+            break;
+        }
+        if (report_photo_exists($obs['token'])) {
+            $shown[] = $obs;
+        }
+    }
+    return ($shown || !$observations) ? $shown : array($observations[0]);
 }
 
 function report_status_names()

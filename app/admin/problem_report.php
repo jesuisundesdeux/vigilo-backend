@@ -257,7 +257,7 @@ $findings = function ($list) {
 
       // Latest photos
       $photos = '';
-      foreach (array_slice(array_reverse($observations), 0, $slides ? 8 : 9) as $obs) {
+      foreach (report_recent_photos($observations, $slides ? 8 : 9) as $obs) {
         $photos .= '<figure><img src="' . h(report_photo_src($obs['token'], 300)) . '" alt="Photo de l\'observation ' . h($obs['token']) . '" loading="eager">'
           . '<figcaption>' . h($obs['token'] . ' · ' . report_date($obs['time'])) . '</figcaption></figure>';
       }
