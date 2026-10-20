@@ -23,9 +23,11 @@
     return isNaN(value) ? null : value;
   }
 
-  // Same comparison as problem_street_key() (PHP): lowercase, no accents, house number or punctuation
+  // Same comparison as problem_street_key() (PHP): lowercase, no accents, house number, punctuation,
+  // type of the street in full ("bd X" = "Boulevard X", window.vigiloStreetType of street-lines.js)
   function streetKey(name) {
-    return String(name || '').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '').toLowerCase()
+    var street = String(name || '').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '');
+    return (window.vigiloStreetType ? window.vigiloStreetType(street) : street).toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/ß/g, 'ss')
       .replace(/[^a-z0-9]+/g, '');
   }

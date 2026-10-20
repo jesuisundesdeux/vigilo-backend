@@ -393,7 +393,7 @@ class T04ObservationWorkflow(unittest.TestCase):
         call('add_image.php', {'token': token, 'secretid': secret}, raw=PHOTO)
         self.assertIn(token, issue_tokens({'cityid': '2'}), 'city recognized despite postcode, country and "St"')
         issue = [i for i in call('get_issues.php').json() if i['token'] == token][0]
-        self.assertEqual(issue['address'], 'rue du Port, Saint-Exemple', 'no house number before the street')
+        self.assertEqual(issue['address'], 'Rue du Port, Saint-Exemple', 'no house number before the street, type of street in full')
 
 
 class T05Upload(unittest.TestCase):

@@ -97,6 +97,10 @@ def main():
         status, _, page = admin.request('index.php?page=observations&' + query)
         clean('observations ' + query, status, page)
 
+    # No tab chosen: the first one that has observations (TOKA0004 is disapproved)
+    status, _, page = admin.request('index.php?page=observations&filtertype=uniq&filtertoken=TOKA0004')
+    check('name="bulk_ids[]" value="4"' in page and re.search(r'nav-link active"[^>]*approved=2', page) is not None, 'observations: first tab with results when none is chosen')
+
     # Quality of the addresses: TOKA0003 ("Rue des Lilas, Bourgade", no city) gives a proposal; TOKA0007 gets
     # its city written twice, the correction is reviewed then applied to it only
     status, _, page = admin.request('index.php?page=observations&approved=1&filtertype=uniq&filtertoken=TOKA0007')
@@ -111,7 +115,7 @@ def main():
         check('Qualité des adresses' in page and 'addresses=1' in page, 'quality of the addresses: corrections proposed')
         status, _, page = admin.request('index.php?page=observations&addresses=1')
         clean('address corrections', status, page)
-        check('Boulevard  Est ,  Testville' in page and 'Ville en double retirée' in page and 'Ville extraite (non référencée)' in page
+        check('Boulevard<span class="addr-invisible" title="espace en trop">␣␣</span>Est' in page and 'Ville en double retirée' in page and 'Ville extraite (non référencée)' in page
               and 'name="fix_ids[]" value="%s"' % fill[0]['obs_id'] in page, 'address corrections listed with their reason')
         status, _, page = admin.request('index.php?page=observations&addresses=1&reason=city_duplicate')
         check('TOKA0007' in page and 'TOKA0003' not in page, 'address corrections filtered by reason')

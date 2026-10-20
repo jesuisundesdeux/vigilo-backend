@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.37
+
+### Adresses des observations
+- Corrections des adresses : les caractères invisibles de l'adresse d'origine sont montrés (␣ espace en trop, ⍽ espace
+  insécable) et une correction « Mise en forme » précise ce qu'elle change (espaces en double, espace au début ou à la
+  fin, espace insécable, virgules, apostrophe), pour les corrections dont l'avant et l'après s'affichaient pareil. Deux
+  villes de même nom sont distinguées par leur numéro.
+- **Type de voie uniformisé** : le premier mot de la rue est écrit en toutes lettres avec une majuscule (« rue » →
+  « Rue », « Bd » → « Boulevard », « av. » → « Avenue », « rte » → « Route », « imp » → « Impasse »…), à la création
+  d'une observation et dans les corrections proposées (raison « Type de voie uniformisé »). Les rues sont aussi
+  comparées ainsi (« Bd X » = « Boulevard X ») : zones de rues des problèmes, rues des rapports, suggestions, rues
+  surlignées.
+- Liens « Afficher » des observations sans ville ou dans une ville non référencée : archivées comprises, et la liste
+  s'ouvre sur le premier onglet qui a des observations (elle pouvait paraître vide).
+
 ## 0.0.36
 
 ### Problèmes et rapports

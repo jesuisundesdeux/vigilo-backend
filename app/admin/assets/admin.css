@@ -90,6 +90,8 @@ body {
 .obs-chips-more > summary::-webkit-details-marker { display: none; }
 .obs-chips-more[open] { flex-basis: 100%; }
 .obs-chip-add { width: 9rem; }
+/* Corrections of the addresses: invisible characters shown */
+.addr-invisible { color: var(--bs-danger); background: var(--bs-danger-bg-subtle); border-radius: .2rem; padding: 0 .1rem; font-family: var(--bs-font-monospace); }
 .obs-chip-add .form-control { min-width: 0; }
 .table-admin .obs-chip-add .form-control { min-width: 0; }
 

@@ -592,7 +592,9 @@ if (isset($_GET['addresses']) && in_array($current_role, $actions_acl['edit']['a
   $address_url = '?page=' . urlencode($page_name) . '&addresses=1' . ($address_reason !== '' ? '&reason=' . urlencode($address_reason) : '');
   $city_label = function ($values) use ($citylistname) {
     if (intval($values['city']) > 0) {
-      return h(isset($citylistname[intval($values['city'])]) ? $citylistname[intval($values['city'])] : '#' . intval($values['city']));
+      // Same name for two cities of the instance: their number tells them apart
+      $name = isset($citylistname[intval($values['city'])]) ? $citylistname[intval($values['city'])] : '#' . intval($values['city']);
+      return h($name) . (count(array_keys($citylistname, $name)) > 1 ? ' <span class="text-body-secondary">(n° ' . intval($values['city']) . ')</span>' : '');
     }
     return trim($values['cityname']) !== '' ? h($values['cityname']) . ' <span class="badge text-bg-warning">non référencée</span>' : '<span class="text-body-secondary">—</span>';
   };
@@ -640,9 +642,10 @@ if (isset($_GET['addresses']) && in_array($current_role, $actions_acl['edit']['a
           <tr>
             <td><input class="form-check-input" type="checkbox" name="fix_ids[]" value="<?= intval($obs_id) ?>" form="address-form" checked aria-label="Corriger <?= h($proposal['token']) ?>" /></td>
             <td><a href="?page=<?= h(urlencode($page_name)) ?>&amp;approved=1&amp;filtertype=uniq&amp;filtertoken=<?= h(urlencode($proposal['token'])) ?>"><code><?= h($proposal['token']) ?></code></a></td>
-            <td data-label="Avant"><span class="text-break"><?= h($proposal['before']['address']) ?></span><div class="small text-body-secondary"><?= $city_label($proposal['before']) ?></div></td>
+            <td data-label="Avant"><span class="text-break"><?= address_visible_html($proposal['before']['address']) ?></span><div class="small text-body-secondary"><?= $city_label($proposal['before']) ?></div></td>
             <td data-label="Après"><span class="text-break fw-semibold"><?= h($proposal['after']['address']) ?></span><div class="small"><?= $city_label($proposal['after']) ?></div></td>
-            <td><?php foreach ($proposal['reasons'] as $reason) { ?><span class="badge text-bg-light border me-1"><?= h($address_reasons[$reason]) ?></span><?php } ?></td>
+            <td><?php foreach ($proposal['reasons'] as $reason) { ?><span class="badge text-bg-light border me-1"><?= h($address_reasons[$reason]) ?></span><?php } ?>
+              <?php if (in_array('format', $proposal['reasons'], true) && ($details = address_format_details($proposal['before']['address'], $proposal['after']['address']))) { ?><div class="small text-body-secondary mt-1"><?= h(implode(' ; ', $details)) ?></div><?php } ?></td>
           </tr>
         <?php } ?>
         </tbody>
@@ -667,10 +670,10 @@ if (in_array($current_role, $actions_acl['edit']['access'])
       — <a href="?page=observations&amp;addresses=1" class="alert-link">Vérifier et appliquer</a></li>
     <?php } ?>
     <?php if (count($obswithoutcity['cityunknown']) > 0) { ?>
-    <li><strong><?= h(count($obswithoutcity['cityunknown'])) ?></strong> observation(s) dans une ville non référencée — <a href="?page=observations&amp;filtercityunknown=1" class="alert-link">Afficher</a> ; à ajouter dans <a href="?page=cities" class="alert-link">Villes</a> pour qu'elles soient reconnues</li>
+    <li><strong><?= h(count($obswithoutcity['cityunknown'])) ?></strong> observation(s) dans une ville non référencée (archivées et à qualifier comprises) — <a href="?page=observations&amp;filtercityunknown=1&amp;searcharchived=all" class="alert-link">Afficher</a> ; à ajouter dans <a href="?page=cities" class="alert-link">Villes</a> pour qu'elles soient reconnues</li>
     <?php } ?>
     <?php if (count($obswithoutcity['pbaddress']) > 0) { ?>
-    <li><strong><?= h(count($obswithoutcity['pbaddress'])) ?></strong> adresse(s) sans ville (pas au format « Rue, Ville ») — <a href="?page=observations&amp;filterpbaddress=1" class="alert-link">Afficher</a></li>
+    <li><strong><?= h(count($obswithoutcity['pbaddress'])) ?></strong> adresse(s) sans ville (pas au format « Rue, Ville » ; archivées et à qualifier comprises) — <a href="?page=observations&amp;filterpbaddress=1&amp;searcharchived=all" class="alert-link">Afficher</a></li>
     <?php } ?>
   </ul>
 </div>
@@ -767,9 +770,6 @@ if (isset($_GET['approved']) && in_array((string) $_GET['approved'], array('0', 
   $approved = intval($_GET['approved']);
 }
 
-$tabapproved = array(0 => "", 1 => "", 2 => "");
-$tabapproved[$approved] = "active";
-
 $approvedcount = array(0 => 0, 1 => 0, 2 => 0);
 $query_count_tabs = mysqli_query($db, "SELECT obs_approved, COUNT(*) AS nb FROM obs_list WHERE obs_complete=1" . $querysearch . " GROUP BY obs_approved");
 while ($query_count_tabs && $result_count_tabs = mysqli_fetch_array($query_count_tabs)) {
@@ -778,6 +778,17 @@ while ($query_count_tabs && $result_count_tabs = mysqli_fetch_array($query_count
     $approvedcount[$tabkey] += intval($result_count_tabs['nb']);
   }
 }
+// No tab chosen and none in this one (e.g. a link of "Qualité des adresses"): the first tab that has some
+if (!isset($_GET['approved']) && $approvedcount[$approved] == 0) {
+  foreach (array(1, 0, 2) as $tab) {
+    if ($approvedcount[$tab] > 0) {
+      $approved = $tab;
+      break;
+    }
+  }
+}
+$tabapproved = array(0 => "", 1 => "", 2 => "");
+$tabapproved[$approved] = "active";
 
 /* Check the list of resolved obs */
 $resolutionslist = array();

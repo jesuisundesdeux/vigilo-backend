@@ -120,15 +120,54 @@ function vigilo_street_name($address)
     return trim(preg_replace('/\s+/u', ' ', $street));
 }
 
-function vigilo_street_key($address)
+/* Lowercase text without accents (comparisons of streets and cities) */
+function vigilo_ascii_lower($text)
 {
-    $name = vigilo_street_name($address);
-    $name = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
-    $name = strtr($name, array('à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e',
+    $name = function_exists('mb_strtolower') ? mb_strtolower((string) $text, 'UTF-8') : strtolower((string) $text);
+    return strtr($name, array('à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e',
                                'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ó' => 'o', 'ò' => 'o',
                                'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y',
                                'œ' => 'oe', 'æ' => 'ae', 'ß' => 'ss', 'À' => 'a', 'Â' => 'a', 'Ç' => 'c', 'É' => 'e', 'È' => 'e',
                                'Ê' => 'e', 'Î' => 'i', 'Ï' => 'i', 'Ô' => 'o', 'Û' => 'u', 'Ù' => 'u', 'Œ' => 'oe'));
+}
+
+/* Types of streets: abbreviation or lowercase form (without accents) => full name */
+function vigilo_street_types()
+{
+    return array('rue' => 'Rue', 'r' => 'Rue', 'avenue' => 'Avenue', 'av' => 'Avenue', 'ave' => 'Avenue', 'avn' => 'Avenue',
+                 'boulevard' => 'Boulevard', 'bd' => 'Boulevard', 'bld' => 'Boulevard', 'blvd' => 'Boulevard', 'bvd' => 'Boulevard', 'boul' => 'Boulevard',
+                 'place' => 'Place', 'pl' => 'Place', 'chemin' => 'Chemin', 'ch' => 'Chemin', 'chem' => 'Chemin', 'che' => 'Chemin',
+                 'route' => 'Route', 'rte' => 'Route', 'impasse' => 'Impasse', 'imp' => 'Impasse', 'allee' => 'Allée', 'all' => 'Allée',
+                 'cours' => 'Cours', 'crs' => 'Cours', 'quai' => 'Quai', 'qu' => 'Quai', 'square' => 'Square', 'sq' => 'Square',
+                 'faubourg' => 'Faubourg', 'fg' => 'Faubourg', 'fbg' => 'Faubourg', 'passage' => 'Passage', 'pass' => 'Passage',
+                 'esplanade' => 'Esplanade', 'esp' => 'Esplanade', 'promenade' => 'Promenade', 'prom' => 'Promenade',
+                 'rond-point' => 'Rond-point', 'rpt' => 'Rond-point', 'carrefour' => 'Carrefour', 'carr' => 'Carrefour',
+                 'ruelle' => 'Ruelle', 'sentier' => 'Sentier', 'sente' => 'Sente', 'voie' => 'Voie', 'parvis' => 'Parvis',
+                 'traverse' => 'Traverse', 'tra' => 'Traverse', 'montee' => 'Montée', 'mte' => 'Montée', 'rampe' => 'Rampe',
+                 'pont' => 'Pont', 'port' => 'Port', 'parc' => 'Parc', 'jardin' => 'Jardin', 'cite' => 'Cité', 'residence' => 'Résidence',
+                 'res' => 'Résidence', 'lotissement' => 'Lotissement', 'lot' => 'Lotissement', 'hameau' => 'Hameau', 'ham' => 'Hameau',
+                 'mail' => 'Mail', 'piste' => 'Piste', 'zone' => 'Zone', 'za' => 'ZA', 'zi' => 'ZI', 'zac' => 'ZAC');
+}
+
+/* Type of the street written in full with a capital ("bd Victor Hugo" -> "Boulevard Victor Hugo"), the rest kept */
+function vigilo_street_type_normalize($street)
+{
+    $street = (string) $street;
+    if (!preg_match('/^\s*([\p{L}]+(?:-[\p{L}]+)?)(\.?)(?=\s|$)(.*)$/su', $street, $m)) {
+        return $street;
+    }
+    $types = vigilo_street_types();
+    $key   = vigilo_ascii_lower($m[1]);
+    // A one-letter abbreviation needs its dot or a following word ("r. X", "r X"), never alone
+    if (!isset($types[$key]) || trim($m[3]) === '') {
+        return $street;
+    }
+    return $types[$key] . ' ' . ltrim($m[3]);
+}
+
+function vigilo_street_key($address)
+{
+    $name = vigilo_ascii_lower(vigilo_street_type_normalize(vigilo_street_name($address)));
     return preg_replace('/[^a-z0-9]+/', '', $name);
 }
 

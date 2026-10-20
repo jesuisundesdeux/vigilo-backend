@@ -89,12 +89,24 @@
     });
     return list;
   }
+  // Types of streets in full, as vigilo_street_types() (PHP): "bd X" = "Boulevard X"
+  var TYPES = { 'rue': 'Rue', 'r': 'Rue', 'avenue': 'Avenue', 'av': 'Avenue', 'ave': 'Avenue', 'avn': 'Avenue', 'boulevard': 'Boulevard', 'bd': 'Boulevard', 'bld': 'Boulevard', 'blvd': 'Boulevard', 'bvd': 'Boulevard', 'boul': 'Boulevard', 'place': 'Place', 'pl': 'Place', 'chemin': 'Chemin', 'ch': 'Chemin', 'chem': 'Chemin', 'che': 'Chemin', 'route': 'Route', 'rte': 'Route', 'impasse': 'Impasse', 'imp': 'Impasse', 'allee': 'Allée', 'all': 'Allée', 'cours': 'Cours', 'crs': 'Cours', 'quai': 'Quai', 'qu': 'Quai', 'square': 'Square', 'sq': 'Square', 'faubourg': 'Faubourg', 'fg': 'Faubourg', 'fbg': 'Faubourg', 'passage': 'Passage', 'pass': 'Passage', 'esplanade': 'Esplanade', 'esp': 'Esplanade', 'promenade': 'Promenade', 'prom': 'Promenade', 'rond-point': 'Rond-point', 'rpt': 'Rond-point', 'carrefour': 'Carrefour', 'carr': 'Carrefour', 'ruelle': 'Ruelle', 'sentier': 'Sentier', 'sente': 'Sente', 'voie': 'Voie', 'parvis': 'Parvis', 'traverse': 'Traverse', 'tra': 'Traverse', 'montee': 'Montée', 'mte': 'Montée', 'rampe': 'Rampe', 'pont': 'Pont', 'port': 'Port', 'parc': 'Parc', 'jardin': 'Jardin', 'cite': 'Cité', 'residence': 'Résidence', 'res': 'Résidence', 'lotissement': 'Lotissement', 'lot': 'Lotissement', 'hameau': 'Hameau', 'ham': 'Hameau', 'mail': 'Mail', 'piste': 'Piste', 'zone': 'Zone', 'za': 'ZA', 'zi': 'ZI', 'zac': 'ZAC' };
+  function streetType(name) {
+    var m = /^\s*([^\s.]+)(\.?)(\s+)(.+)$/.exec(String(name || ''));
+    if (!m) {
+      return String(name || '');
+    }
+    var key = m[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return TYPES.hasOwnProperty(key) ? TYPES[key] + ' ' + m[4] : String(name || '');
+  }
+  window.vigiloStreetType = streetType;
+
   var LETTERS = { a: '[aàâäáã]', e: '[eéèêë]', i: '[iîïíì]', o: '[oôöóò]', u: '[uùûüú]', c: '[cç]', y: '[yÿý]', n: '[nñ]' };
 
   // Case-insensitive Overpass regex of a name: accents and punctuation tolerated; only
   // letters, digits, classes and "." (never a quote or a backslash in the query)
   function pattern(name) {
-    var base = String(name || '').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '').normalize('NFD')
+    var base = streetType(String(name || '').replace(/^\s*\d+\s*(bis|ter)?\b\s*,?\s*/i, '')).normalize('NFD')
       .replace(/[̀-ͯ]/g, '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').trim();
     var out = '';
     var gap = false;
