@@ -1,6 +1,7 @@
 # Architecture du code
 
-PHP procédural sans framework ni dépendance Composer, compatible PHP 7.3 à 8.5.
+PHP procédural sans framework ni dépendance Composer, compatible PHP 7.3 à 8.5, avec MariaDB 10.3+ ou MySQL 5.7+
+(InnoDB ; SQL sans fonctions de fenêtrage ni JSON). Versions prises en charge : [README](../README.md#versions-prises-en-charge).
 
 ```
 app/                    code servi (racine du site)

@@ -28,6 +28,16 @@ Procédures complètes (Docker, hébergement mutualisé, configuration) : [docum
 Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-backend) et
 `ghcr.io/jesuisundesdeux/vigilo-backend` (PHP 8.5 ; le code reste compatible PHP 7.3).
 
+## Versions prises en charge
+
+| Composant | Versions |
+|---|---|
+| PHP | 7.3 à 8.5 (image Docker : 8.5) ; extensions `mysqli`, `gd`, `curl`, `fileinfo` (`zip` et `sodium` pour les mises à jour depuis l'admin) |
+| Base de données | MariaDB 10.3+ ou MySQL 5.7+ (InnoDB) ; CI : MariaDB 11.4 ; Docker : `mariadb:lts` |
+| Docker | Docker Engine récent (29 compris) et Docker Compose v2 ; images `linux/amd64` et `linux/arm64` |
+| Mise à jour d'une instance | depuis la 0.0.17 ou plus récente ([mises à jour](doc/UPGRADE.md)) |
+| Clients | application web (app.vigilo.city) : toute instance 0.0.17+, avec repli pour les fonctions récentes ; HTTPS obligatoire |
+
 ## Documentation
 
 | Document | Contenu |
