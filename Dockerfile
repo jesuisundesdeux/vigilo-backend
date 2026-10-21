@@ -1,4 +1,4 @@
-FROM php:8.3-apache-bookworm
+FROM php:8.5-apache-trixie
 
 LABEL org.opencontainers.image.title="vigilo-backend" \
       org.opencontainers.image.source="https://github.com/jesuisundesdeux/vigilo-backend" \

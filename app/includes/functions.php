@@ -455,7 +455,9 @@ function getWebContent($url) {
   curl_setopt($curl, CURLOPT_MAXREDIRS, 3);
   $data = curl_exec($curl);
   $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-  curl_close($curl);
+  if (PHP_VERSION_ID < 80000) {
+      curl_close($curl); // no-op since PHP 8.0, deprecated in 8.5
+  }
   if ($data === false || $code >= 400) {
       return false;
   }

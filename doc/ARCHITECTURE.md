@@ -1,6 +1,6 @@
 # Architecture du code
 
-PHP procédural sans framework ni dépendance Composer, compatible PHP 7.3 à 8.3.
+PHP procédural sans framework ni dépendance Composer, compatible PHP 7.3 à 8.5.
 
 ```
 app/                    code servi (racine du site)

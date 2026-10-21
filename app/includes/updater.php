@@ -173,7 +173,9 @@ function vigilo_download($url, $path)
     curl_setopt($ch, CURLOPT_USERAGENT, 'Vigilo-Backend/' . BACKEND_VERSION);
     $ok   = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) {
+        curl_close($ch); // no-op since PHP 8.0, deprecated in 8.5
+    }
     fclose($fp);
     return $ok && $code == 200 && filesize($path) > 0;
 }
@@ -454,7 +456,9 @@ function vigilo_watchtower_update()
     curl_exec($ch);
     $code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $errno = curl_errno($ch);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) {
+        curl_close($ch); // no-op since PHP 8.0, deprecated in 8.5
+    }
     if ($code == 401) {
         throw new Exception("Watchtower refuse le jeton (VIGILO_WATCHTOWER_TOKEN).");
     }
@@ -491,7 +495,9 @@ function vigilo_security_checks()
             curl_setopt($ch, CURLOPT_TIMEOUT, 8);
             curl_exec($ch);
             $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            if (PHP_VERSION_ID < 80000) {
+                curl_close($ch); // no-op since PHP 8.0, deprecated in 8.5
+            }
             if ($code == 200) {
                 $checks[] = array('danger', "Le répertoire $dir/ est accessible depuis le web",
                     "Les photos originales (non modérées, non floutées) peuvent être téléchargées directement. Sous nginx ajoutez : location ~ ^/(images|caches)/ { deny all; return 403; } — sous Apache vérifiez que AllowOverride autorise les fichiers .htaccess.");

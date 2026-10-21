@@ -576,7 +576,9 @@ function webhooks_deliver($db, $hooks, $values)
         }
         $results[$id] = array($code, $error, intval(curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000), $response);
         curl_multi_remove_handle($multi, $ch);
-        curl_close($ch);
+        if (PHP_VERSION_ID < 80000) {
+            curl_close($ch); // no-op since PHP 8.0, deprecated in 8.5
+        }
     }
     curl_multi_close($multi);
 

@@ -2,6 +2,13 @@
 
 ## 0.0.38
 
+### Image Docker
+- **PHP 8.5** (`php:8.5-apache-trixie`, Debian 13) au lieu de PHP 8.3 (Debian 12). Le code reste compatible
+  PHP 7.3 à 8.5 : `curl_close()`, sans effet depuis PHP 8.0 et dépréciée en 8.5, n'est plus appelée qu'en PHP 7.
+  La CI vérifie la syntaxe sous 7.3, 8.3 et 8.5 et refuse une syntaxe dépréciée. Contrat de l'API, smoke de l'admin et
+  tests fonctionnels passent sous PHP 8.5 sans aucun message PHP (dépréciation, avertissement, notice) : le seul relevé,
+  `create_issue.php` sans `version` (`null` passé à `mysqli_real_escape_string()`, déprécié depuis PHP 8.1), est corrigé.
+
 ### Problèmes
 - Un problème créé depuis une **suggestion filtrée** garde ses filtres jusqu'au rattachement des observations :
   observations archivées ou résolues comprises et ville (liens « Créer le problème » : `archived=1`, `resolved=1`,

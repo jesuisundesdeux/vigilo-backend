@@ -60,7 +60,9 @@ function blur_photo($url, $filepath)
     $response = curl_exec($ch);
     $code     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error    = curl_error($ch);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) {
+        curl_close($ch); // no-op since PHP 8.0, deprecated in 8.5
+    }
 
     if ($response === false) {
         return 'blur server unreachable: ' . $error;
