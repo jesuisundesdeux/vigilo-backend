@@ -2,7 +2,7 @@
 
 ## Prérequis
 
-Vigilo-backend est développé en PHP procédural (compatible PHP 7.3 à 8.3, sans framework ni Composer) avec
+Vigilo-backend est développé en PHP procédural (compatible PHP 7.3 à 8.5, sans framework ni Composer) avec
 une base MySQL/MariaDB. L'organisation du code et le schéma de la base sont décrits dans
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -32,9 +32,9 @@ Les tests tournent en CI (`.github/workflows/ci.yml`) et en local ([tests/README
 
 | Suite | Vérifie |
 |---|---|
-| Lint | Syntaxe PHP 7.3 et 8.3 |
+| Lint | Syntaxe PHP 7.3, 8.3 et 8.5 (syntaxe dépréciée refusée) |
 | Migrations | Installation neuve, rejeu, montée depuis chaque version, refus du retour arrière |
-| Contrat de l'API (`tests/api/run.sh`) | 72 requêtes : réponses identiques à la version précédente (PHP 8.3 et 7.3) |
+| Contrat de l'API (`tests/api/run.sh`) | 72 requêtes : réponses identiques à la version précédente (PHP 8.5 de l'image et 7.3) |
 | Fonctionnels (`--functional`) | Comportement de chaque appel, modération, pixelisation, floutage, anti-spam, injections SQL |
 | Admin (`ADMIN_SMOKE=1`) | Toutes les pages et actions, CSRF, rôles, aucune erreur PHP |
 | Mise à jour (`tests/update/run.sh`) | Version signée installée, archive altérée refusée, migration cassée annulée |

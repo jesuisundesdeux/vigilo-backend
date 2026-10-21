@@ -927,7 +927,7 @@ Appelants : `scripts/vigilo-migrate.php` (CLI : `--app=`, `--status` qui affiche
 
 ### 7.5 Docker et installation
 
-`Dockerfile` : `php:8.3-apache-bookworm`, extensions `gd` (freetype, jpeg), `mysqli`, `exif`, `zip`, modules Apache
+`Dockerfile` : `php:8.5-apache-trixie` (0.0.38 ; `php:8.3-apache-bookworm` avant), extensions `gd` (freetype, jpeg), `mysqli`, `exif`, `zip`, modules Apache
 `remoteip`, `rewrite`, `headers`, `php.ini-production` + `upload_max_filesize = 20M`, `post_max_size = 25M`. Le code
 `app/` est copié dans `/var/www/html`, `config/config.php.docker` devient
 `config/config.php`. Variables : `VIGILO_RUNTIME=docker`, `VIGILO_IMAGE_VERSION` (argument de build, le tag de la
@@ -1092,14 +1092,14 @@ restrictions du citystaff, accès direct à `inc/*.php`. Chaque page est contrô
 
 | Job | Contenu |
 |---|---|
-| `lint` | `php -l` de `app/` et `scripts/` sous PHP 7.3 et 8.3, puis `tests/problems/unit.php` (zones et formulaire des problèmes). |
-| `setup` | `tests/setup/run.sh` : assistant d'installation de bout en bout (base vide, PHP 8.3 local). |
+| `lint` | `php -l` de `app/` et `scripts/` sous PHP 7.3, 8.3 et 8.5 (tout message autre que « No syntax errors », dont une dépréciation, fait échouer), puis `tests/problems/unit.php` (zones et formulaire des problèmes). |
+| `setup` | `tests/setup/run.sh` : assistant d'installation de bout en bout (base vide, PHP 8.5 local). |
 | `version` | La dernière migration n'est pas plus récente que `BACKEND_VERSION` et met bien à jour `vigilo_db_version` à sa version. |
 | `migrations` | Installation depuis une base vide, rejeu, montée depuis 0.0.17 à 0.0.22 (schéma reconstruit avec `mysql`), reprise du réglage SGBlur, montée pas à pas, refus d'une base plus récente (code 2). |
 | `contract` | `ADMIN_SMOKE=1 tests/api/run.sh` avec l'image construite et avec `vigilobs/vigilo-backend:0.0.20` (PHP 7.3). |
 | `functional` | `tests/api/run.sh --functional`, mêmes deux environnements. |
 | `blur` | Tests unitaires du serveur, images construites, `tests/blur/compose.sh`. |
-| `updater` | `tests/update/run.sh` (PHP 8.3). |
+| `updater` | `tests/update/run.sh` (PHP 8.5). |
 
 `.github/workflows/release.yml` (tag `v*.*.*`) : vérifie que le tag est `v` + `BACKEND_VERSION`, construit l'archive,
 publie la release GitHub, construit et signe (cosign) les images multi-architectures `vigilo-backend` et `vigilo-blur`

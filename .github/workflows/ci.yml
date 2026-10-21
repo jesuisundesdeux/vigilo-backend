@@ -14,17 +14,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.3', '8.3']
+        php: ['7.3', '8.3', '8.5']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           tools: none
-      - name: Syntax check
+      - name: Syntax check (deprecations of the syntax refused too)
         run: |
           find app scripts -name '*.php' -print0 \
-            | xargs -0 -n1 php -l > /tmp/lint.log 2>&1 || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
+            | xargs -0 -n1 php -d error_reporting=-1 -d display_errors=1 -l > /tmp/lint.log 2>&1 || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
+          if grep -v '^No syntax errors' /tmp/lint.log | grep -q .; then grep -v '^No syntax errors' /tmp/lint.log; exit 1; fi
       - name: Problem rules (zones, form)
         run: php tests/problems/unit.php
 
@@ -175,7 +176,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: mysqli
           tools: none
       - uses: docker/setup-buildx-action@v3
@@ -223,7 +224,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: mysqli
           tools: none
       - uses: docker/setup-buildx-action@v3
@@ -295,7 +296,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: mysqli, gd, curl, zip, sodium
           tools: none
       - name: Updater test
@@ -326,7 +327,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: mysqli, gd, exif, curl, zip
           tools: none
       - name: Setup test

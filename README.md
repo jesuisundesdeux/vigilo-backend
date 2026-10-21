@@ -26,7 +26,7 @@ Puis ouvrir `https://<instance>/admin/` : l'assistant d'installation demande le 
 Procédures complètes (Docker, hébergement mutualisé, configuration) : [documentation d'installation](https://vigilo.city/fr/documentation/installation/) sur vigilo.city.
 
 Images : [`vigilobs/vigilo-backend`](https://hub.docker.com/r/vigilobs/vigilo-backend) et
-`ghcr.io/jesuisundesdeux/vigilo-backend` (PHP 8.3 ; le code reste compatible PHP 7.3).
+`ghcr.io/jesuisundesdeux/vigilo-backend` (PHP 8.5 ; le code reste compatible PHP 7.3).
 
 ## Documentation
 

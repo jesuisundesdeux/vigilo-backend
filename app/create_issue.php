@@ -220,7 +220,7 @@ if ($update) {
                                "' . mysqli_real_escape_string($db, $token) . '",
                                "' . mysqli_real_escape_string($db, $time) . '",
                                0,
-                               "' . mysqli_real_escape_string($db, $version) . '",
+                               "' . mysqli_real_escape_string($db, (string) $version) . '",
                                "' . mysqli_real_escape_string($db, $secretid) . '")');
 }
 

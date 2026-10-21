@@ -29,7 +29,7 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
 | `scripts/` | `vigilo-migrate.php` (migrations en CLI), `build-release.sh`, `release-keygen.php`, `obsolete-paths.txt` |
 | `tests/` | Contrat de l'API, tests fonctionnels, smoke test de l'admin, mise à jour, floutage (voir `tests/README.md`) |
 | `doc/` | Documentation technique (API, fonctionnement, architecture, webhooks, mises à jour, contribution) |
-| `Dockerfile`, `docker-compose*.yml`, `vigilo-entrypoint` | Image PHP 8.3 + Apache, Watchtower (par défaut), profil `blur` |
+| `Dockerfile`, `docker-compose*.yml`, `vigilo-entrypoint` | Image PHP 8.5 + Apache (Debian trixie), Watchtower (par défaut), profil `blur` |
 
 ## Règles à respecter
 
@@ -37,9 +37,11 @@ Détails : `doc/FONCTIONNEMENT.md`, vocabulaire : `doc/GLOSSAIRE.md`.
   concernée dans `doc/` : `GUIDE_CODE.md` (modules, routes, admin, tables), `REST_API.md` (API), `FONCTIONNEMENT.md`,
   `WEBHOOKS.md`, `ARCHITECTURE.md`, `UPGRADE.md` selon le sujet, ainsi que `CHANGELOG.md` ; et, si besoin, la
   documentation utilisateur et la spécification OpenAPI du site (voir « Documentation à tenir à jour »).
-- **PHP 7.3 à 8.3** : PHP procédural, sans framework ni Composer, extension `mysqli`. Pas de syntaxe postérieure à
+- **PHP 7.3 à 8.5** : PHP procédural, sans framework ni Composer, extension `mysqli`. Pas de syntaxe postérieure à
   PHP 7.3 (pas de types union, `match`, arguments nommés, propriétés typées, fonctions fléchées `fn`, `str_contains`…).
-  La CI vérifie la syntaxe sur 7.3 et 8.3 ; des hébergements mutualisés tournent encore en 7.3.
+  La CI vérifie la syntaxe sur 7.3, 8.3 et 8.5 (refusée aussi pour une syntaxe dépréciée) ; des hébergements mutualisés
+  tournent encore en 7.3. Une fonction dépréciée dans une version récente mais nécessaire en 7.3 s'appelle sous
+  condition (`PHP_VERSION_ID`), par exemple `curl_close()` (sans effet depuis 8.0, dépréciée en 8.5).
 - **Compatibilité de l'API** : les réponses des routes publiques ne doivent pas changer pour les applications
   existantes. Les tests de contrat comparent 72 requêtes à `tests/api/snapshots.json` ; un changement voulu est
   déclaré dans `tests/api/expected_changes.json` et documenté dans `doc/REST_API.md` (colonne « Compatibilité »).
