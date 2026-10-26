@@ -2,6 +2,12 @@
 
 ## 0.0.38
 
+### Corrections
+- Qualité des adresses (admin) : deux écritures qui ne diffèrent que par une apostrophe (donc par le découpage des
+  mots), par exemple « Boulevard de Lauriol » et « Boulevard de l'Auriol », ne sont plus regroupées comme une même rue
+  et ne sont donc plus « corrigées » l'une vers l'autre (le regroupement orthographique garde apostrophes et traits
+  d'union, et ne réunit que les variantes de casse, d'accents et d'espaces).
+
 ### Bannières (annonces) configurables
 - Nouvelle page **« Bannière »** dans le menu de l'admin (table dédiée `obs_banners`, migration `init-0.0.38.sql`) :
   gérer **plusieurs bannières** affichées dans l'application web, chacune avec un **message**, un **type** (Information,
