@@ -266,6 +266,7 @@ Version backend >= 0.0.1
 | URL | int | since | | nombre d'unités pour le filtre relatif sur la date (avec `since_unit`) | >= 0.0.19 |
 | URL | str | since_unit | | unité pour le filtre relatif sur la date, valeur parmi : day, week, month, year  | >= 0.0.19 |
 | URL | int | archived | | `1` : inclut les observations archivées (statistiques), avec le champ `archived` sur chaque observation. Sans ce paramètre, elles ne sont pas listées (sauf avec `token` seul, pour qu'un lien vers une observation archivée fonctionne) | >= 0.0.29 |
+| URL | int | resolvedhidden | | `1` : conserve les observations résolues même au-delà de `vigilo_resolved_hide_days` (statistiques). Le filtre d'approbation reste appliqué | >= 0.0.38 |
 
 Sans `approved`, la liste contient les observations approuvées, plus celles à modérer si le réglage « Observations non
 modérées » (`vigilo_shownonapproved`) n'est pas « ne rien afficher » (`0`) ou avec une clé admin/modérateur ; les
@@ -665,7 +666,8 @@ clé admin ou modérateur ; sur `create_resolution.php`, celles avec une clé ad
 
 Si le réglage « Masquer les observations résolues depuis plus de N jours » (`vigilo_resolved_hide_days`) est
 supérieur à 0 (0 par défaut), `get_issues.php` ne renvoie plus les observations dont la
-résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou modérateur.
+résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou modérateur, ou avec `resolvedhidden=1`
+(depuis 0.0.38 ; utilisé par les statistiques pour compter toutes les observations publiées).
 
 ## Bannière (depuis 0.0.38)
 

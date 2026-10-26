@@ -56,6 +56,8 @@ class GetIssues
   protected $returnempty = False;
   // 0: archived observations left out (default), 1: included, with their "archived" field (statistics)
   protected $archived = 0;
+  // true: keep the resolved observations hidden after vigilo_resolved_hide_days (statistics)
+  protected $show_resolved_hidden = False;
   protected $token_filter_distance = 0;
   protected $db;
   protected $acls;
@@ -216,6 +218,13 @@ class GetIssues
     $this->archived = ((string) $value === '1') ? 1 : 0;
   }
 
+  // Keep the old resolved observations (otherwise hidden after vigilo_resolved_hide_days) in the
+  // result, e.g. for the statistics which count every published observation (approval filter kept).
+  public function setShowResolvedHidden($value) : void
+  {
+    $this->show_resolved_hidden = ((string) $value === '1');
+  }
+
   public function setAuthKey($value) : void
   {
     $this->authkey = mysqli_real_escape_string($this->db, $value);
@@ -224,6 +233,9 @@ class GetIssues
   /* Days after which resolved observations leave the public list (#257), 0 = never */
   public function resolvedHideDays() : int
   {
+    if ($this->show_resolved_hidden) {
+      return 0;
+    }
     if (isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" OR getrole($this->authkey, $this->acls) == "moderator")) {
       return 0;
     }
@@ -561,6 +573,10 @@ if (!debug_backtrace()) {
 
   if (isset($_GET['archived'])) {
     $export->setArchived($_GET['archived']);
+  }
+
+  if (isset($_GET['resolvedhidden'])) {
+    $export->setShowResolvedHidden($_GET['resolvedhidden']);
   }
 
   # Export datas
