@@ -88,6 +88,7 @@ if (isset($_POST['banner_save'])) {
     $start   = banner_parse_datetime(isset($_POST['banner_start']) ? $_POST['banner_start'] : '');
     $end     = banner_parse_datetime(isset($_POST['banner_end']) ? $_POST['banner_end'] : '');
     $enabled = empty($_POST['banner_enabled']) ? 0 : 1;
+    $persistent = empty($_POST['banner_persistent']) ? 0 : 1;
 
     $error = '';
     if ($message === '') {
@@ -104,7 +105,7 @@ if (isset($_POST['banner_save'])) {
             'banner_id' => $id, 'banner_message' => $message, 'banner_type' => $type, 'banner_display' => $display,
             'banner_scopes' => $scope_list === '' ? array() : array_map('strval', explode(',', $scope_list)),
             'banner_start' => banner_format_datetime($start), 'banner_end' => banner_format_datetime($end),
-            'banner_enabled' => $enabled,
+            'banner_enabled' => $enabled, 'banner_persistent' => $persistent,
         );
         echo '<div class="alert alert-danger" role="alert" data-reopen-modal="#bannerModal" data-title="'
             . h($id > 0 ? 'Modifier la bannière' : 'Nouvelle bannière') . '" data-fill="' . h(json_encode($reopen)) . '">'
@@ -116,7 +117,8 @@ if (isset($_POST['banner_save'])) {
         $sc = mysqli_real_escape_string($db, $scope_list);
         if ($id > 0) {
             $ok = mysqli_query($db, "UPDATE obs_banners SET banner_message='$m', banner_type='$tp', banner_display='$dp',
-                banner_scopes='$sc', banner_start=" . intval($start) . ", banner_end=" . intval($end) . ", banner_enabled=" . intval($enabled) . "
+                banner_scopes='$sc', banner_start=" . intval($start) . ", banner_end=" . intval($end) . ", banner_enabled=" . intval($enabled) . ",
+                banner_persistent=" . intval($persistent) . "
                 WHERE banner_id=" . $id);
             if ($ok) {
                 audit_log('banner_edit', 'banner:' . $id, array('type' => $type, 'enabled' => $enabled));
@@ -125,8 +127,8 @@ if (isset($_POST['banner_save'])) {
                 $messages[] = array('danger', 'Enregistrement impossible.');
             }
         } else {
-            $ok = mysqli_query($db, "INSERT INTO obs_banners (banner_message, banner_type, banner_display, banner_scopes, banner_start, banner_end, banner_enabled, banner_created)
-                VALUES ('$m', '$tp', '$dp', '$sc', " . intval($start) . ", " . intval($end) . ", " . intval($enabled) . ", " . time() . ")");
+            $ok = mysqli_query($db, "INSERT INTO obs_banners (banner_message, banner_type, banner_display, banner_scopes, banner_start, banner_end, banner_enabled, banner_persistent, banner_created)
+                VALUES ('$m', '$tp', '$dp', '$sc', " . intval($start) . ", " . intval($end) . ", " . intval($enabled) . ", " . intval($persistent) . ", " . time() . ")");
             if ($ok) {
                 audit_log('banner_create', 'banner:' . mysqli_insert_id($db), array('type' => $type));
                 $messages[] = array('success', 'Bannière ajoutée.');
@@ -157,7 +159,7 @@ programmées dans le temps ; la plus récemment commencée parmi celles actives 
 concerner que certains scopes de l'instance.</p>
 
 <button class="btn btn-sm btn-primary mb-3" type="button" data-bs-toggle="modal" data-bs-target="#bannerModal" data-title="Nouvelle bannière"
-        data-fill="<?= h(json_encode(array('banner_id' => 0, 'banner_message' => '', 'banner_type' => 'info', 'banner_display' => 'banner', 'banner_scopes' => array(), 'banner_start' => '', 'banner_end' => '', 'banner_enabled' => 1))) ?>">
+        data-fill="<?= h(json_encode(array('banner_id' => 0, 'banner_message' => '', 'banner_type' => 'info', 'banner_display' => 'banner', 'banner_scopes' => array(), 'banner_start' => '', 'banner_end' => '', 'banner_enabled' => 1, 'banner_persistent' => 0))) ?>">
   <i class="bi bi-plus-lg"></i> Nouvelle bannière</button>
 
 <?php if (empty($banners)): ?>
@@ -192,6 +194,7 @@ concerner que certains scopes de l'instance.</p>
           'banner_scopes' => array_map('strval', $scope_ids),
           'banner_start' => banner_format_datetime($start), 'banner_end' => banner_format_datetime($end),
           'banner_enabled' => $enabled ? 1 : 0,
+          'banner_persistent' => intval($row['banner_persistent']) ? 1 : 0,
       );
 ?>
       <tr>
@@ -203,6 +206,7 @@ concerner que certains scopes de l'instance.</p>
           <?php if (!$enabled): ?><span class="badge text-bg-secondary">désactivée</span>
           <?php elseif ($active): ?><span class="badge text-bg-success">en cours</span>
           <?php else: ?><span class="badge text-bg-light border">programmée</span><?php endif ?>
+          <?php if (intval($row['banner_persistent'])): ?><span class="badge text-bg-info" title="Réaffichée à chaque ouverture même si fermée">persistante</span><?php endif ?>
         </td>
         <td class="text-end text-nowrap">
           <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#bannerModal"
@@ -276,6 +280,10 @@ concerner que certains scopes de l'instance.</p>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="banner_enabled" name="banner_enabled" value="1" />
           <label class="form-check-label" for="banner_enabled">Activée (affichée dans l'application, selon les dates)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="banner_persistent" name="banner_persistent" value="1" />
+          <label class="form-check-label" for="banner_persistent">Persistante : réaffichée à chaque ouverture de l'application, même si la personne l'a fermée (et la fenêtre se rouvre au lancement). Sinon, une fois fermée elle ne revient pas, même après redémarrage.</label>
         </div>
       </div>
       <div class="modal-footer">
