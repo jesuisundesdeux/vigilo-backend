@@ -1477,62 +1477,67 @@ class T15PasswordLinks(unittest.TestCase):
 
 
 class T16Banner(unittest.TestCase):
-    # Announcement configured in the admin, served by get_banner.php for the web app
+    # Announcements stored in obs_banners, served by get_banner.php for the web app
     def tearDown(self):
-        for p in ('vigilo_banner_message', 'vigilo_banner_type', 'vigilo_banner_start',
-                  'vigilo_banner_end', 'vigilo_banner_display'):
-            sql("DELETE FROM obs_config WHERE config_param = '%s'" % p)
+        sql("DELETE FROM obs_banners")
 
-    def banner(self):
-        r = call('get_banner.php')
+    def add(self, message='Coucou', type='info', display='banner', scopes='', start=0, end=0, enabled=1):
+        out = sql("INSERT INTO obs_banners (banner_message, banner_type, banner_display, banner_scopes, "
+                  "banner_start, banner_end, banner_enabled, banner_created) VALUES "
+                  "('%s', '%s', '%s', '%s', %d, %d, %d, %d); SELECT LAST_INSERT_ID()"
+                  % (message, type, display, scopes, start, end, enabled, int(time.time())))
+        return int(out.splitlines()[-1])
+
+    def banner(self, scope=None):
+        r = call('get_banner.php', {'scope': scope} if scope else None)
         self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
         return r.json()['banner']
 
-    def dt(self, offset_seconds):
-        return time.strftime('%Y-%m-%dT%H:%M', time.localtime(time.time() + offset_seconds))
+    def test_none_without_banner(self):
+        self.assertIsNone(self.banner(), 'no banner when the table is empty')
+        self.add(message='Caché', enabled=0)
+        self.assertIsNone(self.banner(), 'a disabled banner is not shown')
 
-    def test_none_without_message(self):
-        self.assertIsNone(self.banner(), 'no banner when no message is set')
-        set_config('vigilo_banner_message', '   ')
-        self.assertIsNone(self.banner(), 'blank message = no banner')
-
-    def test_message_and_fields(self):
-        set_config('vigilo_banner_message', 'Travaux en cours')
-        set_config('vigilo_banner_type', 'warning')
-        set_config('vigilo_banner_display', 'both')
+    def test_fields(self):
+        self.add(message='Travaux en cours', type='warning', display='both')
         b = self.banner()
-        self.assertEqual(b['message'], 'Travaux en cours')
-        self.assertEqual(b['type'], 'warning')
-        self.assertEqual(b['display'], 'both')
+        self.assertEqual((b['message'], b['type'], b['display']), ('Travaux en cours', 'warning', 'both'))
         self.assertTrue(b['id'])
 
     def test_unknown_type_and_display_fall_back(self):
-        set_config('vigilo_banner_message', 'Coucou')
-        set_config('vigilo_banner_type', 'bogus')
-        set_config('vigilo_banner_display', 'bogus')
+        self.add(message='Coucou', type='bogus', display='bogus')
         b = self.banner()
         self.assertEqual(b['type'], 'info', 'unknown type falls back to the first one')
         self.assertEqual(b['display'], 'banner', 'unknown display falls back to the bar')
 
     def test_date_window(self):
-        set_config('vigilo_banner_message', 'Fenetre')
-        # A full day around now: active
-        set_config('vigilo_banner_start', self.dt(-86400))
-        set_config('vigilo_banner_end', self.dt(86400))
+        now = int(time.time())
+        b = self.add(message='Fenetre', start=now - 86400, end=now + 86400)
         self.assertIsNotNone(self.banner(), 'active within the window')
-        # Starts tomorrow: not yet
-        set_config('vigilo_banner_start', self.dt(86400))
-        set_config('vigilo_banner_end', '')
+        sql("UPDATE obs_banners SET banner_start=%d, banner_end=0 WHERE banner_id=%d" % (now + 86400, b))
         self.assertIsNone(self.banner(), 'not shown before its start')
-        # Ended yesterday: over
-        set_config('vigilo_banner_start', '')
-        set_config('vigilo_banner_end', self.dt(-86400))
+        sql("UPDATE obs_banners SET banner_start=0, banner_end=%d WHERE banner_id=%d" % (now - 86400, b))
         self.assertIsNone(self.banner(), 'not shown after its end')
 
+    def test_most_recently_started_wins(self):
+        now = int(time.time())
+        self.add(message='Ancienne', start=now - 7200)
+        self.add(message='Récente', start=now - 60)
+        self.assertEqual(self.banner()['message'], 'Récente', 'the most recently started active banner wins')
+
+    def test_scope_targeting(self):
+        # scope ids in the seed: 1 = 99_testville, 2 = 98_autre
+        self.add(message='Pour Autre', scopes='2')
+        self.assertIsNone(self.banner(scope='99_testville'), 'a banner targeting another scope is not shown')
+        self.assertIsNone(self.banner(), 'scope-targeted banner not shown without a scope')
+        self.assertEqual(self.banner(scope='98_autre')['message'], 'Pour Autre', 'shown for the targeted scope')
+        sql("UPDATE obs_banners SET banner_scopes='' WHERE 1")
+        self.assertEqual(self.banner(scope='99_testville')['message'], 'Pour Autre', 'an all-scopes banner is shown everywhere')
+
     def test_id_changes_with_content(self):
-        set_config('vigilo_banner_message', 'Message A')
+        b = self.add(message='Message A')
         first = self.banner()['id']
-        set_config('vigilo_banner_message', 'Message B')
+        sql("UPDATE obs_banners SET banner_message='Message B' WHERE banner_id=%d" % b)
         self.assertNotEqual(self.banner()['id'], first, 'editing the message changes the id')
 
 

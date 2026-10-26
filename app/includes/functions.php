@@ -530,54 +530,60 @@ function vigilo_banner_types()
     return array('info', 'success', 'warning', 'alert');
 }
 
-/* One obs_config value as a string ('' when the row is absent) */
-function vigilo_config_value($db, $param)
+/* Display modes a banner can have */
+function vigilo_banner_displays()
 {
-    $query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='" . mysqli_real_escape_string($db, $param) . "' LIMIT 1");
-    $row   = $query ? mysqli_fetch_assoc($query) : null;
-    return ($row && isset($row['config_value'])) ? (string) $row['config_value'] : '';
+    return array('banner', 'modal', 'both');
 }
 
-/*
- * The banner to show right now, or null: null when no message is set or when the current time
- * is outside the start/end window (both optional, 'YYYY-MM-DDTHH:MM' in the instance timezone).
- * "id" is a hash of the content: it changes whenever the admin edits the banner, so the web app
- * shows an edited banner again even if the previous one was dismissed.
- */
-function vigilo_banner($db)
+/* All the banners (obs_banners), newest first, for the admin page */
+function vigilo_banners_all($db)
 {
-    $message = trim(vigilo_config_value($db, 'vigilo_banner_message'));
-    if ($message === '') {
-        return null;
+    $banners = array();
+    $query   = mysqli_query($db, "SELECT * FROM obs_banners ORDER BY banner_created DESC, banner_id DESC");
+    while ($query && $row = mysqli_fetch_assoc($query)) {
+        $banners[] = $row;
     }
+    return $banners;
+}
+
+/* A banner row formatted for the web app (get_banner.php response) */
+function vigilo_banner_format($row)
+{
     $types   = vigilo_banner_types();
-    $type    = vigilo_config_value($db, 'vigilo_banner_type');
-    if (!in_array($type, $types, true)) {
-        $type = $types[0];
-    }
-    $display = vigilo_config_value($db, 'vigilo_banner_display');
-    if (!in_array($display, array('banner', 'modal', 'both'), true)) {
-        $display = 'banner';
-    }
-    $start   = vigilo_config_value($db, 'vigilo_banner_start');
-    $end     = vigilo_config_value($db, 'vigilo_banner_end');
-
-    $now      = time();
-    $start_ts = $start !== '' ? strtotime($start) : false;
-    $end_ts   = $end !== '' ? strtotime($end) : false;
-    if ($start_ts !== false && $now < $start_ts) {
-        return null;
-    }
-    if ($end_ts !== false && $now > $end_ts) {
-        return null;
-    }
-
+    $type    = in_array($row['banner_type'], $types, true) ? $row['banner_type'] : $types[0];
+    $display = in_array($row['banner_display'], vigilo_banner_displays(), true) ? $row['banner_display'] : 'banner';
+    $start   = intval($row['banner_start']) ? date('Y-m-d\TH:i', intval($row['banner_start'])) : '';
+    $end     = intval($row['banner_end']) ? date('Y-m-d\TH:i', intval($row['banner_end'])) : '';
     return array(
-        'id'      => substr(md5($message . '|' . $type . '|' . $start . '|' . $end . '|' . $display), 0, 12),
+        // content hash: changes when the admin edits the banner, so a dismissed banner shows again
+        'id'      => substr(md5($row['banner_id'] . '|' . $row['banner_message'] . '|' . $type . '|' . $row['banner_start'] . '|' . $row['banner_end'] . '|' . $display), 0, 12),
         'type'    => $type,
-        'message' => $message,
+        'message' => (string) $row['banner_message'],
         'display' => $display,
         'start'   => $start,
         'end'     => $end,
     );
+}
+
+/*
+ * The banner to show right now for a given scope (obs_scopes id, 0/none = only banners that target
+ * every scope), or null. Active = enabled, within its optional start/end window, and targeting this
+ * scope (banner_scopes empty = all scopes). When several are active, the most recently started wins.
+ */
+function vigilo_banner($db, $scope_id = 0)
+{
+    $now      = time();
+    $scope_id = intval($scope_id);
+    $query    = mysqli_query($db, "SELECT * FROM obs_banners
+        WHERE banner_enabled = 1
+          AND (banner_start = 0 OR banner_start <= $now)
+          AND (banner_end = 0 OR banner_end >= $now)
+          AND (banner_scopes = '' OR FIND_IN_SET($scope_id, banner_scopes))
+        ORDER BY banner_start DESC, banner_id DESC LIMIT 1");
+    $row = $query ? mysqli_fetch_assoc($query) : null;
+    if (!$row || trim($row['banner_message']) === '') {
+        return null;
+    }
+    return vigilo_banner_format($row);
 }
