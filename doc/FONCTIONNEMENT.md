@@ -9,7 +9,8 @@ une **observation** avec une photo, une position, une adresse, une **catégorie*
    serveur de floutage est configuré, la fait flouter (visages, plaques). L'observation est alors complète.
 3. **Modération** : un modérateur approuve (`approved = 1`) ou refuse (`approved = 2`) l'observation
    depuis l'admin ou l'API. Tant qu'elle n'est pas approuvée, elle n'est pas listée (sauf réglage
-   « Afficher les observations non modérées ») et sa photo n'est visible que pixelisée.
+   « Observations non modérées ») et sa photo n'est visible que pixelisée (ou image de substitution selon ce
+   réglage, voir « Photos, pixelisation et floutage »).
 4. **Suivi** : l'observation passe par des **statuts** (0 nouvelle, 2 prise en compte, 3 en cours de
    résolution, 4 indiquée comme résolue, 1 résolue). Les citoyens déclarent une **résolution**
    (`create_resolution.php`, avec photo) que l'admin valide ; les comptes **citystaff** (services d'une
@@ -117,8 +118,13 @@ les consultent en lecture seule (problèmes ayant des observations dans leurs vi
 
 - Les photos sont dans `images/<token>.jpg` et `images/resolutions/<token>.jpg`, jamais servies directement
   (`.htaccess`) : elles passent par `get_photo.php`, `generate_panel.php` ou `admin/photo.php`.
-- Une photo non approuvée n'est servie au public que **pixelisée** ; le cache (`caches/`) ne contient que des
-  images pixelisées. Une photo approuvée ne peut plus être remplacée par son auteur.
+- Une photo non approuvée n'est servie au public que **pixelisée** (par défaut) ou remplacée par une **image de
+  substitution** (`style/image_404.jpg`) selon le réglage `vigilo_shownonapproved` (`pixelated` / `substitute`) ; le
+  cache (`caches/`) ne contient que ces rendus publics, un fichier par mode. L'auteur (`secretid`) et les
+  admins/modérateurs reçoivent la photo nette. Une photo approuvée ne peut plus être remplacée par son auteur.
+- Le réglage `vigilo_shownonapproved` règle aussi la **liste** : `0` masque les observations non modérées au public,
+  toute autre valeur (`pixelated`, `substitute`, ancienne `1`) les montre. Le réglage `vigilo_shownonapproved_notext`
+  vide en plus leur commentaire et leur explication pour le public (texte conservé pour l'auteur et les modérateurs).
 - Une observation sans photo répond 404 (`PHOTONOTFOUND`) sur `get_photo.php` et `generate_panel.php` ; les
   applications et l'admin affichent alors une image par défaut. `generate_panel.php` ne compose plus de panneau
   depuis la 0.0.22 : il renvoie la photo, comme `get_photo.php`.

@@ -68,16 +68,32 @@ class GetIssues
     $this->acls = $acls;
   }
  
+  // Config value (string) of a vigilo_shownonapproved* parameter, '' if unset
+  protected function configValue(string $param) : string
+  {
+    $query = mysqli_query($this->db, "SELECT config_value FROM obs_config WHERE config_param='" . mysqli_real_escape_string($this->db, $param) . "' LIMIT 1");
+    $result = $query ? mysqli_fetch_assoc($query) : null;
+    return isset($result['config_value']) ? (string) $result['config_value'] : '';
+  }
+
+  // Non-approved observations shown to the public (vigilo_shownonapproved: '0'/'' = no,
+  // 'pixelated'/'substitute'/legacy '1' = yes). String comparison: safe on PHP 7 and 8.
   public function showNonApproved() : bool
   {
-    $query = mysqli_query($this->db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_shownonapproved' LIMIT 1");
-    $result = mysqli_fetch_array($query);
-    if (!isset($result['config_value']) OR $result['config_value'] == 0) {
-      return False;
-    }
-    else {
-      return True;
-    }
+    $mode = $this->configValue('vigilo_shownonapproved');
+    return $mode !== '' && $mode !== '0';
+  }
+
+  // Hide the text (comment, explanation) of non-approved observations shown to the public
+  public function hideNonApprovedText() : bool
+  {
+    $v = $this->configValue('vigilo_shownonapproved_notext');
+    return $v !== '' && $v !== '0';
+  }
+
+  protected function isPrivileged() : bool
+  {
+    return isset($this->authkey) && (getrole($this->authkey, $this->acls) == "admin" || getrole($this->authkey, $this->acls) == "moderator");
   }
 
   public function setFormat($value) : void
@@ -335,13 +351,20 @@ ORDER BY obs_time DESC
         $token_result = mysqli_fetch_array($token_query);
       }
 
+      // Hide the text of non-approved observations from the public (not from admins/moderators)
+      $hide_nonapproved_text = $this->hideNonApprovedText() && !$this->isPrivileged();
+
       $rquery = mysqli_query($this->db, $this->getQuery());
       if (mysqli_num_rows($rquery) > 0) {
         while ($result = mysqli_fetch_array($rquery)) {
           $resolution_status = resolution_status_from_rank($result['resolution_rank']);
           if ($this->status > -1 && $this->status != $resolution_status) {
             continue;
-          }		  
+          }
+          if ($hide_nonapproved_text && intval($result['obs_approved']) !== 1) {
+            $result['obs_comment'] = '';
+            $result['obs_explanation'] = '';
+          }
           $issue = array(
             "token" => $result['obs_token'],
             "coordinates_lat" => $result['obs_coordinates_lat'],

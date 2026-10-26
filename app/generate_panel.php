@@ -65,9 +65,13 @@ if (isset($_GET["s"]) && is_numeric($_GET["s"]) && intval($_GET["s"]) > 0 && int
     $resize_width = intval($_GET["s"]);
 }
 
-# The cache only holds the public rendering (pixelated until approved).
-# "_p3" prefix: ignore the panels cached by older versions.
-$img_filename = $caches_path . $token . '_p3_w' . $resize_width . '.jpg';
+# Public display mode of a non-approved photo (pixelated or substitute, vigilo_shownonapproved)
+$nonapproved_mode = vigilo_nonapproved_photo_mode($db);
+
+# The cache only holds the public rendering (pixelated or substitute until approved).
+# "_p3" prefix: ignore the panels cached by older versions. The mode is part of the name
+# so changing it never serves a stale rendering.
+$img_filename = $caches_path . $token . '_p3_' . $nonapproved_mode . '_w' . $resize_width . '.jpg';
 
 $role       = getrole($key, $acls);
 $privileged = ($role == "admin" || $role == "moderator");
@@ -97,9 +101,15 @@ if (!$found) {
     jsonError($error_prefix, "Token : " . $token . " has no photo.", "PHOTONOTFOUND", 404);
 }
 
-# Photo is pixelated until approved by a moderator, whatever the requested size
+# Until approved by a moderator, the public gets a pixelated photo or a substitute image
+# (vigilo_shownonapproved); the author (secretid) and admins/moderators get the real photo.
 if ($found && $approved != 1 && !$AdminOrAuthor) {
-    $image = pixalize($filepath);
+    if ($nonapproved_mode === 'substitute') {
+        $substitute = "$cwd/style/image_404.jpg";
+        $image = file_exists($substitute) ? @imagecreatefromjpeg($substitute) : pixalize($filepath);
+    } else {
+        $image = pixalize($filepath);
+    }
 } else {
     $image = @imagecreatefromjpeg($filepath);
 }

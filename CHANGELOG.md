@@ -2,6 +2,18 @@
 
 ## 0.0.38
 
+### Observations non modérées : affichage public configurable
+- Nouveau réglage **« Observations non modérées »** (`vigilo_shownonapproved`, page Réglages de l'admin) : choisir ce
+  que le public voit d'une observation en attente — **ne rien afficher** (`0`), **photo pixelisée** (`pixelated`,
+  comportement historique) ou **image de substitution** (`substitute`, l'image générique `style/image_404.jpg` à la
+  place de la photo). L'ancienne valeur `1` est lue comme `pixelated` (compatibilité).
+- Nouveau réglage **« Masquer le texte des observations non modérées »** (`vigilo_shownonapproved_notext`, case à
+  cocher) : quand il est actif, `get_issues.php` renvoie un commentaire et une explication vides pour les observations
+  non modérées du public (le modérateur et l'auteur gardent le texte).
+- Replis : réglages absents → comportement historique (photo pixelisée, texte visible) ; `generate_panel.php` sert
+  l'image de substitution en mode `substitute` (repli sur la pixelisation si le fichier manque), le cache distingue
+  chaque mode.
+
 ### Image Docker
 - **PHP 8.5** (`php:8.5-apache-trixie`, Debian 13) au lieu de PHP 8.3 (Debian 12). Le code reste compatible
   PHP 7.3 à 8.5 : `curl_close()`, sans effet depuis PHP 8.0 et dépréciée en 8.5, n'est plus appelée qu'en PHP 7.
