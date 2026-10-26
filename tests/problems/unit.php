@@ -190,6 +190,13 @@ check(array_keys($proposals) === array(1, 3, 4) && $proposals[1]['after']['addre
       && $proposals[4]['after']['address'] === 'Avenue de lodeve' && $proposals[4]['reasons'] === array('street_type')
       && $proposals[3]['after']['address'] === 'Avenue de Lodève' && $proposals[3]['reasons'] === array('number'),
       'addresses: number taken out, most frequent spelling of the street in the same city, other city untouched');
+// An apostrophe changes the words: "de Lauriol" (proper name) must not be rewritten to "de l'Auriol" (nor the reverse),
+// even if one spelling is more frequent (they are not grouped as the same street for spelling).
+$rows = array(1 => array('obs_token' => 'A', 'obs_address_string' => 'Boulevard de Lauriol', 'obs_city' => 1, 'obs_cityname' => ''),
+              2 => array('obs_token' => 'B', 'obs_address_string' => "Boulevard de l'Auriol", 'obs_city' => 1, 'obs_cityname' => ''),
+              3 => array('obs_token' => 'C', 'obs_address_string' => "Boulevard de l'Auriol", 'obs_city' => 1, 'obs_cityname' => ''));
+check(address_cleanup_proposals($rows, $cities) === array(),
+      'addresses: an apostrophe difference is not "corrected" (Lauriol vs l\'Auriol kept as typed)');
 check(address_format_details("Route  de Mende ", 'Route de Mende') === array('espaces en double retirés', 'espace au début ou à la fin retiré')
       && address_format_details("Route\u{00A0}de Mende", 'Route de Mende') === array('espace insécable ou tabulation remplacé')
       && address_format_details('Route de Mende', 'Route de Mende') === array(), 'addresses: invisible format changes described');

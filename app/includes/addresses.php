@@ -197,8 +197,14 @@ function address_spelling_fixes($rows)
             continue;
         }
         $name = vigilo_street_name($address);
-        $key  = vigilo_street_key($name);
-        if ($key === '' || $name === '') {
+        if ($name === '') {
+            continue;
+        }
+        // Group only genuine spelling variants of the SAME words (case, accents, spacing, street type).
+        // Unlike vigilo_street_key(), apostrophes and hyphens are kept, so "de Lauriol" and
+        // "de l'Auriol" are not merged (one must not be auto-corrected into the other).
+        $key = preg_replace('/\s+/u', ' ', trim(vigilo_ascii_lower(vigilo_street_type_normalize($name))));
+        if ($key === '') {
             continue;
         }
         $group = $row['city'] . '|' . $key;
