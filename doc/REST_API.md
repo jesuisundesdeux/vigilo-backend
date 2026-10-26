@@ -669,8 +669,11 @@ résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou mod�
 
 ## Bannière (depuis 0.0.38)
 
-`GET get_banner.php` renvoie la bannière (annonce) à afficher dans l'application, configurée dans l'admin
-(carte « Bannière » des Réglages). Réponse `application/json` :
+`GET get_banner.php` renvoie la bannière (annonce) à afficher dans l'application, parmi celles configurées dans l'admin
+(page « Bannière », table `obs_banners`). Le paramètre `scope` (nom de scope de l'instance) filtre les bannières qui
+ne ciblent que certains scopes ; sans lui, seules les bannières ciblant tous les scopes sont renvoyées. Plusieurs
+bannières peuvent être programmées : la plus récemment commencée parmi celles actives est renvoyée. Réponse
+`application/json` :
 
 ```json
 {
@@ -685,9 +688,9 @@ résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou mod�
 }
 ```
 
-- `banner` vaut **`null`** quand aucun message n'est défini ou quand l'heure courante est hors de la plage
-  `start`/`end` (toutes deux facultatives, `YYYY-MM-DDTHH:MM` dans le fuseau de l'instance). Les clients masquent
-  alors toute bannière.
+- `banner` vaut **`null`** quand aucune bannière active ne correspond : aucune activée, hors de la plage `start`/`end`
+  (toutes deux facultatives, `YYYY-MM-DDTHH:MM` dans le fuseau de l'instance), ou ne ciblant pas le `scope` demandé.
+  Les clients masquent alors toute bannière.
 - `type` : `info`, `success`, `warning` ou `alert` (sévérité ; l'application choisit couleur et icône).
 - `display` : `banner` (bandeau), `modal` (fenêtre) ou `both` (les deux).
 - `id` est un condensé du contenu : il change dès que l'admin modifie la bannière. L'application garde une bannière

@@ -2,15 +2,16 @@
 
 ## 0.0.38
 
-### Bannière (annonce) configurable
-- Nouvelle carte **« Bannière »** dans les Réglages de l'admin : un message d'annonce affiché dans l'application web,
-  avec un **type** (Information, Succès, Attention, Alerte — couleur et icône), une **plage début/fin** facultative
-  (date et heure) et un **affichage** au choix : bandeau fermable sous la barre du haut, fenêtre au lancement, ou les
-  deux. Message vide = pas de bannière.
-- Nouvelle route **`get_banner.php`** : renvoie `{"banner": {...}}` quand un message est défini et que l'heure courante
-  est dans la plage, `{"banner": null}` sinon. `id` est un condensé du contenu : modifier la bannière la ré-affiche à
-  tout le monde (l'application la garde fermée par `id` jusqu'au prochain message). Nouveaux réglages
-  `vigilo_banner_message` / `_type` / `_start` / `_end` / `_display` (ajout seulement, repli : aucune bannière).
+### Bannières (annonces) configurables
+- Nouvelle page **« Bannière »** dans le menu de l'admin (table dédiée `obs_banners`, migration `init-0.0.38.sql`) :
+  gérer **plusieurs bannières** affichées dans l'application web, chacune avec un **message**, un **type** (Information,
+  Succès, Attention, Alerte — couleur et icône), une **plage début/fin** facultative (date et heure), un **affichage**
+  (bandeau sous la barre du haut, fenêtre au lancement, ou les deux), les **scopes concernés** de l'instance (aucun =
+  tous) et un interrupteur **activée**. On peut ainsi **programmer** des bannières dans le temps.
+- Nouvelle route **`get_banner.php?scope=<scope>`** : renvoie `{"banner": {...}}` — la bannière active (activée, dans sa
+  plage, ciblant ce scope ; la plus récemment commencée si plusieurs) — ou `{"banner": null}`. `id` est un condensé du
+  contenu : modifier une bannière la ré-affiche (l'application la garde fermée par `id` jusqu'au prochain message).
+  Ajout seulement, repli : aucune bannière (route en 404 sur une instance plus ancienne).
 
 ### Observations non modérées : affichage public configurable
 - Nouveau réglage **« Observations non modérées »** (`vigilo_shownonapproved`, page Réglages de l'admin) : choisir ce

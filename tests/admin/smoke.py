@@ -194,18 +194,27 @@ def main():
     check('name="cfg[vigilo_shownonapproved]"' in page and 'value="substitute"' in page
           and 'name="cfg[vigilo_shownonapproved_notext]"' in page,
           'non-approved display mode (choice) and hide-text switch shown')
-    check('name="cfg[vigilo_banner_message]"' in page and 'type="datetime-local"' in page
-          and 'value="both"' in page,
-          'banner message, datetime range and display choice shown')
-    # Banner: a message, a type, a date range and the display mode (textarea not caught by the input regex above)
-    fields.update({'cfg[vigilo_banner_message]': 'Alerte test <b>échappée</b>', 'cfg[vigilo_banner_type]': 'warning',
-                   'cfg[vigilo_banner_start]': '2026-01-01T08:00', 'cfg[vigilo_banner_end]': '2026-12-31T18:00',
-                   'cfg[vigilo_banner_display]': 'both'})
     status, _, page = admin.request('index.php?page=settings', fields)
     clean('settings save', status, page)
     check('alert-success' in page, 'settings saved')
-    status, _, page = admin.request('index.php?page=settings')
-    check('Alerte test &lt;b&gt;échappée&lt;/b&gt;' in page, 'banner message saved and escaped')
+
+    # Banner: dedicated page (obs_banners table), create / escape / delete, scope targeting
+    status, _, page = admin.request('index.php?page=banner')
+    clean('banner page', status, page)
+    check('name="banner_message"' in page and 'name="banner_scopes[]"' in page, 'banner form with scope targeting shown')
+    status, _, page = admin.request('index.php?page=banner', {'csrf_token': admin.token(page), 'banner_save': '1',
+        'banner_id': '0', 'banner_message': 'Alerte test <b>échappée</b>', 'banner_type': 'warning',
+        'banner_display': 'both', 'banner_scopes[]': '1', 'banner_start': '', 'banner_end': '', 'banner_enabled': '1'})
+    clean('banner create', status, page)
+    check('alert-success' in page and 'Alerte test &lt;b&gt;échappée&lt;/b&gt;' in page, 'banner created and escaped')
+    # the list rows carry the real id; the modal form has value="0"
+    bid = [x for x in re.findall(r'name="banner_id" value="(\d+)"', page) if x != '0']
+    check(bool(bid), 'banner listed with its id')
+    if bid:
+        status, _, page = admin.request('index.php?page=banner',
+            {'csrf_token': admin.token(page), 'banner_delete': '1', 'banner_id': bid[-1]})
+        clean('banner delete', status, page)
+        check('alert-success' in page, 'banner deleted')
 
     # Webhooks: invalid JSON refused, creation with the test button (endpoint down), deletion
     status, _, page = admin.request('index.php?page=webhooks&edit=new')

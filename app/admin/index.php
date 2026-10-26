@@ -77,6 +77,7 @@ $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil"
         "scopes" => array("icon" => "compass", "name" => "Scopes", "access" => array('admin')),
         "categories" => array("icon" => "tags", "name" => "Catégories", "access" => array('admin')),
         "settings" => array("icon" => "gear", "name" => "Configuration", "access" => array('admin')),
+        "banner" => array("icon" => "info-circle", "name" => "Bannière", "access" => array('admin')),
         "webhooks" => array("icon" => "broadcast", "name" => "Webhooks", "access" => array('admin')),
         "audit" => array("icon" => "journal-text", "name" => "Journal", "access" => array('admin')),
         "update" => array("icon" => "arrow-repeat", "name" => "Mises à jour", "access" => array('admin')));
