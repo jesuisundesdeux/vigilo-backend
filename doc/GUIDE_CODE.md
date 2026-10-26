@@ -448,8 +448,9 @@ Construction de la requête (`getQuery()`) :
   admin/modérateur, le commentaire (`obs_comment`) et l'explication (`obs_explanation`) des observations non
   approuvées (`obs_approved != 1`) sont renvoyés vides ;
 - `cityid` : `obs_city = …` ;
-- masquage des observations résolues depuis plus de `vigilo_resolved_hide_days` jours (sauf clé admin/modérateur),
-  d'après `resolution_status = 1` et `resolution_time` ;
+- masquage des observations résolues depuis plus de `vigilo_resolved_hide_days` jours (sauf clé admin/modérateur, ou
+  `resolvedhidden=1` → `setShowResolvedHidden()`, utilisé par les statistiques), d'après `resolution_status = 1` et
+  `resolution_time` ;
 - jointures `LEFT JOIN obs_cities` et sous-requête `obs_res` (une ligne par observation : `MAX` du rang du statut
   de ses résolutions, date de sa résolution résolue) ; le **statut renvoyé est le plus avancé de ses résolutions**
   (0 sans résolution), pas la colonne `obs_status` ;

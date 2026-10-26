@@ -261,6 +261,7 @@ class T02IssuesList(unittest.TestCase):
         try:
             self.assertNotIn('TOKA0007', issue_tokens(), 'resolved more than 30 days ago: hidden')
             self.assertIn('TOKA0007', issue_tokens({'key': ADMIN}), 'still visible with an admin key')
+            self.assertIn('TOKA0007', issue_tokens({'resolvedhidden': '1'}), 'kept for the statistics with resolvedhidden=1')
         finally:
             set_config('vigilo_resolved_hide_days', '0')
         self.assertIn('TOKA0007', issue_tokens())

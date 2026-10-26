@@ -3,6 +3,9 @@
 ## 0.0.38
 
 ### Corrections
+- Statistiques (application, site) : nouveau paramètre `get_issues.php?resolvedhidden=1` qui conserve les observations
+  résolues même au-delà de `vigilo_resolved_hide_days` (le filtre d'approbation est maintenu). Les statistiques
+  comptent ainsi **toutes les observations publiées**, y compris les résolues anciennes, qui en étaient exclues.
 - Qualité des adresses (admin) : deux écritures qui ne diffèrent que par une apostrophe (donc par le découpage des
   mots), par exemple « Boulevard de Lauriol » et « Boulevard de l'Auriol », ne sont plus regroupées comme une même rue
   et ne sont donc plus « corrigées » l'une vers l'autre (le regroupement orthographique garde apostrophes et traits
