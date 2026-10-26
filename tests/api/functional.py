@@ -1476,6 +1476,66 @@ class T15PasswordLinks(unittest.TestCase):
         self.assertIn('pas valide', person('password.php?token=nope'))
 
 
+class T16Banner(unittest.TestCase):
+    # Announcement configured in the admin, served by get_banner.php for the web app
+    def tearDown(self):
+        for p in ('vigilo_banner_message', 'vigilo_banner_type', 'vigilo_banner_start',
+                  'vigilo_banner_end', 'vigilo_banner_display'):
+            sql("DELETE FROM obs_config WHERE config_param = '%s'" % p)
+
+    def banner(self):
+        r = call('get_banner.php')
+        self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
+        return r.json()['banner']
+
+    def dt(self, offset_seconds):
+        return time.strftime('%Y-%m-%dT%H:%M', time.localtime(time.time() + offset_seconds))
+
+    def test_none_without_message(self):
+        self.assertIsNone(self.banner(), 'no banner when no message is set')
+        set_config('vigilo_banner_message', '   ')
+        self.assertIsNone(self.banner(), 'blank message = no banner')
+
+    def test_message_and_fields(self):
+        set_config('vigilo_banner_message', 'Travaux en cours')
+        set_config('vigilo_banner_type', 'warning')
+        set_config('vigilo_banner_display', 'both')
+        b = self.banner()
+        self.assertEqual(b['message'], 'Travaux en cours')
+        self.assertEqual(b['type'], 'warning')
+        self.assertEqual(b['display'], 'both')
+        self.assertTrue(b['id'])
+
+    def test_unknown_type_and_display_fall_back(self):
+        set_config('vigilo_banner_message', 'Coucou')
+        set_config('vigilo_banner_type', 'bogus')
+        set_config('vigilo_banner_display', 'bogus')
+        b = self.banner()
+        self.assertEqual(b['type'], 'info', 'unknown type falls back to the first one')
+        self.assertEqual(b['display'], 'banner', 'unknown display falls back to the bar')
+
+    def test_date_window(self):
+        set_config('vigilo_banner_message', 'Fenetre')
+        # A full day around now: active
+        set_config('vigilo_banner_start', self.dt(-86400))
+        set_config('vigilo_banner_end', self.dt(86400))
+        self.assertIsNotNone(self.banner(), 'active within the window')
+        # Starts tomorrow: not yet
+        set_config('vigilo_banner_start', self.dt(86400))
+        set_config('vigilo_banner_end', '')
+        self.assertIsNone(self.banner(), 'not shown before its start')
+        # Ended yesterday: over
+        set_config('vigilo_banner_start', '')
+        set_config('vigilo_banner_end', self.dt(-86400))
+        self.assertIsNone(self.banner(), 'not shown after its end')
+
+    def test_id_changes_with_content(self):
+        set_config('vigilo_banner_message', 'Message A')
+        first = self.banner()['id']
+        set_config('vigilo_banner_message', 'Message B')
+        self.assertNotEqual(self.banner()['id'], first, 'editing the message changes the id')
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()

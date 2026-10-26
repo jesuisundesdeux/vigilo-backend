@@ -2,6 +2,16 @@
 
 ## 0.0.38
 
+### Bannière (annonce) configurable
+- Nouvelle carte **« Bannière »** dans les Réglages de l'admin : un message d'annonce affiché dans l'application web,
+  avec un **type** (Information, Succès, Attention, Alerte — couleur et icône), une **plage début/fin** facultative
+  (date et heure) et un **affichage** au choix : bandeau fermable sous la barre du haut, fenêtre au lancement, ou les
+  deux. Message vide = pas de bannière.
+- Nouvelle route **`get_banner.php`** : renvoie `{"banner": {...}}` quand un message est défini et que l'heure courante
+  est dans la plage, `{"banner": null}` sinon. `id` est un condensé du contenu : modifier la bannière la ré-affiche à
+  tout le monde (l'application la garde fermée par `id` jusqu'au prochain message). Nouveaux réglages
+  `vigilo_banner_message` / `_type` / `_start` / `_end` / `_display` (ajout seulement, repli : aucune bannière).
+
 ### Observations non modérées : affichage public configurable
 - Nouveau réglage **« Observations non modérées »** (`vigilo_shownonapproved`, page Réglages de l'admin) : choisir ce
   que le public voit d'une observation en attente — **ne rien afficher** (`0`), **photo pixelisée** (`pixelated`,

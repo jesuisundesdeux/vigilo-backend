@@ -519,3 +519,65 @@ function vigilo_nonapproved_photo_mode($db)
     $row   = $query ? mysqli_fetch_assoc($query) : null;
     return ($row && isset($row['config_value']) && (string) $row['config_value'] === 'substitute') ? 'substitute' : 'pixelated';
 }
+
+/*
+ * Banner (announcement) configured in the admin and shown by the web app.
+ * Types a banner can have (severity): add one here and a matching style in the web app
+ * (theme.scss / dark.scss) to offer a new type. The first one is the default.
+ */
+function vigilo_banner_types()
+{
+    return array('info', 'success', 'warning', 'alert');
+}
+
+/* One obs_config value as a string ('' when the row is absent) */
+function vigilo_config_value($db, $param)
+{
+    $query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='" . mysqli_real_escape_string($db, $param) . "' LIMIT 1");
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    return ($row && isset($row['config_value'])) ? (string) $row['config_value'] : '';
+}
+
+/*
+ * The banner to show right now, or null: null when no message is set or when the current time
+ * is outside the start/end window (both optional, 'YYYY-MM-DDTHH:MM' in the instance timezone).
+ * "id" is a hash of the content: it changes whenever the admin edits the banner, so the web app
+ * shows an edited banner again even if the previous one was dismissed.
+ */
+function vigilo_banner($db)
+{
+    $message = trim(vigilo_config_value($db, 'vigilo_banner_message'));
+    if ($message === '') {
+        return null;
+    }
+    $types   = vigilo_banner_types();
+    $type    = vigilo_config_value($db, 'vigilo_banner_type');
+    if (!in_array($type, $types, true)) {
+        $type = $types[0];
+    }
+    $display = vigilo_config_value($db, 'vigilo_banner_display');
+    if (!in_array($display, array('banner', 'modal', 'both'), true)) {
+        $display = 'banner';
+    }
+    $start   = vigilo_config_value($db, 'vigilo_banner_start');
+    $end     = vigilo_config_value($db, 'vigilo_banner_end');
+
+    $now      = time();
+    $start_ts = $start !== '' ? strtotime($start) : false;
+    $end_ts   = $end !== '' ? strtotime($end) : false;
+    if ($start_ts !== false && $now < $start_ts) {
+        return null;
+    }
+    if ($end_ts !== false && $now > $end_ts) {
+        return null;
+    }
+
+    return array(
+        'id'      => substr(md5($message . '|' . $type . '|' . $start . '|' . $end . '|' . $display), 0, 12),
+        'type'    => $type,
+        'message' => $message,
+        'display' => $display,
+        'start'   => $start,
+        'end'     => $end,
+    );
+}

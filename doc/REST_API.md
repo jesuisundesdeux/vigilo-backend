@@ -20,6 +20,7 @@ Authentification :
 | `GET get_version.php` | Version du backend | — |
 | `GET get_scope.php?scope=` | Informations d'un scope (carte, contact, villes) | — |
 | `GET get_categories.php` | Catégories de l'instance (depuis 0.0.23, voir [Catégories](#catégories)) | — |
+| `GET get_banner.php` | Bannière (annonce) à afficher, ou `null` (depuis 0.0.38, voir [Bannière](#bannière-depuis-0038)) | — |
 | `GET get_issues.php` | Liste des observations (sans les archivées, sauf `archived=1`) ; filtres `scope`, `c` (catégories), `status`, `approved`, `token`, `tokenfilters`/`fdistance`, `lat`/`lon`/`radius`, `cityid`, `since`/`since_unit`, `count`, `t` ; formats `json`, `csv`, `geojson` | `key` admin/modérateur pour les non approuvées et les résolues masquées |
 | `GET get_photo.php?token=` | Photo d'une observation (`type=resolution` pour une résolution) | approuvée, ou `key` admin/modérateur, ou lien signé `exp` + `sig` (0.0.26) |
 | `GET generate_panel.php?token=` | Ancien « panneau » : la photo, pixelisée tant qu'elle n'est pas approuvée ; largeur `s` (1024 max.) | `secretid` de l'auteur ou `key` admin/modérateur pour la version nette |
@@ -665,3 +666,31 @@ clé admin ou modérateur ; sur `create_resolution.php`, celles avec une clé ad
 Si le réglage « Masquer les observations résolues depuis plus de N jours » (`vigilo_resolved_hide_days`) est
 supérieur à 0 (0 par défaut), `get_issues.php` ne renvoie plus les observations dont la
 résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou modérateur.
+
+## Bannière (depuis 0.0.38)
+
+`GET get_banner.php` renvoie la bannière (annonce) à afficher dans l'application, configurée dans l'admin
+(carte « Bannière » des Réglages). Réponse `application/json` :
+
+```json
+{
+  "banner": {
+    "id": "a1b2c3d4e5f6",
+    "type": "warning",
+    "message": "Travaux : application indisponible dimanche.",
+    "display": "both",
+    "start": "2026-01-01T08:00",
+    "end": "2026-01-31T18:00"
+  }
+}
+```
+
+- `banner` vaut **`null`** quand aucun message n'est défini ou quand l'heure courante est hors de la plage
+  `start`/`end` (toutes deux facultatives, `YYYY-MM-DDTHH:MM` dans le fuseau de l'instance). Les clients masquent
+  alors toute bannière.
+- `type` : `info`, `success`, `warning` ou `alert` (sévérité ; l'application choisit couleur et icône).
+- `display` : `banner` (bandeau), `modal` (fenêtre) ou `both` (les deux).
+- `id` est un condensé du contenu : il change dès que l'admin modifie la bannière. L'application garde une bannière
+  fermée par son `id`, donc une bannière modifiée réapparaît (« jusqu'au prochain message »).
+
+Repli : une instance sans la route (< 0.0.38) renvoie 404 ; les clients n'affichent alors pas de bannière.

@@ -194,9 +194,18 @@ def main():
     check('name="cfg[vigilo_shownonapproved]"' in page and 'value="substitute"' in page
           and 'name="cfg[vigilo_shownonapproved_notext]"' in page,
           'non-approved display mode (choice) and hide-text switch shown')
+    check('name="cfg[vigilo_banner_message]"' in page and 'type="datetime-local"' in page
+          and 'value="both"' in page,
+          'banner message, datetime range and display choice shown')
+    # Banner: a message, a type, a date range and the display mode (textarea not caught by the input regex above)
+    fields.update({'cfg[vigilo_banner_message]': 'Alerte test <b>échappée</b>', 'cfg[vigilo_banner_type]': 'warning',
+                   'cfg[vigilo_banner_start]': '2026-01-01T08:00', 'cfg[vigilo_banner_end]': '2026-12-31T18:00',
+                   'cfg[vigilo_banner_display]': 'both'})
     status, _, page = admin.request('index.php?page=settings', fields)
     clean('settings save', status, page)
     check('alert-success' in page, 'settings saved')
+    status, _, page = admin.request('index.php?page=settings')
+    check('Alerte test &lt;b&gt;échappée&lt;/b&gt;' in page, 'banner message saved and escaped')
 
     # Webhooks: invalid JSON refused, creation with the test button (endpoint down), deletion
     status, _, page = admin.request('index.php?page=webhooks&edit=new')
