@@ -441,7 +441,11 @@ Construction de la requête (`getQuery()`) :
   chaque observation reçoit le champ `archived` (statistiques de l'application web) ;
 - `scope` : `obs_scope = …`, **sauf pour `34_montpellier`** (première instance, historiquement sans filtre) ;
 - approbation : avec `approved` explicite, voir `setApproved()` ci-dessous ; sinon `obs_approved IN (0, 1)` si le
-  réglage `vigilo_shownonapproved` vaut 1 ou si la clé est admin/modérateur, `obs_approved = 1` sinon ;
+  réglage `vigilo_shownonapproved` est actif (toute valeur sauf `0`/vide, voir `showNonApproved()`) ou si la clé est
+  admin/modérateur, `obs_approved = 1` sinon ;
+- texte masqué : si `vigilo_shownonapproved_notext` est actif (`hideNonApprovedText()`) et que la clé n'est pas
+  admin/modérateur, le commentaire (`obs_comment`) et l'explication (`obs_explanation`) des observations non
+  approuvées (`obs_approved != 1`) sont renvoyés vides ;
 - `cityid` : `obs_city = …` ;
 - masquage des observations résolues depuis plus de `vigilo_resolved_hide_days` jours (sauf clé admin/modérateur),
   d'après `resolution_status = 1` et `resolution_time` ;
@@ -452,7 +456,9 @@ Construction de la requête (`getQuery()`) :
 
 `setApproved($value)` : avec une clé admin/modérateur, toute valeur ; sinon `0` seulement si
 `vigilo_shownonapproved` est actif, `1` toujours, et toute autre valeur rend la liste **vide**
-(`returnempty`) plutôt qu'une erreur.
+(`returnempty`) plutôt qu'une erreur. `showNonApproved()` et `hideNonApprovedText()` lisent ces réglages par
+comparaison de **chaîne** (jamais `== 0`, qui vaudrait `true` pour une valeur comme `pixelated` en PHP 7) :
+actif = valeur non vide et différente de `0`.
 
 Filtrage après la requête, en PHP (`getIssues()`) :
 
@@ -695,7 +701,8 @@ le lien `action=resolve&new_status=` (voir section 10).
 | `vigilo_language` | `common.php` (`VIGILO_LANGUAGE`) : attribut `lang` de la mosaïque | oui | `fr-FR` |
 | `vigilo_timezone` | `common.php` | oui | `Europe/Paris` |
 | `mysql_charset` | `common.php` (`mysqli_set_charset`) | oui | `utf8` |
-| `vigilo_shownonapproved` | `get_issues.php` | oui | `1` (installation neuve : `schema-0.0.17.sql`) |
+| `vigilo_shownonapproved` | `get_issues.php` (liste), `generate_panel.php` (photo) | oui | `1` (installation neuve : `schema-0.0.17.sql`) ; `0` masque, `pixelated` photo pixelisée, `substitute` image de substitution (ancienne `1` = `pixelated`) |
+| `vigilo_shownonapproved_notext` | `get_issues.php` | oui | `0` (ligne absente : texte visible) ; actif = commentaire et explication vides au public pour les non modérées |
 | `vigilo_resolved_hide_days` | `get_issues.php` | oui | `0` |
 | `vigilo_blur_url` | `blur.php` | oui | `''` |
 | `vigilo_ratelimit_create` | `create_issue.php`, `create_resolution.php` | oui | `60` (ligne absente : pas de limite) |
@@ -709,7 +716,7 @@ Clés supprimées par `init-0.0.22.sql` : `sgblur_url` (reprise dans `vigilo_blu
 |---|---|---|
 | `images/<token>.jpg` | Photo d'une observation (≤ 1024 px, floutée si un serveur est configuré) | `add_image.php` |
 | `images/resolutions/<R_token>.jpg` | Photo d'une résolution | `add_image.php?type=resolution` |
-| `caches/<token>_p3_w<largeur>.jpg` | Rendu public de `generate_panel.php` (pixelisé si non approuvée) | `generate_panel.php` |
+| `caches/<token>_p3_<mode>_w<largeur>.jpg` | Rendu public de `generate_panel.php` (`<mode>` = `pixelated` ou `substitute`, `vigilo_shownonapproved`) | `generate_panel.php` |
 | `caches/remote_categories.json`, `caches/remote_citylist.json` | Copies des fichiers de vigilo-conf (ou de `VIGILO_CONF_URL`) | `getCachedRemoteJson()` |
 | `caches/updates/` | `latest-release.json` (1 h), archives téléchargées, `stage-<version>/`, `backup-<version>-<date>/` (code + `database.sql`, 3 conservées) ; `.htaccess` `Require all denied` créé automatiquement | `updater.php` |
 | `config/config.php` | Connexion à la base | installation |
@@ -746,22 +753,26 @@ réduite est conservée, l'incident est journalisé (`[WARNING] ADD_IMAGE: photo
 ```
 token, s (largeur ≤ 1024, défaut 1024), secretid, key
         │
-        ├─ ni clé admin/modérateur ni secretid, et caches/<token>_p3_w<s>.jpg existe → readfile (fin)
+        ├─ mode = vigilo_nonapproved_photo_mode() : pixelated (défaut) ou substitute (vigilo_shownonapproved)
+        │
+        ├─ ni clé admin/modérateur ni secretid, et caches/<token>_p3_<mode>_w<s>.jpg existe → readfile (fin)
         │
         ├─ token inconnu → 404 TOKENNOTFOUND ; photo absente → 404 PHOTONOTFOUND (JSON)
         │
-        ├─ non approuvée et ni admin/modérateur ni auteur (secretid égal) → pixalize()
+        ├─ non approuvée et ni admin/modérateur ni auteur (secretid égal) :
+        │     mode substitute → style/image_404.jpg (repli pixalize() si absente), sinon pixalize()
         │  sinon → photo telle quelle
         │
         ├─ réduction à la largeur s (hauteur ≤ 1024)
         │
-        ├─ rendu public uniquement → écrit dans caches/<token>_p3_w<s>.jpg
+        ├─ rendu public uniquement → écrit dans caches/<token>_p3_<mode>_w<s>.jpg
         └─ envoi JPEG qualité 90
 ```
 
 Le cache ne contient **que des rendus publics** : un rendu pour l'auteur ou un modérateur n'est jamais écrit. Le
 préfixe `_p3` invalide les anciens panneaux mis en cache par les versions précédentes : changer ce préfixe est la
-façon d'invalider tout le cache après un changement de rendu.
+façon d'invalider tout le cache après un changement de rendu. Le **mode** (`pixelated`/`substitute`) fait partie du nom
+du fichier : changer `vigilo_shownonapproved` ne sert donc jamais un rendu d'un autre mode resté en cache.
 
 ### 6.5 Autres accès aux photos
 
@@ -1257,10 +1268,10 @@ compatibilité** (les tests de contrat les figent) ; les autres sont des défaut
   peuvent pas enregistrer leur version (`obs_config` n'existe qu'à partir de 0.0.4). Une installation interrompue
   avant 0.0.4 laisse une base que `vigilo_db_version()` refuse (« obs_config absente mais obs_list présente ») : il faut
   vider la base.
-- `vigilo_shownonapproved` vaut **1** sur une installation neuve (`schema-0.0.17.sql`) : les observations sont publiées
-  sans modération tant que l'admin ne décoche pas le réglage, alors que le défaut de `$settings_fields` (utilisé si la
-  ligne manque) est `0`. De même `mysql_charset` vaut `utf8` en base (`init-0.0.4.sql`), le défaut de la page étant
-  `utf8mb4`.
+- `vigilo_shownonapproved` vaut **1** sur une installation neuve (`schema-0.0.17.sql`) — lu comme `pixelated` : les
+  observations non modérées sont listées (photo pixelisée) tant que l'admin ne choisit pas « ne rien afficher » (`0`),
+  alors que le défaut de `$settings_fields` (utilisé si la ligne manque) est `0`. De même `mysql_charset` vaut `utf8`
+  en base (`init-0.0.4.sql`), le défaut de la page étant `utf8mb4`.
 - `common.php` arrête le script sans code d'erreur HTTP (200, corps vide ou texte) si `config.php` manque ou si la base
   est injoignable.
 

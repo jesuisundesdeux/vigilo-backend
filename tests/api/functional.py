@@ -203,6 +203,19 @@ class T02IssuesList(unittest.TestCase):
         finally:
             set_config('vigilo_shownonapproved', '1')
 
+    def test_hide_nonapproved_text(self):
+        # When enabled, the public no longer sees the text of non-approved observations
+        set_config('vigilo_shownonapproved_notext', '1')
+        try:
+            pending = call('get_issues.php', {'token': 'TOKA0002'}).json()[0]
+            self.assertEqual((pending['comment'], pending['explanation']), ('', ''), 'text hidden for the public')
+            approved = call('get_issues.php', {'token': 'TOKA0001'}).json()[0]
+            self.assertEqual(approved['comment'], 'Voiture "garée", trottoir é', 'approved text untouched')
+            seen = call('get_issues.php', {'token': 'TOKA0002', 'key': MODO}).json()[0]
+            self.assertEqual(seen['comment'], 'En attente', 'moderators still see the text')
+        finally:
+            set_config('vigilo_shownonapproved_notext', '0')
+
     def test_filters(self):
         self.assertEqual(issue_tokens({'scope': '98_autre'}), ['TOKA0006'])
         self.assertNotIn('TOKA0006', issue_tokens({'scope': '99_testville'}))
@@ -285,6 +298,30 @@ class T03Images(unittest.TestCase):
         approved_public = call('generate_panel.php', {'token': 'TOKA0001', 's': '400'}).body
         approved_author = call('generate_panel.php', {'token': 'TOKA0001', 's': '400', 'secretid': 'SECRET0001'}).body
         self.assertEqual(approved_public, approved_author, 'approved photo identical for everyone')
+
+    def test_panel_substitute_mode(self):
+        # Seed mode is pixelated (legacy '1'): capture the pixelated public render and the real one
+        pixelated = call('generate_panel.php', {'token': 'TOKA0002', 's': '400'}).body
+        author = call('generate_panel.php', {'token': 'TOKA0002', 's': '400', 'secretid': 'SECRET0002'}).body
+        set_config('vigilo_shownonapproved', 'substitute')
+        try:
+            r = call('generate_panel.php', {'token': 'TOKA0002', 's': '400'})
+            substitute = r.body
+            self.assertEqual((r.status, r.header('Content-Type')), (200, 'image/jpeg'))
+            self.assertNotEqual(substitute, pixelated, 'substitute differs from the pixelated photo')
+            self.assertNotEqual(substitute, author, 'substitute is not the real photo')
+            # Generic image: the same for every non-approved observation (TOKA0004 is also not approved).
+            # Use a width no other test touches so a leftover cache file can't skew the comparison.
+            self.assertEqual(call('generate_panel.php', {'token': 'TOKA0002', 's': '377'}).body,
+                             call('generate_panel.php', {'token': 'TOKA0004', 's': '377'}).body)
+            # Author and moderators still get the real photo
+            self.assertEqual(call('generate_panel.php', {'token': 'TOKA0002', 's': '400', 'secretid': 'SECRET0002'}).body, author)
+            self.assertEqual(call('generate_panel.php', {'token': 'TOKA0002', 's': '400', 'key': MODO}).body, author)
+            # Approved photo unaffected by the mode
+            self.assertEqual(call('generate_panel.php', {'token': 'TOKA0001', 's': '400'}).body,
+                             call('generate_panel.php', {'token': 'TOKA0001', 's': '400', 'secretid': 'SECRET0001'}).body)
+        finally:
+            set_config('vigilo_shownonapproved', '1')
 
     def test_panel_errors(self):
         self.assertEqual(call('generate_panel.php').status, 400)

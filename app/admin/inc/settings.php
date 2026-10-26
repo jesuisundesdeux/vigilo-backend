@@ -29,7 +29,7 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 /*
  * Editable settings. Only these parameters can be written from the UI
  * (vigilo_db_version, in particular, is never editable).
- * type: text, urlbase, proto, language, timezone, charset, bool, int, url
+ * type: text, urlbase, proto, language, timezone, charset, bool, int, url, choice (options)
  */
 
 $settings_cards = array(
@@ -61,8 +61,16 @@ $settings_fields = array(
     'help' => 'Jeu de caractères de la connexion à la base. À ne modifier qu\'en connaissance de cause.'),
 
   'vigilo_shownonapproved' => array(
-    'card' => 'publication', 'type' => 'bool', 'label' => 'Afficher les observations non modérées', 'default' => '0',
-    'help' => 'Si coché, les observations sont publiées sans attendre la validation d\'un modérateur.'),
+    'card' => 'publication', 'type' => 'choice', 'label' => 'Observations non modérées affichées au public', 'default' => '0',
+    'options' => array(
+      '0' => 'Pas d\'affichage du tout',
+      'pixelated' => 'Affichées, photo pixelisée',
+      'substitute' => 'Affichées, photo de substitution',
+    ),
+    'help' => 'Ce que le public voit des observations en attente de modération. « Pas d\'affichage » : elles n\'apparaissent qu\'une fois validées. « Photo pixelisée » : la vraie photo, pixelisée jusqu\'à la validation. « Photo de substitution » : une image générique à la place de la photo.'),
+  'vigilo_shownonapproved_notext' => array(
+    'card' => 'publication', 'type' => 'bool', 'label' => 'Masquer le texte des observations non modérées', 'default' => '0',
+    'help' => 'Quand les observations non modérées sont affichées, masque leur commentaire et leur explication jusqu\'à la validation.'),
   'vigilo_resolved_hide_days' => array(
     'card' => 'publication', 'type' => 'int', 'label' => 'Masquer les observations résolues depuis plus de (jours)', 'default' => '0', 'suffix' => 'jours',
     'help' => 'Les observations résolues depuis plus de N jours ne sont plus listées publiquement. 0 = jamais masquées.'),
@@ -152,6 +160,12 @@ if (isset($_POST['settings_save'])) {
         $values[$param] = $value;
         if (!in_array($value, array('http', 'https'), true)) {
           $errors[$param] = 'Valeur attendue : http ou https.';
+        }
+        break;
+      case 'choice':
+        $options = isset($field['options']) && is_array($field['options']) ? $field['options'] : array();
+        if (!array_key_exists($value, $options)) {
+          $errors[$param] = 'Valeur non autorisée.';
         }
         break;
       case 'urlbase':
@@ -254,6 +268,18 @@ $render_field = function ($param, $field, $value, $error) use ($timezones) {
         $control = '<select class="form-select' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" aria-describedby="' . h($help_id) . '">';
         foreach (array('https' => 'https', 'http' => 'http') as $k => $label) {
           $control .= '<option value="' . h($k) . '"' . ($value === $k ? ' selected' : '') . '>' . h($label) . '</option>';
+        }
+        $control .= '</select>';
+        break;
+      case 'choice':
+        $options = isset($field['options']) && is_array($field['options']) ? $field['options'] : array();
+        // Legacy value '1' of vigilo_shownonapproved means "pixelated"
+        if (!array_key_exists($value, $options) && $value === '1' && array_key_exists('pixelated', $options)) {
+          $value = 'pixelated';
+        }
+        $control = '<select class="form-select' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" aria-describedby="' . h($help_id) . '">';
+        foreach ($options as $k => $label) {
+          $control .= '<option value="' . h($k) . '"' . ($value === (string) $k ? ' selected' : '') . '>' . h($label) . '</option>';
         }
         $control .= '</select>';
         break;

@@ -506,3 +506,16 @@ function photo_signed_valid($db, $token, $exp, $sig)
     }
     return hash_equals(photo_link_signature($db, $token, $exp), $sig);
 }
+
+/*
+ * Public display mode of the photo of a non-approved observation (vigilo_shownonapproved):
+ * 'substitute' = a generic substitute image instead of the real photo; anything else
+ * (empty, '0' = not shown but a direct hit is still pixelated, legacy '1', 'pixelated') = the
+ * real photo, pixelated. Admins/moderators and the author always get the real photo (caller side).
+ */
+function vigilo_nonapproved_photo_mode($db)
+{
+    $query = mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param='vigilo_shownonapproved' LIMIT 1");
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+    return ($row && isset($row['config_value']) && (string) $row['config_value'] === 'substitute') ? 'substitute' : 'pixelated';
+}

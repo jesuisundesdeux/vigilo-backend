@@ -210,6 +210,10 @@ l'observation**, pixelisée tant qu'elle n'est pas approuvée (sauf avec le bon 
 réduite pour tenir dans `s` × 1024 pixels. Mêmes paramètres, toujours en `image/jpeg`. Le rendu public est mis en
 cache ; le rendu net (auteur, modérateur) ne l'est jamais.
 
+Depuis la 0.0.38, le rendu public d'une observation non approuvée suit le réglage `vigilo_shownonapproved` de
+l'instance : `pixelated` (défaut, photo pixelisée) ou `substitute` (image de substitution générique à la place de la
+photo). Compatibilité préservée (défaut historique : pixelisée).
+
 ###### Retour
 
 Retourne une image
@@ -262,11 +266,16 @@ Version backend >= 0.0.1
 | URL | str | since_unit | | unité pour le filtre relatif sur la date, valeur parmi : day, week, month, year  | >= 0.0.19 |
 | URL | int | archived | | `1` : inclut les observations archivées (statistiques), avec le champ `archived` sur chaque observation. Sans ce paramètre, elles ne sont pas listées (sauf avec `token` seul, pour qu'un lien vers une observation archivée fonctionne) | >= 0.0.29 |
 
-Sans `approved`, la liste contient les observations approuvées, plus celles à modérer si le réglage « Afficher les
-observations non modérées » est activé ou avec une clé admin/modérateur ; les observations refusées (2) ne sont listées
-qu'avec `approved=2` et une clé. Seules les observations dont la photo a été envoyée sont listées, les plus récentes
-d'abord. Les observations archivées depuis l'admin ne sont pas listées, sauf avec `archived=1` ou par leur `token`
-(sans `tokenfilters`). Voir aussi [Observations résolues anciennes](#observations-résolues-anciennes-depuis-0022).
+Sans `approved`, la liste contient les observations approuvées, plus celles à modérer si le réglage « Observations non
+modérées » (`vigilo_shownonapproved`) n'est pas « ne rien afficher » (`0`) ou avec une clé admin/modérateur ; les
+observations refusées (2) ne sont listées qu'avec `approved=2` et une clé. Seules les observations dont la photo a été
+envoyée sont listées, les plus récentes d'abord. Les observations archivées depuis l'admin ne sont pas listées, sauf
+avec `archived=1` ou par leur `token` (sans `tokenfilters`). Voir aussi
+[Observations résolues anciennes](#observations-résolues-anciennes-depuis-0022).
+
+Depuis la 0.0.38, si le réglage `vigilo_shownonapproved_notext` est activé, le commentaire (`comment`) et l'explication
+(`explanation`) des observations non approuvées renvoyées au public sont vides (texte conservé pour l'auteur via
+`secretid` et pour une clé admin/modérateur). Compatibilité préservée (défaut : texte visible).
 
 Un paramètre invalide (`format` inconnu, valeur non numérique pour `count`, `status`, `t`, `since`, `approved`,
 `cityid`, ou `since_unit` inconnue) donne une erreur HTTP 500 sans corps JSON.

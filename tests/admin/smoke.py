@@ -191,6 +191,9 @@ def main():
                    'cfg[vigilo_problem_suggest_min]': '2', 'cfg[vigilo_problem_suggest_months]': '120'})
     for name, value in re.findall(r'<select[^>]*name="(cfg\[[a-z_]+\])"[^>]*>.*?<option[^>]*value="([^"]*)"[^>]*selected', page, re.S):
         fields.setdefault(name, value)
+    check('name="cfg[vigilo_shownonapproved]"' in page and 'value="substitute"' in page
+          and 'name="cfg[vigilo_shownonapproved_notext]"' in page,
+          'non-approved display mode (choice) and hide-text switch shown')
     status, _, page = admin.request('index.php?page=settings', fields)
     clean('settings save', status, page)
     check('alert-success' in page, 'settings saved')
