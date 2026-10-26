@@ -29,12 +29,13 @@ if (isset($config['SAAS_MODE']) && $config['SAAS_MODE']) {
 /*
  * Editable settings. Only these parameters can be written from the UI
  * (vigilo_db_version, in particular, is never editable).
- * type: text, urlbase, proto, language, timezone, charset, bool, int, url, choice (options)
+ * type: text, textarea, datetime, urlbase, proto, language, timezone, charset, bool, int, url, choice (options)
  */
 
 $settings_cards = array(
   'instance' => array('title' => 'Instance', 'icon' => 'house-gear'),
   'publication' => array('title' => 'Publication', 'icon' => 'megaphone'),
+  'banniere' => array('title' => 'Bannière', 'icon' => 'info-circle'),
   'photos' => array('title' => 'Photos', 'icon' => 'image'),
   'antispam' => array('title' => 'Anti-spam', 'icon' => 'shield-check'),
   'problems' => array('title' => 'Suggestions de problèmes', 'icon' => 'diagram-3'),
@@ -74,6 +75,34 @@ $settings_fields = array(
   'vigilo_resolved_hide_days' => array(
     'card' => 'publication', 'type' => 'int', 'label' => 'Masquer les observations résolues depuis plus de (jours)', 'default' => '0', 'suffix' => 'jours',
     'help' => 'Les observations résolues depuis plus de N jours ne sont plus listées publiquement. 0 = jamais masquées.'),
+
+  // Announcement shown in the web app (get_banner.php). Empty message = no banner.
+  'vigilo_banner_message' => array(
+    'card' => 'banniere', 'type' => 'textarea', 'label' => 'Message', 'default' => '',
+    'help' => 'Message affiché dans l\'application. Laisser vide pour ne pas afficher de bannière. Modifier le message le ré-affiche à tout le monde, même à ceux qui l\'avaient fermé.'),
+  'vigilo_banner_type' => array(
+    'card' => 'banniere', 'type' => 'choice', 'label' => 'Type', 'default' => 'info',
+    'options' => array(
+      'info' => 'Information (bleu)',
+      'success' => 'Succès (vert)',
+      'warning' => 'Attention (orange)',
+      'alert' => 'Alerte (rouge)',
+    ),
+    'help' => 'Couleur et icône de la bannière selon l\'importance du message.'),
+  'vigilo_banner_start' => array(
+    'card' => 'banniere', 'type' => 'datetime', 'label' => 'Début (optionnel)', 'default' => '',
+    'help' => 'Avant cette date et heure, la bannière n\'est pas affichée. Vide = dès maintenant.'),
+  'vigilo_banner_end' => array(
+    'card' => 'banniere', 'type' => 'datetime', 'label' => 'Fin (optionnel)', 'default' => '',
+    'help' => 'Après cette date et heure, la bannière n\'est plus affichée. Vide = sans fin.'),
+  'vigilo_banner_display' => array(
+    'card' => 'banniere', 'type' => 'choice', 'label' => 'Affichage', 'default' => 'banner',
+    'options' => array(
+      'banner' => 'Bandeau sous la barre du haut',
+      'modal' => 'Fenêtre au lancement',
+      'both' => 'Les deux (bandeau + fenêtre)',
+    ),
+    'help' => 'Bandeau fermable sous la barre du haut, fenêtre ouverte au lancement, ou les deux. Dans tous les cas, une fois fermée, la bannière ne se rouvre pas jusqu\'au prochain message.'),
 
 
   'vigilo_blur_url' => array(
@@ -197,8 +226,13 @@ if (isset($_POST['settings_save'])) {
           $errors[$param] = 'L\'URL doit commencer par http:// ou https:// (ou être vide).';
         }
         break;
+      case 'datetime':
+        if ($value !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/', $value)) {
+          $errors[$param] = 'Date et heure invalides.';
+        }
+        break;
       default:
-        // Free text
+        // Free text (text, textarea)
         break;
     }
   }
@@ -307,6 +341,12 @@ $render_field = function ($param, $field, $value, $error) use ($timezones) {
         if ($env !== '') {
           $control .= '<div class="form-text text-success"><i class="bi bi-info-circle"></i> Vide : la variable d\'environnement ' . h($field['env']) . ' est utilisée (' . h($env) . ').</div>';
         }
+        break;
+      case 'textarea':
+        $control = '<textarea class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" rows="3" aria-describedby="' . h($help_id) . '">' . h($value) . '</textarea>';
+        break;
+      case 'datetime':
+        $control = '<input type="datetime-local" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" aria-describedby="' . h($help_id) . '" style="max-width: 16rem;">';
         break;
       default:
         $control = '<input type="text" class="form-control' . $invalid . '" id="' . h($id) . '" name="' . h($name) . '" value="' . h($value) . '" aria-describedby="' . h($help_id) . '"' . $required . '>';
