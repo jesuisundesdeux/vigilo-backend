@@ -1482,11 +1482,11 @@ class T16Banner(unittest.TestCase):
     def tearDown(self):
         sql("DELETE FROM obs_banners")
 
-    def add(self, message='Coucou', type='info', display='banner', scopes='', start=0, end=0, enabled=1):
+    def add(self, message='Coucou', type='info', display='banner', scopes='', start=0, end=0, enabled=1, persistent=0):
         out = sql("INSERT INTO obs_banners (banner_message, banner_type, banner_display, banner_scopes, "
-                  "banner_start, banner_end, banner_enabled, banner_created) VALUES "
-                  "('%s', '%s', '%s', '%s', %d, %d, %d, %d); SELECT LAST_INSERT_ID()"
-                  % (message, type, display, scopes, start, end, enabled, int(time.time())))
+                  "banner_start, banner_end, banner_enabled, banner_persistent, banner_created) VALUES "
+                  "('%s', '%s', '%s', '%s', %d, %d, %d, %d, %d); SELECT LAST_INSERT_ID()"
+                  % (message, type, display, scopes, start, end, enabled, persistent, int(time.time())))
         return int(out.splitlines()[-1])
 
     def banner(self, scope=None):
@@ -1504,6 +1504,15 @@ class T16Banner(unittest.TestCase):
         b = self.banner()
         self.assertEqual((b['message'], b['type'], b['display']), ('Travaux en cours', 'warning', 'both'))
         self.assertTrue(b['id'])
+        self.assertEqual(b['persistent'], 0, 'non-persistent by default')
+
+    def test_persistent(self):
+        b = self.add(message='Toujours visible')
+        first = self.banner()['id']
+        self.assertEqual(self.banner()['persistent'], 0, 'default is non-persistent')
+        sql("UPDATE obs_banners SET banner_persistent=1 WHERE banner_id=%d" % b)
+        self.assertEqual(self.banner()['persistent'], 1, 'persistent flag served to the web app')
+        self.assertNotEqual(self.banner()['id'], first, 'toggling persistent changes the id')
 
     def test_unknown_type_and_display_fall_back(self):
         self.add(message='Coucou', type='bogus', display='bogus')

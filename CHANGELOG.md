@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.39
+
+### Bannières
+- Nouvelle option **« Persistante »** par bannière (page Bannière de l'admin, colonne `banner_persistent`,
+  migration `init-0.0.39.sql`) : quand elle est cochée, l'application réaffiche la bannière à **chaque ouverture**
+  même si la personne l'a fermée, et rouvre la fenêtre au lancement ; sinon (défaut, comportement historique), une
+  bannière fermée **ne revient pas**, même après redémarrage, tant que son contenu n'a pas changé.
+- `get_banner.php` renvoie le nouveau champ `persistent` (0/1). Ajout seulement, repli : champ absent (< 0.0.39) =
+  `0` ; contrat de l'API inchangé.
+
 ## 0.0.38
 
 ### Corrections

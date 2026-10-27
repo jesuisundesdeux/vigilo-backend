@@ -685,7 +685,8 @@ bannières peuvent être programmées : la plus récemment commencée parmi cell
     "message": "Travaux : application indisponible dimanche.",
     "display": "both",
     "start": "2026-01-01T08:00",
-    "end": "2026-01-31T18:00"
+    "end": "2026-01-31T18:00",
+    "persistent": 0
   }
 }
 ```
@@ -697,5 +698,8 @@ bannières peuvent être programmées : la plus récemment commencée parmi cell
 - `display` : `banner` (bandeau), `modal` (fenêtre) ou `both` (les deux).
 - `id` est un condensé du contenu : il change dès que l'admin modifie la bannière. L'application garde une bannière
   fermée par son `id`, donc une bannière modifiée réapparaît (« jusqu'au prochain message »).
+- `persistent` (0/1, depuis 0.0.39) : à `1`, l'application réaffiche la bannière à chaque ouverture même si la personne
+  l'a fermée (et rouvre la fenêtre au lancement) ; à `0` (défaut, comportement historique), une bannière fermée ne
+  revient pas, même après redémarrage, tant que son contenu n'a pas changé. Absent (< 0.0.39) : traité comme `0`.
 
 Repli : une instance sans la route (< 0.0.38) renvoie 404 ; les clients n'affichent alors pas de bannière.

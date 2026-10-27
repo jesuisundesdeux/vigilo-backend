@@ -555,14 +555,17 @@ function vigilo_banner_format($row)
     $display = in_array($row['banner_display'], vigilo_banner_displays(), true) ? $row['banner_display'] : 'banner';
     $start   = intval($row['banner_start']) ? date('Y-m-d\TH:i', intval($row['banner_start'])) : '';
     $end     = intval($row['banner_end']) ? date('Y-m-d\TH:i', intval($row['banner_end'])) : '';
+    // persistent (backend >= 0.0.39): shown again on every start even after being closed
+    $persistent = isset($row['banner_persistent']) && intval($row['banner_persistent']) ? 1 : 0;
     return array(
         // content hash: changes when the admin edits the banner, so a dismissed banner shows again
-        'id'      => substr(md5($row['banner_id'] . '|' . $row['banner_message'] . '|' . $type . '|' . $row['banner_start'] . '|' . $row['banner_end'] . '|' . $display), 0, 12),
-        'type'    => $type,
-        'message' => (string) $row['banner_message'],
-        'display' => $display,
-        'start'   => $start,
-        'end'     => $end,
+        'id'         => substr(md5($row['banner_id'] . '|' . $row['banner_message'] . '|' . $type . '|' . $row['banner_start'] . '|' . $row['banner_end'] . '|' . $display . '|' . $persistent), 0, 12),
+        'type'       => $type,
+        'message'    => (string) $row['banner_message'],
+        'display'    => $display,
+        'start'      => $start,
+        'end'        => $end,
+        'persistent' => $persistent,
     );
 }
 
