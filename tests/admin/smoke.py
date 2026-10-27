@@ -950,6 +950,13 @@ def main():
     for action in ['login', 'observation_approve', 'note_add', 'settings_edit', 'webhook_create', 'webhook_delete', 'city_import', 'city_create', 'scope_create', 'account_create', 'category_disable', 'category_create', 'category_delete', 'resolution_status', 'observation_delete', 'observation_archive', 'observation_archive_period', 'observation_unarchive',
                    'problem_create', 'problem_edit', 'problem_delete', 'problem_broadcast', 'account_password_link', 'problem_attach_retro', 'problem_attach', 'problem_detach', 'problem_attach_auto', 'problem_suggestion_dismiss', 'problem_split', 'problem_merge', 'observation_address_fix']:
         check(action in page, 'audit log contains ' + action)
+    # The "login vide" filter selects only empty-login entries, not everything (f_login empty = no filter)
+    total_all = re.search(r'(\d+)\s+entrée', page)
+    total_all = int(total_all.group(1)) if total_all else 0
+    status, _, page = admin.request('index.php?page=audit&f_login=__login_vide__')
+    total_empty = re.search(r'(\d+)\s+entrée', page)
+    total_empty = int(total_empty.group(1)) if total_empty else -1
+    check(total_all > 0 and total_empty != total_all, 'audit: "login vide" filter does not show all entries')
 
     # A problem without observation: not shown to a citystaff
     status, _, page = admin.request('index.php?page=problems&edit=new')

@@ -28,7 +28,12 @@ if (!isset($page_name) || !isset($_SESSION['role']) || !in_array($_SESSION['role
  */
 $audit_per_page = 50;
 
-$f_login  = (isset($_GET['f_login']) && is_string($_GET['f_login'])) ? trim($_GET['f_login']) : '';
+// Sentinel for the "login vide" filter: an empty f_login would mean "no filter", so a special value
+// (which cannot be an account login) selects the entries whose login is empty (public/system actions).
+define('AUDIT_LOGIN_EMPTY', '__login_vide__');
+$f_login_raw   = (isset($_GET['f_login']) && is_string($_GET['f_login'])) ? $_GET['f_login'] : '';
+$f_login_empty = ($f_login_raw === AUDIT_LOGIN_EMPTY);
+$f_login       = $f_login_empty ? '' : trim($f_login_raw);
 $f_action = (isset($_GET['f_action']) && is_string($_GET['f_action'])) ? trim($_GET['f_action']) : '';
 $current_page = (isset($_GET['p']) && is_string($_GET['p']) && ctype_digit($_GET['p'])) ? max(1, (int) $_GET['p']) : 1;
 
@@ -52,7 +57,9 @@ if ($query) {
 
 /* WHERE clause, all inputs escaped */
 $where = array();
-if ($f_login !== '') {
+if ($f_login_empty) {
+  $where[] = "audit_login = ''";
+} elseif ($f_login !== '') {
   $where[] = "audit_login = '" . mysqli_real_escape_string($db, $f_login) . "'";
 }
 if ($f_action !== '') {
@@ -83,9 +90,11 @@ if ($query) {
 }
 
 /* URL of a page of the journal, keeping the filters */
-$audit_url = function ($p) use ($page_name, $f_login, $f_action) {
+$audit_url = function ($p) use ($page_name, $f_login, $f_login_empty, $f_action) {
   $params = array('page' => $page_name);
-  if ($f_login !== '') {
+  if ($f_login_empty) {
+    $params['f_login'] = AUDIT_LOGIN_EMPTY;
+  } elseif ($f_login !== '') {
     $params['f_login'] = $f_login;
   }
   if ($f_action !== '') {
@@ -138,8 +147,11 @@ $audit_details = function ($details) {
     <label class="form-label small mb-1" for="f_login">Login</label>
     <select class="form-select form-select-sm" id="f_login" name="f_login">
       <option value="">Tous</option>
-<?php foreach ($audit_logins as $login) { ?>
-      <option value="<?= h($login) ?>"<?= $login === $f_login ? ' selected' : '' ?>><?= h($login === '' ? '(vide)' : $login) ?></option>
+<?php foreach ($audit_logins as $login) {
+        $option_value = ($login === '') ? AUDIT_LOGIN_EMPTY : $login;
+        $option_selected = ($login === '') ? $f_login_empty : ($login === $f_login);
+      ?>
+      <option value="<?= h($option_value) ?>"<?= $option_selected ? ' selected' : '' ?>><?= h($login === '' ? '(vide)' : $login) ?></option>
 <?php } ?>
     </select>
   </div>
@@ -154,7 +166,7 @@ $audit_details = function ($details) {
   </div>
   <div class="col-12 col-sm-auto d-flex gap-2">
     <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-funnel"></i> Filtrer</button>
-<?php if ($f_login !== '' || $f_action !== '') { ?>
+<?php if ($f_login !== '' || $f_login_empty || $f_action !== '') { ?>
     <a class="btn btn-outline-secondary btn-sm" href="?page=<?= h(rawurlencode($page_name)) ?>"><i class="bi bi-x-lg"></i> Réinitialiser</a>
 <?php } ?>
   </div>
