@@ -15,6 +15,8 @@
 - Les boutons **Panoramax** de la page Observations ouvrent désormais la vue Panoramax dans une **fenêtre**
   (iframe chargée à l'ouverture, déchargée à la fermeture pour arrêter la lecture), au lieu d'un nouvel onglet ;
   un lien « Ouvrir sur Panoramax » reste proposé dans la fenêtre.
+- Journal : le filtre **« Login (vide) »** ne montre plus toutes les entrées mais bien seulement celles au login vide
+  (actions publiques / système) ; un login vide était auparavant confondu avec « aucun filtre ».
 
 ## 0.0.39
 
