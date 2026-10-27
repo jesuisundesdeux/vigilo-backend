@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.40
+
+### Admin
+- Les boutons **Panoramax** de la page Observations ouvrent désormais la vue Panoramax dans une **fenêtre**
+  (iframe chargée à l'ouverture, déchargée à la fermeture pour arrêter la lecture), au lieu d'un nouvel onglet ;
+  un lien « Ouvrir sur Panoramax » reste proposé dans la fenêtre.
+
 ## 0.0.39
 
 ### Bannières
