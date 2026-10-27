@@ -1575,6 +1575,24 @@ class T16Banner(unittest.TestCase):
         self.assertEqual(lst[0]['message'], 'Fenetre', 'most recently started banner is first')
 
 
+class T17ApiStats(unittest.TestCase):
+    # Visit statistics: common.php counts one hit per public API route, aggregated by day (obs_api_stats)
+    def count(self, route):
+        out = sql("SELECT COALESCE(SUM(stat_count), 0) FROM obs_api_stats WHERE stat_route='%s'" % route)
+        return int(out.splitlines()[-1])
+
+    def test_call_is_counted(self):
+        before = self.count('get_version.php')
+        call('get_version.php')
+        self.assertEqual(self.count('get_version.php'), before + 1, 'a public API call increments its daily counter')
+
+    def test_image_routes_not_counted(self):
+        # image-serving routes are excluded (one call per asset would drown the visit signal)
+        before = self.count('get_photo.php')
+        call('get_photo.php', {'token': 'ZZZZZZZZ'})
+        self.assertEqual(self.count('get_photo.php'), before, 'get_photo.php is not counted')
+
+
 def main():
     global BASE
     parser = argparse.ArgumentParser()

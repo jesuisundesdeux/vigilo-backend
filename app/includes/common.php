@@ -85,6 +85,23 @@ $config['CATEGORIES_NATIONAL_URL'] = $config['VIGILO_CONF_URL'] . "/categorielis
 date_default_timezone_set($config['VIGILO_TIMEZONE']);
 mysqli_set_charset($db, $config['MYSQL_CHARSET']);
 
+// Visit statistics (admin page "Fréquentation"): count one hit per public API route, aggregated by
+// day (instance timezone). Admin pages, the CLI and the image-serving routes (get_photo,
+// generate_panel, one call per asset) are excluded. Never breaks the response: a failure (e.g. the
+// obs_api_stats table missing before the 0.0.40 migration) is ignored.
+if (PHP_SAPI !== 'cli' && isset($_SERVER['SCRIPT_NAME']) && strpos($_SERVER['SCRIPT_NAME'], '/admin/') === false) {
+    $vigilo_api_route = basename($_SERVER['SCRIPT_NAME']);
+    $vigilo_api_counted = array(
+        'get_issues.php', 'get_scope.php', 'get_categories.php', 'get_banner.php', 'get_version.php',
+        'create_issue.php', 'add_image.php', 'create_resolution.php', 'approve.php', 'delete.php', 'acl.php',
+    );
+    if (in_array($vigilo_api_route, $vigilo_api_counted, true)) {
+        $vigilo_api_day = date('Y-m-d');
+        $vigilo_api_r   = mysqli_real_escape_string($db, $vigilo_api_route);
+        @mysqli_query($db, "INSERT INTO obs_api_stats (stat_date, stat_route, stat_count) VALUES ('$vigilo_api_day', '$vigilo_api_r', 1) ON DUPLICATE KEY UPDATE stat_count = stat_count + 1");
+    }
+}
+
 # ACL
 $acls        = array();
 $roles_query = mysqli_query($db, "SELECT * FROM obs_roles");
