@@ -61,8 +61,8 @@ while ($q && $row = mysqli_fetch_assoc($q)) {
     $per_day[$row['stat_date']] = intval($row['c']);
 }
 
-// Unique visitors per day (obs_api_visitors, 0.0.41): one fingerprint per IP per day, so the number of
-// rows of a day = unique visitors of that day. Empty before 0.0.41 (missing table: query returns false).
+// Unique visitors per day (obs_api_visitors, 0.0.40): one fingerprint per IP per day, so the number of
+// rows of a day = unique visitors of that day. Empty before 0.0.40 (missing table: query returns false).
 $visitors_by_day = array();
 $q = mysqli_query($db, "SELECT stat_date, COUNT(*) AS v FROM obs_api_visitors $where GROUP BY stat_date");
 while ($q && $row = mysqli_fetch_assoc($q)) {
