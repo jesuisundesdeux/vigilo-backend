@@ -128,9 +128,11 @@ def main():
     check('approveto=1' not in page and 'approveto=2' in page and 'data-bs-target="#obsResolutionModal"' in page and 'value="resolution_new"' in page
           and '<option value="approve"' not in page and '<option value="disapprove"' in page and '<option value="unarchive"' not in page,
           'approved observations: no "Approuver" button nor bulk action')
-    # Compact list: editing in a window, other actions in a menu, link to Panoramax
+    # Compact list: editing in a window, other actions in a menu, Panoramax opened in a window (iframe)
     check('id="obsEditModal"' in page and 'data-bs-target="#obsEditModal"' in page and 'data-bs-toggle="dropdown"' in page
-          and 'explore.panoramax.fr/#focus=map&amp;map=19/' in page and 'name="obs_comment" value=""' in page, 'observations: compact rows, edit window, Panoramax link')
+          and 'data-bs-target="#panoramaxModal"' in page and 'data-panoramax-url="https://explore.panoramax.fr/#focus=map&amp;map=19/' in page
+          and 'id="panoramaxModal"' in page and 'class="panoramax-frame"' in page and 'name="obs_comment" value=""' in page,
+          'observations: compact rows, edit window, Panoramax window')
     check(re.search(r'<optgroup label="[^"]+"><option value="\d+">R_', page) is not None
           and 'data-filter-select="#obs-resolution"' in page and 'data-filter-select="#bulk-resolution"' in page, 'resolutions to choose grouped by status, with a filter')
     status, _, page = admin.request('index.php?page=observations&approved=0')

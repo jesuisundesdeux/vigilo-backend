@@ -1145,7 +1145,7 @@ foreach ($observations as $result_obs) {
             <?= $city !== '' ? h($city) : '<span class="text-warning-emphasis">Sans ville</span>' ?>
             <?php if ($cityname !== '') { ?><span class="badge text-bg-warning">non référencée</span><?php } ?>
             · <a href="<?= h($osm_url) ?>" target="_blank" rel="noopener" title="Voir sur OpenStreetMap"><i class="bi bi-map"></i><span class="visually-hidden">Carte</span></a>
-            · <a class="text-nowrap" href="<?= h($panoramax_url) ?>" target="_blank" rel="noopener" title="Voir les photos de rue autour de l'observation sur Panoramax"><i class="bi bi-camera"></i> Panoramax</a>
+            · <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap text-decoration-none" data-bs-toggle="modal" data-bs-target="#panoramaxModal" data-panoramax-url="<?= h($panoramax_url) ?>" data-panoramax-title="<?= h('Panoramax — ' . $obs_token) ?>" title="Voir les photos de rue autour de l'observation sur Panoramax"><i class="bi bi-camera"></i> Panoramax</button>
           </div>
         </td>
         <td class="text-end">
@@ -1363,6 +1363,26 @@ foreach ($observations as $result_obs) {
         </div>
       </div>
     </form>
+  </div>
+</div>
+<?php } ?>
+
+<?php if (count($observations) > 0) { ?>
+<!-- Panoramax viewer opened in a window (iframe); its source is set on open and cleared on close (admin.js) -->
+<div class="modal fade" id="panoramaxModal" tabindex="-1" aria-labelledby="panoramaxModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="panoramaxModalTitle">Panoramax</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0">
+        <iframe class="panoramax-frame" title="Vue Panoramax" allow="fullscreen" referrerpolicy="no-referrer" style="width:100%;height:70vh;border:0;display:block"></iframe>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-sm btn-outline-secondary" id="panoramax-open-external" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Ouvrir sur Panoramax</a>
+      </div>
+    </div>
   </div>
 </div>
 <?php } ?>

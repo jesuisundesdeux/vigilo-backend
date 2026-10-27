@@ -95,6 +95,29 @@
       fillForm(event.target, JSON.parse(trigger.getAttribute('data-fill')), trigger.getAttribute('data-title'));
     }
   });
+
+  /*
+   * Panoramax viewer opened in a window (#panoramaxModal): load the iframe only when opening (from
+   * the clicked button's data-panoramax-url) and unload it when closing, so the viewer stops.
+   */
+  var panoramaxModal = document.getElementById('panoramaxModal');
+  if (panoramaxModal) {
+    var panoramaxFrame = panoramaxModal.querySelector('.panoramax-frame');
+    var panoramaxExternal = panoramaxModal.querySelector('#panoramax-open-external');
+    var panoramaxTitle = panoramaxModal.querySelector('.modal-title');
+    panoramaxModal.addEventListener('show.bs.modal', function (event) {
+      var trigger = event.relatedTarget;
+      if (!trigger) { return; }
+      var url = trigger.getAttribute('data-panoramax-url') || '';
+      if (panoramaxFrame) { panoramaxFrame.src = url; }
+      if (panoramaxExternal) { panoramaxExternal.href = url; }
+      var title = trigger.getAttribute('data-panoramax-title');
+      if (panoramaxTitle && title) { panoramaxTitle.textContent = title; }
+    });
+    panoramaxModal.addEventListener('hidden.bs.modal', function () {
+      if (panoramaxFrame) { panoramaxFrame.src = 'about:blank'; }
+    });
+  }
   document.querySelectorAll('[data-reopen-modal]').forEach(function (el) {
     var modal = document.querySelector(el.getAttribute('data-reopen-modal'));
     if (modal && window.bootstrap) {
