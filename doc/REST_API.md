@@ -671,11 +671,12 @@ résolution (statut 1) date de plus de N jours, sauf avec une clé admin ou mod�
 
 ## Bannière (depuis 0.0.38)
 
-`GET get_banner.php` renvoie la bannière (annonce) à afficher dans l'application, parmi celles configurées dans l'admin
-(page « Bannière », table `obs_banners`). Le paramètre `scope` (nom de scope de l'instance) filtre les bannières qui
-ne ciblent que certains scopes ; sans lui, seules les bannières ciblant tous les scopes sont renvoyées. Plusieurs
-bannières peuvent être programmées : la plus récemment commencée parmi celles actives est renvoyée. Réponse
-`application/json` :
+`GET get_banner.php` renvoie les bannières (annonces) à afficher dans l'application, parmi celles configurées dans
+l'admin (page « Bannière », table `obs_banners`). Le paramètre `scope` (nom de scope de l'instance) filtre les
+bannières qui ne ciblent que certains scopes ; sans lui, seules les bannières ciblant tous les scopes sont renvoyées.
+Plusieurs bannières peuvent être actives en même temps : `banners` les liste toutes (la plus récemment commencée
+d'abord), ce qui permet d'afficher par exemple un bandeau **et** une fenêtre venant de deux bannières différentes.
+`banner` reste la plus récente (ou `null`), pour les clients antérieurs à 0.0.39. Réponse `application/json` :
 
 ```json
 {
@@ -687,13 +688,18 @@ bannières peuvent être programmées : la plus récemment commencée parmi cell
     "start": "2026-01-01T08:00",
     "end": "2026-01-31T18:00",
     "persistent": 0
-  }
+  },
+  "banners": [
+    { "id": "a1b2c3d4e5f6", "type": "warning", "message": "…", "display": "both", "start": "", "end": "", "persistent": 0 }
+  ]
 }
 ```
 
+- `banners` (depuis 0.0.39) : liste des bannières actives, la plus récemment commencée d'abord ; `[]` si aucune.
+  L'application choisit une bannière par type d'affichage (une pour le bandeau, une pour la fenêtre).
 - `banner` vaut **`null`** quand aucune bannière active ne correspond : aucune activée, hors de la plage `start`/`end`
   (toutes deux facultatives, `YYYY-MM-DDTHH:MM` dans le fuseau de l'instance), ou ne ciblant pas le `scope` demandé.
-  Les clients masquent alors toute bannière.
+  Les clients antérieurs à 0.0.39 masquent alors toute bannière ; sinon `banners` vaut `[]`.
 - `type` : `info`, `success`, `warning` ou `alert` (sévérité ; l'application choisit couleur et icône).
 - `display` : `banner` (bandeau), `modal` (fenêtre) ou `both` (les deux).
 - `id` est un condensé du contenu : il change dès que l'admin modifie la bannière. L'application garde une bannière

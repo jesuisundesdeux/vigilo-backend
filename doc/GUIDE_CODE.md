@@ -518,13 +518,16 @@ les mêmes paramètres. Voir section 6.4 pour la logique de pixelisation et de c
   (`city_scope = scope_id`, triées par nom) et `backend_version`. Les noms des champs JSON diffèrent des colonnes
   (`tweet_content` ← `scope_sharing_content_text`, `map_url` ← `scope_umap_url`, `twitter` ← `scope_twitter`).
 - `get_categories.php` : `json_encode(getCategoriesList(), JSON_UNESCAPED_UNICODE)`.
-- `get_banner.php` : `{"banner": vigilo_banner($db, $scope_id)}` (`functions.php`). `$scope_id` vient du paramètre
-  `scope` (nom de scope résolu via `obs_scopes`, 0 si absent). `vigilo_banner()` choisit dans `obs_banners` la
-  bannière active (activée, dans sa plage `start`/`end`, ciblant ce scope — `banner_scopes` vide = tous ; la plus
-  récemment commencée si plusieurs) et la met en forme (`id` = condensé du contenu, `type`, `message`, `display`,
-  `start`, `end`, `persistent`) ou `null`. `persistent` (0/1, depuis 0.0.39) : à 1 l'application réaffiche la bannière
-  à chaque ouverture même fermée (comportement historique à 0). Types dans `vigilo_banner_types()` (extensible),
-  affichages dans `vigilo_banner_displays()`.
+- `get_banner.php` : `{"banners": vigilo_banners_active($db, $scope_id), "banner": <la première>|null}`
+  (`functions.php`). `$scope_id` vient du paramètre `scope` (nom de scope résolu via `obs_scopes`, 0 si absent).
+  `vigilo_banners_active()` renvoie **toutes** les bannières actives de `obs_banners` (activées, dans leur plage
+  `start`/`end`, ciblant ce scope — `banner_scopes` vide = tous ; la plus récemment commencée d'abord), chacune mise
+  en forme par `vigilo_banner_format()` (`id` = condensé du contenu, `type`, `message`, `display`, `start`, `end`,
+  `persistent`). `banner` (= la première, ou `null`, via `vigilo_banner()`) reste pour les clients < 0.0.39.
+  L'application affiche une bannière par type d'affichage, donc un bandeau et une fenêtre peuvent venir de deux
+  bannières différentes. `persistent` (0/1, depuis 0.0.39) : à 1 l'application réaffiche la bannière à chaque ouverture
+  même fermée (comportement historique à 0). Types dans `vigilo_banner_types()` (extensible), affichages dans
+  `vigilo_banner_displays()`.
 - `get_version.php` : `{"version": BACKEND_VERSION}` ; utilisée aussi par le contrôle de santé de la mise à jour.
 - `acl.php` : `{"role": <rôle ou false>}` ; 400 `KEYNOTPROVIDED` sans `key`. Utilisée par l'application web pour
   activer le mode modérateur.

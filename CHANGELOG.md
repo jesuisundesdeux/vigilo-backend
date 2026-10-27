@@ -3,6 +3,10 @@
 ## 0.0.39
 
 ### Bannières
+- **Plusieurs bannières affichées en même temps** : `get_banner.php` renvoie `banners`, la liste de toutes les
+  bannières actives (la plus récemment commencée d'abord). L'application peut ainsi afficher un bandeau **et** une
+  fenêtre venant de **deux bannières différentes** (elle choisit une bannière par type d'affichage). Le champ `banner`
+  (la plus récente) reste renvoyé pour les anciens clients. Ajout seulement, contrat de l'API inchangé.
 - Nouvelle option **« Persistante »** par bannière (page Bannière de l'admin, colonne `banner_persistent`,
   migration `init-0.0.39.sql`) : quand elle est cochée, l'application réaffiche la bannière à **chaque ouverture**
   même si la personne l'a fermée, et rouvre la fenêtre au lancement ; sinon (défaut, comportement historique), une

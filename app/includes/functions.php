@@ -570,11 +570,12 @@ function vigilo_banner_format($row)
 }
 
 /*
- * The banner to show right now for a given scope (obs_scopes id, 0/none = only banners that target
- * every scope), or null. Active = enabled, within its optional start/end window, and targeting this
- * scope (banner_scopes empty = all scopes). When several are active, the most recently started wins.
+ * All the banners to show right now for a given scope (obs_scopes id, 0/none = only banners that
+ * target every scope), most recently started first. Active = enabled, within its optional start/end
+ * window, and targeting this scope (banner_scopes empty = all scopes). The web app can show several at
+ * once (e.g. a bar and a window from two different banners); it picks one per display channel.
  */
-function vigilo_banner($db, $scope_id = 0)
+function vigilo_banners_active($db, $scope_id = 0)
 {
     $now      = time();
     $scope_id = intval($scope_id);
@@ -583,10 +584,23 @@ function vigilo_banner($db, $scope_id = 0)
           AND (banner_start = 0 OR banner_start <= $now)
           AND (banner_end = 0 OR banner_end >= $now)
           AND (banner_scopes = '' OR FIND_IN_SET($scope_id, banner_scopes))
-        ORDER BY banner_start DESC, banner_id DESC LIMIT 1");
-    $row = $query ? mysqli_fetch_assoc($query) : null;
-    if (!$row || trim($row['banner_message']) === '') {
-        return null;
+        ORDER BY banner_start DESC, banner_id DESC");
+    $banners = array();
+    while ($query && $row = mysqli_fetch_assoc($query)) {
+        if (trim($row['banner_message']) === '') {
+            continue;
+        }
+        $banners[] = vigilo_banner_format($row);
     }
-    return vigilo_banner_format($row);
+    return $banners;
+}
+
+/*
+ * The single most recent active banner for a given scope, or null (kept for the historical
+ * get_banner.php "banner" field; the web app now reads the "banners" list).
+ */
+function vigilo_banner($db, $scope_id = 0)
+{
+    $banners = vigilo_banners_active($db, $scope_id);
+    return empty($banners) ? null : $banners[0];
 }
