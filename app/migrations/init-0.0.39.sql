@@ -10,4 +10,10 @@ PREPARE vigilo_stmt FROM @vigilo_sql;
 EXECUTE vigilo_stmt;
 DEALLOCATE PREPARE vigilo_stmt;
 
+-- Optional bold title shown above the message (replaces the former type label), configured in the admin.
+SET @vigilo_sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `obs_banners` ADD COLUMN `banner_title` varchar(200) NOT NULL DEFAULT ''''', 'SELECT 1') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'obs_banners' AND COLUMN_NAME = 'banner_title');
+PREPARE vigilo_stmt FROM @vigilo_sql;
+EXECUTE vigilo_stmt;
+DEALLOCATE PREPARE vigilo_stmt;
+
 UPDATE `obs_config` SET `config_value` = '0.0.39' WHERE `obs_config`.`config_param` = 'vigilo_db_version';
