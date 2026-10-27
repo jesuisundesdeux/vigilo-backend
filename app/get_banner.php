@@ -18,9 +18,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
- * Banner (announcement) configured in the admin: returns {"banner": {...}} when a message is set
- * and the current time is within its window, {"banner": null} otherwise. The web app shows it as a
- * bar or a modal (its "display"), keeps it dismissed by its "id" until the content changes.
+ * Banners (announcements) configured in the admin. Returns {"banners": [ {...}, ... ]} with every
+ * banner active right now (most recent first), plus "banner" = the first of them (or null) for older
+ * clients. The web app shows one bar and/or one window (each banner's "display"), possibly from two
+ * different banners, and keeps each dismissed by its "id" until the content changes.
  */
 $cwd = dirname(__FILE__);
 
@@ -43,4 +44,8 @@ if (isset($_GET['scope']) && $_GET['scope'] !== '') {
     }
 }
 
-echo json_encode(array('banner' => vigilo_banner($db, $scope_id)), JSON_PRETTY_PRINT);
+$banners = vigilo_banners_active($db, $scope_id);
+echo json_encode(array(
+    'banner'  => empty($banners) ? null : $banners[0],
+    'banners' => $banners,
+), JSON_PRETTY_PRINT);

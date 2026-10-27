@@ -1494,6 +1494,11 @@ class T16Banner(unittest.TestCase):
         self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
         return r.json()['banner']
 
+    def banners(self, scope=None):
+        r = call('get_banner.php', {'scope': scope} if scope else None)
+        self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
+        return r.json()['banners']
+
     def test_none_without_banner(self):
         self.assertIsNone(self.banner(), 'no banner when the table is empty')
         self.add(message='Caché', enabled=0)
@@ -1549,6 +1554,17 @@ class T16Banner(unittest.TestCase):
         first = self.banner()['id']
         sql("UPDATE obs_banners SET banner_message='Message B' WHERE banner_id=%d" % b)
         self.assertNotEqual(self.banner()['id'], first, 'editing the message changes the id')
+
+    def test_several_active_at_once(self):
+        # a bar and a window from two different banners show at the same time
+        self.add(message='Bandeau', display='banner', start=int(time.time()) - 60)
+        self.add(message='Fenetre', display='modal', start=int(time.time()) - 30)
+        lst = self.banners()
+        self.assertEqual(len(lst), 2, 'both active banners are returned')
+        messages = [b['message'] for b in lst]
+        self.assertIn('Bandeau', messages)
+        self.assertIn('Fenetre', messages)
+        self.assertEqual(self.banner()['message'], 'Fenetre', '"banner" stays the most recent for old clients')
 
 
 def main():
