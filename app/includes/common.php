@@ -99,6 +99,17 @@ if (PHP_SAPI !== 'cli' && isset($_SERVER['SCRIPT_NAME']) && strpos($_SERVER['SCR
         $vigilo_api_day = date('Y-m-d');
         $vigilo_api_r   = mysqli_real_escape_string($db, $vigilo_api_route);
         @mysqli_query($db, "INSERT INTO obs_api_stats (stat_date, stat_route, stat_count) VALUES ('$vigilo_api_day', '$vigilo_api_r', 1) ON DUPLICATE KEY UPDATE stat_count = stat_count + 1");
+        // Unique visitors per day: a daily non-reversible fingerprint of the client IP (HMAC with the
+        // instance secret, salted with the day). The IP itself is never stored, and a fingerprint cannot
+        // be correlated from one day to the next. obs_api_visitors added by the 0.0.41 migration.
+        $vigilo_api_ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+        if ($vigilo_api_ip !== '') {
+            $vigilo_secret_q = @mysqli_query($db, "SELECT config_value FROM obs_config WHERE config_param = 'vigilo_photo_link_secret' ORDER BY config_id LIMIT 1");
+            $vigilo_secret_r = $vigilo_secret_q ? mysqli_fetch_row($vigilo_secret_q) : null;
+            $vigilo_secret   = ($vigilo_secret_r && strlen((string) $vigilo_secret_r[0]) >= 16) ? (string) $vigilo_secret_r[0] : 'vigilo-visitors';
+            $vigilo_visitor  = substr(hash_hmac('sha256', $vigilo_api_day . '|' . $vigilo_api_ip, $vigilo_secret), 0, 32);
+            @mysqli_query($db, "INSERT INTO obs_api_visitors (stat_date, visitor_hash, visit_count) VALUES ('$vigilo_api_day', '$vigilo_visitor', 1) ON DUPLICATE KEY UPDATE visit_count = visit_count + 1");
+        }
     }
 }
 

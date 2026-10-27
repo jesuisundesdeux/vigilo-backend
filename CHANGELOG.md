@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.41
+
+### Fréquentation (statistiques de visites)
+- **Visiteurs uniques par jour** sur la page « Fréquentation » : une statistique (moyenne et maximum par jour) et un
+  graphique par jour, en plus des appels à l'API.
+- `includes/common.php` enregistre, pour chaque appel compté, une **empreinte quotidienne** de l'adresse IP du
+  visiteur dans une table dédiée `obs_api_visitors` (migration `init-0.0.41.sql`, rejouable). L'empreinte est un HMAC
+  (secret de l'instance, mêlé à la date) : **l'adresse IP n'est jamais stockée**, un même visiteur n'est compté qu'une
+  fois par jour et une empreinte ne peut pas être recoupée d'un jour sur l'autre. Le comptage n'échoue jamais la
+  réponse de l'API.
+
 ## 0.0.40
 
 ### Fréquentation (statistiques de visites)
