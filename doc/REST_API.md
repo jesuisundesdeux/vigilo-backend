@@ -676,36 +676,39 @@ l'admin (page « Bannière », table `obs_banners`). Le paramètre `scope` (nom 
 bannières qui ne ciblent que certains scopes ; sans lui, seules les bannières ciblant tous les scopes sont renvoyées.
 Plusieurs bannières peuvent être actives en même temps : `banners` les liste toutes (la plus récemment commencée
 d'abord), ce qui permet d'afficher par exemple un bandeau **et** une fenêtre venant de deux bannières différentes.
-`banner` reste la plus récente (ou `null`), pour les clients antérieurs à 0.0.39. Réponse `application/json` :
+Réponse `application/json` :
 
 ```json
 {
-  "banner": {
-    "id": "a1b2c3d4e5f6",
-    "type": "warning",
-    "message": "Travaux : application indisponible dimanche.",
-    "display": "both",
-    "start": "2026-01-01T08:00",
-    "end": "2026-01-31T18:00",
-    "persistent": 0
-  },
   "banners": [
-    { "id": "a1b2c3d4e5f6", "type": "warning", "message": "…", "display": "both", "start": "", "end": "", "persistent": 0 }
+    {
+      "id": "a1b2c3d4e5f6",
+      "type": "warning",
+      "title": "Travaux",
+      "message": "Application indisponible dimanche. Détails : [ici](https://vigilo.city).",
+      "display": "both",
+      "start": "2026-01-01T08:00",
+      "end": "2026-01-31T18:00",
+      "persistent": 0
+    }
   ]
 }
 ```
 
-- `banners` (depuis 0.0.39) : liste des bannières actives, la plus récemment commencée d'abord ; `[]` si aucune.
-  L'application choisit une bannière par type d'affichage (une pour le bandeau, une pour la fenêtre).
-- `banner` vaut **`null`** quand aucune bannière active ne correspond : aucune activée, hors de la plage `start`/`end`
-  (toutes deux facultatives, `YYYY-MM-DDTHH:MM` dans le fuseau de l'instance), ou ne ciblant pas le `scope` demandé.
-  Les clients antérieurs à 0.0.39 masquent alors toute bannière ; sinon `banners` vaut `[]`.
+- `banners` : liste des bannières actives, la plus récemment commencée d'abord ; `[]` si aucune (aucune activée, hors
+  de la plage `start`/`end`, ou ne ciblant pas le `scope` demandé). L'application choisit une bannière par type
+  d'affichage (une pour le bandeau, une pour la fenêtre).
 - `type` : `info`, `success`, `warning` ou `alert` (sévérité ; l'application choisit couleur et icône).
+- `title` : titre facultatif affiché en gras au-dessus du message (`""` si absent).
+- `message` : texte ; mise en forme légère reconnue par l'application (`**gras**`, `_italique_`, lien
+  `[texte](https://adresse)`), retours à la ligne conservés.
 - `display` : `banner` (bandeau), `modal` (fenêtre) ou `both` (les deux).
 - `id` est un condensé du contenu : il change dès que l'admin modifie la bannière. L'application garde une bannière
   fermée par son `id`, donc une bannière modifiée réapparaît (« jusqu'au prochain message »).
-- `persistent` (0/1, depuis 0.0.39) : à `1`, l'application réaffiche la bannière à chaque ouverture même si la personne
-  l'a fermée (et rouvre la fenêtre au lancement) ; à `0` (défaut, comportement historique), une bannière fermée ne
-  revient pas, même après redémarrage, tant que son contenu n'a pas changé. Absent (< 0.0.39) : traité comme `0`.
+- `persistent` (0/1) : à `1`, l'application réaffiche la bannière à chaque ouverture même si la personne l'a fermée
+  (et rouvre la fenêtre au lancement) ; à `0` (défaut), une bannière fermée ne revient pas, même après redémarrage,
+  tant que son contenu n'a pas changé.
+- `start` / `end` : `YYYY-MM-DDTHH:MM` (fuseau de l'instance) ou vide.
 
-Repli : une instance sans la route (< 0.0.38) renvoie 404 ; les clients n'affichent alors pas de bannière.
+Fonctionnalité bannière : backend ≥ 0.0.39 (la route renvoie la liste `banners`). Une instance sans la route renvoie
+404 ; les clients n'affichent alors pas de bannière.

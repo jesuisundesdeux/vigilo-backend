@@ -1482,22 +1482,22 @@ class T16Banner(unittest.TestCase):
     def tearDown(self):
         sql("DELETE FROM obs_banners")
 
-    def add(self, message='Coucou', type='info', display='banner', scopes='', start=0, end=0, enabled=1, persistent=0):
-        out = sql("INSERT INTO obs_banners (banner_message, banner_type, banner_display, banner_scopes, "
+    def add(self, message='Coucou', type='info', display='banner', scopes='', start=0, end=0, enabled=1, persistent=0, title=''):
+        out = sql("INSERT INTO obs_banners (banner_title, banner_message, banner_type, banner_display, banner_scopes, "
                   "banner_start, banner_end, banner_enabled, banner_persistent, banner_created) VALUES "
-                  "('%s', '%s', '%s', '%s', %d, %d, %d, %d, %d); SELECT LAST_INSERT_ID()"
-                  % (message, type, display, scopes, start, end, enabled, persistent, int(time.time())))
+                  "('%s', '%s', '%s', '%s', '%s', %d, %d, %d, %d, %d); SELECT LAST_INSERT_ID()"
+                  % (title, message, type, display, scopes, start, end, enabled, persistent, int(time.time())))
         return int(out.splitlines()[-1])
-
-    def banner(self, scope=None):
-        r = call('get_banner.php', {'scope': scope} if scope else None)
-        self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
-        return r.json()['banner']
 
     def banners(self, scope=None):
         r = call('get_banner.php', {'scope': scope} if scope else None)
         self.assertEqual((r.status, r.header('Content-Type')), (200, 'application/json; charset=utf-8'))
         return r.json()['banners']
+
+    def banner(self, scope=None):
+        # the most recent active banner (first of the list), or None
+        lst = self.banners(scope)
+        return lst[0] if lst else None
 
     def test_none_without_banner(self):
         self.assertIsNone(self.banner(), 'no banner when the table is empty')
@@ -1510,6 +1510,14 @@ class T16Banner(unittest.TestCase):
         self.assertEqual((b['message'], b['type'], b['display']), ('Travaux en cours', 'warning', 'both'))
         self.assertTrue(b['id'])
         self.assertEqual(b['persistent'], 0, 'non-persistent by default')
+        self.assertEqual(b['title'], '', 'no title by default')
+
+    def test_title(self):
+        b = self.add(message='Message', title='Nouveautés')
+        self.assertEqual(self.banner()['title'], 'Nouveautés', 'the title is served to the web app')
+        first = self.banner()['id']
+        sql("UPDATE obs_banners SET banner_title='Autre titre' WHERE banner_id=%d" % b)
+        self.assertNotEqual(self.banner()['id'], first, 'editing the title changes the id')
 
     def test_persistent(self):
         b = self.add(message='Toujours visible')
@@ -1564,7 +1572,7 @@ class T16Banner(unittest.TestCase):
         messages = [b['message'] for b in lst]
         self.assertIn('Bandeau', messages)
         self.assertIn('Fenetre', messages)
-        self.assertEqual(self.banner()['message'], 'Fenetre', '"banner" stays the most recent for old clients')
+        self.assertEqual(lst[0]['message'], 'Fenetre', 'most recently started banner is first')
 
 
 def main():

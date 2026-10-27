@@ -3,16 +3,21 @@
 ## 0.0.39
 
 ### Bannières
+La fonctionnalité bannière est entièrement disponible à partir de la 0.0.39 (`get_banner.php` renvoie la liste
+`banners`) : la table `obs_banners` est arrivée en 0.0.38 mais l'affichage côté application requiert la 0.0.39.
 - **Plusieurs bannières affichées en même temps** : `get_banner.php` renvoie `banners`, la liste de toutes les
   bannières actives (la plus récemment commencée d'abord). L'application peut ainsi afficher un bandeau **et** une
-  fenêtre venant de **deux bannières différentes** (elle choisit une bannière par type d'affichage). Le champ `banner`
-  (la plus récente) reste renvoyé pour les anciens clients. Ajout seulement, contrat de l'API inchangé.
-- Nouvelle option **« Persistante »** par bannière (page Bannière de l'admin, colonne `banner_persistent`,
-  migration `init-0.0.39.sql`) : quand elle est cochée, l'application réaffiche la bannière à **chaque ouverture**
-  même si la personne l'a fermée, et rouvre la fenêtre au lancement ; sinon (défaut, comportement historique), une
-  bannière fermée **ne revient pas**, même après redémarrage, tant que son contenu n'a pas changé.
-- `get_banner.php` renvoie le nouveau champ `persistent` (0/1). Ajout seulement, repli : champ absent (< 0.0.39) =
-  `0` ; contrat de l'API inchangé.
+  fenêtre venant de **deux bannières différentes** (elle choisit une bannière par type d'affichage).
+- Nouvelle option **« Persistante »** par bannière (colonne `banner_persistent`) : quand elle est cochée,
+  l'application réaffiche la bannière à **chaque ouverture** même si la personne l'a fermée, et rouvre la fenêtre au
+  lancement ; sinon (défaut), une bannière fermée **ne revient pas**, même après redémarrage, tant que son contenu
+  n'a pas changé.
+- Nouveau **titre** facultatif par bannière (colonne `banner_title`), affiché en gras au-dessus du message (remplace
+  l'ancien libellé de type), configurable dans l'admin en plus du message.
+- **Mise en forme** du message reconnue par l'application : `**gras**`, `_italique_` et liens
+  `[texte](https://adresse)` (uniquement `http`/`https`), retours à la ligne conservés.
+- Table `obs_banners` : colonnes `banner_title` et `banner_persistent` ajoutées (migration `init-0.0.39.sql`,
+  rejouable).
 
 ## 0.0.38
 

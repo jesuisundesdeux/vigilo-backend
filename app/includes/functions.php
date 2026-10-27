@@ -555,12 +555,13 @@ function vigilo_banner_format($row)
     $display = in_array($row['banner_display'], vigilo_banner_displays(), true) ? $row['banner_display'] : 'banner';
     $start   = intval($row['banner_start']) ? date('Y-m-d\TH:i', intval($row['banner_start'])) : '';
     $end     = intval($row['banner_end']) ? date('Y-m-d\TH:i', intval($row['banner_end'])) : '';
-    // persistent (backend >= 0.0.39): shown again on every start even after being closed
-    $persistent = isset($row['banner_persistent']) && intval($row['banner_persistent']) ? 1 : 0;
+    $persistent = intval($row['banner_persistent']) ? 1 : 0;   // shown again on every start even after being closed
+    $title      = (string) $row['banner_title'];               // optional bold title shown above the message
     return array(
         // content hash: changes when the admin edits the banner, so a dismissed banner shows again
-        'id'         => substr(md5($row['banner_id'] . '|' . $row['banner_message'] . '|' . $type . '|' . $row['banner_start'] . '|' . $row['banner_end'] . '|' . $display . '|' . $persistent), 0, 12),
+        'id'         => substr(md5($row['banner_id'] . '|' . $title . '|' . $row['banner_message'] . '|' . $type . '|' . $row['banner_start'] . '|' . $row['banner_end'] . '|' . $display . '|' . $persistent), 0, 12),
         'type'       => $type,
+        'title'      => $title,
         'message'    => (string) $row['banner_message'],
         'display'    => $display,
         'start'      => $start,
@@ -593,14 +594,4 @@ function vigilo_banners_active($db, $scope_id = 0)
         $banners[] = vigilo_banner_format($row);
     }
     return $banners;
-}
-
-/*
- * The single most recent active banner for a given scope, or null (kept for the historical
- * get_banner.php "banner" field; the web app now reads the "banners" list).
- */
-function vigilo_banner($db, $scope_id = 0)
-{
-    $banners = vigilo_banners_active($db, $scope_id);
-    return empty($banners) ? null : $banners[0];
 }

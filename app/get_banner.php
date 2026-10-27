@@ -19,9 +19,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
  * Banners (announcements) configured in the admin. Returns {"banners": [ {...}, ... ]} with every
- * banner active right now (most recent first), plus "banner" = the first of them (or null) for older
- * clients. The web app shows one bar and/or one window (each banner's "display"), possibly from two
- * different banners, and keeps each dismissed by its "id" until the content changes.
+ * banner active right now (most recent first), [] if none. The web app shows one bar and/or one
+ * window (each banner's "display"), possibly from two different banners, and keeps each dismissed by
+ * its "id" until the content changes. The banner feature requires this route (backend >= 0.0.39).
  */
 $cwd = dirname(__FILE__);
 
@@ -44,8 +44,4 @@ if (isset($_GET['scope']) && $_GET['scope'] !== '') {
     }
 }
 
-$banners = vigilo_banners_active($db, $scope_id);
-echo json_encode(array(
-    'banner'  => empty($banners) ? null : $banners[0],
-    'banners' => $banners,
-), JSON_PRETTY_PRINT);
+echo json_encode(array('banners' => vigilo_banners_active($db, $scope_id)), JSON_PRETTY_PRINT);

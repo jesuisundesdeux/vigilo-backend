@@ -81,6 +81,7 @@ if (isset($_POST['banner_delete'])) {
 
 if (isset($_POST['banner_save'])) {
     $id      = isset($_POST['banner_id']) ? intval($_POST['banner_id']) : 0;
+    $title   = trim(isset($_POST['banner_title']) ? (string) $_POST['banner_title'] : '');
     $message = trim(isset($_POST['banner_message']) ? (string) $_POST['banner_message'] : '');
     $type    = isset($_POST['banner_type']) && in_array($_POST['banner_type'], vigilo_banner_types(), true) ? $_POST['banner_type'] : 'info';
     $display = isset($_POST['banner_display']) && in_array($_POST['banner_display'], vigilo_banner_displays(), true) ? $_POST['banner_display'] : 'banner';
@@ -95,6 +96,8 @@ if (isset($_POST['banner_save'])) {
         $error = 'Le message est obligatoire.';
     } elseif (strlen($message) > 2000) {
         $error = 'Message trop long (2000 caractères maximum).';
+    } elseif (strlen($title) > 200) {
+        $error = 'Titre trop long (200 caractères maximum).';
     } elseif ($start > 0 && $end > 0 && $end < $start) {
         $error = 'La date de fin est avant la date de début.';
     }
@@ -102,7 +105,7 @@ if (isset($_POST['banner_save'])) {
     if ($error !== '') {
         // Reopen the window with the submitted values (data-reopen-modal, admin.js)
         $reopen = array(
-            'banner_id' => $id, 'banner_message' => $message, 'banner_type' => $type, 'banner_display' => $display,
+            'banner_id' => $id, 'banner_title' => $title, 'banner_message' => $message, 'banner_type' => $type, 'banner_display' => $display,
             'banner_scopes' => $scope_list === '' ? array() : array_map('strval', explode(',', $scope_list)),
             'banner_start' => banner_format_datetime($start), 'banner_end' => banner_format_datetime($end),
             'banner_enabled' => $enabled, 'banner_persistent' => $persistent,
@@ -112,11 +115,12 @@ if (isset($_POST['banner_save'])) {
             . '<i class="bi bi-exclamation-triangle"></i> ' . h($error) . '</div>';
     } else {
         $m = mysqli_real_escape_string($db, $message);
+        $ti = mysqli_real_escape_string($db, $title);
         $tp = mysqli_real_escape_string($db, $type);
         $dp = mysqli_real_escape_string($db, $display);
         $sc = mysqli_real_escape_string($db, $scope_list);
         if ($id > 0) {
-            $ok = mysqli_query($db, "UPDATE obs_banners SET banner_message='$m', banner_type='$tp', banner_display='$dp',
+            $ok = mysqli_query($db, "UPDATE obs_banners SET banner_title='$ti', banner_message='$m', banner_type='$tp', banner_display='$dp',
                 banner_scopes='$sc', banner_start=" . intval($start) . ", banner_end=" . intval($end) . ", banner_enabled=" . intval($enabled) . ",
                 banner_persistent=" . intval($persistent) . "
                 WHERE banner_id=" . $id);
@@ -159,7 +163,7 @@ programmées dans le temps ; la plus récemment commencée parmi celles actives 
 concerner que certains scopes de l'instance.</p>
 
 <button class="btn btn-sm btn-primary mb-3" type="button" data-bs-toggle="modal" data-bs-target="#bannerModal" data-title="Nouvelle bannière"
-        data-fill="<?= h(json_encode(array('banner_id' => 0, 'banner_message' => '', 'banner_type' => 'info', 'banner_display' => 'banner', 'banner_scopes' => array(), 'banner_start' => '', 'banner_end' => '', 'banner_enabled' => 1, 'banner_persistent' => 0))) ?>">
+        data-fill="<?= h(json_encode(array('banner_id' => 0, 'banner_title' => '', 'banner_message' => '', 'banner_type' => 'info', 'banner_display' => 'banner', 'banner_scopes' => array(), 'banner_start' => '', 'banner_end' => '', 'banner_enabled' => 1, 'banner_persistent' => 0))) ?>">
   <i class="bi bi-plus-lg"></i> Nouvelle bannière</button>
 
 <?php if (empty($banners)): ?>
@@ -189,7 +193,7 @@ concerner que certains scopes de l'instance.</p>
       if ($period === '') { $period = 'toujours'; }
       $excerpt = mb_substr($row['banner_message'], 0, 80) . (mb_strlen($row['banner_message']) > 80 ? '…' : '');
       $fill = array(
-          'banner_id' => $id, 'banner_message' => $row['banner_message'], 'banner_type' => $type,
+          'banner_id' => $id, 'banner_title' => $row['banner_title'], 'banner_message' => $row['banner_message'], 'banner_type' => $type,
           'banner_display' => isset($banner_display_labels[$row['banner_display']]) ? $row['banner_display'] : 'banner',
           'banner_scopes' => array_map('strval', $scope_ids),
           'banner_start' => banner_format_datetime($start), 'banner_end' => banner_format_datetime($end),
@@ -237,8 +241,13 @@ concerner que certains scopes de l'instance.</p>
       </div>
       <div class="modal-body">
         <div class="mb-3">
+          <label class="form-label" for="banner_title">Titre <span class="text-body-secondary small">(facultatif, affiché en gras)</span></label>
+          <input class="form-control" type="text" id="banner_title" name="banner_title" maxlength="200" />
+        </div>
+        <div class="mb-3">
           <label class="form-label" for="banner_message">Message</label>
           <textarea class="form-control" id="banner_message" name="banner_message" rows="3" maxlength="2000" required></textarea>
+          <div class="form-text">Mise en forme : <code>**gras**</code>, <code>_italique_</code>, lien <code>[texte](https://adresse)</code>. Les retours à la ligne sont conservés.</div>
         </div>
         <div class="row">
           <div class="col-sm-6 mb-3">

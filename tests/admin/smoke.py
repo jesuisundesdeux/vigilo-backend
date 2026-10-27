@@ -203,7 +203,7 @@ def main():
     clean('banner page', status, page)
     check('name="banner_message"' in page and 'name="banner_scopes[]"' in page, 'banner form with scope targeting shown')
     status, _, page = admin.request('index.php?page=banner', {'csrf_token': admin.token(page), 'banner_save': '1',
-        'banner_id': '0', 'banner_message': 'Alerte test <b>échappée</b>', 'banner_type': 'warning',
+        'banner_id': '0', 'banner_title': 'Titre test', 'banner_message': 'Alerte test <b>échappée</b>', 'banner_type': 'warning',
         'banner_display': 'both', 'banner_scopes[]': '1', 'banner_start': '', 'banner_end': '', 'banner_enabled': '1',
         'banner_persistent': '1'})
     clean('banner create', status, page)
