@@ -219,10 +219,11 @@ def main():
         clean('banner delete', status, page)
         check('alert-success' in page, 'banner deleted')
 
-    # Visits: API call statistics page (obs_api_stats), with a range selector
+    # Visits: API call statistics (obs_api_stats) + unique visitors (obs_api_visitors), with a range selector
     status, _, page = admin.request('index.php?page=visits')
     clean('visits page', status, page)
-    check('Fréquentation' in page and 'days=90' in page, 'visits page with range selector shown')
+    check('Fréquentation' in page and 'days=90' in page and 'visiteurs uniques' in page,
+          'visits page with range selector and unique visitors shown')
 
     # Webhooks: invalid JSON refused, creation with the test button (endpoint down), deletion
     status, _, page = admin.request('index.php?page=webhooks&edit=new')

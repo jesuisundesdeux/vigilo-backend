@@ -61,8 +61,19 @@ while ($q && $row = mysqli_fetch_assoc($q)) {
     $per_day[$row['stat_date']] = intval($row['c']);
 }
 
+// Unique visitors per day (obs_api_visitors, 0.0.41): one fingerprint per IP per day, so the number of
+// rows of a day = unique visitors of that day. Empty before 0.0.41 (missing table: query returns false).
+$visitors_by_day = array();
+$q = mysqli_query($db, "SELECT stat_date, COUNT(*) AS v FROM obs_api_visitors $where GROUP BY stat_date");
+while ($q && $row = mysqli_fetch_assoc($q)) {
+    $visitors_by_day[$row['stat_date']] = intval($row['v']);
+}
+
 $total = array_sum($per_route);
 $app_loads = isset($per_route['get_issues.php']) ? $per_route['get_issues.php'] : 0;
+$visitors_total = array_sum($visitors_by_day);
+$visitors_avg = count($visitors_by_day) ? (int) round($visitors_total / count($visitors_by_day)) : 0;
+$visitors_max = $visitors_by_day ? max($visitors_by_day) : 0;
 
 // Daily series: continuous (zeros filled) for a fixed window, sparse (sorted) for "all"
 $daily = array();
@@ -76,11 +87,26 @@ if ($start !== null) {
         $daily[date('d/m', strtotime($d))] = $c;
     }
 }
+
+// Same daily series for unique visitors (aligned with the calls chart)
+$visitors_daily = array();
+if ($start !== null) {
+    for ($d = $start; $d <= date('Y-m-d'); $d = date('Y-m-d', strtotime($d . ' +1 day'))) {
+        $visitors_daily[date('d/m', strtotime($d))] = isset($visitors_by_day[$d]) ? $visitors_by_day[$d] : 0;
+    }
+} else {
+    ksort($visitors_by_day);
+    foreach ($visitors_by_day as $d => $c) {
+        $visitors_daily[date('d/m', strtotime($d))] = $c;
+    }
+}
 ?>
 
 <p class="text-body-secondary">Nombre d'appels à l'API de l'instance, agrégés par jour. Les pages de l'admin et les
 images (photos, panneaux) ne sont pas comptées. « Observations » correspond au chargement de l'application par un
-visiteur.</p>
+visiteur. Les <strong>visiteurs uniques</strong> sont comptés par une empreinte quotidienne de l'adresse IP (jamais
+l'adresse elle-même) : un même visiteur n'est compté qu'une fois par jour et ne peut pas être suivi d'un jour à
+l'autre.</p>
 
 <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Période">
 <?php foreach ($ranges as $key => $label): ?>
@@ -94,19 +120,25 @@ visiteur.</p>
 <?php else: ?>
 
 <div class="row g-3 mb-3">
-  <div class="col-sm-4">
+  <div class="col-sm-6 col-lg-3">
     <div class="card"><div class="card-body">
       <div class="h3 mb-0"><?= number_format($total, 0, ',', ' ') ?></div>
       <div class="text-body-secondary small">Appels à l'API</div>
     </div></div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-sm-6 col-lg-3">
     <div class="card"><div class="card-body">
       <div class="h3 mb-0"><?= number_format($app_loads, 0, ',', ' ') ?></div>
       <div class="text-body-secondary small">Chargements de l'appli (observations)</div>
     </div></div>
   </div>
-  <div class="col-sm-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="h3 mb-0"><?= number_format($visitors_avg, 0, ',', ' ') ?></div>
+      <div class="text-body-secondary small">Visiteurs uniques par jour (moyenne)<?= $visitors_max ? ' — jusqu\'à ' . number_format($visitors_max, 0, ',', ' ') : '' ?></div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
     <div class="card"><div class="card-body">
       <div class="h3 mb-0"><?= count($per_day) ?></div>
       <div class="text-body-secondary small">Jours avec activité</div>
@@ -118,6 +150,13 @@ visiteur.</p>
   <h2 class="h6">Appels par jour</h2>
   <div class="problem-chart"><?= report_svg_columns($daily, '#1565c0', 'Appels par jour') ?></div>
 </div></div>
+
+<?php if ($visitors_total > 0): ?>
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h6">Visiteurs uniques par jour</h2>
+  <div class="problem-chart"><?= report_svg_columns($visitors_daily, '#2e7d32', 'Visiteurs uniques par jour') ?></div>
+</div></div>
+<?php endif ?>
 
 <?php
 // Horizontal bars + table per route
