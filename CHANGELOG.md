@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.40
+
+### Fréquentation (statistiques de visites)
+- Nouvelle page **« Fréquentation »** dans le menu de l'admin (administrateurs) : nombre d'appels à l'API de
+  l'instance, agrégés par jour — total, « chargements de l'appli » (`get_issues.php`), graphique par jour et
+  répartition par type d'appel, avec un sélecteur de période (30 jours, 90 jours, 1 an, tout).
+- `includes/common.php` compte un appel par **route publique** dans une table dédiée `obs_api_stats`
+  (migration `init-0.0.40.sql` : une ligne par route et par jour, incrémentée — pas de table par requête à purger).
+  Les pages de l'admin, la CLI et les routes d'images (`get_photo.php`, `generate_panel.php`, un appel par vignette)
+  ne sont pas comptées. Le comptage n'échoue jamais la réponse de l'API.
+
 ## 0.0.39
 
 ### Bannières
