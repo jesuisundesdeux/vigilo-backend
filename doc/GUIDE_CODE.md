@@ -173,7 +173,9 @@ connecte à la base et s'arrête sans rien afficher).
 
 ### 2.1 `common.php`
 
-Voir 1.1. Pas de fonction ; définit `$db`, `$config`, `$acls`, `$status_list`.
+Voir 1.1. Pas de fonction ; définit `$db`, `$config`, `$acls`, `$status_list`. Depuis 0.0.40, incrémente aussi le
+compteur de fréquentation (`obs_api_stats`) pour la route publique appelée (hors admin, CLI et routes d'images),
+sans jamais faire échouer la réponse.
 
 ### 2.2 `functions.php`
 
@@ -558,6 +560,7 @@ Toutes les actions sont protégées par le jeton CSRF (1.3) ; les liens d'action
 | `banner.php` | admin | Bannières d'annonce (`obs_banners`) affichées dans l'application : liste, création/modification (fenêtre modale : titre facultatif, message, type, affichage, scopes concernés, plage début/fin, activée, persistante), suppression. Plusieurs bannières programmables et affichables en même temps ; `get_banner.php` renvoie les actives. | POST `banner_save` + `banner_id` (0 = création), `banner_title`, `banner_message`, `banner_type`, `banner_display`, `banner_scopes[]`, `banner_start`, `banner_end`, `banner_enabled`, `banner_persistent` ; POST `banner_delete` + `banner_id`. | `banner_create`, `banner_edit`, `banner_delete` |
 | `webhooks.php` | admin | Liste avec le dernier envoi et les filtres de chaque webhook (`webhook_admin_filter_summary()`), formulaire (modèles, filtres par catégorie et par ville, correspondance des catégories), 30 derniers envois (la table en conserve 500). | GET `edit=new\|<id>` (affiche le formulaire) ; POST `webhook_save` ou `webhook_test` + `webhook_id`, `webhook_name`, `webhook_enabled`, `webhook_event` (un seul ; « Plusieurs événements » signalé dans la liste et le formulaire pour les anciens webhooks), `webhook_categories[]` (catégories connues, désactivées comprises), `webhook_cities[]` (villes de `obs_cities`, `0` : sans ville), `webhook_method`, `webhook_url`, `webhook_format`, `webhook_headers`, `webhook_body`, `webhook_category_only`, `category_map[<catid>]` ; GET `action=delete&webhookid=`. | `webhook_create`, `webhook_edit`, `webhook_delete` |
 | `audit.php` | admin | Journal paginé (50 par page, `p`), filtres `f_login`, `f_action` (pas `action`, réservé aux liens d'action). | — | — |
+| `visits.php` | admin | Fréquentation : appels à l'API (`obs_api_stats`) agrégés par jour — total, chargements de l'appli (`get_issues.php`), graphique par jour (`report_svg_columns`) et par route (`report_svg_bars`), sélecteur de période. Lecture seule. | GET `days` (`30`/`90`/`365`/`all`). | — |
 | `update.php` | admin | Versions (code, base, image Docker `VIGILO_IMAGE_VERSION`, dernière release), migrations en attente, contrôles de sécurité (`vigilo_security_checks()`), installation. Indisponible si `SAAS_MODE`. | POST `apply_migrations` ; POST `install_release` + `version` + `password` (mot de passe de l'admin redemandé) ; POST `watchtower_update` ; POST `refresh` (relit la dernière release). | `update_migrations`, `update_install`, `update_failed`, `update_docker_watchtower` |
 
 `login.php` écrit aussi `login` dans le journal.
@@ -660,6 +663,7 @@ colonnes de `obs_roles` et `obs_cities` en `latin1`, tables créées depuis 0.0.
 | `obs_cities` | `city_id`, `city_scope` (→ `scope_id`), `city_name`, `city_postcode`, `city_area`, `city_population`, `city_website` | |
 | `obs_password_links` | `link_id`, `link_roleid`, `link_hash` (SHA-256 du jeton, unique), `link_created`, `link_created_login`, `link_expires`, `link_used` (0 : pas utilisé) | 0.0.34. Liens pour choisir son mot de passe (`password_links.php`). |
 | `obs_banners` | `banner_id`, `banner_title` (0.0.39 : titre en gras facultatif), `banner_message`, `banner_type` (`info`/`success`/`warning`/`alert`), `banner_display` (`banner`/`modal`/`both`), `banner_scopes` (ids `obs_scopes` séparés par des virgules, `''` = tous), `banner_start`, `banner_end` (timestamps, 0 = sans borne), `banner_enabled`, `banner_persistent` (0.0.39 : 1 = réaffichée à chaque ouverture même fermée), `banner_created` | 0.0.38. Bannières d'annonce (page admin `banner.php`), servies par `get_banner.php`. |
+| `obs_api_stats` | `stat_date` (date), `stat_route` (nom de la route publique), `stat_count` ; clé primaire (`stat_date`, `stat_route`) | 0.0.40. Compteur d'appels à l'API par route et par jour, incrémenté par `common.php` (sauf admin, CLI, images). Affiché par la page admin `visits.php`. |
 | `obs_roles` | `role_id`, `role_key` (clé API, 40 hex), `role_name`, `role_owner` (nom de la personne), `role_login`, `role_password` (bcrypt ou ancien SHA-256), `role_city` (JSON des noms de villes d'un citystaff) | Un compte sans login (clé seule) est possible. |
 | `obs_config` | `config_param` (unique), `config_value` (varchar 255) | Voir 5.3. |
 | `obs_categories` | `cat_id`, `cat_custom` (0 nationale surchargée, 1 propre à l'instance), `cat_disabled`, `cat_name`, `cat_name_en`, `cat_color`, `cat_resolvable` | Une ligne n'existe pour une catégorie nationale que si l'admin l'a désactivée / réactivée. |

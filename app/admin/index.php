@@ -80,6 +80,7 @@ $menu = array("dashboard" => array("icon" => "speedometer2", "name" => "Accueil"
         "banner" => array("icon" => "info-circle", "name" => "Bannière", "access" => array('admin')),
         "webhooks" => array("icon" => "broadcast", "name" => "Webhooks", "access" => array('admin')),
         "audit" => array("icon" => "journal-text", "name" => "Journal", "access" => array('admin')),
+        "visits" => array("icon" => "graph-up-arrow", "name" => "Fréquentation", "access" => array('admin')),
         "update" => array("icon" => "arrow-repeat", "name" => "Mises à jour", "access" => array('admin')));
 
 if(!isset($_GET['page']) || !array_key_exists($_GET['page'],$menu)) {
