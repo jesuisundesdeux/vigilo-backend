@@ -15,6 +15,9 @@
   dédiée `obs_api_visitors` (même migration). L'empreinte est un HMAC (secret de l'instance, mêlé à la date) :
   **l'adresse IP n'est jamais stockée**, un même visiteur n'est compté qu'une fois par jour et une empreinte ne peut
   pas être recoupée d'un jour sur l'autre.
+- Affichage des graphiques corrigé : les libellés des barres horizontales (« Par type d'appel ») étaient illisibles,
+  surdimensionnés et invisibles en thème sombre (règle CSS `.label` manquante dans `admin.css`) ; la valeur au-dessus
+  de la plus haute colonne n'était plus tronquée (marge ajoutée dans `report_svg_columns`).
 
 ### Admin
 - Les boutons **Panoramax** de la page Observations ouvrent désormais la vue Panoramax dans une **fenêtre**
