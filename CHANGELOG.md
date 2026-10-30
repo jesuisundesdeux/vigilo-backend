@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.41
+
+### Fréquentation (statistiques de visites)
+- Affichage des graphiques corrigé : les libellés du graphique « Par type d'appel » (barres horizontales) étaient
+  surdimensionnés et noirs, donc illisibles et invisibles en thème sombre (règle CSS `.label` présente dans
+  `report.css` mais pas dans `admin.css`) ; la valeur au-dessus de la plus haute colonne était tronquée (marge haute
+  ajoutée dans `report_svg_columns`, qui profite aussi aux graphiques des rapports).
+
 ## 0.0.40
 
 ### Fréquentation (statistiques de visites)

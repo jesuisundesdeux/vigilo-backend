@@ -506,20 +506,22 @@ function report_svg_columns($values, $color, $title)
     $height = 240;
     $left = 30;
     $bottom = 40;
+    // headroom above the plot so the value label of a full-height (max) column is not clipped
+    $top = 20;
     $max = max(1, max(array_values($values) ?: array(0)));
     $n = max(1, count($values));
     $slot = ($width - $left) / $n;
     $bar = max(2, $slot * 0.7);
     $svg = '<svg viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . report_svg_escape($title) . '" class="report-chart">';
     foreach (array(0, 0.5, 1) as $step) {
-        $y = ($height - $bottom) - ($height - $bottom - 10) * $step;
+        $y = ($height - $bottom) - ($height - $bottom - $top) * $step;
         $svg .= '<line x1="' . $left . '" x2="' . $width . '" y1="' . $y . '" y2="' . $y . '" class="grid"/>'
               . '<text x="' . ($left - 4) . '" y="' . ($y + 4) . '" text-anchor="end" class="axis">' . round($max * $step) . '</text>';
     }
     $i = 0;
     $every = max(1, intval(ceil($n / 12)));
     foreach ($values as $label => $value) {
-        $h = ($height - $bottom - 10) * $value / $max;
+        $h = ($height - $bottom - $top) * $value / $max;
         $x = $left + $i * $slot + ($slot - $bar) / 2;
         $svg .= '<rect x="' . round($x, 1) . '" y="' . round($height - $bottom - $h, 1) . '" width="' . round($bar, 1) . '" height="' . round($h, 1) . '" fill="' . report_svg_escape($color) . '" rx="2"><title>' . report_svg_escape($label . ' : ' . $value) . '</title></rect>';
         if ($value > 0 && $n <= 24) {
